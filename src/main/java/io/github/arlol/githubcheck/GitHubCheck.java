@@ -12,10 +12,10 @@ public class GitHubCheck {
 
 	static void main(String[] args)
 			throws IOException, InterruptedException, ExecutionException {
-		String token = System.getenv("GITHUB_TOKEN");
+		String token = System.getenv("DRIFTY_GITHUB_TOKEN");
 		if (token == null || token.isBlank()) {
 			System.err.println(
-					"ERROR: GITHUB_TOKEN environment variable not set"
+					"ERROR: DRIFTY_GITHUB_TOKEN environment variable not set"
 			);
 			System.exit(1);
 		}
