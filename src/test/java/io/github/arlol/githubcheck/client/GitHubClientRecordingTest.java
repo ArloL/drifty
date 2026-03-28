@@ -35,7 +35,7 @@ class GitHubClientRecordingTest {
 
 	@Test
 	void record_gitHubApiInteractions() throws Exception {
-		String token = System.getenv("GITHUB_TOKEN");
+		String token = System.getenv("DRIFTY_GITHUB_TOKEN");
 		assumeThat(token).isNotBlank();
 
 		clearDirectory(MAPPINGS_DIR);

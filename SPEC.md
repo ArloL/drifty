@@ -57,7 +57,7 @@ drifty <owner> --fix    # Apply all fixable changes
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GITHUB_TOKEN` | Yes | GitHub personal access token with repo, admin:org, workflow scopes |
+| `DRIFTY_GITHUB_TOKEN` | Yes | GitHub personal access token with repo, admin:org, workflow scopes |
 | `GITHUB_SECRETS` | No | JSON map of secret values (required for secret creation via `--fix`) |
 
 ### Exit Codes
@@ -252,7 +252,7 @@ Current approach: monitor `X-RateLimit-Remaining` header and sleep until reset w
 
 ### Authentication
 
-Bearer token via `GITHUB_TOKEN` environment variable. The token needs sufficient scopes for all managed settings (repo, admin:org, workflow).
+Bearer token via `DRIFTY_GITHUB_TOKEN` environment variable. The token needs sufficient scopes for all managed settings (repo, admin:org, workflow).
 
 ### Testing Strategy
 
