@@ -1,2 +1,0 @@
-Everything *Request *Response
-Everything *Details *Summary
