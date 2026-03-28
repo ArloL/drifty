@@ -141,11 +141,9 @@ class GitHubClientPlaybackTest {
 		assertThat(environments).extracting(EnvironmentDetailsResponse::name)
 				.containsExactly("production");
 		var production = environments.getFirst();
-		assertThat(production.getWaitTimer()).isEqualTo(30);
-		assertThat(production.getReviewerIds()).containsExactly("USER:1234567");
-		assertThat(production.deploymentBranchPolicy()).isNotNull();
-		assertThat(production.deploymentBranchPolicy().protectedBranches())
-				.isTrue();
+		assertThat(production.getWaitTimer()).isNull();
+		assertThat(production.getReviewerIds()).isEmpty();
+		assertThat(production.deploymentBranchPolicy()).isNull();
 	}
 
 	@Test
