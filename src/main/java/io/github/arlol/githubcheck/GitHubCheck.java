@@ -129,6 +129,12 @@ public class GitHubCheck {
 						.actionsSecrets("PAT")
 						.build(),
 				mainCiRepo.toBuilder()
+						.name("drifty")
+						.description(
+								"Detect and fix drift of GitHub repository settings"
+						)
+						.build(),
+				mainCiRepo.toBuilder()
 						.name("git-dora-lead-time-calculator")
 						.description(
 								"A project to calculate the DORA metric lead time with the info from a git repo"
