@@ -56,7 +56,7 @@
 		<dependency>
 			<groupId>org.wiremock</groupId>
 			<artifactId>wiremock-httpclient-apache5</artifactId>
-			<version>4.0.0-beta.29</version>
+			<version>4.0.0-beta.30</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
