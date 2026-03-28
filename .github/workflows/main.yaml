@@ -195,21 +195,21 @@ jobs:
         name: Release ${{ needs.version.outputs.new_version }}
         tag: v${{ needs.version.outputs.new_version }}
     - name: Upload Release Asset
-      uses: shogo82148/actions-upload-release-asset@8f6863c6c894ba46f9e676ef5cccec4752723c1e # v1.9.2
+      uses: shogo82148/actions-upload-release-asset@96bc1f0cb850b65efd58a6b5eaa0a69f88d38077 # v1.10.0
       with:
         asset_content_type: application/zip
         asset_name: ${{ env.ARTIFACT }}-linux-${{ needs.version.outputs.new_version }}.zip
         asset_path: ./target/linux.zip
         upload_url: ${{ steps.create_release.outputs.upload_url }}
     - name: Upload Release Asset
-      uses: shogo82148/actions-upload-release-asset@8f6863c6c894ba46f9e676ef5cccec4752723c1e # v1.9.2
+      uses: shogo82148/actions-upload-release-asset@96bc1f0cb850b65efd58a6b5eaa0a69f88d38077 # v1.10.0
       with:
         asset_content_type: application/zip
         asset_name: ${{ env.ARTIFACT }}-windows-${{ needs.version.outputs.new_version }}.zip
         asset_path: ./target/windows.zip
         upload_url: ${{ steps.create_release.outputs.upload_url }}
     - name: Upload Release Asset
-      uses: shogo82148/actions-upload-release-asset@8f6863c6c894ba46f9e676ef5cccec4752723c1e # v1.9.2
+      uses: shogo82148/actions-upload-release-asset@96bc1f0cb850b65efd58a6b5eaa0a69f88d38077 # v1.10.0
       with:
         asset_content_type: application/zip
         asset_name: ${{ env.ARTIFACT }}-macos-${{ needs.version.outputs.new_version }}.zip
