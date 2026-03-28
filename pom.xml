@@ -203,7 +203,7 @@
 						<argument>-classpath</argument>
 						<classpath />
 						<argument>${start-class}</argument>
-						<!-- <argument>fix</argument> -->
+						<argument>--no-fix</argument>
 					</arguments>
 				</configuration>
 			</plugin>
