@@ -1,0 +1,49 @@
+{
+  "id" : "3d20dabb-1a9b-4865-bff4-23f2ac7c69d8",
+  "name" : "user_repos",
+  "request" : {
+    "urlPath" : "/user/repos",
+    "method" : "GET",
+    "queryParameters" : {
+      "per_page" : {
+        "equalTo" : "100"
+      },
+      "type" : {
+        "equalTo" : "owner"
+      }
+    }
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "user_repos-3d20dabb-1a9b-4865-bff4-23f2ac7c69d8.json",
+    "headers" : {
+      "X-Accepted-OAuth-Scopes" : "",
+      "X-RateLimit-Resource" : "core",
+      "Server" : "github.com",
+      "X-RateLimit-Used" : "1040",
+      "Access-Control-Allow-Origin" : "*",
+      "x-github-api-version-selected" : "2026-03-10",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "X-Frame-Options" : "deny",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
+      "X-RateLimit-Remaining" : "3960",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "Content-Security-Policy" : "default-src 'none'",
+      "X-XSS-Protection" : "0",
+      "X-GitHub-Request-Id" : "A09C:71176:112BAA1:DFDEC4:69C7A7F6",
+      "Content-Type" : "application/json; charset=utf-8",
+      "X-Content-Type-Options" : "nosniff",
+      "X-RateLimit-Reset" : "1774694628",
+      "Date" : "Sat, 28 Mar 2026 10:05:42 GMT",
+      "Cache-Control" : "private, max-age=60, s-maxage=60",
+      "ETag" : "\"7c2217243b2bebe377af1c13cee21ad4085afeba642821982e9897a29e6af1d9\"",
+      "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
+      "X-RateLimit-Limit" : "5000",
+      "X-OAuth-Scopes" : "read:discussion, repo",
+      "github-authentication-token-expiration" : "2026-04-18 19:24:56 UTC"
+    }
+  },
+  "persistent" : true,
+  "insertionIndex" : 30
+}

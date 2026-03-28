@@ -1,0 +1,41 @@
+{
+  "id" : "01bb6c36-319f-4cc5-9c08-d51915499cfc",
+  "name" : "repos_arlol_terraform-github_actions_permissions_workflow",
+  "request" : {
+    "url" : "/repos/ArloL/terraform-github/actions/permissions/workflow",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "{\"default_workflow_permissions\":\"read\",\"can_approve_pull_request_reviews\":true}",
+    "headers" : {
+      "X-Accepted-OAuth-Scopes" : "",
+      "X-RateLimit-Resource" : "core",
+      "Server" : "github.com",
+      "X-RateLimit-Used" : "1043",
+      "Access-Control-Allow-Origin" : "*",
+      "x-github-api-version-selected" : "2026-03-10",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "X-Frame-Options" : "deny",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
+      "X-RateLimit-Remaining" : "3957",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "Content-Security-Policy" : "default-src 'none'",
+      "X-XSS-Protection" : "0",
+      "X-GitHub-Request-Id" : "A17D:141127:10FCC25:DE3865:69C7A7F8",
+      "Content-Type" : "application/json; charset=utf-8",
+      "X-Content-Type-Options" : "nosniff",
+      "X-RateLimit-Reset" : "1774694628",
+      "Date" : "Sat, 28 Mar 2026 10:05:44 GMT",
+      "Cache-Control" : "private, max-age=60, s-maxage=60",
+      "ETag" : "\"1e069113bf1089dfdb7a9e65d9989f153cf588003488367b3b1e7f2f41df3119\"",
+      "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
+      "X-RateLimit-Limit" : "5000",
+      "X-OAuth-Scopes" : "read:discussion, repo",
+      "github-authentication-token-expiration" : "2026-04-18 19:24:56 UTC"
+    }
+  },
+  "persistent" : true,
+  "insertionIndex" : 33
+}
