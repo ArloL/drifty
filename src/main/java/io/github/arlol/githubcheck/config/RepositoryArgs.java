@@ -68,9 +68,6 @@ public final class RepositoryArgs {
 		return topics;
 	}
 
-	/**
-	 * Extra status checks beyond the four applied to all public repos.
-	 */
 	public List<String> requiredStatusChecks() {
 		return requiredStatusChecks;
 	}
