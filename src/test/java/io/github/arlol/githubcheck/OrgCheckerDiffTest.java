@@ -17,16 +17,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.EnvironmentReviewerType;
-import io.github.arlol.githubcheck.client.RulesetEnforcement;
-import io.github.arlol.githubcheck.client.RulesetRuleType;
-import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositoryFull;
 import io.github.arlol.githubcheck.client.RepositoryMinimal;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
+import io.github.arlol.githubcheck.client.RulesetEnforcement;
+import io.github.arlol.githubcheck.client.RulesetRuleType;
+import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
-import io.github.arlol.githubcheck.config.PagesArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 
@@ -77,12 +76,7 @@ class OrgCheckerDiffTest {
 				"allow_force_pushes": {"enabled": false},
 				"required_status_checks": {
 					"strict": false,
-					"checks": [
-						{"context": "check-actions.required-status-check"},
-						{"context": "codeql-analysis.required-status-check"},
-						{"context": "CodeQL"},
-						{"context": "zizmor"}
-					]
+					"checks": []
 				}
 			}
 			""";
@@ -529,7 +523,19 @@ class OrgCheckerDiffTest {
 								"""
 				)
 				.build();
-		assertThat(checker.computeDiffs(state, defaultArgs())).anyMatch(
+		assertThat(
+				checker.computeDiffs(
+						state,
+						defaultArgs().toBuilder()
+								.requiredStatusChecks(
+										"check-actions.required-status-check",
+										"codeql-analysis.required-status-check",
+										"CodeQL",
+										"zizmor"
+								)
+								.build()
+				)
+		).anyMatch(
 				d -> d.contains("branch_protection.required_status_checks")
 						&& d.contains("missing") && d.contains("zizmor")
 		);
@@ -695,32 +701,6 @@ class OrgCheckerDiffTest {
 	void noDrift_correctActionSecret() {
 		var args = defaultArgs().toBuilder().actionsSecrets("PAT").build();
 		var state = new StateBuilder().actionSecretNames("PAT").build();
-		assertThat(checker.computeDiffs(state, args)).isEmpty();
-	}
-
-	@Test
-	void noDrift_correctExtraStatusCheck() {
-		var args = defaultArgs().toBuilder()
-				.requiredStatusChecks("main.required-status-check")
-				.build();
-		var state = new StateBuilder()
-				.branchProtectionOverride(
-						"""
-								{
-									"required_status_checks": {
-										"strict": false,
-										"checks": [
-											{"context": "check-actions.required-status-check"},
-											{"context": "codeql-analysis.required-status-check"},
-											{"context": "CodeQL"},
-											{"context": "zizmor"},
-											{"context": "main.required-status-check"}
-										]
-									}
-								}
-								"""
-				)
-				.build();
 		assertThat(checker.computeDiffs(state, args)).isEmpty();
 	}
 

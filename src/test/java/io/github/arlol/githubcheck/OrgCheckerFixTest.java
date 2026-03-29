@@ -31,15 +31,14 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
-import io.github.arlol.githubcheck.client.EnvironmentReviewerType;
-import io.github.arlol.githubcheck.client.RulesetEnforcement;
-import io.github.arlol.githubcheck.client.RulesetRuleType;
-import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositoryFull;
 import io.github.arlol.githubcheck.client.RepositoryMinimal;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
+import io.github.arlol.githubcheck.client.RulesetEnforcement;
+import io.github.arlol.githubcheck.client.RulesetRuleType;
+import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
@@ -92,12 +91,7 @@ class OrgCheckerFixTest {
 				"allow_force_pushes": {"enabled": false},
 				"required_status_checks": {
 					"strict": false,
-					"checks": [
-						{"context": "check-actions.required-status-check"},
-						{"context": "codeql-analysis.required-status-check"},
-						{"context": "CodeQL"},
-						{"context": "zizmor"}
-					]
+					"checks": []
 				}
 			}
 			""";
@@ -609,28 +603,19 @@ class OrgCheckerFixTest {
 		verify(
 				putRequestedFor(
 						urlEqualTo("/repos/ArloL/repo/branches/main/protection")
-				).withRequestBody(
-						equalToJson(
-								"""
-										{
-											"required_status_checks": {
-												"strict": false,
-												"checks": [
-													{"context": "check-actions.required-status-check"},
-													{"context": "codeql-analysis.required-status-check"},
-													{"context": "CodeQL"},
-													{"context": "zizmor"}
-												]
-											},
-											"enforce_admins": true,
-											"required_pull_request_reviews": null,
-											"restrictions": null,
-											"required_linear_history": true,
-											"allow_force_pushes": false
-										}
-										"""
-						)
-				)
+				).withRequestBody(equalToJson("""
+						{
+							"required_status_checks": {
+								"strict": false,
+								"checks": []
+							},
+							"enforce_admins": true,
+							"required_pull_request_reviews": null,
+							"restrictions": null,
+							"required_linear_history": true,
+							"allow_force_pushes": false
+						}
+						"""))
 		);
 	}
 
@@ -688,28 +673,19 @@ class OrgCheckerFixTest {
 		verify(
 				putRequestedFor(
 						urlEqualTo("/repos/ArloL/repo/branches/main/protection")
-				).withRequestBody(
-						equalToJson(
-								"""
-										{
-											"required_status_checks": {
-												"strict": false,
-												"checks": [
-													{"context": "check-actions.required-status-check"},
-													{"context": "codeql-analysis.required-status-check"},
-													{"context": "CodeQL"},
-													{"context": "zizmor"}
-												]
-											},
-											"enforce_admins": true,
-											"required_pull_request_reviews": null,
-											"restrictions": null,
-											"required_linear_history": true,
-											"allow_force_pushes": false
-										}
-										"""
-						)
-				)
+				).withRequestBody(equalToJson("""
+						{
+							"required_status_checks": {
+								"strict": false,
+								"checks": []
+							},
+							"enforce_admins": true,
+							"required_pull_request_reviews": null,
+							"restrictions": null,
+							"required_linear_history": true,
+							"allow_force_pushes": false
+						}
+						"""))
 		);
 	}
 
