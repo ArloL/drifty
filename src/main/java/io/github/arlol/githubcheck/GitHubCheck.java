@@ -43,7 +43,20 @@ public class GitHubCheck {
 				.requiredLinearHistory(true)
 				.noForcePushes(true)
 				.requiredStatusChecks(
-						OrgChecker.BASE_STATUS_CHECKS.toArray(String[]::new)
+						"check-actions.required-status-check",
+						"codeql-analysis.required-status-check",
+						"CodeQL",
+						"zizmor"
+				)
+				.build();
+
+		var defaultRepository = RepositoryArgs.create("_")
+				.rulesets(defaultRuleset)
+				.requiredStatusChecks(
+						"check-actions.required-status-check",
+						"codeql-analysis.required-status-check",
+						"CodeQL",
+						"zizmor"
 				)
 				.build();
 
@@ -58,10 +71,7 @@ public class GitHubCheck {
 				.build();
 
 		// Group: GitHub Pages sites
-		var pagesSite = RepositoryArgs.create("_")
-				.pages()
-				.rulesets(defaultRuleset)
-				.build();
+		var pagesSite = defaultRepository.toBuilder().pages().build();
 		var pagesSites = List.of(
 				pagesSite.toBuilder()
 						.name("abenteuer-irland")
@@ -76,7 +86,9 @@ public class GitHubCheck {
 						.homepageUrl(
 								"https://arlol.github.io/angular-playground/"
 						)
-						.requiredStatusChecks("pr-check.required-status-check")
+						.addRequiredStatusChecks(
+								"pr-check.required-status-check"
+						)
 						.rulesets(
 								defaultRuleset.toBuilder()
 										.addRequiredStatusChecks(
@@ -116,8 +128,8 @@ public class GitHubCheck {
 		);
 
 		// Group: repos with a main CI required status check
-		var mainCiRepo = RepositoryArgs.create("_")
-				.requiredStatusChecks("main.required-status-check")
+		var mainCiRepo = defaultRepository.toBuilder()
+				.addRequiredStatusChecks("main.required-status-check")
 				.rulesets(mainCiRuleset)
 				.build();
 		var mainCiRepos = List.of(
@@ -186,23 +198,27 @@ public class GitHubCheck {
 
 		// Individual repos with unique configurations
 		var individual = List.of(
-				RepositoryArgs.create("advent-of-code")
+				defaultRepository.toBuilder()
+						.name("advent-of-code")
 						.description("My advent of code solutions")
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("beatunes-keytocomment")
+				defaultRepository.toBuilder()
+						.name("beatunes-keytocomment")
 						.description(
 								"A beatunes plugin that writes the key to the comment"
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("calver-tag-action")
+				defaultRepository.toBuilder()
+						.name("calver-tag-action")
 						.description(
 								"A GitHub Actions action that creates a new version using a CalVer-style derivative and pushes it"
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("corporate-python")
+				defaultRepository.toBuilder()
+						.name("corporate-python")
 						.description(
 								"A container for executing python in corporate environments"
 						)
@@ -212,84 +228,98 @@ public class GitHubCheck {
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("dependabot-dockerfile-test")
+				defaultRepository.toBuilder()
+						.name("dependabot-dockerfile-test")
 						.description(
 								"A test to see whether dependabot updates dockerfiles with args"
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("dotfiles")
+				defaultRepository.toBuilder()
+						.name("dotfiles")
 						.description(
 								"My collection of dotfiles used to configure my command line environments"
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("effortful-retrieval-questions")
+				defaultRepository.toBuilder()
+						.name("effortful-retrieval-questions")
 						.description(
 								"A collection of effortful retrieval questions of a number of articles I've read"
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("git-presentation-2018-10")
+				defaultRepository.toBuilder()
+						.name("git-presentation-2018-10")
 						.description(
 								"Git Präsentation für Vorlesung Industrielle Softwareentwicklung"
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("homebrew-tap")
+				defaultRepository.toBuilder()
+						.name("homebrew-tap")
 						.description(
 								"A homebrew tap for my own formulas and casks"
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("kafka-debugger")
+				defaultRepository.toBuilder()
+						.name("kafka-debugger")
 						.description(
 								"A small jar utility to test kafka connections"
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("menubar-scripts")
+				defaultRepository.toBuilder()
+						.name("menubar-scripts")
 						.description(
 								"A collection of scripts that can run in e.g. xbar, swiftbar, etc."
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("music-stuff")
+				defaultRepository.toBuilder()
+						.name("music-stuff")
 						.description("Some spotify and beatunes stuff")
-						.requiredStatusChecks("test.required-status-check")
+						.addRequiredStatusChecks("test.required-status-check")
 						.rulesets(testCiRuleset)
 						.build(),
-				RepositoryArgs.create("nope-amine")
+				defaultRepository.toBuilder()
+						.name("nope-amine")
 						.description(
 								"A firefox extension that slowly increases the time for things to load on reddit.com"
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("open-webui-runner")
+				defaultRepository.toBuilder()
+						.name("open-webui-runner")
 						.description(
 								"A small repo to run open-webui locally and stop it after using it"
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("postgres-sync-demo")
+				defaultRepository.toBuilder()
+						.name("postgres-sync-demo")
 						.description(
 								"A demo on how to use triggers, queues, etc. to sync the app's data somewhere else"
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("python-nc")
+				defaultRepository.toBuilder()
+						.name("python-nc")
 						.description(
 								"A test to see if I can implement nc's proxy functionality with python"
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("sci-fi-movies")
+				defaultRepository.toBuilder()
+						.name("sci-fi-movies")
 						.description(
 								"an app to import sci fi movies from rotten tomatoes into a database in order to run queries on them"
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("terraform-github")
+				defaultRepository.toBuilder()
+						.name("terraform-github")
 						.description(
 								"A project to manage github settings with terraform"
 						)
@@ -299,12 +329,14 @@ public class GitHubCheck {
 						)
 						.rulesets(defaultRuleset)
 						.build(),
-				RepositoryArgs.create("tsaf-parser")
+				defaultRepository.toBuilder()
+						.name("tsaf-parser")
 						.description("Binary format exploration")
-						.requiredStatusChecks("test.required-status-check")
+						.addRequiredStatusChecks("test.required-status-check")
 						.rulesets(testCiRuleset)
 						.build(),
-				RepositoryArgs.create("vagrant-ssh-config")
+				defaultRepository.toBuilder()
+						.name("vagrant-ssh-config")
 						.description(
 								"A vagrant plugin that automatically creates ssh configs for vms"
 						)
