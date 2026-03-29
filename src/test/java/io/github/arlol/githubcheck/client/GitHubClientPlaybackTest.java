@@ -12,8 +12,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 
-import io.github.arlol.githubcheck.client.RepositoryFull;
-import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.WorkflowPermissions.DefaultWorkflowPermissions;
 
 class GitHubClientPlaybackTest {
@@ -157,6 +155,13 @@ class GitHubClientPlaybackTest {
 						payload
 				)
 		);
+	}
+
+	@Test
+	void getBranchProtection_succeeds() {
+		assertThatNoException().isThrownBy(() -> {
+			client.getBranchProtection("ArloL", "terraform-github", "main");
+		});
 	}
 
 }

@@ -55,6 +55,7 @@ class GitHubClientRecordingTest {
 		client.listOrgRepos("ArloL");
 		client.getRepo("ArloL", "terraform-github");
 		client.getVulnerabilityAlerts("ArloL", "terraform-github");
+		client.getBranchProtection("ArloL", "terraform-github", "main");
 		var perms = client.getWorkflowPermissions("ArloL", "terraform-github");
 		// Non-destructive writes: write back what was just read (idempotent)
 		client.enableVulnerabilityAlerts("ArloL", "terraform-github");

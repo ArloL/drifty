@@ -39,6 +39,7 @@ import io.github.arlol.githubcheck.config.EnvironmentArgs;
 import io.github.arlol.githubcheck.config.PagesArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
+import io.github.arlol.githubcheck.config.StatusCheckArgs;
 
 public class OrgChecker {
 
@@ -404,9 +405,10 @@ public class OrgChecker {
 			}
 		}
 
-		Set<String> wantContexts = new HashSet<>(
-				desired.requiredStatusChecks()
-		);
+		Set<String> wantContexts = desired.requiredStatusChecks()
+				.stream()
+				.map(StatusCheckArgs::getContext)
+				.collect(Collectors.toSet());
 		checkSets(
 				diffs,
 				"branch_protection.required_status_checks",
@@ -497,9 +499,10 @@ public class OrgChecker {
 			);
 
 			// Check required_status_checks
-			Set<String> wantChecks = new HashSet<>(
-					wantedRuleset.requiredStatusChecks()
-			);
+			Set<String> wantChecks = wantedRuleset.requiredStatusChecks()
+					.stream()
+					.map(StatusCheckArgs::getContext)
+					.collect(Collectors.toSet());
 			Set<String> gotChecks = new HashSet<>();
 			RulesetDetailsResponse.Rule statusCheckRule = actualRulesByType
 					.get(RulesetRuleType.REQUIRED_STATUS_CHECKS);
@@ -795,9 +798,10 @@ public class OrgChecker {
 		List<String> branchProtectionDiffs = new ArrayList<>();
 		checkBranchProtection(branchProtectionDiffs, actual, desired);
 		if (!branchProtectionDiffs.isEmpty()) {
-			Set<String> wantContexts = new LinkedHashSet<>(
-					desired.requiredStatusChecks()
-			);
+			Set<String> wantContexts = desired.requiredStatusChecks()
+					.stream()
+					.map(StatusCheckArgs::getContext)
+					.collect(Collectors.toSet());
 			List<BranchProtectionRequest.RequiredStatusChecks.StatusCheck> checks = wantContexts
 					.stream()
 					.map(
@@ -997,9 +1001,9 @@ public class OrgChecker {
 					.requiredStatusChecks()
 					.stream()
 					.map(
-							ctx -> new RulesetRequest.Rule.Parameters.StatusCheck(
-									ctx,
-									null
+							statusCheckArgs -> new RulesetRequest.Rule.Parameters.StatusCheck(
+									statusCheckArgs.getContext(),
+									statusCheckArgs.getAppId()
 							)
 					)
 					.toList();

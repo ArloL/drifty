@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -12,10 +12,13 @@ class RepositoryArgsTest {
 
 	@Test
 	void toBuilderInheritsAllFields() {
+		var statusCheck = StatusCheckArgs.builder()
+				.context("base-check")
+				.build();
 		var original = RepositoryArgs.create("original")
 				.description("A description")
 				.pages()
-				.requiredStatusChecks("base-check")
+				.requiredStatusChecks(statusCheck)
 				.build();
 
 		var copy = original.toBuilder().name("copy").build();
@@ -23,7 +26,7 @@ class RepositoryArgsTest {
 		assertEquals("copy", copy.name());
 		assertEquals("A description", copy.description());
 		assertTrue(copy.pages());
-		assertEquals(List.of("base-check"), copy.requiredStatusChecks());
+		assertEquals(Set.of(statusCheck), copy.requiredStatusChecks());
 	}
 
 	@Test
@@ -39,28 +42,42 @@ class RepositoryArgsTest {
 	@Test
 	void requiredStatusChecksReplacesList() {
 		var base = RepositoryArgs.create("repo")
-				.requiredStatusChecks("old-check")
+				.requiredStatusChecks(
+						StatusCheckArgs.builder().context("old-check").build()
+				)
 				.build();
 
 		var updated = base.toBuilder()
-				.requiredStatusChecks("new-check")
+				.requiredStatusChecks(
+						StatusCheckArgs.builder().context("new-check").build()
+				)
 				.build();
 
-		assertEquals(List.of("new-check"), updated.requiredStatusChecks());
+		assertEquals(
+				Set.of(StatusCheckArgs.builder().context("new-check").build()),
+				updated.requiredStatusChecks()
+		);
 	}
 
 	@Test
 	void addRequiredStatusChecksAppends() {
 		var base = RepositoryArgs.create("repo")
-				.requiredStatusChecks("base-check")
+				.requiredStatusChecks(
+						StatusCheckArgs.builder().context("base-check").build()
+				)
 				.build();
 
 		var extended = base.toBuilder()
-				.addRequiredStatusChecks("extra-check")
+				.addRequiredStatusChecks(
+						StatusCheckArgs.builder().context("extra-check").build()
+				)
 				.build();
 
 		assertEquals(
-				List.of("base-check", "extra-check"),
+				Set.of(
+						StatusCheckArgs.builder().context("base-check").build(),
+						StatusCheckArgs.builder().context("extra-check").build()
+				),
 				extended.requiredStatusChecks()
 		);
 	}
@@ -70,46 +87,81 @@ class RepositoryArgsTest {
 		var base = RepositoryArgs.create("repo").build();
 
 		var extended = base.toBuilder()
-				.addRequiredStatusChecks("first-check")
+				.addRequiredStatusChecks(
+						StatusCheckArgs.builder().context("first-check").build()
+				)
 				.build();
 
-		assertEquals(List.of("first-check"), extended.requiredStatusChecks());
+		assertEquals(
+				Set.of(
+						StatusCheckArgs.builder().context("first-check").build()
+				),
+				extended.requiredStatusChecks()
+		);
 	}
 
 	@Test
 	void addRequiredStatusChecksDoesNotMutateOriginal() {
 		var base = RepositoryArgs.create("repo")
-				.requiredStatusChecks("base-check")
+				.requiredStatusChecks(
+						StatusCheckArgs.builder().context("base-check").build()
+				)
 				.build();
 
-		base.toBuilder().addRequiredStatusChecks("extra-check").build();
+		base.toBuilder()
+				.addRequiredStatusChecks(
+						StatusCheckArgs.builder().context("extra-check").build()
+				)
+				.build();
 
-		assertEquals(List.of("base-check"), base.requiredStatusChecks());
+		assertEquals(
+				Set.of(StatusCheckArgs.builder().context("base-check").build()),
+				base.requiredStatusChecks()
+		);
 	}
 
 	@Test
 	void groupDefaultNotAffectedByPerRepoOverride() {
 		var groupDefault = RepositoryArgs.create("_")
-				.requiredStatusChecks("main.required-status-check")
+				.requiredStatusChecks(
+						StatusCheckArgs.builder()
+								.context("main.required-status-check")
+								.build()
+				)
 				.build();
 
 		var repoA = groupDefault.toBuilder().name("repo-a").build();
 		var repoB = groupDefault.toBuilder()
 				.name("repo-b")
-				.addRequiredStatusChecks("extra-check")
+				.addRequiredStatusChecks(
+						StatusCheckArgs.builder().context("extra-check").build()
+				)
 				.build();
 
 		assertEquals(
-				List.of("main.required-status-check"),
+				Set.of(
+						StatusCheckArgs.builder()
+								.context("main.required-status-check")
+								.build()
+				),
 				repoA.requiredStatusChecks()
 		);
 		assertEquals(
-				List.of("main.required-status-check", "extra-check"),
+				Set.of(
+						StatusCheckArgs.builder()
+								.context("main.required-status-check")
+								.build(),
+						StatusCheckArgs.builder().context("extra-check").build()
+				),
 				repoB.requiredStatusChecks()
 		);
 		// group default is unchanged
 		assertEquals(
-				List.of("main.required-status-check"),
+				Set.of(
+						StatusCheckArgs.builder()
+								.context("main.required-status-check")
+								.build()
+				),
 				groupDefault.requiredStatusChecks()
 		);
 		assertFalse(groupDefault.pages());

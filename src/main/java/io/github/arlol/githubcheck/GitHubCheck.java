@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
+import io.github.arlol.githubcheck.config.StatusCheckArgs;
 
 public class GitHubCheck {
 
@@ -43,31 +44,77 @@ public class GitHubCheck {
 				.requiredLinearHistory(true)
 				.noForcePushes(true)
 				.requiredStatusChecks(
-						"check-actions.required-status-check",
-						"codeql-analysis.required-status-check",
-						"CodeQL",
-						"zizmor"
+						StatusCheckArgs.builder()
+								.context("check-actions.required-status-check")
+								.appId(StatusCheckArgs.APP_ID_GITHUB_ACTIONS)
+								.build(),
+						StatusCheckArgs.builder()
+								.context(
+										"codeql-analysis.required-status-check"
+								)
+								.appId(StatusCheckArgs.APP_ID_GITHUB_ACTIONS)
+								.build(),
+						StatusCheckArgs.builder()
+								.context("zizmor")
+								.appId(
+										StatusCheckArgs.APP_ID_GITHUB_ADVANCED_SECURITY
+								)
+								.build(),
+						StatusCheckArgs.builder()
+								.context("CodeQL")
+								.appId(
+										StatusCheckArgs.APP_ID_GITHUB_ADVANCED_SECURITY
+								)
+								.build()
 				)
 				.build();
 
 		var defaultRepository = RepositoryArgs.create("_")
 				.rulesets(defaultRuleset)
-				.requiredStatusChecks(
-						"check-actions.required-status-check",
-						"codeql-analysis.required-status-check",
-						"CodeQL",
-						"zizmor"
+				.addRequiredStatusChecks(
+						StatusCheckArgs.builder()
+								.context("check-actions.required-status-check")
+								.appId(StatusCheckArgs.APP_ID_GITHUB_ACTIONS)
+								.build(),
+						StatusCheckArgs.builder()
+								.context(
+										"codeql-analysis.required-status-check"
+								)
+								.appId(StatusCheckArgs.APP_ID_GITHUB_ACTIONS)
+								.build(),
+						StatusCheckArgs.builder()
+								.context("zizmor")
+								.appId(
+										StatusCheckArgs.APP_ID_GITHUB_ADVANCED_SECURITY
+								)
+								.build(),
+						StatusCheckArgs.builder()
+								.context("CodeQL")
+								.appId(
+										StatusCheckArgs.APP_ID_GITHUB_ADVANCED_SECURITY
+								)
+								.build()
 				)
 				.build();
 
 		// Variant for repos with the main CI required status check
 		var mainCiRuleset = defaultRuleset.toBuilder()
-				.addRequiredStatusChecks("main.required-status-check")
+				.addRequiredStatusChecks(
+						StatusCheckArgs.builder()
+								.context("main.required-status-check")
+								.appId(StatusCheckArgs.APP_ID_GITHUB_ACTIONS)
+								.build()
+				)
 				.build();
 
 		// Variant for repos with the test required status check
 		var testCiRuleset = defaultRuleset.toBuilder()
-				.addRequiredStatusChecks("test.required-status-check")
+				.addRequiredStatusChecks(
+						StatusCheckArgs.builder()
+								.context("test.required-status-check")
+								.appId(StatusCheckArgs.APP_ID_GITHUB_ACTIONS)
+								.build()
+				)
 				.build();
 
 		// Group: GitHub Pages sites
@@ -87,12 +134,23 @@ public class GitHubCheck {
 								"https://arlol.github.io/angular-playground/"
 						)
 						.addRequiredStatusChecks(
-								"pr-check.required-status-check"
+								StatusCheckArgs.builder()
+										.context(
+												"pr-check.required-status-check"
+										)
+										.build()
 						)
 						.rulesets(
 								defaultRuleset.toBuilder()
 										.addRequiredStatusChecks(
-												"pr-check.required-status-check"
+												StatusCheckArgs.builder()
+														.context(
+																"pr-check.required-status-check"
+														)
+														.appId(
+																StatusCheckArgs.APP_ID_GITHUB_ACTIONS
+														)
+														.build()
 										)
 										.build()
 						)
@@ -129,7 +187,11 @@ public class GitHubCheck {
 
 		// Group: repos with a main CI required status check
 		var mainCiRepo = defaultRepository.toBuilder()
-				.addRequiredStatusChecks("main.required-status-check")
+				.addRequiredStatusChecks(
+						StatusCheckArgs.builder()
+								.context("main.required-status-check")
+								.build()
+				)
 				.rulesets(mainCiRuleset)
 				.build();
 		var mainCiRepos = List.of(
@@ -280,7 +342,11 @@ public class GitHubCheck {
 				defaultRepository.toBuilder()
 						.name("music-stuff")
 						.description("Some spotify and beatunes stuff")
-						.addRequiredStatusChecks("test.required-status-check")
+						.addRequiredStatusChecks(
+								StatusCheckArgs.builder()
+										.context("test.required-status-check")
+										.build()
+						)
 						.rulesets(testCiRuleset)
 						.build(),
 				defaultRepository.toBuilder()
@@ -332,7 +398,11 @@ public class GitHubCheck {
 				defaultRepository.toBuilder()
 						.name("tsaf-parser")
 						.description("Binary format exploration")
-						.addRequiredStatusChecks("test.required-status-check")
+						.addRequiredStatusChecks(
+								StatusCheckArgs.builder()
+										.context("test.required-status-check")
+										.build()
+						)
 						.rulesets(testCiRuleset)
 						.build(),
 				defaultRepository.toBuilder()

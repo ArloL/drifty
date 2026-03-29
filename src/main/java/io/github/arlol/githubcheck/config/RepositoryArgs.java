@@ -1,10 +1,12 @@
 package io.github.arlol.githubcheck.config;
 
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public final class RepositoryArgs {
@@ -16,7 +18,7 @@ public final class RepositoryArgs {
 	private final String homepageUrl;
 	private final String visibility;
 	private final List<String> topics;
-	private final List<String> requiredStatusChecks;
+	private final Set<StatusCheckArgs> requiredStatusChecks;
 	private final List<String> actionsSecrets;
 	private final Map<String, EnvironmentArgs> environments;
 	private final List<RulesetArgs> rulesets;
@@ -29,7 +31,7 @@ public final class RepositoryArgs {
 		this.homepageUrl = builder.homepageUrl;
 		this.visibility = builder.visibility;
 		this.topics = List.copyOf(builder.topics);
-		this.requiredStatusChecks = List.copyOf(builder.requiredStatusChecks);
+		this.requiredStatusChecks = Set.copyOf(builder.requiredStatusChecks);
 		this.actionsSecrets = List.copyOf(builder.actionsSecrets);
 		this.environments = Collections
 				.unmodifiableMap(new LinkedHashMap<>(builder.environments));
@@ -68,7 +70,7 @@ public final class RepositoryArgs {
 		return topics;
 	}
 
-	public List<String> requiredStatusChecks() {
+	public Set<StatusCheckArgs> requiredStatusChecks() {
 		return requiredStatusChecks;
 	}
 
@@ -88,6 +90,41 @@ public final class RepositoryArgs {
 		return new Builder(this);
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (o == null || getClass() != o.getClass())
+			return false;
+		RepositoryArgs that = (RepositoryArgs) o;
+		return archived == that.archived && Objects.equals(name, that.name)
+				&& Objects.equals(pagesArgs, that.pagesArgs)
+				&& Objects.equals(description, that.description)
+				&& Objects.equals(homepageUrl, that.homepageUrl)
+				&& Objects.equals(visibility, that.visibility)
+				&& Objects.equals(topics, that.topics)
+				&& Objects
+						.equals(requiredStatusChecks, that.requiredStatusChecks)
+				&& Objects.equals(actionsSecrets, that.actionsSecrets)
+				&& Objects.equals(environments, that.environments)
+				&& Objects.equals(rulesets, that.rulesets);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(
+				name,
+				archived,
+				pagesArgs,
+				description,
+				homepageUrl,
+				visibility,
+				topics,
+				requiredStatusChecks,
+				actionsSecrets,
+				environments,
+				rulesets
+		);
+	}
+
 	public static Builder create(String name) {
 		return new Builder(name);
 	}
@@ -105,7 +142,7 @@ public final class RepositoryArgs {
 		private String homepageUrl = "";
 		private String visibility = "public";
 		private List<String> topics = List.of();
-		private List<String> requiredStatusChecks = List.of();
+		private Set<StatusCheckArgs> requiredStatusChecks = Set.of();
 		private List<String> actionsSecrets = List.of();
 		private final Map<String, EnvironmentArgs> environments = new LinkedHashMap<>();
 		private List<RulesetArgs> rulesets = List.of();
@@ -168,14 +205,20 @@ public final class RepositoryArgs {
 			return this;
 		}
 
-		public Builder requiredStatusChecks(String... checks) {
-			this.requiredStatusChecks = List.of(checks);
+		public Builder requiredStatusChecks(
+				StatusCheckArgs... statusCheckArgs
+		) {
+			this.requiredStatusChecks = Set.of(statusCheckArgs);
 			return this;
 		}
 
-		public Builder addRequiredStatusChecks(String... checks) {
-			List<String> combined = new ArrayList<>(this.requiredStatusChecks);
-			combined.addAll(List.of(checks));
+		public Builder addRequiredStatusChecks(
+				StatusCheckArgs... statusCheckArgs
+		) {
+			Set<StatusCheckArgs> combined = new HashSet<>(
+					this.requiredStatusChecks
+			);
+			combined.addAll(List.of(statusCheckArgs));
 			this.requiredStatusChecks = combined;
 			return this;
 		}

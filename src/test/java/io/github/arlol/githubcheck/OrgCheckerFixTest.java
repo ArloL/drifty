@@ -42,6 +42,7 @@ import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
+import io.github.arlol.githubcheck.config.StatusCheckArgs;
 
 @WireMockTest
 class OrgCheckerFixTest {
@@ -771,7 +772,14 @@ class OrgCheckerFixTest {
 								.includePatterns("~DEFAULT_BRANCH")
 								.requiredLinearHistory(true)
 								.noForcePushes(true)
-								.requiredStatusChecks("CodeQL", "zizmor")
+								.requiredStatusChecks(
+										StatusCheckArgs.builder()
+												.context("CodeQL")
+												.build(),
+										StatusCheckArgs.builder()
+												.context("zizmor")
+												.build()
+								)
 								.build()
 				)
 				.build();
@@ -948,7 +956,11 @@ class OrgCheckerFixTest {
 						RulesetArgs.builder("main-branch-rules")
 								.includePatterns("~DEFAULT_BRANCH")
 								.requiredLinearHistory(true)
-								.requiredStatusChecks("CodeQL")
+								.requiredStatusChecks(
+										StatusCheckArgs.builder()
+												.context("CodeQL")
+												.build()
+								)
 								.build()
 				)
 				.build();
