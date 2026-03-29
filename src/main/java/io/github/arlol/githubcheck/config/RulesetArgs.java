@@ -1,7 +1,9 @@
 package io.github.arlol.githubcheck.config;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 public final class RulesetArgs {
 
@@ -9,7 +11,7 @@ public final class RulesetArgs {
 	private final List<String> includePatterns;
 	private final boolean requiredLinearHistory;
 	private final boolean noForcePushes;
-	private final List<String> requiredStatusChecks;
+	private final Set<StatusCheckArgs> requiredStatusChecks;
 	private final Integer requiredReviewCount;
 
 	private RulesetArgs(Builder builder) {
@@ -17,7 +19,7 @@ public final class RulesetArgs {
 		this.includePatterns = List.copyOf(builder.includePatterns);
 		this.requiredLinearHistory = builder.requiredLinearHistory;
 		this.noForcePushes = builder.noForcePushes;
-		this.requiredStatusChecks = List.copyOf(builder.requiredStatusChecks);
+		this.requiredStatusChecks = Set.copyOf(builder.requiredStatusChecks);
 		this.requiredReviewCount = builder.requiredReviewCount;
 	}
 
@@ -37,7 +39,7 @@ public final class RulesetArgs {
 		return noForcePushes;
 	}
 
-	public List<String> requiredStatusChecks() {
+	public Set<StatusCheckArgs> requiredStatusChecks() {
 		return requiredStatusChecks;
 	}
 
@@ -47,6 +49,33 @@ public final class RulesetArgs {
 
 	public Builder toBuilder() {
 		return new Builder(this);
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (o == null || getClass() != o.getClass())
+			return false;
+		RulesetArgs that = (RulesetArgs) o;
+		return requiredLinearHistory == that.requiredLinearHistory
+				&& noForcePushes == that.noForcePushes
+				&& Objects.equals(name, that.name)
+				&& Objects.equals(includePatterns, that.includePatterns)
+				&& Objects
+						.equals(requiredStatusChecks, that.requiredStatusChecks)
+				&& Objects
+						.equals(requiredReviewCount, that.requiredReviewCount);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(
+				name,
+				includePatterns,
+				requiredLinearHistory,
+				noForcePushes,
+				requiredStatusChecks,
+				requiredReviewCount
+		);
 	}
 
 	public static Builder builder(String name) {
@@ -59,7 +88,7 @@ public final class RulesetArgs {
 		private List<String> includePatterns = List.of();
 		private boolean requiredLinearHistory = false;
 		private boolean noForcePushes = false;
-		private List<String> requiredStatusChecks = List.of();
+		private Set<StatusCheckArgs> requiredStatusChecks = Set.of();
 		private Integer requiredReviewCount = null;
 
 		public Builder(String name) {
@@ -95,14 +124,20 @@ public final class RulesetArgs {
 			return this;
 		}
 
-		public Builder requiredStatusChecks(String... checks) {
-			this.requiredStatusChecks = List.of(checks);
+		public Builder requiredStatusChecks(
+				StatusCheckArgs... statusCheckArgs
+		) {
+			this.requiredStatusChecks = Set.of(statusCheckArgs);
 			return this;
 		}
 
-		public Builder addRequiredStatusChecks(String... checks) {
-			List<String> combined = new ArrayList<>(this.requiredStatusChecks);
-			combined.addAll(List.of(checks));
+		public Builder addRequiredStatusChecks(
+				StatusCheckArgs... statusCheckArgs
+		) {
+			Set<StatusCheckArgs> combined = new HashSet<>(
+					this.requiredStatusChecks
+			);
+			combined.addAll(List.of(statusCheckArgs));
 			this.requiredStatusChecks = combined;
 			return this;
 		}

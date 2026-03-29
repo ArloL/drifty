@@ -28,6 +28,7 @@ import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
+import io.github.arlol.githubcheck.config.StatusCheckArgs;
 
 class OrgCheckerDiffTest {
 
@@ -528,10 +529,22 @@ class OrgCheckerDiffTest {
 						state,
 						defaultArgs().toBuilder()
 								.requiredStatusChecks(
-										"check-actions.required-status-check",
-										"codeql-analysis.required-status-check",
-										"CodeQL",
-										"zizmor"
+										StatusCheckArgs.builder()
+												.context(
+														"check-actions.required-status-check"
+												)
+												.build(),
+										StatusCheckArgs.builder()
+												.context(
+														"codeql-analysis.required-status-check"
+												)
+												.build(),
+										StatusCheckArgs.builder()
+												.context("CodeQL")
+												.build(),
+										StatusCheckArgs.builder()
+												.context("zizmor")
+												.build()
 								)
 								.build()
 				)
@@ -544,7 +557,11 @@ class OrgCheckerDiffTest {
 	@Test
 	void drift_missingExtraStatusCheck() {
 		var args = defaultArgs().toBuilder()
-				.requiredStatusChecks("main.required-status-check")
+				.requiredStatusChecks(
+						StatusCheckArgs.builder()
+								.context("main.required-status-check")
+								.build()
+				)
 				.build();
 		var state = goodPublicState();
 		assertThat(checker.computeDiffs(state, args)).anyMatch(
@@ -977,7 +994,11 @@ class OrgCheckerDiffTest {
 								.requiredLinearHistory(true)
 								.noForcePushes(true)
 								.requiredStatusChecks(
-										"check-actions.required-status-check"
+										StatusCheckArgs.builder()
+												.context(
+														"check-actions.required-status-check"
+												)
+												.build()
 								)
 								.build()
 				)
@@ -1051,7 +1072,14 @@ class OrgCheckerDiffTest {
 				.rulesets(
 						RulesetArgs.builder("main-branch-rules")
 								.includePatterns("~DEFAULT_BRANCH")
-								.requiredStatusChecks("CodeQL", "zizmor")
+								.requiredStatusChecks(
+										StatusCheckArgs.builder()
+												.context("CodeQL")
+												.build(),
+										StatusCheckArgs.builder()
+												.context("zizmor")
+												.build()
+								)
 								.build()
 				)
 				.build();
@@ -1071,7 +1099,11 @@ class OrgCheckerDiffTest {
 				.rulesets(
 						RulesetArgs.builder("main-branch-rules")
 								.includePatterns("~DEFAULT_BRANCH")
-								.requiredStatusChecks("CodeQL")
+								.requiredStatusChecks(
+										StatusCheckArgs.builder()
+												.context("CodeQL")
+												.build()
+								)
 								.build()
 				)
 				.build();
