@@ -2,14 +2,15 @@ package io.github.arlol.githubcheck;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -17,24 +18,21 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import java.util.Optional;
-
-import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.BranchProtectionRequest;
+import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.EnvironmentUpdateRequest;
-import io.github.arlol.githubcheck.client.RepositoryVisibility;
-import io.github.arlol.githubcheck.client.RulesetEnforcement;
-import io.github.arlol.githubcheck.client.RulesetRuleType;
-import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesCreateRequest;
-import io.github.arlol.githubcheck.client.PagesUpdateRequest;
 import io.github.arlol.githubcheck.client.PagesResponse;
-import io.github.arlol.githubcheck.client.RepositoryFull;
+import io.github.arlol.githubcheck.client.PagesUpdateRequest;
 import io.github.arlol.githubcheck.client.RepositoryMinimal;
-import io.github.arlol.githubcheck.client.RulesetRequest;
+import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
+import io.github.arlol.githubcheck.client.RulesetEnforcement;
+import io.github.arlol.githubcheck.client.RulesetRequest;
+import io.github.arlol.githubcheck.client.RulesetRuleType;
+import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.EnvironmentArgs;
@@ -43,13 +41,6 @@ import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 
 public class OrgChecker {
-
-	static final List<String> BASE_STATUS_CHECKS = List.of(
-			"check-actions.required-status-check",
-			"codeql-analysis.required-status-check",
-			"CodeQL",
-			"zizmor"
-	);
 
 	private final GitHubClient client;
 	private final String org;
@@ -413,8 +404,9 @@ public class OrgChecker {
 			}
 		}
 
-		Set<String> wantContexts = new HashSet<>(BASE_STATUS_CHECKS);
-		wantContexts.addAll(desired.requiredStatusChecks());
+		Set<String> wantContexts = new HashSet<>(
+				desired.requiredStatusChecks()
+		);
 		checkSets(
 				diffs,
 				"branch_protection.required_status_checks",
@@ -803,8 +795,9 @@ public class OrgChecker {
 		List<String> branchProtectionDiffs = new ArrayList<>();
 		checkBranchProtection(branchProtectionDiffs, actual, desired);
 		if (!branchProtectionDiffs.isEmpty()) {
-			Set<String> wantContexts = new LinkedHashSet<>(BASE_STATUS_CHECKS);
-			wantContexts.addAll(desired.requiredStatusChecks());
+			Set<String> wantContexts = new LinkedHashSet<>(
+					desired.requiredStatusChecks()
+			);
 			List<BranchProtectionRequest.RequiredStatusChecks.StatusCheck> checks = wantContexts
 					.stream()
 					.map(
