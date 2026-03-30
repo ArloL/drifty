@@ -59,6 +59,7 @@ class OrgCheckerDiffTest {
 				"topics": [],
 				"allow_merge_commit": false,
 				"allow_squash_merge": false,
+				"allow_rebase_merge": true,
 				"allow_auto_merge": true,
 				"delete_branch_on_merge": true,
 				"visibility": "public",
@@ -297,6 +298,25 @@ class OrgCheckerDiffTest {
 				""").build();
 		assertThat(checker.computeDiffs(state, defaultArgs()))
 				.contains("allow_squash_merge: want=false got=true");
+	}
+
+	@Test
+	void drift_allowRebaseMerge_isFalse() {
+		var state = new StateBuilder().detailsOverride("""
+				{"allow_rebase_merge": false}
+				""").build();
+		assertThat(checker.computeDiffs(state, defaultArgs()))
+				.contains("allow_rebase_merge: want=true got=false");
+	}
+
+	@Test
+	void drift_allowRebaseMerge_isTrue_whenConfigFalse() {
+		var state = new StateBuilder().detailsOverride("""
+				{"allow_rebase_merge": true}
+				""").build();
+		var desired = defaultArgs().toBuilder().allowRebaseMerge(false).build();
+		assertThat(checker.computeDiffs(state, desired))
+				.contains("allow_rebase_merge: want=false got=true");
 	}
 
 	@Test

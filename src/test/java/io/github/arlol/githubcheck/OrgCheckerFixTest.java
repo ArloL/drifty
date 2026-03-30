@@ -74,6 +74,7 @@ class OrgCheckerFixTest {
 				"topics": [],
 				"allow_merge_commit": false,
 				"allow_squash_merge": false,
+				"allow_rebase_merge": true,
 				"allow_auto_merge": true,
 				"delete_branch_on_merge": true,
 				"visibility": "public",
@@ -114,6 +115,7 @@ class OrgCheckerFixTest {
 				"has_wiki": true,
 				"allow_merge_commit": false,
 				"allow_squash_merge": false,
+				"allow_rebase_merge": true,
 				"allow_auto_merge": true,
 				"delete_branch_on_merge": true
 			}
@@ -257,6 +259,46 @@ class OrgCheckerFixTest {
 									"has_wiki": true,
 									"allow_merge_commit": false,
 									"allow_squash_merge": false,
+									"allow_rebase_merge": true,
+									"allow_auto_merge": true,
+									"delete_branch_on_merge": true
+								}
+								"""))
+		);
+	}
+
+	@Test
+	void allowRebaseMergeFalse_patchesWithConfigValue() throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.allowRebaseMerge(false)
+				.build();
+
+		var state = stateWithDetailsOverride("""
+				{"allow_rebase_merge": true}
+				""");
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+						.withRequestBody(equalToJson("""
+								{
+									"archived": false,
+									"description": "",
+									"homepage": "",
+									"has_issues": true,
+									"has_projects": true,
+									"has_wiki": true,
+									"allow_merge_commit": false,
+									"allow_squash_merge": false,
+									"allow_rebase_merge": false,
 									"allow_auto_merge": true,
 									"delete_branch_on_merge": true
 								}
@@ -302,6 +344,7 @@ class OrgCheckerFixTest {
 									"has_wiki": true,
 									"allow_merge_commit": false,
 									"allow_squash_merge": false,
+									"allow_rebase_merge": true,
 									"allow_auto_merge": true,
 									"delete_branch_on_merge": true
 								}
@@ -829,6 +872,7 @@ class OrgCheckerFixTest {
 									"has_wiki": true,
 									"allow_merge_commit": false,
 									"allow_squash_merge": false,
+									"allow_rebase_merge": true,
 									"allow_auto_merge": true,
 									"delete_branch_on_merge": true
 								}

@@ -301,6 +301,12 @@ public class OrgChecker {
 		check(diffs, "has_wiki", true, details.hasWiki());
 		check(diffs, "allow_merge_commit", false, details.allowMergeCommit());
 		check(diffs, "allow_squash_merge", false, details.allowSquashMerge());
+		check(
+				diffs,
+				"allow_rebase_merge",
+				desired.allowRebaseMerge(),
+				details.allowRebaseMerge()
+		);
 		check(diffs, "allow_auto_merge", true, details.allowAutoMerge());
 		check(
 				diffs,
@@ -756,6 +762,7 @@ public class OrgChecker {
 			fields.put("has_wiki", true);
 			fields.put("allow_merge_commit", false);
 			fields.put("allow_squash_merge", false);
+			fields.put("allow_rebase_merge", desired.allowRebaseMerge());
 			fields.put("allow_auto_merge", true);
 			fields.put("delete_branch_on_merge", true);
 			client.updateRepository(org, name, fields);
