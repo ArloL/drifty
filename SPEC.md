@@ -10,33 +10,37 @@
 
 Desired repository state is defined **in Java code** using builder-style APIs. There is no external config file format — the tool IS the config.
 
-Repos are organized into groups that share defaults. Each group defines baseline settings, and individual repos can override any field. All settings are checked for every non-archived repo — there is no opt-out for individual fields.
+#### Field Defaults
+
+`RepositoryArgs` field defaults match **GitHub's defaults** for newly created repos. This means a bare `RepositoryArgs.create("my-repo").build()` represents a repo with GitHub's out-of-the-box settings and reports no drift against a freshly created repo.
+
+Non-default desired values (e.g. disabling merge commits, enabling auto-merge) are set in the `defaultRepository` template in `GitHubCheck.repositories()`, not in `RepositoryArgs` itself.
+
+#### Grouping Model
+
+Repos are organized into groups that share defaults. Each group defines baseline settings via a template `RepositoryArgs`, and individual repos can override any field via `toBuilder()`.
 
 ```java
-// Pseudocode showing the grouping model
-var defaults = RepositoryArgs.builder()
+// GitHubCheck.repositories() — pseudocode showing the grouping model
+var defaultRepository = RepositoryArgs.create("_")
     .allowAutoMerge(true)
+    .allowMergeCommit(false)
     .deleteBranchOnMerge(true)
     .secretScanning(true)
-    // ... all defaults
+    // ... org-wide policy overrides
     .build();
 
 var repos = List.of(
-    defaults.toBuilder().name("repo-a").description("...").build(),
-    defaults.toBuilder().name("repo-b").description("...").topics("library", "java").build(),
+    defaultRepository.toBuilder().name("repo-a").description("...").build(),
+    defaultRepository.toBuilder().name("repo-b").description("...").topics("library", "java").build(),
     // Per-repo overrides
-    defaults.toBuilder().name("special-repo").allowSquashMerge(true).build()
+    defaultRepository.toBuilder().name("special-repo").allowSquashMerge(true).build()
 );
 ```
 
 ### Org/Account Targeting
 
-The tool targets a **single org or personal account per invocation**, specified as a CLI argument:
-
-```
-drifty ArloL
-drifty ArloL --fix
-```
+The target org or personal account is **hardcoded in the config code**. There is no CLI argument for it. To manage multiple orgs, run the tool multiple times with different config blocks. Multi-org support within a single invocation is a future consideration.
 
 ### Archived Repos
 
@@ -44,13 +48,17 @@ Repos marked `archived=true` in config are only checked for being archived. All 
 
 If a repo is configured as `archived=true` but is currently active, `--fix` will archive it.
 
+### Missing Repos
+
+If a repo is listed in config but does not exist on GitHub, it is reported as `MISSING` and causes a non-zero exit code. drifty does not create repos — it only manages settings of existing repos.
+
 ## CLI Interface
 
 ### Commands
 
 ```
-drifty <owner>          # Report drift, show compact diffs and the API calls --fix would make
-drifty <owner> --fix    # Apply all fixable changes
+drifty          # Report drift with human-readable diffs and fix previews
+drifty --fix    # Apply all fixable changes
 ```
 
 ### Environment Variables
@@ -69,62 +77,70 @@ drifty <owner> --fix    # Apply all fixable changes
 
 ### Output
 
-**Default (no `--fix`):** Compact field-level diffs per repo, plus the API calls that `--fix` would make.
+**Default (no `--fix`):** Compact field-level diffs per repo, plus human-readable previews of what `--fix` would do. All repos are listed, including those with no drift.
 
 ```
 repo-a: OK
 repo-b: DRIFT
   description: "old value" -> "new value"
   allowAutoMerge: false -> true
-  Would fix: PATCH /repos/ArloL/repo-b {"allow_auto_merge": true, "description": "new value"}
+  Would fix: update description, enable auto-merge
 repo-c: UNKNOWN (not in config)
-repo-d: ERROR: 403 Forbidden
+repo-d: MISSING (in config, not on GitHub)
+repo-e: ERROR: 403 Forbidden
 ```
 
-**With `--fix`:** Same output, but diffs are replaced with fix results (applied/failed).
-
-A `--verbose` flag can increase output detail.
+**With `--fix`:** Same output, but diffs are replaced with per-setting fix results (FIXED or FAILED with reason). Failed fixes are also collected in a summary at the end.
 
 ## Managed Settings
 
+All settings below are fields on `RepositoryArgs`. Field defaults in `RepositoryArgs` match GitHub's defaults for newly created repos — the "GitHub default" column documents these. Non-default desired values are set in the `defaultRepository` template in `GitHubCheck.repositories()`.
+
 ### Repository Settings
 
-| Setting | Check | Fix |
-|---------|-------|-----|
-| Description | Yes | Yes |
-| Homepage URL | Yes | Yes |
-| Topics/tags | Yes | Yes |
-| Visibility (public/private) | Yes | Yes |
-| Default branch | Yes | No (too destructive) |
-| Issues enabled | Yes | Yes |
-| Projects enabled | Yes | Yes |
-| Wiki enabled | Yes | Yes |
-| Allow merge commits | Yes | Yes |
-| Allow squash merge | Yes | Yes |
-| Allow rebase merge | Yes | Yes |
-| Allow auto-merge | Yes | Yes |
-| Delete branch on merge | Yes | Yes |
-| Archived | Yes | Yes (can archive active repos) |
+| Setting | GitHub default | Check | Fix |
+|---------|---------------|-------|-----|
+| Description | `""` | Yes | Yes |
+| Homepage URL | `""` | Yes | Yes |
+| Topics/tags | `[]` | Yes | Yes |
+| Visibility (public/private) | `"public"` | Yes | No (too risky — public→private breaks forks, private→public exposes code) |
+| Default branch | `"main"` | Yes | Yes |
+| Issues enabled | `true` | Yes | Yes |
+| Projects enabled | `true` | Yes | Yes |
+| Wiki enabled | `true` | Yes | Yes |
+| Allow merge commits | `true` | Yes | Yes |
+| Allow squash merge | `true` | Yes | Yes |
+| Allow rebase merge | `true` | Yes | Yes |
+| Allow auto-merge | `false` | Yes | Yes |
+| Allow update branch | `false` | Yes | Yes |
+| Delete branch on merge | `false` | Yes | Yes |
+| Archived | `false` | Yes | Yes (can archive active repos) |
 
 ### Security Settings
 
-| Setting | Check | Fix |
-|---------|-------|-----|
-| Vulnerability alerts | Yes | Yes |
-| Automated security fixes | Yes | Yes |
-| Secret scanning | Yes | Yes |
-| Secret scanning push protection | Yes | Yes |
+All configurable per-repo via `RepositoryArgs`, with defaults matching GitHub's defaults. drifty manages every security setting exposed by the GitHub REST API:
+
+| Setting | GitHub default (public repos) | Check | Fix |
+|---------|-------------------------------|-------|-----|
+| Vulnerability alerts (Dependabot alerts) | enabled | Yes | Yes |
+| Automated security fixes (Dependabot security updates) | disabled | Yes | Yes |
+| Secret scanning | enabled | Yes | Yes |
+| Secret scanning push protection | enabled | Yes | Yes |
+| Secret scanning validity checks | disabled | Yes | Yes |
+| Secret scanning non-provider patterns | disabled | Yes | Yes |
+| Private vulnerability reporting | disabled | Yes | Yes |
+| Code scanning default setup | disabled | Yes | Yes |
 
 ### Workflow Settings
 
-| Setting | Check | Fix |
-|---------|-------|-----|
-| Default workflow permissions (read/write) | Yes | Yes |
-| Can approve pull request reviews | Yes | Yes |
+| Setting | GitHub default | Check | Fix |
+|---------|---------------|-------|-----|
+| Default workflow permissions (read/write) | `"write"` | Yes | Yes |
+| Can approve pull request reviews | `true` | Yes | Yes |
 
 ### Branch Protection (Legacy)
 
-Applies to public repos by default. Configurable per repo.
+Managed via an explicit `branchProtectionArgs` field on `RepositoryArgs`. If the field is set (non-null), legacy branch protection is managed for that repo. If null, legacy protection is not managed (regardless of whether rulesets are configured). A repo can have both legacy protection and rulesets.
 
 | Setting | Check | Fix |
 |---------|-------|-----|
@@ -133,36 +149,73 @@ Applies to public repos by default. Configurable per repo.
 | Allow force pushes | Yes | Yes |
 | Required status checks | Yes | Yes |
 | Required pull request reviews | Yes | Yes |
-| Restrictions | Yes | Yes |
+| Restrictions (users, teams, apps) | Yes | Yes |
+
+#### Required Pull Request Reviews
+
+Full configuration of pull request review requirements:
+
+| Sub-setting | Check | Fix |
+|-------------|-------|-----|
+| Required approving review count | Yes | Yes |
+| Dismiss stale reviews | Yes | Yes |
+| Require code owner reviews | Yes | Yes |
+| Restrict dismissals (users/teams) | Yes | Yes |
+| Require last push approval | Yes | Yes |
+
+#### Restrictions
+
+Full configuration of push restrictions:
+
+| Sub-setting | Check | Fix |
+|-------------|-------|-----|
+| Users | Yes | Yes |
+| Teams | Yes | Yes |
+| Apps | Yes | Yes |
 
 ### Repository Rulesets
 
-Repo-level rulesets as a modern alternative to legacy branch protection. Org-level rulesets are a future addition.
+Repo-level rulesets managed via the `rulesets` list on `RepositoryArgs`. drifty supports all GitHub ruleset rule types:
 
 | Setting | Check | Fix |
 |---------|-------|-----|
-| Branch name patterns | Yes | Yes |
+| Ruleset name and enforcement | Yes | Yes |
+| Target branch/tag patterns | Yes | Yes |
+| Bypass actors (roles, teams, apps) | Yes | Yes |
+| Creation | Yes | Yes |
+| Update | Yes | Yes |
+| Deletion | Yes | Yes |
+| Required signatures | Yes | Yes |
+| Required linear history | Yes | Yes |
+| Non-fast-forward (force push) | Yes | Yes |
 | Required status checks | Yes | Yes |
-| Required reviews | Yes | Yes |
-| Linear history | Yes | Yes |
-| Force push restrictions | Yes | Yes |
+| Pull request requirements | Yes | Yes |
+| Commit message pattern | Yes | Yes |
+| Commit author email pattern | Yes | Yes |
+| Committer email pattern | Yes | Yes |
+| Branch name pattern | Yes | Yes |
+| Tag name pattern | Yes | Yes |
+| Required deployments | Yes | Yes |
+| Required code scanning | Yes | Yes |
+
+**Extra rulesets:** Rulesets that exist on the repo but are not in config are reported as drift. `--fix` deletes them.
 
 ### Required Status Checks
 
 Defined as a base set per group plus per-repo additions:
 
 ```java
-var defaults = RepositoryArgs.builder()
+var defaultRepository = RepositoryArgs.create("_")
     .requiredStatusChecks("CodeQL", "codeql-analysis", "zizmor")
     .build();
 
-defaults.toBuilder().name("my-repo").addRequiredStatusChecks("build", "test").build()
+defaultRepository.toBuilder().name("my-repo").addRequiredStatusChecks("build", "test").build()
 // Results in: CodeQL, codeql-analysis, zizmor, build, test
 ```
 
 ### GitHub Pages
 
-Full management of Pages configuration:
+Full lifecycle management of Pages configuration (enable and disable):
 
 | Setting | Check | Fix |
 |---------|-------|-----|
@@ -170,6 +223,8 @@ Full management of Pages configuration:
 | Build type (workflow/legacy) | Yes | Yes |
 | Source branch and path | Yes | Yes |
 | HTTPS enforced | Yes | Yes |
+
+If config has no Pages and the repo has Pages enabled, `--fix` disables it.
 
 ### Action Secrets
 
@@ -181,7 +236,7 @@ defaults.toBuilder().name("my-repo").secrets("PAT", "DOCKER_HUB_ACCESS_TOKEN").b
 
 **Check:** Verifies that the declared secret names exist on the repo.
 
-**Fix:** If `GITHUB_SECRETS` env var is provided and contains the value, creates/updates the secret using GitHub's encrypted secrets API. If the value is not provided, reports the drift as unfixable.
+**Fix:** `--fix` always creates/updates secrets when `GITHUB_SECRETS` provides a value (no staleness detection). If the value is not provided, reports the drift as unfixable.
 
 #### Secret Value Mapping
 
@@ -199,7 +254,7 @@ The `GITHUB_SECRETS` env var contains a JSON map. Keys are formed by concatenati
 
 ### Environments
 
-Full environment lifecycle and configuration management:
+Create and update environments. Extra environments (on GitHub but not in config) are reported as drift but not deleted by `--fix`.
 
 | Setting | Check | Fix |
 |---------|-------|-----|
@@ -210,6 +265,8 @@ Full environment lifecycle and configuration management:
 | Deployment branch policies | Yes | Yes |
 
 ### Immutable Releases
+
+Per-repo setting:
 
 | Setting | Check | Fix |
 |---------|-------|-----|
@@ -243,12 +300,11 @@ The tool never fails fast — it always attempts all fixes and provides a comple
 
 ### API Strategy
 
-- **Phase 1:** REST API only (current approach). Both reads and writes use the GitHub REST API v3.
-- **Phase 2 (future):** GraphQL for bulk reads to reduce API call count. REST for all mutations.
+REST API only. Both reads and writes use the GitHub REST API v3. GraphQL for bulk reads is a future consideration.
 
 ### Rate Limiting
 
-Current approach: monitor `X-RateLimit-Remaining` header and sleep until reset when exhausted. No additional concurrency control.
+Monitor `X-RateLimit-Remaining` header and sleep until reset when exhausted. No additional concurrency control.
 
 ### Authentication
 
@@ -268,8 +324,11 @@ The tool is run **on-demand** (e.g. via `workflow_dispatch`). No scheduled cron 
 
 These are explicitly out of scope for the initial version but acknowledged as potential additions:
 
-- **Org-level rulesets** (repo-level first, org-level later)
-- **GraphQL for bulk reads** (REST first, profile and optimize later)
-- **Lightweight state** for tracking secrets (to skip unchanged secrets on subsequent runs)
-- **Collaborator/team access management** (out of scope, handled elsewhere)
-- **Repository lifecycle** (create/delete/transfer — out of scope, tool only manages settings of existing repos plus archival)
+- **Org-level rulesets** — manage rulesets at the org level (full CRUD, same as repo-level). Repo-level first.
+- **Multi-org support** — manage multiple orgs in a single invocation with per-org config blocks.
+- **GraphQL for bulk reads** — REST first, profile and optimize later.
+- **Lightweight state file** — track secret `updated_at` timestamps to skip unchanged secrets on subsequent runs.
+- **Collaborator/team access management** — out of scope for now, may be added later.
+- **Custom properties** — manage GitHub custom property values per repo (org-level definitions assumed to exist).
+- **Webhooks** — full lifecycle management of repo webhooks (URL, events, content type, secrets via `GITHUB_SECRETS`).
+- **Repository lifecycle** — create/delete/transfer repos is out of scope. drifty only manages settings of existing repos plus archival.

@@ -2,19 +2,27 @@
 
 ## ~~1. Fix All Repository Settings (not just description)~~ DONE
 
-Implemented: `applyFixes()` batches all drifted repo fields (description, homepage, has_issues, has_projects, has_wiki, allow_merge_commit, allow_squash_merge, allow_auto_merge, delete_branch_on_merge, archived) into a single PATCH call. Topics use a separate PUT endpoint via `replaceTopics()`. Topics checking was also added (config, state, diff, fix). Default branch remains check-only.
+Implemented: `applyFixes()` batches all drifted repo fields (description, homepage, has_issues, has_projects, has_wiki, allow_merge_commit, allow_squash_merge, allow_auto_merge, delete_branch_on_merge, archived) into a single PATCH call. Topics use a separate PUT endpoint via `replaceTopics()`. Topics checking was also added (config, state, diff, fix).
+
+Note: desired values for these settings are currently hardcoded in `OrgChecker` — they need to be moved to `RepositoryArgs` fields (with GitHub defaults) and set via `defaultRepository` in `GitHubCheck.repositories()`.
 
 ## ~~2. Fix Security Settings~~ DONE
 
-Implemented: `applyFixes()` now fixes all 4 security settings. Vulnerability alerts and automated security fixes each use dedicated PUT endpoints (`enableVulnerabilityAlerts()`, `enableAutomatedSecurityFixes()`). Secret scanning and push protection use a single PATCH call with a `security_and_analysis` payload via `updateRepository()`. All desired values are hardcoded to enabled.
+Implemented: `applyFixes()` now fixes all 4 security settings. Vulnerability alerts and automated security fixes each use dedicated PUT endpoints (`enableVulnerabilityAlerts()`, `enableAutomatedSecurityFixes()`). Secret scanning and push protection use a single PATCH call with a `security_and_analysis` payload via `updateRepository()`.
+
+Note: desired values are currently hardcoded to enabled in `OrgChecker` — they need to be moved to `RepositoryArgs` fields (with GitHub defaults) and set via `defaultRepository` in `GitHubCheck.repositories()`. See Features 20 and 21.
 
 ## ~~3. Fix Workflow Settings~~ DONE
 
-Implemented: `applyFixes()` now fixes workflow permissions drift. `GitHubClient.updateWorkflowPermissions()` sends a PUT to `/repos/{owner}/{repo}/actions/permissions/workflow` with the desired state (`default_workflow_permissions: read`, `can_approve_pull_request_reviews: true`).
+Implemented: `applyFixes()` now fixes workflow permissions drift. `GitHubClient.updateWorkflowPermissions()` sends a PUT to `/repos/{owner}/{repo}/actions/permissions/workflow`.
+
+Note: desired values (`default_workflow_permissions: read`, `can_approve_pull_request_reviews: true`) are currently hardcoded in `OrgChecker` — they need to be moved to `RepositoryArgs` fields (GitHub defaults: `write` and `true` respectively) and set via `defaultRepository` in `GitHubCheck.repositories()`.
 
 ## ~~4. Fix Branch Protection~~ DONE
 
-Implemented: `applyFixes()` now fixes branch protection drift for public repos. `GitHubClient.updateBranchProtection()` sends a PUT to `/repos/{owner}/{repo}/branches/{branch}/protection` with the full desired payload: `enforce_admins: true`, `required_linear_history: true`, `allow_force_pushes: false`, `required_status_checks` (strict: false, checks from `BASE_STATUS_CHECKS` + `RepositoryArgs.requiredStatusChecks()`), `required_pull_request_reviews: null`, `restrictions: null`. Both the "missing" and "drifted" cases are handled with a single PUT call.
+Implemented: `applyFixes()` now fixes branch protection drift for public repos. `GitHubClient.updateBranchProtection()` sends a PUT to `/repos/{owner}/{repo}/branches/{branch}/protection`. Both the "missing" and "drifted" cases are handled with a single PUT call.
+
+Note: desired values (`enforce_admins: true`, `required_linear_history: true`, `allow_force_pushes: false`, `required_pull_request_reviews: null`, `restrictions: null`) are currently hardcoded in `OrgChecker` — they need to be moved to a `BranchProtectionArgs` config record and opt-in via a nullable `branchProtectionArgs` field on `RepositoryArgs`. See Features 16 and 17.
 
 ## ~~5. Repository Rulesets~~ DONE
 
@@ -32,7 +40,7 @@ Implemented: `applyFixes()` now fixes missing action secrets and environment sec
 
 Implemented: `EnvironmentArgs` extended with `waitTimer`, `deploymentBranchPolicy`, and `reviewers` fields (with builder methods). `EnvironmentDetailsResponse` replaces the former `Environment` record, parsing `protection_rules` (wait_timer, required_reviewers) and `deployment_branch_policy` from the API response, with `getWaitTimer()` and `getReviewerIds()` helpers. `GitHubClient.getEnvironments()` replaces `getEnvironmentNames()` returning full `EnvironmentDetailsResponse` objects; `updateEnvironment()` sends a PUT to `/repos/{owner}/{repo}/environments/{name}`. `RepositoryState` gains an `environmentDetails` map field. `OrgChecker.checkEnvironmentConfig()` diffs wait timer, deployment branch policy, and reviewer sets; `applyFixes()` calls `updateEnvironment()` via `buildEnvironmentUpdateRequest()` for any drifted environments.
 
-## 9. Immutable Releases Validation
+## ~~9. Immutable Releases Validation~~ PARTIALLY DONE
 
 `GitHubClient.getImmutableReleases()` exists but is never called in `computeDiffs()`.
 
@@ -43,39 +51,27 @@ Implemented: `EnvironmentArgs` extended with `waitTimer`, `deploymentBranchPolic
 - In `applyFixes()`, call the endpoint to enable/disable immutable releases.
 - Add `GitHubClient.updateImmutableReleases(owner, repo, enabled)`.
 
-## 10. Owner as CLI Argument (not hardcoded)
+## ~~10. Owner as CLI Argument~~ DROPPED
 
-The spec says the owner/org is a CLI argument. Currently it's hardcoded to "ArloL".
-
-### Plan
-
-- Parse the first positional CLI argument as the owner.
-- Print usage and exit with code 1 if no owner is provided.
-- Pass owner through to `OrgChecker` instead of using a hardcoded value.
+Per spec update: the owner is hardcoded in the config code. No CLI argument needed.
 
 ## ~~11. Configurable Repo Groups with Defaults~~ DONE
 
 Implemented: `RepositoryArgs.Builder` gained a `name(String)` setter (making `toBuilder()` usable as a group-defaults template) and an `addRequiredStatusChecks()` method that appends to the inherited list instead of replacing it. `GitHubCheck.repositories()` was reorganized into four named groups — `pagesSites` (6 repos sharing `.pages()`), `mainCiRepos` (9 repos sharing `main.required-status-check`), `individual` (unique configs), and `archived` — combined into a flat list via `Stream.of(...).flatMap(List::stream).toList()`. A new `RepositoryArgsTest` covers the builder additions.
 
-## 12. Output: Show API Calls That `--fix` Would Make
+## 12. Human-Readable Fix Previews
 
-The spec says the default (non-fix) output should show the API calls that `--fix` would make (e.g. `Would fix: PATCH /repos/...`).
-
-### Plan
-
-- After printing drifts for a repo, compute and print the API calls that would be made.
-- Format: `Would fix: METHOD /path {payload}`.
-- This requires the fix logic to be queryable without executing — extract fix plans as data before applying.
-
-## 13. `--verbose` Flag
-
-The spec mentions a `--verbose` flag. Not implemented.
+The default (non-fix) output should show human-readable previews of what `--fix` would do (e.g. `Would fix: enable auto-merge, update description`).
 
 ### Plan
 
-- Add `--verbose` CLI flag parsing alongside `--fix`.
-- Pass verbosity to `OrgChecker`.
-- In verbose mode, print additional detail: full API responses, request/response headers, rate limit status.
+- After printing drifts for a repo, compute and print human-readable descriptions of the fixes that would be applied.
+- Format: `Would fix: <comma-separated list of actions>`.
+- This requires the fix logic to be queryable without executing — extract fix descriptions as data before applying.
+
+## ~~13. `--verbose` Flag~~ DROPPED
+
+Per spec update: `--verbose` is dropped. The only CLI flag is `--fix`.
 
 ## 14. Allow Rebase Merge Check
 
@@ -83,36 +79,155 @@ The spec lists "Allow rebase merge" as a managed setting. The current `Repositor
 
 ### Plan
 
-- Add `allowRebaseMerge` field to `RepositoryArgs`.
+- Add `allowRebaseMerge` field to `RepositoryArgs` (default: `true`, matching GitHub's default).
 - Add diff check comparing `RepositoryFull.allowRebaseMerge()` against config.
 - Include in the PATCH payload for fixes.
 
-## 15. Visibility Check and Fix
+## 15. Visibility Check (No Fix)
 
-The spec lists visibility (public/private) as a managed setting. Not currently checked.
+The spec lists visibility (public/private) as a check-only setting — no fix due to risk. `RepositoryArgs` already has a `visibility` field (default: `"public"`, matching GitHub's default) but it is not checked in `OrgChecker`.
 
 ### Plan
 
-- Add `visibility` field to `RepositoryArgs` (enum: PUBLIC, PRIVATE).
-- Check `RepositoryFull.visibility()` or `isPrivate()` against desired value.
-- Fix via PATCH `/repos/{owner}/{repo}` with `"visibility"` field.
+- Add diff check in `OrgChecker.checkRepoSettings()` comparing `RepositoryFull.visibility()` against config.
+- Report drift but do not fix (even with `--fix`).
 
 ## 16. Required Pull Request Reviews in Branch Protection
 
-The spec lists "Required pull request reviews" as a branch protection setting. Not currently checked.
+Full PR review configuration for legacy branch protection.
 
 ### Plan
 
-- Add `requiredPullRequestReviews` config to `RepositoryArgs` (dismiss stale reviews, required approving review count, etc.).
+- Add `BranchProtectionArgs` config record with PR review sub-settings: required approving review count, dismiss stale reviews, require code owner reviews, restrict dismissals (users/teams), require last push approval.
+- Make `branchProtectionArgs` a nullable field on `RepositoryArgs` (null = not managed).
 - Parse from `BranchProtection` response.
 - Add diff logic and include in branch protection update payload.
 
 ## 17. Branch Protection Restrictions
 
-The spec lists "Restrictions" as a branch protection setting. Not currently checked.
+Full push restriction configuration for legacy branch protection (users, teams, apps).
 
 ### Plan
 
-- Add `restrictions` config to `RepositoryArgs` (users, teams, apps that can push).
+- Add restrictions to `BranchProtectionArgs`: users, teams, and apps that can push.
 - Parse from `BranchProtection` response.
 - Add diff logic and include in branch protection update payload.
+
+## 18. Allow Update Branch
+
+The spec lists "Allow update branch" as a managed setting. Not currently checked.
+
+### Plan
+
+- Add `allowUpdateBranch` field to `RepositoryArgs` (default: `false`, matching GitHub's default).
+- Add diff check comparing against the API response field.
+- Include in the PATCH payload for fixes.
+
+## 19. Default Branch Fix
+
+The spec now allows fixing default branch (previously check-only). `RepositoryArgs` should have a `defaultBranch` field (default: `"main"`, matching GitHub's default).
+
+### Plan
+
+- Add `defaultBranch` field to `RepositoryArgs` (default: `"main"`).
+- Change default branch from check-only to fixable.
+- Use the PATCH `/repos/{owner}/{repo}` endpoint with `default_branch` field.
+
+## 20. Security Settings: Make Configurable Per-Repo
+
+Currently all 4 security settings are hardcoded to enabled in `OrgChecker`. Per spec update, they should be configurable fields on `RepositoryArgs` with defaults matching GitHub's defaults for newly created public repos.
+
+### Plan
+
+- Add boolean fields to `RepositoryArgs` for each security setting:
+  - `vulnerabilityAlerts` (default: `true` — GitHub enables for public repos)
+  - `automatedSecurityFixes` (default: `false` — GitHub does not enable by default)
+  - `secretScanning` (default: `true` — GitHub enables for public repos)
+  - `secretScanningPushProtection` (default: `true` — GitHub enables for public repos)
+- Set non-default desired values (e.g. `automatedSecurityFixes(true)`) in `defaultRepository` in `GitHubCheck.repositories()`.
+- Update `OrgChecker` diff logic to compare against config values instead of hardcoded `true`.
+
+## 21. Additional Security Settings
+
+New security settings to manage (all API-exposed). Defaults match GitHub's defaults for newly created public repos.
+
+### Plan
+
+- Add boolean fields to `RepositoryArgs`:
+  - `secretScanningValidityChecks` (default: `false`)
+  - `secretScanningNonProviderPatterns` (default: `false`)
+  - `privateVulnerabilityReporting` (default: `false`)
+  - `codeScanningDefaultSetup` (default: `false`)
+- Set non-default desired values in `defaultRepository` in `GitHubCheck.repositories()`.
+- Check and fix via REST API.
+
+## 22. Ruleset: All Rule Types
+
+Currently only required_linear_history, non_fast_forward, required_status_checks, and pull_request rules are managed. The spec calls for all rule types.
+
+### Plan
+
+Add support for all GitHub ruleset rule types:
+- creation
+- update
+- deletion
+- required_signatures
+- commit_message_pattern
+- commit_author_email_pattern
+- committer_email_pattern
+- branch_name_pattern
+- tag_name_pattern
+- required_deployments
+- required_code_scanning
+
+Extend `RulesetArgs` with fields for each rule type and update diff/fix logic.
+
+## 23. Ruleset: Bypass Actors
+
+Ruleset bypass actors (roles, teams, apps that can bypass rules) are not currently managed.
+
+### Plan
+
+- Add `bypassActors` config to `RulesetArgs` (list of actor type + actor ID + bypass mode).
+- Diff against actual bypass actors from the API response.
+- Include in create/update ruleset payloads.
+
+## 24. Ruleset: Delete Extra Rulesets
+
+Rulesets that exist on the repo but are not in config should be deleted by `--fix`.
+
+### Plan
+
+- In `checkRulesets()`, identify rulesets present on GitHub but not in config.
+- Report as drift.
+- In `applyFixes()`, call `GitHubClient.deleteRuleset()` to remove them.
+- Add `GitHubClient.deleteRuleset(owner, repo, rulesetId)`.
+
+## 25. Missing Repo Detection
+
+Repos in config that don't exist on GitHub should be reported as MISSING with exit code 1.
+
+### Plan
+
+- After fetching all org repos, compare against config list.
+- Repos in config but not on GitHub get status MISSING.
+- Include in report and cause non-zero exit.
+
+## 26. Move Hardcoded Desired Values from OrgChecker to RepositoryArgs
+
+Per spec: `RepositoryArgs` field defaults must match GitHub's defaults, and non-default desired values are set in `defaultRepository` in `GitHubCheck.repositories()`. Currently, many desired values are hardcoded in `OrgChecker.checkRepoSettings()` and related methods instead of being read from `RepositoryArgs`.
+
+### Plan
+
+Add the following fields to `RepositoryArgs` (all with GitHub-matching defaults):
+- `hasIssues` (default: `true`)
+- `hasProjects` (default: `true`)
+- `hasWiki` (default: `true`)
+- `allowMergeCommit` (default: `true`)
+- `allowSquashMerge` (default: `true`)
+- `allowAutoMerge` (default: `false`)
+- `deleteBranchOnMerge` (default: `false`)
+- `defaultWorkflowPermissions` (default: `"write"`)
+- `canApprovePullRequestReviews` (default: `true`)
+
+Update `OrgChecker` to read desired values from the `RepositoryArgs` config instead of using hardcoded literals. Set non-default desired values (e.g. `allowMergeCommit(false)`, `allowAutoMerge(true)`, `deleteBranchOnMerge(true)`, `defaultWorkflowPermissions("read")`) in `defaultRepository` in `GitHubCheck.repositories()`.
