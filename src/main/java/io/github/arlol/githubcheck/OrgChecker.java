@@ -175,10 +175,15 @@ public class OrgChecker {
 
 		boolean vulnAlerts = false;
 		boolean automatedSecurityFixes = false;
+		boolean immutableReleases = false;
 		if (!archived) {
 			vulnAlerts = client.getVulnerabilityAlerts(org, name);
 			automatedSecurityFixes = client
 					.getAutomatedSecurityFixes(org, name);
+			var ir = client.getImmutableReleases(org, name);
+			if (ir.isPresent()) {
+				immutableReleases = ir.orElseThrow().enabled();
+			}
 		}
 
 		BranchProtectionResponse branchProtection = null;
@@ -229,7 +234,8 @@ public class OrgChecker {
 				wfPerms,
 				rulesets,
 				pages,
-				envDetails
+				envDetails,
+				immutableReleases
 		);
 	}
 
@@ -255,7 +261,7 @@ public class OrgChecker {
 				"main",
 				actual.details().defaultBranch()
 		);
-		checkSecuritySettings(diffs, actual);
+		checkSecuritySettings(diffs, actual, desired);
 		checkWorkflowPermissions(diffs, actual);
 		checkBranchProtection(diffs, actual, desired);
 		checkRulesets(diffs, actual, desired);
@@ -323,7 +329,8 @@ public class OrgChecker {
 
 	private void checkSecuritySettings(
 			List<String> diffs,
-			RepositoryState actual
+			RepositoryState actual,
+			RepositoryArgs desired
 	) {
 		check(
 				diffs,
@@ -336,6 +343,12 @@ public class OrgChecker {
 				"automated_security_fixes",
 				true,
 				actual.automatedSecurityFixes()
+		);
+		check(
+				diffs,
+				"immutable_releases",
+				desired.immutableReleases(),
+				actual.immutableReleases()
 		);
 		var sa = actual.details().securityAndAnalysis();
 		if (sa != null) {
@@ -763,7 +776,7 @@ public class OrgChecker {
 
 		// Security settings group (fixable)
 		List<String> securityDiffs = new ArrayList<>();
-		checkSecuritySettings(securityDiffs, actual);
+		checkSecuritySettings(securityDiffs, actual, desired);
 		if (!securityDiffs.isEmpty()) {
 			if (securityDiffs.stream()
 					.anyMatch(d -> d.startsWith("vulnerability_alerts"))) {
@@ -778,6 +791,28 @@ public class OrgChecker {
 				client.enableAutomatedSecurityFixes(org, name);
 				System.out.printf(
 						"[FIXED]   %s: automated_security_fixes enabled%n",
+						name
+				);
+			}
+			if (securityDiffs.stream()
+					.anyMatch(
+							d -> d.contains("immutable_releases")
+									&& d.contains("want=true")
+					)) {
+				client.enableImmutableReleases(org, name);
+				System.out.printf(
+						"[FIXED]   %s: immutable_releases enabled%n",
+						name
+				);
+			}
+			if (securityDiffs.stream()
+					.anyMatch(
+							d -> d.contains("immutable_releases")
+									&& d.contains("want=false")
+					)) {
+				client.disableImmutableReleases(org, name);
+				System.out.printf(
+						"[FIXED]   %s: immutable_releases disabled%n",
 						name
 				);
 			}

@@ -1,5 +1,5 @@
 {
-  "id" : "37a6677a-1a00-40b3-ad68-4384abe4cd3b",
+  "id" : "87c4e821-8d95-433b-ba12-d9126ded8d9c",
   "name" : "repos_arlol_terraform-github_rulesets_10897942",
   "request" : {
     "url" : "/repos/ArloL/terraform-github/rulesets/10897942",
@@ -12,22 +12,22 @@
       "X-Accepted-OAuth-Scopes" : "repo",
       "X-RateLimit-Resource" : "core",
       "Server" : "github.com",
-      "X-RateLimit-Used" : "163",
+      "X-RateLimit-Used" : "130",
       "Access-Control-Allow-Origin" : "*",
       "x-github-api-version-selected" : "2026-03-10",
       "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
       "X-Frame-Options" : "deny",
       "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
       "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
-      "X-RateLimit-Remaining" : "4837",
+      "X-RateLimit-Remaining" : "4870",
       "X-GitHub-Media-Type" : "github.v3; format=json",
       "Content-Security-Policy" : "default-src 'none'",
       "X-XSS-Protection" : "0",
-      "X-GitHub-Request-Id" : "A127:383BD:10B83F6:DE1764:69C99280",
+      "X-GitHub-Request-Id" : "A0EB:14768B:55495C:47F0FC:69CAD045",
       "Content-Type" : "application/json; charset=utf-8",
       "X-Content-Type-Options" : "nosniff",
-      "X-RateLimit-Reset" : "1774819611",
-      "Date" : "Sun, 29 Mar 2026 20:58:41 GMT",
+      "X-RateLimit-Reset" : "1774900461",
+      "Date" : "Mon, 30 Mar 2026 19:34:29 GMT",
       "Cache-Control" : "private, max-age=60, s-maxage=60",
       "ETag" : "\"256a693a56217f559edd7540314a52b847eccbc9ae6dd07c32ec683c20d78aad\"",
       "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
@@ -37,5 +37,5 @@
     }
   },
   "persistent" : true,
-  "insertionIndex" : 41
+  "insertionIndex" : 44
 }

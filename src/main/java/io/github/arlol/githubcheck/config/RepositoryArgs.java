@@ -22,6 +22,7 @@ public final class RepositoryArgs {
 	private final List<String> actionsSecrets;
 	private final Map<String, EnvironmentArgs> environments;
 	private final List<RulesetArgs> rulesets;
+	private final boolean immutableReleases;
 
 	private RepositoryArgs(Builder builder) {
 		this.name = builder.name;
@@ -36,6 +37,7 @@ public final class RepositoryArgs {
 		this.environments = Collections
 				.unmodifiableMap(new LinkedHashMap<>(builder.environments));
 		this.rulesets = List.copyOf(builder.rulesets);
+		this.immutableReleases = builder.immutableReleases;
 	}
 
 	public String name() {
@@ -86,6 +88,10 @@ public final class RepositoryArgs {
 		return rulesets;
 	}
 
+	public boolean immutableReleases() {
+		return immutableReleases;
+	}
+
 	public Builder toBuilder() {
 		return new Builder(this);
 	}
@@ -95,7 +101,9 @@ public final class RepositoryArgs {
 		if (o == null || getClass() != o.getClass())
 			return false;
 		RepositoryArgs that = (RepositoryArgs) o;
-		return archived == that.archived && Objects.equals(name, that.name)
+		return archived == that.archived
+				&& immutableReleases == that.immutableReleases
+				&& Objects.equals(name, that.name)
 				&& Objects.equals(pagesArgs, that.pagesArgs)
 				&& Objects.equals(description, that.description)
 				&& Objects.equals(homepageUrl, that.homepageUrl)
@@ -121,7 +129,8 @@ public final class RepositoryArgs {
 				requiredStatusChecks,
 				actionsSecrets,
 				environments,
-				rulesets
+				rulesets,
+				immutableReleases
 		);
 	}
 
@@ -146,6 +155,7 @@ public final class RepositoryArgs {
 		private List<String> actionsSecrets = List.of();
 		private final Map<String, EnvironmentArgs> environments = new LinkedHashMap<>();
 		private List<RulesetArgs> rulesets = List.of();
+		private boolean immutableReleases = false;
 
 		public Builder(String name) {
 			this.name = name;
@@ -163,6 +173,7 @@ public final class RepositoryArgs {
 			this.actionsSecrets = repositoryArgs.actionsSecrets;
 			this.environments.putAll(repositoryArgs.environments);
 			this.rulesets = repositoryArgs.rulesets;
+			this.immutableReleases = repositoryArgs.immutableReleases;
 		}
 
 		public Builder name(String name) {
@@ -245,6 +256,11 @@ public final class RepositoryArgs {
 
 		public Builder rulesets(RulesetArgs... rulesets) {
 			this.rulesets = List.of(rulesets);
+			return this;
+		}
+
+		public Builder immutableReleases(boolean immutableReleases) {
+			this.immutableReleases = immutableReleases;
 			return this;
 		}
 

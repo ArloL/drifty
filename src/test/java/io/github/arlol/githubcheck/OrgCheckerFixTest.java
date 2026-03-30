@@ -176,7 +176,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(),
 				Optional.empty(),
-				Map.of()
+				Map.of(),
+				false
 		);
 	}
 
@@ -203,7 +204,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(),
 				Optional.empty(),
-				Map.of()
+				Map.of(),
+				false
 		);
 	}
 
@@ -364,7 +366,8 @@ class OrgCheckerFixTest {
 				state.workflowPermissions(),
 				List.of(),
 				Optional.empty(),
-				Map.of()
+				Map.of(),
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(stateWithBadVuln, desired);
@@ -419,7 +422,8 @@ class OrgCheckerFixTest {
 				baseState.workflowPermissions(),
 				List.of(),
 				Optional.empty(),
-				Map.of()
+				Map.of(),
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -481,7 +485,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(),
 				Optional.empty(),
-				Map.of()
+				Map.of(),
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -535,7 +540,8 @@ class OrgCheckerFixTest {
 						""", WorkflowPermissions.class),
 				List.of(),
 				Optional.empty(),
-				Map.of()
+				Map.of(),
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -601,7 +607,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(),
 				Optional.empty(),
-				Map.of()
+				Map.of(),
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -625,6 +632,75 @@ class OrgCheckerFixTest {
 							"allow_force_pushes": false
 						}
 						"""))
+		);
+	}
+
+	@Test
+	void immutableReleasesDisabled_enablesThem() throws Exception {
+		stubFor(
+				put(urlEqualTo("/repos/ArloL/repo/immutable-releases"))
+						.willReturn(WireMock.noContent())
+		);
+
+		var desired = RepositoryArgs.create("repo")
+				.immutableReleases(true)
+				.build();
+
+		var state = goodPublicState();
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				putRequestedFor(
+						urlEqualTo("/repos/ArloL/repo/immutable-releases")
+				)
+		);
+	}
+
+	@Test
+	void immutableReleasesEnabled_disablesThem() throws Exception {
+		stubFor(
+				WireMock.delete(
+						urlEqualTo("/repos/ArloL/repo/immutable-releases")
+				).willReturn(WireMock.noContent())
+		);
+
+		var desired = RepositoryArgs.create("repo").build();
+
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
+				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				true,
+				true,
+				parse(
+						GOOD_BRANCH_PROTECTION_JSON,
+						BranchProtectionResponse.class
+				),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(),
+				true
+		);
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				WireMock.deleteRequestedFor(
+						urlEqualTo("/repos/ArloL/repo/immutable-releases")
+				)
 		);
 	}
 
@@ -671,7 +747,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(),
 				Optional.empty(),
-				Map.of()
+				Map.of(),
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -898,7 +975,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(actualRuleset),
 				Optional.empty(),
-				Map.of()
+				Map.of(),
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -991,7 +1069,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(actualRuleset),
 				Optional.empty(),
-				Map.of()
+				Map.of(),
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -1043,7 +1122,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(),
 				Optional.empty(),
-				Map.of()
+				Map.of(),
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -1100,7 +1180,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(),
 				Optional.of(actualPages),
-				Map.of()
+				Map.of(),
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -1178,7 +1259,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(),
 				Optional.empty(),
-				Map.of("production", actualEnv)
+				Map.of("production", actualEnv),
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -1236,7 +1318,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(),
 				Optional.empty(),
-				Map.of("production", actualEnv)
+				Map.of("production", actualEnv),
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -1293,7 +1376,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(),
 				Optional.empty(),
-				Map.of("production", actualEnv)
+				Map.of("production", actualEnv),
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -1355,7 +1439,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(),
 				Optional.empty(),
-				Map.of()
+				Map.of(),
+				false
 		);
 		var desired = RepositoryArgs.create("repo")
 				.actionsSecrets("PAT")
@@ -1397,7 +1482,8 @@ class OrgCheckerFixTest {
 				),
 				List.of(),
 				Optional.empty(),
-				Map.of()
+				Map.of(),
+				false
 		);
 		var desired = RepositoryArgs.create("repo")
 				.actionsSecrets("PAT")
@@ -1465,7 +1551,8 @@ class OrgCheckerFixTest {
 				Map.of(
 						"production",
 						parse("{}", EnvironmentDetailsResponse.class)
-				)
+				),
+				false
 		);
 		var desired = RepositoryArgs.create("repo")
 				.environment(

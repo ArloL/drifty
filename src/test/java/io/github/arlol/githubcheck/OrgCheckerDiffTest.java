@@ -145,6 +145,7 @@ class OrgCheckerDiffTest {
 		private Optional<PagesResponse> pages = Optional.empty();
 		private Map<String, EnvironmentDetailsResponse> environmentDetails = Map
 				.of();
+		private boolean immutableReleases = false;
 
 		StateBuilder summaryOverride(String overridesJson) {
 			this.summaryJson = merge(this.summaryJson, overridesJson)
@@ -215,6 +216,11 @@ class OrgCheckerDiffTest {
 			return this;
 		}
 
+		StateBuilder immutableReleases(boolean value) {
+			this.immutableReleases = value;
+			return this;
+		}
+
 		RepositoryState build() {
 			return new RepositoryState(
 					"repo",
@@ -233,7 +239,8 @@ class OrgCheckerDiffTest {
 					parse(workflowPermissionsJson, WorkflowPermissions.class),
 					rulesets,
 					pages,
-					environmentDetails
+					environmentDetails,
+					immutableReleases
 			);
 		}
 
@@ -361,6 +368,21 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder().automatedSecurityFixes(false).build();
 		assertThat(checker.computeDiffs(state, defaultArgs()))
 				.contains("automated_security_fixes: want=true got=false");
+	}
+
+	@Test
+	void drift_immutableReleases_wantTrue_gotFalse() {
+		var state = new StateBuilder().immutableReleases(false).build();
+		var desired = defaultArgs().toBuilder().immutableReleases(true).build();
+		assertThat(checker.computeDiffs(state, desired))
+				.contains("immutable_releases: want=true got=false");
+	}
+
+	@Test
+	void noDrift_immutableReleases_bothFalse() {
+		var state = new StateBuilder().immutableReleases(false).build();
+		var desired = defaultArgs();
+		assertThat(checker.computeDiffs(state, desired)).isEmpty();
 	}
 
 	@Test

@@ -24,7 +24,8 @@ public record RepositoryState(
 		WorkflowPermissions workflowPermissions,
 		List<RulesetDetailsResponse> rulesets,
 		Optional<PagesResponse> pages,
-		Map<String, EnvironmentDetailsResponse> environmentDetails
+		Map<String, EnvironmentDetailsResponse> environmentDetails,
+		boolean immutableReleases
 ) {
 
 	public RepositoryState {
