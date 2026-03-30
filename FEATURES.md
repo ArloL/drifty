@@ -70,14 +70,9 @@ Per spec update: `--verbose` is dropped. The only CLI flag is `--fix`.
 
 Implemented: `allowRebaseMerge` field added to `RepositoryArgs` with default `true` (matching GitHub's default). Diff check added in `OrgChecker.checkRepoSettings()` comparing `RepositoryFull.allowRebaseMerge()` against config. Included in the PATCH payload for fixes via `desired.allowRebaseMerge()`.
 
-## 15. Visibility Check (No Fix)
+## ~~15. Visibility Check (No Fix)~~ DONE
 
-The spec lists visibility (public/private) as a check-only setting — no fix due to risk. `RepositoryArgs` already has a `visibility` field (default: `"public"`, matching GitHub's default) but it is not checked in `OrgChecker`.
-
-### Plan
-
-- Add diff check in `OrgChecker.checkRepoSettings()` comparing `RepositoryFull.visibility()` against config.
-- Report drift but do not fix (even with `--fix`).
+Implemented: Changed `RepositoryArgs.visibility()` from `String` to `RepositoryVisibility` enum (matching the API type). Added diff check in `OrgChecker.checkRepoSettings()` comparing `desired.visibility()` against `details.visibility()`. Visibility is check-only — not included in `applyFixes()` so it won't be modified even with `--fix`. Added test `drift_visibility_notMatching()`.
 
 ## 16. Required Pull Request Reviews in Branch Protection
 

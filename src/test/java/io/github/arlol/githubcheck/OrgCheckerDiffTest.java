@@ -373,6 +373,15 @@ class OrgCheckerDiffTest {
 				.contains("default_branch: want=main got=master");
 	}
 
+	@Test
+	void drift_visibility_notMatching() {
+		var state = new StateBuilder().detailsOverride("""
+				{"visibility": "private"}
+				""").build();
+		assertThat(checker.computeDiffs(state, defaultArgs()))
+				.contains("visibility: want=PUBLIC got=PRIVATE");
+	}
+
 	// ─── Security drift
 	// ──────────────────────────────────────────────────────
 
@@ -481,7 +490,7 @@ class OrgCheckerDiffTest {
 				{"visibility": "private"}
 				""").noBranchProtection().build();
 		List<String> diffs = checker.computeDiffs(state, defaultArgs());
-		assertThat(diffs).isEmpty();
+		assertThat(diffs).containsOnly("visibility: want=PUBLIC got=PRIVATE");
 	}
 
 	// ─── Branch protection drift
