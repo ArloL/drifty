@@ -527,6 +527,46 @@ public class GitHubClient {
 		}
 	}
 
+	public void enableImmutableReleases(String owner, String repo)
+			throws IOException, InterruptedException {
+		HttpResponse<String> resp = put(
+				baseUrl + "/repos/" + owner + "/" + repo
+						+ "/immutable-releases",
+				""
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " enabling immutable-releases on " + repo
+			);
+		}
+	}
+
+	public void disableImmutableReleases(String owner, String repo)
+			throws IOException, InterruptedException {
+		HttpRequest request = HttpRequest
+				.newBuilder(
+						URI.create(
+								baseUrl + "/repos/" + owner + "/" + repo
+										+ "/immutable-releases"
+						)
+				)
+				.header("Authorization", "Bearer " + token)
+				.header("Accept", "application/vnd.github+json")
+				.header("X-GitHub-Api-Version", "2026-03-10")
+				.DELETE()
+				.build();
+		HttpResponse<String> resp = http
+				.send(request, HttpResponse.BodyHandlers.ofString());
+		handleRateLimit(resp);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " disabling immutable-releases on " + repo
+			);
+		}
+	}
+
 	public List<RulesetSummaryResponse> listRulesets(String owner, String repo)
 			throws IOException, InterruptedException {
 		String url = baseUrl + "/repos/" + owner + "/" + repo

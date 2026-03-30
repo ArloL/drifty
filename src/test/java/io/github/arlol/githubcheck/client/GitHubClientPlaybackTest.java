@@ -65,6 +65,13 @@ class GitHubClientPlaybackTest {
 	}
 
 	@Test
+	void getImmutableReleases_succeeds() {
+		assertThatNoException().isThrownBy(() -> {
+			client.getImmutableReleases("ArloL", "terraform-github");
+		});
+	}
+
+	@Test
 	void getWorkflowPermissions_returnsRecordedPermissions() throws Exception {
 		WorkflowPermissions perms = client
 				.getWorkflowPermissions("ArloL", "terraform-github");

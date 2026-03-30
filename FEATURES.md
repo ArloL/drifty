@@ -40,16 +40,9 @@ Implemented: `applyFixes()` now fixes missing action secrets and environment sec
 
 Implemented: `EnvironmentArgs` extended with `waitTimer`, `deploymentBranchPolicy`, and `reviewers` fields (with builder methods). `EnvironmentDetailsResponse` replaces the former `Environment` record, parsing `protection_rules` (wait_timer, required_reviewers) and `deployment_branch_policy` from the API response, with `getWaitTimer()` and `getReviewerIds()` helpers. `GitHubClient.getEnvironments()` replaces `getEnvironmentNames()` returning full `EnvironmentDetailsResponse` objects; `updateEnvironment()` sends a PUT to `/repos/{owner}/{repo}/environments/{name}`. `RepositoryState` gains an `environmentDetails` map field. `OrgChecker.checkEnvironmentConfig()` diffs wait timer, deployment branch policy, and reviewer sets; `applyFixes()` calls `updateEnvironment()` via `buildEnvironmentUpdateRequest()` for any drifted environments.
 
-## ~~9. Immutable Releases Validation~~ PARTIALLY DONE
+## ~~9. Immutable Releases Validation~~ DONE
 
-`GitHubClient.getImmutableReleases()` exists but is never called in `computeDiffs()`.
-
-### Plan
-
-- Add `immutableReleases` boolean field to `RepositoryArgs`.
-- In `computeDiffs()`, call `getImmutableReleases()` and compare against the desired value.
-- In `applyFixes()`, call the endpoint to enable/disable immutable releases.
-- Add `GitHubClient.updateImmutableReleases(owner, repo, enabled)`.
+`RepositoryState` has `boolean immutableReleases` as the 13th field. `RepositoryArgs` has `immutableReleases` boolean field (default `false`) with getter, builder setter, equals/hashCode. `GitHubClient` has `enableImmutableReleases()` (PUT empty body, expects 204) and `disableImmutableReleases()` (DELETE, expects 204). `OrgChecker.fetchState()` calls `getImmutableReleases()` for non-archived repos and passes the boolean to `RepositoryState`. `OrgChecker.computeDiffs()` compares `desired.immutableReleases()` against `actual.immutableReleases()`. `OrgChecker.applyFixes()` calls enable or disable based on the diff. Diff and fix tests cover both enable and disable scenarios.
 
 ## ~~10. Owner as CLI Argument~~ DROPPED
 
