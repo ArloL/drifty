@@ -130,6 +130,14 @@ class OrgCheckerFixTest {
 	// ─── Helpers
 	// ──────────────────────────────────────────────────────────
 
+	private OrgChecker checkerWithSecrets(
+			WireMockRuntimeInfo wm,
+			Map<String, String> secrets
+	) {
+		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
+		return new OrgChecker(client, "ArloL", true, secrets);
+	}
+
 	private static <T> T parse(String json, Class<T> type) {
 		try {
 			return MAPPER.readValue(json, type);
@@ -1297,6 +1305,186 @@ class OrgCheckerFixTest {
 				0,
 				putRequestedFor(
 						urlEqualTo("/repos/ArloL/repo/environments/production")
+				)
+		);
+	}
+
+	// ─── Secret creation via --fix
+	// ──────────────────────────────────────────
+
+	// 32 zero bytes base64-encoded — a valid-length curve25519 public key
+	private static final String TEST_PUBLIC_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
+	@Test
+	void missingActionSecret_withValueInMap_createsSecret(
+			WireMockRuntimeInfo wm
+	) throws Exception {
+		stubFor(
+				WireMock.get(
+						urlEqualTo(
+								"/repos/ArloL/repo/actions/secrets/public-key"
+						)
+				).willReturn(okJson("""
+						{"key_id": "123", "key": "%s"}
+						""".formatted(TEST_PUBLIC_KEY)))
+		);
+		stubFor(
+				put(urlEqualTo("/repos/ArloL/repo/actions/secrets/PAT"))
+						.willReturn(WireMock.status(201))
+		);
+
+		var localChecker = checkerWithSecrets(
+				wm,
+				Map.of("repo-PAT", "ghp_test_value")
+		);
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
+				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				true,
+				true,
+				parse(
+						GOOD_BRANCH_PROTECTION_JSON,
+						BranchProtectionResponse.class
+				),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of()
+		);
+		var desired = RepositoryArgs.create("repo")
+				.actionsSecrets("PAT")
+				.build();
+
+		List<String> diffs = localChecker.computeDiffs(state, desired);
+		List<String> remaining = localChecker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				1,
+				putRequestedFor(
+						urlEqualTo("/repos/ArloL/repo/actions/secrets/PAT")
+				)
+		);
+	}
+
+	@Test
+	void missingActionSecret_withoutValueInMap_remainsUnfixed(
+			WireMockRuntimeInfo wm
+	) throws Exception {
+		var localChecker = checkerWithSecrets(wm, Map.of());
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
+				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				true,
+				true,
+				parse(
+						GOOD_BRANCH_PROTECTION_JSON,
+						BranchProtectionResponse.class
+				),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of()
+		);
+		var desired = RepositoryArgs.create("repo")
+				.actionsSecrets("PAT")
+				.build();
+
+		List<String> diffs = localChecker.computeDiffs(state, desired);
+		List<String> remaining = localChecker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).anyMatch(
+				d -> d.contains("action_secrets") && d.contains("missing")
+						&& d.contains("PAT")
+		);
+		verify(
+				0,
+				putRequestedFor(
+						urlMatching("/repos/ArloL/repo/actions/secrets/.*")
+				)
+		);
+	}
+
+	@Test
+	void missingEnvironmentSecret_withValueInMap_createsSecret(
+			WireMockRuntimeInfo wm
+	) throws Exception {
+		stubFor(
+				WireMock.get(
+						urlEqualTo(
+								"/repos/ArloL/repo/environments/production/secrets/public-key"
+						)
+				).willReturn(okJson("""
+						{"key_id": "456", "key": "%s"}
+						""".formatted(TEST_PUBLIC_KEY)))
+		);
+		stubFor(
+				put(
+						urlEqualTo(
+								"/repos/ArloL/repo/environments/production/secrets/TF_GITHUB_TOKEN"
+						)
+				).willReturn(WireMock.status(201))
+		);
+
+		var localChecker = checkerWithSecrets(
+				wm,
+				Map.of("repo-production-TF_GITHUB_TOKEN", "ghp_test_value")
+		);
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
+				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				true,
+				true,
+				parse(
+						GOOD_BRANCH_PROTECTION_JSON,
+						BranchProtectionResponse.class
+				),
+				List.of(),
+				Map.of("production", List.of()),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(
+						"production",
+						parse("{}", EnvironmentDetailsResponse.class)
+				)
+		);
+		var desired = RepositoryArgs.create("repo")
+				.environment(
+						"production",
+						env -> env.secrets("TF_GITHUB_TOKEN")
+				)
+				.build();
+
+		List<String> diffs = localChecker.computeDiffs(state, desired);
+		List<String> remaining = localChecker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				1,
+				putRequestedFor(
+						urlEqualTo(
+								"/repos/ArloL/repo/environments/production/secrets/TF_GITHUB_TOKEN"
+						)
 				)
 		);
 	}
