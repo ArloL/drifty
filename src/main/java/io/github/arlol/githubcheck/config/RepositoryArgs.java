@@ -23,6 +23,7 @@ public final class RepositoryArgs {
 	private final Map<String, EnvironmentArgs> environments;
 	private final List<RulesetArgs> rulesets;
 	private final boolean immutableReleases;
+	private final boolean allowRebaseMerge;
 
 	private RepositoryArgs(Builder builder) {
 		this.name = builder.name;
@@ -38,6 +39,7 @@ public final class RepositoryArgs {
 				.unmodifiableMap(new LinkedHashMap<>(builder.environments));
 		this.rulesets = List.copyOf(builder.rulesets);
 		this.immutableReleases = builder.immutableReleases;
+		this.allowRebaseMerge = builder.allowRebaseMerge;
 	}
 
 	public String name() {
@@ -92,6 +94,10 @@ public final class RepositoryArgs {
 		return immutableReleases;
 	}
 
+	public boolean allowRebaseMerge() {
+		return allowRebaseMerge;
+	}
+
 	public Builder toBuilder() {
 		return new Builder(this);
 	}
@@ -103,6 +109,7 @@ public final class RepositoryArgs {
 		RepositoryArgs that = (RepositoryArgs) o;
 		return archived == that.archived
 				&& immutableReleases == that.immutableReleases
+				&& allowRebaseMerge == that.allowRebaseMerge
 				&& Objects.equals(name, that.name)
 				&& Objects.equals(pagesArgs, that.pagesArgs)
 				&& Objects.equals(description, that.description)
@@ -130,7 +137,8 @@ public final class RepositoryArgs {
 				actionsSecrets,
 				environments,
 				rulesets,
-				immutableReleases
+				immutableReleases,
+				allowRebaseMerge
 		);
 	}
 
@@ -156,6 +164,7 @@ public final class RepositoryArgs {
 		private final Map<String, EnvironmentArgs> environments = new LinkedHashMap<>();
 		private List<RulesetArgs> rulesets = List.of();
 		private boolean immutableReleases = false;
+		private boolean allowRebaseMerge = true;
 
 		public Builder(String name) {
 			this.name = name;
@@ -174,6 +183,7 @@ public final class RepositoryArgs {
 			this.environments.putAll(repositoryArgs.environments);
 			this.rulesets = repositoryArgs.rulesets;
 			this.immutableReleases = repositoryArgs.immutableReleases;
+			this.allowRebaseMerge = repositoryArgs.allowRebaseMerge;
 		}
 
 		public Builder name(String name) {
@@ -261,6 +271,11 @@ public final class RepositoryArgs {
 
 		public Builder immutableReleases(boolean immutableReleases) {
 			this.immutableReleases = immutableReleases;
+			return this;
+		}
+
+		public Builder allowRebaseMerge(boolean allowRebaseMerge) {
+			this.allowRebaseMerge = allowRebaseMerge;
 			return this;
 		}
 

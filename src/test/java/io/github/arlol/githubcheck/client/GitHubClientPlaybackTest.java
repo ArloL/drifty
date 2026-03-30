@@ -52,6 +52,7 @@ class GitHubClientPlaybackTest {
 		);
 		assertThat(repo.allowMergeCommit()).isFalse();
 		assertThat(repo.allowSquashMerge()).isFalse();
+		assertThat(repo.allowRebaseMerge()).isTrue();
 		assertThat(repo.allowAutoMerge()).isTrue();
 		assertThat(repo.deleteBranchOnMerge()).isTrue();
 		assertThat(repo.topics()).isEmpty();

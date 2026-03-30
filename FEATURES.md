@@ -66,15 +66,9 @@ The default (non-fix) output should show human-readable previews of what `--fix`
 
 Per spec update: `--verbose` is dropped. The only CLI flag is `--fix`.
 
-## 14. Allow Rebase Merge Check
+## ~~14. Allow Rebase Merge Check~~ DONE
 
-The spec lists "Allow rebase merge" as a managed setting. The current `RepositoryArgs` has `allowMergeCommit` and `allowSquashMerge` but not `allowRebaseMerge`.
-
-### Plan
-
-- Add `allowRebaseMerge` field to `RepositoryArgs` (default: `true`, matching GitHub's default).
-- Add diff check comparing `RepositoryFull.allowRebaseMerge()` against config.
-- Include in the PATCH payload for fixes.
+Implemented: `allowRebaseMerge` field added to `RepositoryArgs` with default `true` (matching GitHub's default). Diff check added in `OrgChecker.checkRepoSettings()` comparing `RepositoryFull.allowRebaseMerge()` against config. Included in the PATCH payload for fixes via `desired.allowRebaseMerge()`.
 
 ## 15. Visibility Check (No Fix)
 
