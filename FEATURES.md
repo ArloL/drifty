@@ -24,20 +24,9 @@ Implemented: `RulesetArgs` config defines desired rulesets (name, include patter
 
 Pages endpoint is queried and the github-pages environment is auto-created, but no actual Pages settings are validated (build type, source branch/path, HTTPS enforcement) and no fixes are applied.
 
-## 7. Secret Creation via `--fix`
+## ~~7. Secret Creation via `--fix`~~ DONE
 
-Secrets are checked for presence/absence but `--fix` does not create missing secrets.
-
-### Plan
-
-- Read `GITHUB_SECRETS` env var as a JSON map.
-- Add `GitHubClient` methods:
-  - GET `/repos/{owner}/{repo}/actions/secrets/public-key` to get the repo public key.
-  - PUT `/repos/{owner}/{repo}/actions/secrets/{name}` to create/update a secret (libsodium sealed box encryption).
-  - Same for environment secrets: `/repos/{owner}/{repo}/environments/{env}/secrets/{name}`.
-- Key format from env var: `<repo>-<secret>` for action secrets, `<repo>-<env>-<secret>` for environment secrets.
-- Add a dependency on a libsodium/NaCl library (e.g. `com.goterl:lazysodium-java`) for sealed box encryption.
-- In `applyFixes()`, for each missing secret, look up value in the map and create it. If value not in map, report as unfixable.
+Implemented: `applyFixes()` now fixes missing action secrets and environment secrets. `GITHUB_SECRETS` env var is parsed as a JSON map in `GitHubCheck.java` and passed to `OrgChecker`. Key format: `<repo>-<secret>` for action secrets, `<repo>-<env>-<secret>` for environment secrets. `GitHubClient` has `getActionSecretPublicKey()`, `createOrUpdateActionSecret()`, `getEnvironmentSecretPublicKey()`, and `createOrUpdateEnvironmentSecret()`. Secrets are encrypted using libsodium sealed-box via `com.goterl:lazysodium-java` before upload. If a secret's value is missing from the map, it stays in the remaining diffs as unfixable. New records `SecretPublicKeyResponse` and `SecretRequest` model the API payloads.
 
 ## ~~8. Environment Fixes (reviewers, wait timer, deployment branches)~~ DONE
 

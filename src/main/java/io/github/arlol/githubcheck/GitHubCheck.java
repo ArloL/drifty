@@ -2,8 +2,14 @@ package io.github.arlol.githubcheck;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
@@ -23,9 +29,27 @@ public class GitHubCheck {
 
 		boolean fix = List.of(args).contains("--fix");
 
+		Map<String, String> githubSecrets = Map.of();
+		String githubSecretsJson = System.getenv("GITHUB_SECRETS");
+		if (githubSecretsJson != null && !githubSecretsJson.isBlank()) {
+			githubSecrets = new ObjectMapper()
+					.configure(
+							DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+							false
+					)
+					.setPropertyNamingStrategy(
+							PropertyNamingStrategies.SNAKE_CASE
+					)
+					.readValue(
+							githubSecretsJson,
+							new TypeReference<Map<String, String>>() {
+							}
+					);
+		}
+
 		long startTime = System.currentTimeMillis();
 
-		var checker = new OrgChecker(token, "ArloL", fix);
+		var checker = new OrgChecker(token, "ArloL", fix, githubSecrets);
 		CheckResult result = checker.check(repositories());
 		checker.printReport(result);
 

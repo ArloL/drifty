@@ -18,6 +18,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
+import com.goterl.lazysodium.LazySodiumJava;
+import com.goterl.lazysodium.SodiumJava;
+import com.goterl.lazysodium.interfaces.Box;
+
 import io.github.arlol.githubcheck.client.BranchProtectionRequest;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
@@ -33,6 +40,8 @@ import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetRequest;
 import io.github.arlol.githubcheck.client.RulesetRuleType;
 import io.github.arlol.githubcheck.client.RulesetTarget;
+import io.github.arlol.githubcheck.client.SecretPublicKeyResponse;
+import io.github.arlol.githubcheck.client.SecretRequest;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.EnvironmentArgs;
@@ -46,23 +55,43 @@ public class OrgChecker {
 	private final GitHubClient client;
 	private final String org;
 	private final boolean fix;
+	private final Map<String, String> githubSecrets;
 
 	public OrgChecker(String token, String org) {
-		this(new GitHubClient(token), org, false);
+		this(new GitHubClient(token), org, false, Map.of());
 	}
 
 	public OrgChecker(String token, String org, boolean fix) {
-		this(new GitHubClient(token), org, fix);
+		this(new GitHubClient(token), org, fix, Map.of());
+	}
+
+	public OrgChecker(
+			String token,
+			String org,
+			boolean fix,
+			Map<String, String> githubSecrets
+	) {
+		this(new GitHubClient(token), org, fix, githubSecrets);
 	}
 
 	OrgChecker(GitHubClient client, String org) {
-		this(client, org, false);
+		this(client, org, false, Map.of());
 	}
 
 	OrgChecker(GitHubClient client, String org, boolean fix) {
+		this(client, org, fix, Map.of());
+	}
+
+	OrgChecker(
+			GitHubClient client,
+			String org,
+			boolean fix,
+			Map<String, String> githubSecrets
+	) {
 		this.client = client;
 		this.org = org;
 		this.fix = fix;
+		this.githubSecrets = githubSecrets;
 	}
 
 	public CheckResult check(List<RepositoryArgs> repositories)
@@ -918,7 +947,106 @@ public class OrgChecker {
 			remaining.removeAll(envConfigDiffs);
 		}
 
-		// Action secrets and environment names/secrets (NOT fixable yet)
+		// Action secrets and environment secrets — fix missing ones if values
+		// are available in the githubSecrets map
+		List<String> secretDiffs = new ArrayList<>();
+		checkSecrets(secretDiffs, actual, desired);
+		if (!secretDiffs.isEmpty()) {
+			// --- Action secrets ---
+			Set<String> missingActionSecrets = new HashSet<>(
+					desired.actionsSecrets()
+			);
+			missingActionSecrets
+					.removeAll(new HashSet<>(actual.actionSecretNames()));
+			if (!missingActionSecrets.isEmpty()) {
+				boolean allFixed = true;
+				SecretPublicKeyResponse publicKey = null;
+				for (String secretName : missingActionSecrets) {
+					String mapKey = name + "-" + secretName;
+					String value = githubSecrets.get(mapKey);
+					if (value == null) {
+						allFixed = false;
+						continue;
+					}
+					if (publicKey == null) {
+						publicKey = client.getActionSecretPublicKey(org, name);
+					}
+					String encrypted = encryptSecret(publicKey.key(), value);
+					client.createOrUpdateActionSecret(
+							org,
+							name,
+							secretName,
+							new SecretRequest(encrypted, publicKey.keyId())
+					);
+					System.out.printf(
+							"[FIXED]   %s: action secret %s created%n",
+							name,
+							secretName
+					);
+				}
+				if (allFixed) {
+					secretDiffs.stream()
+							.filter(
+									d -> d.startsWith("action_secrets missing:")
+							)
+							.forEach(remaining::remove);
+				}
+			}
+
+			// --- Environment secrets ---
+			for (var entry : desired.environments().entrySet()) {
+				String envName = entry.getKey();
+				List<String> wantSecrets = entry.getValue().secrets();
+				Set<String> missingEnvSecrets = new HashSet<>(wantSecrets);
+				missingEnvSecrets.removeAll(
+						new HashSet<>(
+								actual.environmentSecretNames()
+										.getOrDefault(envName, List.of())
+						)
+				);
+				if (missingEnvSecrets.isEmpty()) {
+					continue;
+				}
+				boolean allFixed = true;
+				SecretPublicKeyResponse publicKey = null;
+				for (String secretName : missingEnvSecrets) {
+					String mapKey = name + "-" + envName + "-" + secretName;
+					String value = githubSecrets.get(mapKey);
+					if (value == null) {
+						allFixed = false;
+						continue;
+					}
+					if (publicKey == null) {
+						publicKey = client.getEnvironmentSecretPublicKey(
+								org,
+								name,
+								envName
+						);
+					}
+					String encrypted = encryptSecret(publicKey.key(), value);
+					client.createOrUpdateEnvironmentSecret(
+							org,
+							name,
+							envName,
+							secretName,
+							new SecretRequest(encrypted, publicKey.keyId())
+					);
+					System.out.printf(
+							"[FIXED]   %s: environment.%s secret %s created%n",
+							name,
+							envName,
+							secretName
+					);
+				}
+				if (allFixed) {
+					String prefix = "environment." + envName
+							+ ".secrets missing:";
+					secretDiffs.stream()
+							.filter(d -> d.startsWith(prefix))
+							.forEach(remaining::remove);
+				}
+			}
+		}
 
 		return remaining;
 	}
@@ -1090,6 +1218,18 @@ public class OrgChecker {
 		System.out.printf("Drifted:        %d%n", result.driftCount());
 		System.out.printf("Errored:        %d%n", result.errorCount());
 		System.out.printf("Unknown:        %d%n", result.unknownCount());
+	}
+
+	private static String encryptSecret(
+			String base64PublicKey,
+			String plaintext
+	) {
+		var sodium = new LazySodiumJava(new SodiumJava());
+		byte[] decodedKey = Base64.getDecoder().decode(base64PublicKey);
+		byte[] msgBytes = plaintext.getBytes(StandardCharsets.UTF_8);
+		byte[] cipherText = new byte[msgBytes.length + Box.SEALBYTES];
+		sodium.cryptoBoxSeal(cipherText, msgBytes, msgBytes.length, decodedKey);
+		return Base64.getEncoder().encodeToString(cipherText);
 	}
 
 	// ─── Helpers

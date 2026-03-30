@@ -248,6 +248,83 @@ public class GitHubClient {
 				.toList();
 	}
 
+	public SecretPublicKeyResponse getActionSecretPublicKey(
+			String org,
+			String repo
+	) throws IOException, InterruptedException {
+		HttpResponse<String> resp = send(
+				baseUrl + "/repos/" + org + "/" + repo
+						+ "/actions/secrets/public-key"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " GET action secret public key on " + repo
+			);
+		}
+		return mapper.readValue(resp.body(), SecretPublicKeyResponse.class);
+	}
+
+	public void createOrUpdateActionSecret(
+			String org,
+			String repo,
+			String name,
+			SecretRequest request
+	) throws IOException, InterruptedException {
+		String body = mapper.writeValueAsString(request);
+		HttpResponse<String> resp = put(
+				baseUrl + "/repos/" + org + "/" + repo + "/actions/secrets/"
+						+ name,
+				body
+		);
+		if (resp.statusCode() != 201 && resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " PUT action secret " + name
+							+ " on " + repo
+			);
+		}
+	}
+
+	public SecretPublicKeyResponse getEnvironmentSecretPublicKey(
+			String org,
+			String repo,
+			String env
+	) throws IOException, InterruptedException {
+		HttpResponse<String> resp = send(
+				baseUrl + "/repos/" + org + "/" + repo + "/environments/" + env
+						+ "/secrets/public-key"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " GET env secret public key on " + repo + "/"
+							+ env
+			);
+		}
+		return mapper.readValue(resp.body(), SecretPublicKeyResponse.class);
+	}
+
+	public void createOrUpdateEnvironmentSecret(
+			String org,
+			String repo,
+			String env,
+			String name,
+			SecretRequest request
+	) throws IOException, InterruptedException {
+		String body = mapper.writeValueAsString(request);
+		HttpResponse<String> resp = put(
+				baseUrl + "/repos/" + org + "/" + repo + "/environments/" + env
+						+ "/secrets/" + name,
+				body
+		);
+		if (resp.statusCode() != 201 && resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " PUT env secret " + name
+							+ " on " + repo + "/" + env
+			);
+		}
+	}
+
 	public WorkflowPermissions getWorkflowPermissions(String org, String repo)
 			throws IOException, InterruptedException {
 		HttpResponse<String> resp = send(
