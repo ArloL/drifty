@@ -314,6 +314,7 @@ public class OrgChecker {
 				true,
 				details.deleteBranchOnMerge()
 		);
+		check(diffs, "visibility", desired.visibility(), details.visibility());
 	}
 
 	private void checkTopics(

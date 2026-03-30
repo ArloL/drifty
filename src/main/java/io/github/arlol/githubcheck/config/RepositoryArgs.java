@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.config;
 
+import io.github.arlol.githubcheck.client.RepositoryVisibility;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -16,7 +18,7 @@ public final class RepositoryArgs {
 	private final PagesArgs pagesArgs;
 	private final String description;
 	private final String homepageUrl;
-	private final String visibility;
+	private final RepositoryVisibility visibility;
 	private final List<String> topics;
 	private final Set<StatusCheckArgs> requiredStatusChecks;
 	private final List<String> actionsSecrets;
@@ -66,7 +68,7 @@ public final class RepositoryArgs {
 		return homepageUrl;
 	}
 
-	public String visibility() {
+	public RepositoryVisibility visibility() {
 		return visibility;
 	}
 
@@ -157,7 +159,7 @@ public final class RepositoryArgs {
 		private PagesArgs pagesArgs = null;
 		private String description = "";
 		private String homepageUrl = "";
-		private String visibility = "public";
+		private RepositoryVisibility visibility = RepositoryVisibility.PUBLIC;
 		private List<String> topics = List.of();
 		private Set<StatusCheckArgs> requiredStatusChecks = Set.of();
 		private List<String> actionsSecrets = List.of();
@@ -216,7 +218,7 @@ public final class RepositoryArgs {
 			return this;
 		}
 
-		public Builder visibility(String visibility) {
+		public Builder visibility(RepositoryVisibility visibility) {
 			this.visibility = visibility;
 			return this;
 		}
