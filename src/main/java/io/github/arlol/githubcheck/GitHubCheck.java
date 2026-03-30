@@ -255,6 +255,7 @@ public class GitHubCheck {
 						.description(
 								"A sample project to play with GraalVM builds on GitHub Actions"
 						)
+						.immutableReleases(true)
 						.build(),
 				mainCiRepo.toBuilder()
 						.name("rss-to-mail")
@@ -301,6 +302,7 @@ public class GitHubCheck {
 						.description(
 								"A GitHub Actions action that creates a new version using a CalVer-style derivative and pushes it"
 						)
+						.immutableReleases(true)
 						.rulesets(defaultRuleset)
 						.build(),
 				defaultRepository.toBuilder()
