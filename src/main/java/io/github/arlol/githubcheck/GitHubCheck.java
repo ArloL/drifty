@@ -134,6 +134,7 @@ public class GitHubCheck {
 		var defaultRepository = RepositoryArgs.create("_")
 				.rulesets(defaultRuleset)
 				.branchProtections(defaultBranchProtection)
+				.automatedSecurityFixes(true)
 				.build();
 
 		// Variant for repos with the main CI required status check

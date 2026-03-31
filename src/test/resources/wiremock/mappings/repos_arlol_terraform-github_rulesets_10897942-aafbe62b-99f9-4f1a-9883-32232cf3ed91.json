@@ -1,5 +1,5 @@
 {
-  "id" : "b902473e-49e9-4da4-80a8-e8e0b85f57ce",
+  "id" : "aafbe62b-99f9-4f1a-9883-32232cf3ed91",
   "name" : "repos_arlol_terraform-github_rulesets_10897942",
   "request" : {
     "url" : "/repos/ArloL/terraform-github/rulesets/10897942",
@@ -12,22 +12,22 @@
       "X-Accepted-OAuth-Scopes" : "repo",
       "X-RateLimit-Resource" : "core",
       "Server" : "github.com",
-      "X-RateLimit-Used" : "55",
+      "X-RateLimit-Used" : "43",
       "Access-Control-Allow-Origin" : "*",
       "x-github-api-version-selected" : "2026-03-10",
       "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
       "X-Frame-Options" : "deny",
       "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
       "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
-      "X-RateLimit-Remaining" : "4945",
+      "X-RateLimit-Remaining" : "4957",
       "X-GitHub-Media-Type" : "github.v3; format=json",
       "Content-Security-Policy" : "default-src 'none'",
       "X-XSS-Protection" : "0",
-      "X-GitHub-Request-Id" : "8EE4:1DC688:A72A2E:928DBC:69CBAD30",
+      "X-GitHub-Request-Id" : "8F15:12333:11B7C9C:F8FB3E:69CBB912",
       "Content-Type" : "application/json; charset=utf-8",
       "X-Content-Type-Options" : "nosniff",
-      "X-RateLimit-Reset" : "1774957165",
-      "Date" : "Tue, 31 Mar 2026 11:17:04 GMT",
+      "X-RateLimit-Reset" : "1774962432",
+      "Date" : "Tue, 31 Mar 2026 12:07:46 GMT",
       "Cache-Control" : "private, max-age=60, s-maxage=60",
       "ETag" : "\"256a693a56217f559edd7540314a52b847eccbc9ae6dd07c32ec683c20d78aad\"",
       "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
@@ -37,5 +37,5 @@
     }
   },
   "persistent" : true,
-  "insertionIndex" : 47
+  "insertionIndex" : 86
 }

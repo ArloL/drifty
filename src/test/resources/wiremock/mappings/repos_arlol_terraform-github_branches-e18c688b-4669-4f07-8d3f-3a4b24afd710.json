@@ -1,5 +1,5 @@
 {
-  "id" : "1da95f31-da13-472f-bc59-cbbd5ad1d352",
+  "id" : "e18c688b-4669-4f07-8d3f-3a4b24afd710",
   "name" : "repos_arlol_terraform-github_branches",
   "request" : {
     "urlPath" : "/repos/ArloL/terraform-github/branches",
@@ -21,21 +21,21 @@
       "Server" : "github.com",
       "X-RateLimit-Resource" : "core",
       "Access-Control-Allow-Origin" : "*",
-      "X-RateLimit-Used" : "9",
+      "X-RateLimit-Used" : "7",
       "x-github-api-version-selected" : "2026-03-10",
       "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
       "X-Frame-Options" : "deny",
       "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
       "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
-      "X-RateLimit-Remaining" : "4991",
+      "X-RateLimit-Remaining" : "4993",
       "X-GitHub-Media-Type" : "github.v3; format=json",
       "Content-Security-Policy" : "default-src 'none'",
       "X-XSS-Protection" : "0",
-      "X-GitHub-Request-Id" : "8EE4:1DC688:A71559:927B42:69CBAD2D",
+      "X-GitHub-Request-Id" : "8EED:11BF5D:11132C1:EF65A6:69CBB90F",
       "Content-Type" : "application/json; charset=utf-8",
       "X-Content-Type-Options" : "nosniff",
-      "X-RateLimit-Reset" : "1774957165",
-      "Date" : "Tue, 31 Mar 2026 11:17:02 GMT",
+      "X-RateLimit-Reset" : "1774962432",
+      "Date" : "Tue, 31 Mar 2026 12:07:44 GMT",
       "Cache-Control" : "private, max-age=60, s-maxage=60",
       "ETag" : "\"4b4fc192b7951e836383cb72a72137d4affa7c07dd20dda753c23099158d8517\"",
       "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
@@ -45,5 +45,5 @@
     }
   },
   "persistent" : true,
-  "insertionIndex" : 40
+  "insertionIndex" : 79
 }

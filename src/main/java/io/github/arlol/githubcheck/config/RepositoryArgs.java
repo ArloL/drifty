@@ -29,6 +29,10 @@ public final class RepositoryArgs {
 	private final boolean immutableReleases;
 	private final boolean allowRebaseMerge;
 	private final Map<String, BranchProtectionArgs> branchProtections;
+	private final boolean vulnerabilityAlerts;
+	private final boolean automatedSecurityFixes;
+	private final boolean secretScanning;
+	private final boolean secretScanningPushProtection;
 
 	private RepositoryArgs(Builder builder) {
 		this.name = builder.name;
@@ -45,6 +49,10 @@ public final class RepositoryArgs {
 		this.immutableReleases = builder.immutableReleases;
 		this.allowRebaseMerge = builder.allowRebaseMerge;
 		this.branchProtections = Map.copyOf(builder.branchProtections);
+		this.vulnerabilityAlerts = builder.vulnerabilityAlerts;
+		this.automatedSecurityFixes = builder.automatedSecurityFixes;
+		this.secretScanning = builder.secretScanning;
+		this.secretScanningPushProtection = builder.secretScanningPushProtection;
 	}
 
 	public String name() {
@@ -103,6 +111,22 @@ public final class RepositoryArgs {
 		return branchProtections;
 	}
 
+	public boolean vulnerabilityAlerts() {
+		return vulnerabilityAlerts;
+	}
+
+	public boolean automatedSecurityFixes() {
+		return automatedSecurityFixes;
+	}
+
+	public boolean secretScanning() {
+		return secretScanning;
+	}
+
+	public boolean secretScanningPushProtection() {
+		return secretScanningPushProtection;
+	}
+
 	public Builder toBuilder() {
 		return new Builder(this);
 	}
@@ -115,6 +139,10 @@ public final class RepositoryArgs {
 		return archived == that.archived
 				&& immutableReleases == that.immutableReleases
 				&& allowRebaseMerge == that.allowRebaseMerge
+				&& vulnerabilityAlerts == that.vulnerabilityAlerts
+				&& automatedSecurityFixes == that.automatedSecurityFixes
+				&& secretScanning == that.secretScanning
+				&& secretScanningPushProtection == that.secretScanningPushProtection
 				&& Objects.equals(name, that.name)
 				&& Objects.equals(pagesArgs, that.pagesArgs)
 				&& Objects.equals(description, that.description)
@@ -142,7 +170,11 @@ public final class RepositoryArgs {
 				rulesets,
 				immutableReleases,
 				allowRebaseMerge,
-				branchProtections
+				branchProtections,
+				vulnerabilityAlerts,
+				automatedSecurityFixes,
+				secretScanning,
+				secretScanningPushProtection
 		);
 	}
 
@@ -169,6 +201,10 @@ public final class RepositoryArgs {
 		private boolean immutableReleases = false;
 		private boolean allowRebaseMerge = true;
 		private Map<String, BranchProtectionArgs> branchProtections = Map.of();
+		private boolean vulnerabilityAlerts = true;
+		private boolean automatedSecurityFixes = false;
+		private boolean secretScanning = true;
+		private boolean secretScanningPushProtection = true;
 
 		public Builder(String name) {
 			this.name = name;
@@ -188,6 +224,10 @@ public final class RepositoryArgs {
 			this.immutableReleases = repositoryArgs.immutableReleases;
 			this.allowRebaseMerge = repositoryArgs.allowRebaseMerge;
 			this.branchProtections = repositoryArgs.branchProtections;
+			this.vulnerabilityAlerts = repositoryArgs.vulnerabilityAlerts;
+			this.automatedSecurityFixes = repositoryArgs.automatedSecurityFixes;
+			this.secretScanning = repositoryArgs.secretScanning;
+			this.secretScanningPushProtection = repositoryArgs.secretScanningPushProtection;
 		}
 
 		public Builder name(String name) {
@@ -299,6 +339,28 @@ public final class RepositoryArgs {
 
 		public Builder allowRebaseMerge(boolean allowRebaseMerge) {
 			this.allowRebaseMerge = allowRebaseMerge;
+			return this;
+		}
+
+		public Builder vulnerabilityAlerts(boolean vulnerabilityAlerts) {
+			this.vulnerabilityAlerts = vulnerabilityAlerts;
+			return this;
+		}
+
+		public Builder automatedSecurityFixes(boolean automatedSecurityFixes) {
+			this.automatedSecurityFixes = automatedSecurityFixes;
+			return this;
+		}
+
+		public Builder secretScanning(boolean secretScanning) {
+			this.secretScanning = secretScanning;
+			return this;
+		}
+
+		public Builder secretScanningPushProtection(
+				boolean secretScanningPushProtection
+		) {
+			this.secretScanningPushProtection = secretScanningPushProtection;
 			return this;
 		}
 

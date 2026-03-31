@@ -144,7 +144,7 @@ class OrgCheckerDiffTest {
 		private String summaryJson = GOOD_SUMMARY_JSON;
 		private String detailsJson = GOOD_DETAILS_JSON;
 		private boolean vulnerabilityAlerts = true;
-		private boolean automatedSecurityFixes = true;
+		private boolean automatedSecurityFixes = false;
 		private String branchProtectionJson = GOOD_BRANCH_PROTECTION_JSON;
 		private boolean hasBranchProtection = true;
 		private List<String> actionSecretNames = List.of();
@@ -404,7 +404,10 @@ class OrgCheckerDiffTest {
 	@Test
 	void drift_automatedSecurityFixes_isFalse() {
 		var state = new StateBuilder().automatedSecurityFixes(false).build();
-		assertThat(checker.computeDiffs(state, defaultArgs()))
+		var desired = defaultArgs().toBuilder()
+				.automatedSecurityFixes(true)
+				.build();
+		assertThat(checker.computeDiffs(state, desired))
 				.contains("automated_security_fixes: want=true got=false");
 	}
 
@@ -453,6 +456,51 @@ class OrgCheckerDiffTest {
 				.build();
 		assertThat(checker.computeDiffs(state, defaultArgs())).contains(
 				"secret_scanning_push_protection: want=true got=false"
+		);
+	}
+
+	@Test
+	void noDrift_vulnerabilityAlerts_desiredFalse_actualFalse() {
+		var state = new StateBuilder().vulnerabilityAlerts(false).build();
+		var desired = defaultArgs().toBuilder()
+				.vulnerabilityAlerts(false)
+				.build();
+		assertThat(checker.computeDiffs(state, desired))
+				.doesNotContain("vulnerability_alerts: want=false got=false");
+	}
+
+	@Test
+	void drift_vulnerabilityAlerts_wantFalse_gotTrue() {
+		var state = new StateBuilder().vulnerabilityAlerts(true).build();
+		var desired = defaultArgs().toBuilder()
+				.vulnerabilityAlerts(false)
+				.build();
+		assertThat(checker.computeDiffs(state, desired))
+				.contains("vulnerability_alerts: want=false got=true");
+	}
+
+	@Test
+	void noDrift_automatedSecurityFixes_desiredFalse_actualFalse() {
+		var state = new StateBuilder().build();
+		assertThat(checker.computeDiffs(state, defaultArgs())).doesNotContain(
+				"automated_security_fixes: want=false got=false"
+		);
+	}
+
+	@Test
+	void drift_secretScanning_wantFalse_gotTrue() {
+		var desired = defaultArgs().toBuilder().secretScanning(false).build();
+		assertThat(checker.computeDiffs(goodPublicState(), desired))
+				.contains("secret_scanning: want=false got=true");
+	}
+
+	@Test
+	void drift_secretScanningPushProtection_wantFalse_gotTrue() {
+		var desired = defaultArgs().toBuilder()
+				.secretScanningPushProtection(false)
+				.build();
+		assertThat(checker.computeDiffs(goodPublicState(), desired)).contains(
+				"secret_scanning_push_protection: want=false got=true"
 		);
 	}
 

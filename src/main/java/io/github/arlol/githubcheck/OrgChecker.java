@@ -347,13 +347,13 @@ public class OrgChecker {
 		check(
 				diffs,
 				"vulnerability_alerts",
-				true,
+				desired.vulnerabilityAlerts(),
 				actual.vulnerabilityAlerts()
 		);
 		check(
 				diffs,
 				"automated_security_fixes",
-				true,
+				desired.automatedSecurityFixes(),
 				actual.automatedSecurityFixes()
 		);
 		check(
@@ -371,11 +371,16 @@ public class OrgChecker {
 					.secretScanningPushProtection() != null
 					&& SecurityAndAnalysis.StatusObject.Status.ENABLED
 							.equals(sa.secretScanningPushProtection().status());
-			check(diffs, "secret_scanning", true, secretScanning);
+			check(
+					diffs,
+					"secret_scanning",
+					desired.secretScanning(),
+					secretScanning
+			);
 			check(
 					diffs,
 					"secret_scanning_push_protection",
-					true,
+					desired.secretScanningPushProtection(),
 					secretScanningPush
 			);
 		}
@@ -910,19 +915,35 @@ public class OrgChecker {
 		if (!securityDiffs.isEmpty()) {
 			if (securityDiffs.stream()
 					.anyMatch(d -> d.startsWith("vulnerability_alerts"))) {
-				client.enableVulnerabilityAlerts(org, name);
-				System.out.printf(
-						"[FIXED]   %s: vulnerability_alerts enabled%n",
-						name
-				);
+				if (desired.vulnerabilityAlerts()) {
+					client.enableVulnerabilityAlerts(org, name);
+					System.out.printf(
+							"[FIXED]   %s: vulnerability_alerts enabled%n",
+							name
+					);
+				} else {
+					client.disableVulnerabilityAlerts(org, name);
+					System.out.printf(
+							"[FIXED]   %s: vulnerability_alerts disabled%n",
+							name
+					);
+				}
 			}
 			if (securityDiffs.stream()
 					.anyMatch(d -> d.startsWith("automated_security_fixes"))) {
-				client.enableAutomatedSecurityFixes(org, name);
-				System.out.printf(
-						"[FIXED]   %s: automated_security_fixes enabled%n",
-						name
-				);
+				if (desired.automatedSecurityFixes()) {
+					client.enableAutomatedSecurityFixes(org, name);
+					System.out.printf(
+							"[FIXED]   %s: automated_security_fixes enabled%n",
+							name
+					);
+				} else {
+					client.disableAutomatedSecurityFixes(org, name);
+					System.out.printf(
+							"[FIXED]   %s: automated_security_fixes disabled%n",
+							name
+					);
+				}
 			}
 			if (securityDiffs.stream()
 					.anyMatch(
@@ -946,20 +967,41 @@ public class OrgChecker {
 						name
 				);
 			}
-			if (securityDiffs.stream()
-					.anyMatch(d -> d.startsWith("secret_scanning"))) {
+			boolean ssDrifted = securityDiffs.stream()
+					.anyMatch(d -> d.startsWith("secret_scanning:"));
+			boolean sspDrifted = securityDiffs.stream()
+					.anyMatch(
+							d -> d.startsWith(
+									"secret_scanning_push_protection:"
+							)
+					);
+			if (ssDrifted || sspDrifted) {
+				Map<String, Object> saUpdate = new LinkedHashMap<>();
+				if (ssDrifted) {
+					saUpdate.put(
+							"secret_scanning",
+							Map.of(
+									"status",
+									desired.secretScanning() ? "enabled"
+											: "disabled"
+							)
+					);
+				}
+				if (sspDrifted) {
+					saUpdate.put(
+							"secret_scanning_push_protection",
+							Map.of(
+									"status",
+									desired.secretScanningPushProtection()
+											? "enabled"
+											: "disabled"
+							)
+					);
+				}
 				client.updateRepository(
 						org,
 						name,
-						Map.of(
-								"security_and_analysis",
-								Map.of(
-										"secret_scanning",
-										Map.of("status", "enabled"),
-										"secret_scanning_push_protection",
-										Map.of("status", "enabled")
-								)
-						)
+						Map.of("security_and_analysis", saUpdate)
 				);
 				System.out.printf(
 						"[FIXED]   %s: secret_scanning settings updated%n",

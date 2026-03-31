@@ -59,6 +59,7 @@ class GitHubClientRecordingTest {
 		client.listOrgRepos(owner);
 		client.getRepo(owner, repo);
 		client.getVulnerabilityAlerts(owner, repo);
+		client.getAutomatedSecurityFixes(owner, repo);
 		client.getImmutableReleases(owner, repo);
 		var branches = client.getBranches(owner, repo, true);
 		for (var branch : branches) {

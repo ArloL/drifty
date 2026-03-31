@@ -82,6 +82,13 @@ class GitHubClientPlaybackTest {
 	}
 
 	@Test
+	void getAutomatedSecurityFixes_returnsRecordedState() throws Exception {
+		boolean enabled = client
+				.getAutomatedSecurityFixes("ArloL", "terraform-github");
+		assertThat(enabled).isTrue();
+	}
+
+	@Test
 	void enableVulnerabilityAlerts_succeeds() {
 		assertThatNoException().isThrownBy(
 				() -> client
