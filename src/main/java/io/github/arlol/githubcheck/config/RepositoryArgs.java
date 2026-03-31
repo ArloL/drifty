@@ -29,6 +29,7 @@ public final class RepositoryArgs {
 	private final boolean immutableReleases;
 	private final boolean allowRebaseMerge;
 	private final boolean allowUpdateBranch;
+	private final String defaultBranch;
 	private final Map<String, BranchProtectionArgs> branchProtections;
 	private final boolean vulnerabilityAlerts;
 	private final boolean automatedSecurityFixes;
@@ -50,6 +51,7 @@ public final class RepositoryArgs {
 		this.immutableReleases = builder.immutableReleases;
 		this.allowRebaseMerge = builder.allowRebaseMerge;
 		this.allowUpdateBranch = builder.allowUpdateBranch;
+		this.defaultBranch = builder.defaultBranch;
 		this.branchProtections = Map.copyOf(builder.branchProtections);
 		this.vulnerabilityAlerts = builder.vulnerabilityAlerts;
 		this.automatedSecurityFixes = builder.automatedSecurityFixes;
@@ -113,6 +115,10 @@ public final class RepositoryArgs {
 		return allowUpdateBranch;
 	}
 
+	public String defaultBranch() {
+		return defaultBranch;
+	}
+
 	public Map<String, BranchProtectionArgs> branchProtections() {
 		return branchProtections;
 	}
@@ -159,6 +165,7 @@ public final class RepositoryArgs {
 				&& Objects.equals(actionsSecrets, that.actionsSecrets)
 				&& Objects.equals(environments, that.environments)
 				&& Objects.equals(rulesets, that.rulesets)
+				&& Objects.equals(defaultBranch, that.defaultBranch)
 				&& Objects.equals(branchProtections, that.branchProtections);
 	}
 
@@ -178,6 +185,7 @@ public final class RepositoryArgs {
 				immutableReleases,
 				allowRebaseMerge,
 				allowUpdateBranch,
+				defaultBranch,
 				branchProtections,
 				vulnerabilityAlerts,
 				automatedSecurityFixes,
@@ -209,6 +217,7 @@ public final class RepositoryArgs {
 		private boolean immutableReleases = false;
 		private boolean allowRebaseMerge = true;
 		private boolean allowUpdateBranch = false;
+		private String defaultBranch = "main";
 		private Map<String, BranchProtectionArgs> branchProtections = Map.of();
 		private boolean vulnerabilityAlerts = true;
 		private boolean automatedSecurityFixes = false;
@@ -233,6 +242,7 @@ public final class RepositoryArgs {
 			this.immutableReleases = repositoryArgs.immutableReleases;
 			this.allowRebaseMerge = repositoryArgs.allowRebaseMerge;
 			this.allowUpdateBranch = repositoryArgs.allowUpdateBranch;
+			this.defaultBranch = repositoryArgs.defaultBranch;
 			this.branchProtections = repositoryArgs.branchProtections;
 			this.vulnerabilityAlerts = repositoryArgs.vulnerabilityAlerts;
 			this.automatedSecurityFixes = repositoryArgs.automatedSecurityFixes;
@@ -354,6 +364,11 @@ public final class RepositoryArgs {
 
 		public Builder allowUpdateBranch(boolean allowUpdateBranch) {
 			this.allowUpdateBranch = allowUpdateBranch;
+			return this;
+		}
+
+		public Builder defaultBranch(String defaultBranch) {
+			this.defaultBranch = defaultBranch;
 			return this;
 		}
 

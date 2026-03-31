@@ -84,7 +84,7 @@ Note: The branch protection is now fully encapsulated in `BranchProtectionArgs` 
 
 Implemented: `BranchProtectionArgs` includes `users`, `teams`, and `apps` lists for push restrictions. Diff checks compare desired restrictions against actual. Fix payload includes restrictions when configured. Tests cover users, teams, and apps restrictions.
 
-## 18. Allow Update Branch
+## ~~18. Allow Update Branch~~ DONE
 
 The spec lists "Allow update branch" as a managed setting. Not currently checked.
 
@@ -94,15 +94,9 @@ The spec lists "Allow update branch" as a managed setting. Not currently checked
 - Add diff check comparing against the API response field.
 - Include in the PATCH payload for fixes.
 
-## 19. Default Branch Fix
+## ~~19. Default Branch Fix~~ DONE
 
-The spec now allows fixing default branch (previously check-only). `RepositoryArgs` should have a `defaultBranch` field (default: `"main"`, matching GitHub's default).
-
-### Plan
-
-- Add `defaultBranch` field to `RepositoryArgs` (default: `"main"`).
-- Change default branch from check-only to fixable.
-- Use the PATCH `/repos/{owner}/{repo}` endpoint with `default_branch` field.
+Implemented: `RepositoryArgs` now has a `defaultBranch` field (default: `"main"`, matching GitHub's default). The check was moved from the standalone `computeDiffs()` call (which used hardcoded `"main"`) to `checkRepoSettings()` where it reads `desired.defaultBranch()`. Fix logic was added to `applyFixes()` - the `default_branch` field is now included in the PATCH payload alongside other repo settings. Diff test `drift_defaultBranch_notMain` verifies detection, and fix test `unfixableDiffs_remainInList` was updated to verify the fix is applied. WireMock playback test added for `updateRepository` with `default_branch`.
 
 ## ~~20. Security Settings: Make Configurable Per-Repo~~ DONE
 

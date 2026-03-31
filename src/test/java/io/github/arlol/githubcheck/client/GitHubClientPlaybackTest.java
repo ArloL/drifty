@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -116,6 +117,17 @@ class GitHubClientPlaybackTest {
 		assertThatNoException().isThrownBy(
 				() -> client
 						.replaceTopics("ArloL", "terraform-github", List.of())
+		);
+	}
+
+	@Test
+	void updateRepository_defaultBranch_succeeds() {
+		assertThatNoException().isThrownBy(
+				() -> client.updateRepository(
+						"ArloL",
+						"terraform-github",
+						Map.of("default_branch", "main")
+				)
 		);
 	}
 

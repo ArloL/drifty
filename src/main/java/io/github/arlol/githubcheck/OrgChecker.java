@@ -263,7 +263,7 @@ public class OrgChecker {
 		check(
 				diffs,
 				"default_branch",
-				"main",
+				desired.defaultBranch(),
 				actual.details().defaultBranch()
 		);
 		checkSecuritySettings(diffs, actual, desired);
@@ -326,6 +326,12 @@ public class OrgChecker {
 				details.deleteBranchOnMerge()
 		);
 		check(diffs, "visibility", desired.visibility(), details.visibility());
+		check(
+				diffs,
+				"default_branch",
+				desired.defaultBranch(),
+				details.defaultBranch()
+		);
 	}
 
 	private void checkTopics(
@@ -900,6 +906,7 @@ public class OrgChecker {
 			fields.put("allow_update_branch", desired.allowUpdateBranch());
 			fields.put("allow_auto_merge", true);
 			fields.put("delete_branch_on_merge", true);
+			fields.put("default_branch", desired.defaultBranch());
 			client.updateRepository(org, name, fields);
 			remaining.removeAll(repoSettingsDiffs);
 			for (String field : fields.keySet()) {
