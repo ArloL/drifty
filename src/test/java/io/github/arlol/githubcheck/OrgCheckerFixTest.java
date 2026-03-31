@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.delete;
+import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.patch;
@@ -166,7 +168,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(
@@ -197,7 +199,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(mergedDetails, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(
@@ -409,7 +411,7 @@ class OrgCheckerFixTest {
 				state.summary(),
 				state.details(),
 				false,
-				true,
+				false,
 				state.branchProtections(),
 				state.actionSecretNames(),
 				state.environmentSecretNames(),
@@ -448,7 +450,9 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo").build();
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.automatedSecurityFixes(true)
+				.build();
 
 		var baseState = stateWithDetailsOverride(
 				"""
@@ -515,7 +519,9 @@ class OrgCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo").build();
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.automatedSecurityFixes(true)
+				.build();
 
 		var state = new RepositoryState(
 				"repo",
@@ -562,6 +568,182 @@ class OrgCheckerFixTest {
 	}
 
 	@Test
+	void disableVulnerabilityAlerts_whenDesiredFalse() throws Exception {
+		stubFor(
+				delete(urlEqualTo("/repos/ArloL/repo/vulnerability-alerts"))
+						.willReturn(WireMock.noContent())
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.vulnerabilityAlerts(false)
+				.build();
+
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
+				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				true,
+				false,
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
+				),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(),
+				false
+		);
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				deleteRequestedFor(
+						urlEqualTo("/repos/ArloL/repo/vulnerability-alerts")
+				)
+		);
+		verify(
+				0,
+				putRequestedFor(
+						urlEqualTo("/repos/ArloL/repo/vulnerability-alerts")
+				)
+		);
+	}
+
+	@Test
+	void disableAutomatedSecurityFixes_whenDesiredFalse() throws Exception {
+		stubFor(
+				delete(urlEqualTo("/repos/ArloL/repo/automated-security-fixes"))
+						.willReturn(WireMock.noContent())
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.automatedSecurityFixes(false)
+				.build();
+
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
+				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				true,
+				true,
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
+				),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(),
+				false
+		);
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				deleteRequestedFor(
+						urlEqualTo("/repos/ArloL/repo/automated-security-fixes")
+				)
+		);
+		verify(
+				0,
+				putRequestedFor(
+						urlEqualTo("/repos/ArloL/repo/automated-security-fixes")
+				)
+		);
+	}
+
+	@Test
+	void disableSecretScanning_whenDesiredFalse() throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.secretScanning(false)
+				.secretScanningPushProtection(false)
+				.build();
+
+		var state = goodPublicState();
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+						.withRequestBody(
+								equalToJson(
+										"""
+												{
+													"security_and_analysis": {
+														"secret_scanning": {"status": "disabled"},
+														"secret_scanning_push_protection": {"status": "disabled"}
+													}
+												}
+												"""
+								)
+						)
+		);
+	}
+
+	@Test
+	void partialSecretScanningDrift_onlyDriftedFieldPatched() throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.secretScanningPushProtection(false)
+				.build();
+
+		var state = goodPublicState();
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+						.withRequestBody(
+								equalToJson(
+										"""
+												{
+													"security_and_analysis": {
+														"secret_scanning_push_protection": {"status": "disabled"}
+													}
+												}
+												"""
+								)
+						)
+		);
+	}
+
+	@Test
 	void workflowPermissionsDrift_putsWorkflowPermissions() throws Exception {
 		stubFor(
 				put(
@@ -578,7 +760,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(
@@ -660,7 +842,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(),
 				List.of(),
 				Map.of(),
@@ -738,7 +920,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(
@@ -810,7 +992,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of("main", driftedBp),
 				List.of(),
 				Map.of(),
@@ -882,7 +1064,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of("main", driftedBp),
 				List.of(),
 				Map.of(),
@@ -960,7 +1142,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of("main", driftedBp),
 				List.of(),
 				Map.of(),
@@ -1190,7 +1372,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(
@@ -1287,7 +1469,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(
@@ -1343,7 +1525,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(
@@ -1404,7 +1586,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(
@@ -1486,7 +1668,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(
@@ -1548,7 +1730,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(
@@ -1609,7 +1791,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(
@@ -1675,7 +1857,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(
@@ -1721,7 +1903,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(
@@ -1790,7 +1972,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
-				true,
+				false,
 				Map.of(
 						"main",
 						parse(

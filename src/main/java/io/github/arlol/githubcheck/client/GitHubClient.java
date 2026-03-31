@@ -551,6 +551,56 @@ public class GitHubClient {
 		}
 	}
 
+	public void disableVulnerabilityAlerts(String owner, String repo)
+			throws IOException, InterruptedException {
+		HttpRequest request = HttpRequest
+				.newBuilder(
+						URI.create(
+								baseUrl + "/repos/" + owner + "/" + repo
+										+ "/vulnerability-alerts"
+						)
+				)
+				.header("Authorization", "Bearer " + token)
+				.header("Accept", "application/vnd.github+json")
+				.header("X-GitHub-Api-Version", "2026-03-10")
+				.DELETE()
+				.build();
+		HttpResponse<String> resp = http
+				.send(request, HttpResponse.BodyHandlers.ofString());
+		handleRateLimit(resp);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " disabling vulnerability-alerts on " + repo
+			);
+		}
+	}
+
+	public void disableAutomatedSecurityFixes(String owner, String repo)
+			throws IOException, InterruptedException {
+		HttpRequest request = HttpRequest
+				.newBuilder(
+						URI.create(
+								baseUrl + "/repos/" + owner + "/" + repo
+										+ "/automated-security-fixes"
+						)
+				)
+				.header("Authorization", "Bearer " + token)
+				.header("Accept", "application/vnd.github+json")
+				.header("X-GitHub-Api-Version", "2026-03-10")
+				.DELETE()
+				.build();
+		HttpResponse<String> resp = http
+				.send(request, HttpResponse.BodyHandlers.ofString());
+		handleRateLimit(resp);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " disabling automated-security-fixes on " + repo
+			);
+		}
+	}
+
 	public void enableImmutableReleases(String owner, String repo)
 			throws IOException, InterruptedException {
 		HttpResponse<String> resp = put(

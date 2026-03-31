@@ -1,27 +1,28 @@
 {
-  "id" : "d247307d-19db-4098-99b2-bc0a81afe5dc",
-  "name" : "repos_arlol_terraform-github_vulnerability-alerts",
+  "id" : "ef2c5acd-5357-49e8-9f4d-3cf327af9fac",
+  "name" : "repos_arlol_terraform-github_pages",
   "request" : {
-    "url" : "/repos/ArloL/terraform-github/vulnerability-alerts",
-    "method" : "PUT"
+    "url" : "/repos/ArloL/terraform-github/pages",
+    "method" : "DELETE"
   },
   "response" : {
-    "status" : 204,
+    "status" : 404,
+    "body" : "{\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/pages/pages#delete-a-apiname-pages-site\",\"status\":\"404\"}",
     "headers" : {
-      "X-Accepted-OAuth-Scopes" : "repo",
+      "X-Accepted-OAuth-Scopes" : "",
       "X-RateLimit-Resource" : "core",
       "Server" : "github.com",
-      "X-RateLimit-Used" : "51",
+      "X-RateLimit-Used" : "45",
       "Access-Control-Allow-Origin" : "*",
       "X-Content-Type-Options" : "nosniff",
-      "X-RateLimit-Reset" : "1774957165",
+      "X-RateLimit-Reset" : "1774962432",
       "x-github-api-version-selected" : "2026-03-10",
-      "Date" : "Tue, 31 Mar 2026 11:17:03 GMT",
+      "Date" : "Tue, 31 Mar 2026 12:07:46 GMT",
       "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
       "X-Frame-Options" : "deny",
       "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
       "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
-      "X-RateLimit-Remaining" : "4949",
+      "X-RateLimit-Remaining" : "4955",
       "X-GitHub-Media-Type" : "github.v3; format=json",
       "Content-Security-Policy" : "default-src 'none'",
       "Vary" : "Accept-Encoding, Accept, X-Requested-With",
@@ -29,9 +30,10 @@
       "X-XSS-Protection" : "0",
       "X-OAuth-Scopes" : "read:discussion, repo",
       "github-authentication-token-expiration" : "2026-04-18 19:24:56 UTC",
-      "X-GitHub-Request-Id" : "8F31:10F2C6:A223D2:8DED07:69CBAD2F"
+      "X-GitHub-Request-Id" : "8F7F:3860EF:1175884:F51A8A:69CBB912",
+      "Content-Type" : "application/json; charset=utf-8"
     }
   },
   "persistent" : true,
-  "insertionIndex" : 43
+  "insertionIndex" : 88
 }
