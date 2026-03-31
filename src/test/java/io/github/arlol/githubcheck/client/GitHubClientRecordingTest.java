@@ -9,6 +9,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -70,6 +71,7 @@ class GitHubClientRecordingTest {
 		client.enableVulnerabilityAlerts(owner, repo);
 		client.updateWorkflowPermissions(owner, repo, perms);
 		client.replaceTopics(owner, repo, List.of());
+		client.updateRepository(owner, repo, Map.of("default_branch", "main"));
 		var rulesets = client.listRulesets(owner, repo);
 		client.getRuleset(owner, repo, rulesets.getFirst().id());
 		client.getPages(owner, repo);

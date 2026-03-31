@@ -14,6 +14,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
@@ -273,7 +274,8 @@ class OrgCheckerFixTest {
 									"allow_rebase_merge": true,
 									"allow_update_branch": false,
 									"allow_auto_merge": true,
-									"delete_branch_on_merge": true
+									"delete_branch_on_merge": true,
+									"default_branch": "main"
 								}
 								"""))
 		);
@@ -313,7 +315,8 @@ class OrgCheckerFixTest {
 									"allow_rebase_merge": false,
 									"allow_update_branch": false,
 									"allow_auto_merge": true,
-									"delete_branch_on_merge": true
+									"delete_branch_on_merge": true,
+									"default_branch": "main"
 								}
 								"""))
 		);
@@ -360,7 +363,8 @@ class OrgCheckerFixTest {
 									"allow_rebase_merge": true,
 									"allow_update_branch": false,
 									"allow_auto_merge": true,
-									"delete_branch_on_merge": true
+									"delete_branch_on_merge": true,
+									"default_branch": "main"
 								}
 								"""))
 		);
@@ -431,13 +435,15 @@ class OrgCheckerFixTest {
 		List<String> remaining = checker
 				.applyFixes("repo", stateWithBadVuln, desired, diffs);
 
-		assertThat(remaining).containsExactlyInAnyOrder(
-				"default_branch: want=main got=master"
-		);
+		assertThat(remaining).isEmpty();
 		verify(
 				putRequestedFor(
 						urlEqualTo("/repos/ArloL/repo/vulnerability-alerts")
 				)
+		);
+		verify(
+				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+						.withRequestBody(matching(".*default_branch.*main.*"))
 		);
 	}
 
@@ -1246,7 +1252,8 @@ class OrgCheckerFixTest {
 									"allow_rebase_merge": true,
 									"allow_update_branch": false,
 									"allow_auto_merge": true,
-									"delete_branch_on_merge": true
+									"delete_branch_on_merge": true,
+									"default_branch": "main"
 								}
 								"""))
 		);
