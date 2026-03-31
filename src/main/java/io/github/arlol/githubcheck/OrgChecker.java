@@ -1,8 +1,11 @@
 package io.github.arlol.githubcheck;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -17,9 +20,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 import com.goterl.lazysodium.LazySodiumJava;
 import com.goterl.lazysodium.SodiumJava;
@@ -43,7 +43,9 @@ import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.SecretPublicKeyResponse;
 import io.github.arlol.githubcheck.client.SecretRequest;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
+import io.github.arlol.githubcheck.client.SimpleUser;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
+import io.github.arlol.githubcheck.config.BranchProtectionArgs;
 import io.github.arlol.githubcheck.config.EnvironmentArgs;
 import io.github.arlol.githubcheck.config.PagesArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
@@ -186,10 +188,13 @@ public class OrgChecker {
 			}
 		}
 
-		BranchProtectionResponse branchProtection = null;
+		Map<String, BranchProtectionResponse> branchProtections = new HashMap<>();
 		if (!archived && RepositoryVisibility.PUBLIC == summary.visibility()) {
-			branchProtection = client.getBranchProtection(org, name, "main")
-					.orElse(null);
+			var branches = client.getBranches(org, name, true);
+			for (var branch : branches) {
+				var bp = client.getBranchProtection(org, name, branch.name());
+				branchProtections.put(branch.name(), bp.orElseThrow());
+			}
 		}
 
 		List<String> secretNames = client.getActionSecretNames(org, name);
@@ -228,7 +233,7 @@ public class OrgChecker {
 				details,
 				vulnAlerts,
 				automatedSecurityFixes,
-				branchProtection,
+				branchProtections,
 				secretNames,
 				envSecrets,
 				wfPerms,
@@ -399,71 +404,188 @@ public class OrgChecker {
 			RepositoryState actual,
 			RepositoryArgs desired
 	) {
-		boolean isPublic = RepositoryVisibility.PUBLIC == actual.summary()
-				.visibility();
-		if (!isPublic) {
+		var wantedBps = desired.branchProtections().values();
+		var actualBps = new HashMap<>(actual.branchProtections());
+
+		if (actualBps.isEmpty()) {
+			for (BranchProtectionArgs wanted : wantedBps) {
+				diffs.add(
+						"branch_protection." + wanted.pattern() + ": missing"
+				);
+			}
 			return;
 		}
 
-		var bp = actual.branchProtection();
-		if (bp == null) {
-			diffs.add("branch_protection: missing");
-			return;
-		}
+		for (BranchProtectionArgs wanted : wantedBps) {
+			String prefix = "branch_protection." + wanted.pattern();
 
-		check(
-				diffs,
-				"branch_protection.enforce_admins",
-				true,
-				bp.enforceAdmins().enabled()
-		);
-		check(
-				diffs,
-				"branch_protection.required_linear_history",
-				true,
-				bp.requiredLinearHistory().enabled()
-		);
-		check(
-				diffs,
-				"branch_protection.allow_force_pushes",
-				false,
-				bp.allowForcePushes().enabled()
-		);
+			var actualBp = actualBps.remove(wanted.pattern());
+			if (actualBp == null) {
+				diffs.add(prefix + ": missing");
+				continue;
+			}
+			actualBps.remove(actualBp);
 
-		var rsc = bp.requiredStatusChecks();
-		boolean strict = rsc != null && rsc.strict();
-		check(
-				diffs,
-				"branch_protection.required_status_checks.strict",
-				false,
-				strict
-		);
+			check(
+					diffs,
+					prefix + ".enforce_admins",
+					wanted.enforceAdmins(),
+					actualBp.enforceAdmins().enabled()
+			);
+			check(
+					diffs,
+					prefix + ".required_linear_history",
+					wanted.requiredLinearHistory(),
+					actualBp.requiredLinearHistory().enabled()
+			);
+			check(
+					diffs,
+					prefix + ".allow_force_pushes",
+					wanted.allowForcePushes(),
+					actualBp.allowForcePushes().enabled()
+			);
+			check(
+					diffs,
+					prefix + ".require_conversation_resolution",
+					wanted.requireConversationResolution(),
+					actualBp.requiredConversationResolution() != null
+							&& actualBp.requiredConversationResolution()
+									.enabled()
+			);
 
-		List<String> statusContexts = List.of();
-		if (rsc != null) {
-			var checks = rsc.checks();
-			if (checks != null && !checks.isEmpty()) {
-				statusContexts = checks.stream()
-						.map(
-								BranchProtectionResponse.RequiredStatusChecks.StatusCheck::context
-						)
-						.toList();
+			var rsc = actualBp.requiredStatusChecks();
+			boolean strict = rsc != null && rsc.strict();
+			Set<StatusCheckArgs> wantedChecks = wanted.requiredStatusChecks();
+			check(
+					diffs,
+					prefix + ".required_status_checks.strict",
+					false,
+					strict
+			);
+
+			List<String> statusContexts = List.of();
+			if (rsc != null) {
+				var checks = rsc.checks();
+				if (checks != null && !checks.isEmpty()) {
+					statusContexts = checks.stream()
+							.map(
+									BranchProtectionResponse.RequiredStatusChecks.StatusCheck::context
+							)
+							.toList();
+				} else {
+					var contexts = rsc.contexts();
+					statusContexts = contexts != null ? contexts : List.of();
+				}
+			}
+
+			Set<String> wantContexts = wantedChecks.stream()
+					.map(StatusCheckArgs::getContext)
+					.collect(Collectors.toSet());
+			checkSets(
+					diffs,
+					prefix + ".required_status_checks",
+					wantContexts,
+					new HashSet<>(statusContexts)
+			);
+
+			var rpr = actualBp.requiredPullRequestReviews();
+			if (rpr == null) {
+				if (wanted.dismissStaleReviews()
+						|| wanted.requireCodeOwnerReviews()
+						|| wanted.requiredApprovingReviewCount() != null
+						|| wanted.requireLastPushApproval() != null) {
+					diffs.add(
+							prefix + ".required_pull_request_reviews: missing"
+					);
+				}
 			} else {
-				var contexts = rsc.contexts();
-				statusContexts = contexts != null ? contexts : List.of();
+				check(
+						diffs,
+						prefix + ".required_pull_request_reviews.dismiss_stale_reviews",
+						wanted.dismissStaleReviews(),
+						rpr.dismissStaleReviews()
+				);
+				check(
+						diffs,
+						prefix + ".required_pull_request_reviews.require_code_owner_reviews",
+						wanted.requireCodeOwnerReviews(),
+						rpr.requireCodeOwnerReviews()
+				);
+				Integer wantCount = wanted.requiredApprovingReviewCount();
+				Integer actualCount = rpr.requiredApprovingReviewCount();
+				if (wantCount == null && actualCount != null) {
+					diffs.add(
+							prefix + ".required_pull_request_reviews.required_approving_review_count: drifted"
+					);
+				} else if (wantCount != null
+						&& !wantCount.equals(actualCount)) {
+					diffs.add(
+							prefix + ".required_pull_request_reviews.required_approving_review_count: drifted"
+					);
+				}
+				Boolean wantLastPush = wanted.requireLastPushApproval();
+				Boolean actualLastPush = rpr.requireLastPushApproval();
+				if (wantLastPush == null && actualLastPush != null
+						&& actualLastPush) {
+					diffs.add(
+							prefix + ".required_pull_request_reviews.require_last_push_approval: drifted"
+					);
+				} else if (wantLastPush != null
+						&& !wantLastPush.equals(actualLastPush)) {
+					diffs.add(
+							prefix + ".required_pull_request_reviews.require_last_push_approval: drifted"
+					);
+				}
+			}
+
+			var restrictions = actualBp.restrictions();
+			if (restrictions == null) {
+				if (!wanted.users().isEmpty() || !wanted.teams().isEmpty()
+						|| !wanted.apps().isEmpty()) {
+					diffs.add(prefix + ".restrictions: missing");
+				}
+			} else {
+				Set<String> wantUsers = new HashSet<>(wanted.users());
+				Set<String> actualUsers = restrictions.users()
+						.stream()
+						.map(SimpleUser::login)
+						.collect(Collectors.toSet());
+				checkSets(
+						diffs,
+						prefix + ".restrictions.users",
+						wantUsers,
+						actualUsers
+				);
+
+				Set<String> wantTeams = new HashSet<>(wanted.teams());
+				Set<String> actualTeams = restrictions.teams()
+						.stream()
+						.map(BranchProtectionResponse.Restrictions.Team::slug)
+						.collect(Collectors.toSet());
+				checkSets(
+						diffs,
+						prefix + ".restrictions.teams",
+						wantTeams,
+						actualTeams
+				);
+
+				Set<String> wantApps = new HashSet<>(wanted.apps());
+				Set<String> actualApps = restrictions.apps()
+						.stream()
+						.map(BranchProtectionResponse.Restrictions.App::slug)
+						.collect(Collectors.toSet());
+				checkSets(
+						diffs,
+						prefix + ".restrictions.apps",
+						wantApps,
+						actualApps
+				);
 			}
 		}
 
-		Set<String> wantContexts = desired.requiredStatusChecks()
-				.stream()
-				.map(StatusCheckArgs::getContext)
-				.collect(Collectors.toSet());
-		checkSets(
-				diffs,
-				"branch_protection.required_status_checks",
-				wantContexts,
-				new HashSet<>(statusContexts)
-		);
+		for (var actualBpName : actualBps.keySet()) {
+			diffs.add("branch_protection." + actualBpName + ": extra");
+		}
 	}
 
 	private void checkRulesets(
@@ -870,34 +992,77 @@ public class OrgChecker {
 		List<String> branchProtectionDiffs = new ArrayList<>();
 		checkBranchProtection(branchProtectionDiffs, actual, desired);
 		if (!branchProtectionDiffs.isEmpty()) {
-			Set<String> wantContexts = desired.requiredStatusChecks()
-					.stream()
-					.map(StatusCheckArgs::getContext)
-					.collect(Collectors.toSet());
-			List<BranchProtectionRequest.RequiredStatusChecks.StatusCheck> checks = wantContexts
-					.stream()
-					.map(
-							ctx -> new BranchProtectionRequest.RequiredStatusChecks.StatusCheck(
-									ctx,
-									null
-							)
-					)
-					.toList();
-			var payload = new BranchProtectionRequest(
-					new BranchProtectionRequest.RequiredStatusChecks(
-							false,
-							checks
-					),
-					true,
-					null,
-					null,
-					true,
-					false
-			);
-			client.updateBranchProtection(org, name, "main", payload);
+			for (BranchProtectionArgs wantedBp : desired.branchProtections()
+					.values()) {
+				boolean hasBpDrift = branchProtectionDiffs.stream()
+						.anyMatch(d -> d.contains("." + wantedBp.pattern()));
+				if (!hasBpDrift) {
+					continue;
+				}
+
+				Set<String> wantContexts = wantedBp.requiredStatusChecks()
+						.stream()
+						.map(StatusCheckArgs::getContext)
+						.collect(Collectors.toSet());
+				List<BranchProtectionRequest.RequiredStatusChecks.StatusCheck> checks = wantContexts
+						.stream()
+						.map(
+								ctx -> new BranchProtectionRequest.RequiredStatusChecks.StatusCheck(
+										ctx,
+										null
+								)
+						)
+						.toList();
+
+				BranchProtectionRequest.RequiredPullRequestReviews rpr = null;
+				BranchProtectionRequest.Restrictions restrictions = null;
+
+				boolean hasPrReviews = wantedBp.dismissStaleReviews()
+						|| wantedBp.requireCodeOwnerReviews()
+						|| wantedBp.requiredApprovingReviewCount() != null
+						|| wantedBp.requireLastPushApproval() != null;
+				if (hasPrReviews) {
+					rpr = new BranchProtectionRequest.RequiredPullRequestReviews(
+							wantedBp.dismissStaleReviews(),
+							wantedBp.requireCodeOwnerReviews(),
+							wantedBp.requiredApprovingReviewCount(),
+							wantedBp.requireLastPushApproval()
+					);
+				}
+
+				if (!wantedBp.users().isEmpty() || !wantedBp.teams().isEmpty()
+						|| !wantedBp.apps().isEmpty()) {
+					restrictions = new BranchProtectionRequest.Restrictions(
+							wantedBp.users(),
+							wantedBp.teams(),
+							wantedBp.apps()
+					);
+				}
+
+				var payload = new BranchProtectionRequest(
+						new BranchProtectionRequest.RequiredStatusChecks(
+								false,
+								checks
+						),
+						wantedBp.enforceAdmins(),
+						rpr,
+						restrictions,
+						wantedBp.requiredLinearHistory(),
+						wantedBp.allowForcePushes()
+				);
+				client.updateBranchProtection(
+						org,
+						name,
+						wantedBp.pattern(),
+						payload
+				);
+				System.out.printf(
+						"[FIXED]   %s: branch_protection:%s updated%n",
+						name,
+						wantedBp.pattern()
+				);
+			}
 			remaining.removeAll(branchProtectionDiffs);
-			System.out
-					.printf("[FIXED]   %s: branch_protection updated%n", name);
 		}
 
 		// Rulesets (fixable)

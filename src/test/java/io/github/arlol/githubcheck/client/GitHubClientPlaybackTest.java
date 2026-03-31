@@ -154,7 +154,7 @@ class GitHubClientPlaybackTest {
 
 	@Test
 	void updateEnvironment_succeeds() {
-		var payload = new EnvironmentUpdateRequest(30, null, null);
+		var payload = new EnvironmentUpdateRequest(null, null, null);
 		assertThatNoException().isThrownBy(
 				() -> client.updateEnvironment(
 						"ArloL",
@@ -166,10 +166,13 @@ class GitHubClientPlaybackTest {
 	}
 
 	@Test
-	void getBranchProtection_succeeds() {
-		assertThatNoException().isThrownBy(() -> {
-			client.getBranchProtection("ArloL", "terraform-github", "main");
-		});
+	void getBranchProtection_succeeds() throws Exception {
+		BranchProtectionResponse bp = client
+				.getBranchProtection("ArloL", "terraform-github", "main")
+				.orElseThrow();
+		assertThat(bp.enforceAdmins().enabled()).isTrue();
+		assertThat(bp.requiredLinearHistory().enabled()).isTrue();
+		assertThat(bp.allowForcePushes().enabled()).isFalse();
 	}
 
 }

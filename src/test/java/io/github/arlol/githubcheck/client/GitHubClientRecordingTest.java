@@ -37,6 +37,8 @@ class GitHubClientRecordingTest {
 	void record_gitHubApiInteractions() throws Exception {
 		String token = System.getenv("DRIFTY_GITHUB_TOKEN");
 		assumeThat(token).isNotBlank();
+		String wiremockRecord = System.getenv("DRIFTY_WIREMOCK_RECORD");
+		assumeThat(wiremockRecord).isNotBlank();
 
 		clearDirectory(MAPPINGS_DIR);
 		clearDirectory(FILES_DIR);
@@ -52,25 +54,26 @@ class GitHubClientRecordingTest {
 				wm.getRuntimeInfo().getHttpBaseUrl(),
 				token
 		);
-		client.listOrgRepos("ArloL");
-		client.getRepo("ArloL", "terraform-github");
-		client.getVulnerabilityAlerts("ArloL", "terraform-github");
-		client.getImmutableReleases("ArloL", "terraform-github");
-		client.getBranchProtection("ArloL", "terraform-github", "main");
-		var perms = client.getWorkflowPermissions("ArloL", "terraform-github");
+		String owner = "ArloL";
+		String repo = "terraform-github";
+		client.listOrgRepos(owner);
+		client.getRepo(owner, repo);
+		client.getVulnerabilityAlerts(owner, repo);
+		client.getImmutableReleases(owner, repo);
+		var branches = client.getBranches(owner, repo, true);
+		for (var branch : branches) {
+			client.getBranchProtection(owner, repo, branch.name());
+		}
+		var perms = client.getWorkflowPermissions(owner, repo);
 		// Non-destructive writes: write back what was just read (idempotent)
-		client.enableVulnerabilityAlerts("ArloL", "terraform-github");
-		client.updateWorkflowPermissions("ArloL", "terraform-github", perms);
-		client.replaceTopics("ArloL", "terraform-github", List.of());
-		var rulesets = client.listRulesets("ArloL", "terraform-github");
-		client.getRuleset(
-				"ArloL",
-				"terraform-github",
-				rulesets.getFirst().id()
-		);
-		client.getPages("ArloL", "terraform-github");
-		client.deletePages("ArloL", "terraform-github");
-		var environments = client.getEnvironments("ArloL", "terraform-github");
+		client.enableVulnerabilityAlerts(owner, repo);
+		client.updateWorkflowPermissions(owner, repo, perms);
+		client.replaceTopics(owner, repo, List.of());
+		var rulesets = client.listRulesets(owner, repo);
+		client.getRuleset(owner, repo, rulesets.getFirst().id());
+		client.getPages(owner, repo);
+		client.deletePages(owner, repo);
+		var environments = client.getEnvironments(owner, repo);
 		if (!environments.isEmpty()) {
 			var env = environments.getFirst();
 			var payload = new EnvironmentUpdateRequest(
@@ -78,12 +81,7 @@ class GitHubClientRecordingTest {
 					null,
 					null
 			);
-			client.updateEnvironment(
-					"ArloL",
-					"terraform-github",
-					env.name(),
-					payload
-			);
+			client.updateEnvironment(owner, repo, env.name(), payload);
 		}
 
 		wm.stopRecording();

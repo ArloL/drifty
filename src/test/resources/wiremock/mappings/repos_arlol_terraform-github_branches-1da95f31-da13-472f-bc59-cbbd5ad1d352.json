@@ -1,40 +1,43 @@
 {
-  "id" : "6b339bf4-d71d-4d13-95cb-3d1fa0d001e2",
-  "name" : "repos_arlol_terraform-github_environments",
+  "id" : "1da95f31-da13-472f-bc59-cbbd5ad1d352",
+  "name" : "repos_arlol_terraform-github_branches",
   "request" : {
-    "urlPath" : "/repos/ArloL/terraform-github/environments",
+    "urlPath" : "/repos/ArloL/terraform-github/branches",
     "method" : "GET",
     "queryParameters" : {
       "per_page" : {
         "equalTo" : "100"
+      },
+      "protected" : {
+        "equalTo" : "true"
       }
     }
   },
   "response" : {
     "status" : 200,
-    "body" : "{\"total_count\":1,\"environments\":[{\"id\":13210428924,\"node_id\":\"EN_kwDOK3sjEs8AAAADE2cl_A\",\"name\":\"production\",\"url\":\"https://api.github.com/repos/ArloL/terraform-github/environments/production\",\"html_url\":\"https://github.com/ArloL/terraform-github/deployments/activity_log?environments_filter=production\",\"created_at\":\"2026-03-19T20:31:52Z\",\"updated_at\":\"2026-03-19T20:31:52Z\",\"can_admins_bypass\":true,\"protection_rules\":[],\"deployment_branch_policy\":null}]}",
+    "body" : "[{\"name\":\"main\",\"commit\":{\"sha\":\"fd5fc17490a1ca55fbfb8e0fc5ec0f732495e0ed\",\"url\":\"https://api.github.com/repos/ArloL/terraform-github/commits/fd5fc17490a1ca55fbfb8e0fc5ec0f732495e0ed\"},\"protected\":true,\"protection\":{\"enabled\":true,\"required_status_checks\":{\"enforcement_level\":\"everyone\",\"contexts\":[\"check-actions.required-status-check\",\"codeql-analysis.required-status-check\",\"zizmor\",\"CodeQL\"],\"checks\":[{\"context\":\"check-actions.required-status-check\",\"app_id\":15368},{\"context\":\"codeql-analysis.required-status-check\",\"app_id\":15368},{\"context\":\"zizmor\",\"app_id\":57789},{\"context\":\"CodeQL\",\"app_id\":57789}]}},\"protection_url\":\"https://api.github.com/repos/ArloL/terraform-github/branches/main/protection\"}]",
     "headers" : {
       "X-Accepted-OAuth-Scopes" : "",
-      "X-RateLimit-Resource" : "core",
       "Server" : "github.com",
-      "X-RateLimit-Used" : "1326",
+      "X-RateLimit-Resource" : "core",
       "Access-Control-Allow-Origin" : "*",
+      "X-RateLimit-Used" : "9",
       "x-github-api-version-selected" : "2026-03-10",
       "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
       "X-Frame-Options" : "deny",
       "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
       "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
-      "X-RateLimit-Remaining" : "3674",
+      "X-RateLimit-Remaining" : "4991",
       "X-GitHub-Media-Type" : "github.v3; format=json",
       "Content-Security-Policy" : "default-src 'none'",
       "X-XSS-Protection" : "0",
-      "X-GitHub-Request-Id" : "A0C6:3346C8:6C997C:5B1621:69CAD3E9",
+      "X-GitHub-Request-Id" : "8EE4:1DC688:A71559:927B42:69CBAD2D",
       "Content-Type" : "application/json; charset=utf-8",
       "X-Content-Type-Options" : "nosniff",
-      "X-RateLimit-Reset" : "1774900461",
-      "Date" : "Mon, 30 Mar 2026 19:50:01 GMT",
+      "X-RateLimit-Reset" : "1774957165",
+      "Date" : "Tue, 31 Mar 2026 11:17:02 GMT",
       "Cache-Control" : "private, max-age=60, s-maxage=60",
-      "ETag" : "\"431c0c4ca1b528ac91d24cc59133bce109d2c41324cd5c1ef39f9f78411550eb\"",
+      "ETag" : "\"4b4fc192b7951e836383cb72a72137d4affa7c07dd20dda753c23099158d8517\"",
       "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
       "X-RateLimit-Limit" : "5000",
       "X-OAuth-Scopes" : "read:discussion, repo",
@@ -42,5 +45,5 @@
     }
   },
   "persistent" : true,
-  "insertionIndex" : 47
+  "insertionIndex" : 40
 }

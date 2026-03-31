@@ -74,26 +74,15 @@ Implemented: `allowRebaseMerge` field added to `RepositoryArgs` with default `tr
 
 Implemented: Changed `RepositoryArgs.visibility()` from `String` to `RepositoryVisibility` enum (matching the API type). Added diff check in `OrgChecker.checkRepoSettings()` comparing `desired.visibility()` against `details.visibility()`. Visibility is check-only — not included in `applyFixes()` so it won't be modified even with `--fix`. Added test `drift_visibility_notMatching()`.
 
-## 16. Required Pull Request Reviews in Branch Protection
+## ~~16. Required Pull Request Reviews in Branch Protection~~ DONE
 
-Full PR review configuration for legacy branch protection.
+Implemented: `BranchProtectionArgs` config record with PR review sub-settings: `requiredApprovingReviewCount`, `dismissStaleReviews`, `requireCodeOwnerReviews`, `requireLastPushApproval`. `RepositoryArgs` has `branchProtections` list (nullable = not managed). Added diff checks in `checkBranchProtection()` comparing desired PR review settings against actual. Fix payload includes PR reviews when configured. Tests cover drift detection and fix application.
 
-### Plan
+Note: The branch protection is now fully encapsulated in `BranchProtectionArgs` which includes: `pattern` (branch name pattern), `enforceAdmins`, `requiredLinearHistory`, `allowForcePushes`, `requireConversationResolution`, `requiredStatusChecks`, plus PR review and restrictions settings. Multiple branch protections can be configured per repo via the list.
 
-- Add `BranchProtectionArgs` config record with PR review sub-settings: required approving review count, dismiss stale reviews, require code owner reviews, restrict dismissals (users/teams), require last push approval.
-- Make `branchProtectionArgs` a nullable field on `RepositoryArgs` (null = not managed).
-- Parse from `BranchProtection` response.
-- Add diff logic and include in branch protection update payload.
+## ~~17. Branch Protection Restrictions~~ DONE
 
-## 17. Branch Protection Restrictions
-
-Full push restriction configuration for legacy branch protection (users, teams, apps).
-
-### Plan
-
-- Add restrictions to `BranchProtectionArgs`: users, teams, and apps that can push.
-- Parse from `BranchProtection` response.
-- Add diff logic and include in branch protection update payload.
+Implemented: `BranchProtectionArgs` includes `users`, `teams`, and `apps` lists for push restrictions. Diff checks compare desired restrictions against actual. Fix payload includes restrictions when configured. Tests cover users, teams, and apps restrictions.
 
 ## 18. Allow Update Branch
 

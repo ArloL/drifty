@@ -18,7 +18,7 @@ public record RepositoryState(
 		RepositoryFull details,
 		boolean vulnerabilityAlerts,
 		boolean automatedSecurityFixes,
-		BranchProtectionResponse branchProtection,
+		Map<String, BranchProtectionResponse> branchProtections,
 		List<String> actionSecretNames,
 		Map<String, List<String>> environmentSecretNames,
 		WorkflowPermissions workflowPermissions,
