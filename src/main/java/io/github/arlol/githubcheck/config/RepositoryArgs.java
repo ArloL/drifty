@@ -1,15 +1,18 @@
 package io.github.arlol.githubcheck.config;
 
-import io.github.arlol.githubcheck.client.RepositoryVisibility;
-
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import io.github.arlol.githubcheck.client.RepositoryVisibility;
 
 public final class RepositoryArgs {
 
@@ -20,12 +23,12 @@ public final class RepositoryArgs {
 	private final String homepageUrl;
 	private final RepositoryVisibility visibility;
 	private final List<String> topics;
-	private final Set<StatusCheckArgs> requiredStatusChecks;
 	private final List<String> actionsSecrets;
 	private final Map<String, EnvironmentArgs> environments;
 	private final List<RulesetArgs> rulesets;
 	private final boolean immutableReleases;
 	private final boolean allowRebaseMerge;
+	private final Map<String, BranchProtectionArgs> branchProtections;
 
 	private RepositoryArgs(Builder builder) {
 		this.name = builder.name;
@@ -35,13 +38,13 @@ public final class RepositoryArgs {
 		this.homepageUrl = builder.homepageUrl;
 		this.visibility = builder.visibility;
 		this.topics = List.copyOf(builder.topics);
-		this.requiredStatusChecks = Set.copyOf(builder.requiredStatusChecks);
 		this.actionsSecrets = List.copyOf(builder.actionsSecrets);
 		this.environments = Collections
 				.unmodifiableMap(new LinkedHashMap<>(builder.environments));
 		this.rulesets = List.copyOf(builder.rulesets);
 		this.immutableReleases = builder.immutableReleases;
 		this.allowRebaseMerge = builder.allowRebaseMerge;
+		this.branchProtections = Map.copyOf(builder.branchProtections);
 	}
 
 	public String name() {
@@ -76,10 +79,6 @@ public final class RepositoryArgs {
 		return topics;
 	}
 
-	public Set<StatusCheckArgs> requiredStatusChecks() {
-		return requiredStatusChecks;
-	}
-
 	public List<String> actionsSecrets() {
 		return actionsSecrets;
 	}
@@ -100,6 +99,10 @@ public final class RepositoryArgs {
 		return allowRebaseMerge;
 	}
 
+	public Map<String, BranchProtectionArgs> branchProtections() {
+		return branchProtections;
+	}
+
 	public Builder toBuilder() {
 		return new Builder(this);
 	}
@@ -118,11 +121,10 @@ public final class RepositoryArgs {
 				&& Objects.equals(homepageUrl, that.homepageUrl)
 				&& Objects.equals(visibility, that.visibility)
 				&& Objects.equals(topics, that.topics)
-				&& Objects
-						.equals(requiredStatusChecks, that.requiredStatusChecks)
 				&& Objects.equals(actionsSecrets, that.actionsSecrets)
 				&& Objects.equals(environments, that.environments)
-				&& Objects.equals(rulesets, that.rulesets);
+				&& Objects.equals(rulesets, that.rulesets)
+				&& Objects.equals(branchProtections, that.branchProtections);
 	}
 
 	@Override
@@ -135,12 +137,12 @@ public final class RepositoryArgs {
 				homepageUrl,
 				visibility,
 				topics,
-				requiredStatusChecks,
 				actionsSecrets,
 				environments,
 				rulesets,
 				immutableReleases,
-				allowRebaseMerge
+				allowRebaseMerge,
+				branchProtections
 		);
 	}
 
@@ -161,12 +163,12 @@ public final class RepositoryArgs {
 		private String homepageUrl = "";
 		private RepositoryVisibility visibility = RepositoryVisibility.PUBLIC;
 		private List<String> topics = List.of();
-		private Set<StatusCheckArgs> requiredStatusChecks = Set.of();
 		private List<String> actionsSecrets = List.of();
 		private final Map<String, EnvironmentArgs> environments = new LinkedHashMap<>();
 		private List<RulesetArgs> rulesets = List.of();
 		private boolean immutableReleases = false;
 		private boolean allowRebaseMerge = true;
+		private Map<String, BranchProtectionArgs> branchProtections = Map.of();
 
 		public Builder(String name) {
 			this.name = name;
@@ -180,12 +182,12 @@ public final class RepositoryArgs {
 			this.homepageUrl = repositoryArgs.homepageUrl;
 			this.visibility = repositoryArgs.visibility;
 			this.topics = repositoryArgs.topics;
-			this.requiredStatusChecks = repositoryArgs.requiredStatusChecks;
 			this.actionsSecrets = repositoryArgs.actionsSecrets;
 			this.environments.putAll(repositoryArgs.environments);
 			this.rulesets = repositoryArgs.rulesets;
 			this.immutableReleases = repositoryArgs.immutableReleases;
 			this.allowRebaseMerge = repositoryArgs.allowRebaseMerge;
+			this.branchProtections = repositoryArgs.branchProtections;
 		}
 
 		public Builder name(String name) {
@@ -228,24 +230,6 @@ public final class RepositoryArgs {
 			return this;
 		}
 
-		public Builder requiredStatusChecks(
-				StatusCheckArgs... statusCheckArgs
-		) {
-			this.requiredStatusChecks = Set.of(statusCheckArgs);
-			return this;
-		}
-
-		public Builder addRequiredStatusChecks(
-				StatusCheckArgs... statusCheckArgs
-		) {
-			Set<StatusCheckArgs> combined = new HashSet<>(
-					this.requiredStatusChecks
-			);
-			combined.addAll(List.of(statusCheckArgs));
-			this.requiredStatusChecks = combined;
-			return this;
-		}
-
 		public Builder actionsSecrets(String... secrets) {
 			this.actionsSecrets = List.of(secrets);
 			return this;
@@ -268,6 +252,43 @@ public final class RepositoryArgs {
 
 		public Builder rulesets(RulesetArgs... rulesets) {
 			this.rulesets = List.of(rulesets);
+			return this;
+		}
+
+		public Builder branchProtections(
+				BranchProtectionArgs... branchProtections
+		) {
+			this.branchProtections = Stream.of(branchProtections)
+					.collect(
+							Collectors.toMap(
+									BranchProtectionArgs::pattern,
+									Function.identity()
+							)
+					);
+			return this;
+		}
+
+		public Builder addBranchProtections(BranchProtectionArgs... args) {
+			var branchProtections = new HashMap<>(this.branchProtections);
+			for (var bpa : args) {
+				branchProtections.put(bpa.pattern(), bpa);
+			}
+			this.branchProtections = branchProtections;
+			return this;
+		}
+
+		public Builder updateBranchProtection(
+				String pattern,
+				Consumer<BranchProtectionArgs.Builder> consumer
+		) {
+			var branchProtections = new HashMap<>(this.branchProtections);
+			var bpa = Optional
+					.ofNullable(this.branchProtections.remove(pattern))
+					.orElseThrow();
+			var builder = bpa.toBuilder();
+			consumer.accept(builder);
+			branchProtections.put(bpa.pattern(), builder.build());
+			this.branchProtections = branchProtections;
 			return this;
 		}
 

@@ -1,5 +1,5 @@
 {
-  "id" : "b5fe745a-28fb-4ca8-ad3c-5e32c23de907",
+  "id" : "7e61b986-463a-419c-995d-3062880be309",
   "name" : "repos_arlol_terraform-github_rulesets",
   "request" : {
     "urlPath" : "/repos/ArloL/terraform-github/rulesets",
@@ -17,22 +17,22 @@
       "X-Accepted-OAuth-Scopes" : "repo",
       "X-RateLimit-Resource" : "core",
       "Server" : "github.com",
-      "X-RateLimit-Used" : "1322",
+      "X-RateLimit-Used" : "54",
       "Access-Control-Allow-Origin" : "*",
       "x-github-api-version-selected" : "2026-03-10",
       "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
       "X-Frame-Options" : "deny",
       "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
       "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
-      "X-RateLimit-Remaining" : "3678",
+      "X-RateLimit-Remaining" : "4946",
       "X-GitHub-Media-Type" : "github.v3; format=json",
       "Content-Security-Policy" : "default-src 'none'",
       "X-XSS-Protection" : "0",
-      "X-GitHub-Request-Id" : "A09A:1B0081:60A955:501C21:69CAD3E8",
+      "X-GitHub-Request-Id" : "8F03:20B481:A456D5:8FC6CA:69CBAD30",
       "Content-Type" : "application/json; charset=utf-8",
       "X-Content-Type-Options" : "nosniff",
-      "X-RateLimit-Reset" : "1774900461",
-      "Date" : "Mon, 30 Mar 2026 19:50:00 GMT",
+      "X-RateLimit-Reset" : "1774957165",
+      "Date" : "Tue, 31 Mar 2026 11:17:04 GMT",
       "Cache-Control" : "private, max-age=60, s-maxage=60",
       "ETag" : "\"cb5fe6191099d78a04147e7d16d2d65caab96c86e9be56e08f81781eece4bc0f\"",
       "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
@@ -42,5 +42,5 @@
     }
   },
   "persistent" : true,
-  "insertionIndex" : 43
+  "insertionIndex" : 46
 }

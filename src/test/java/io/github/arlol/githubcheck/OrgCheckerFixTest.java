@@ -40,6 +40,7 @@ import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetRuleType;
 import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
+import io.github.arlol.githubcheck.config.BranchProtectionArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
@@ -166,9 +167,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of(),
@@ -194,9 +198,12 @@ class OrgCheckerFixTest {
 				parse(mergedDetails, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of(),
@@ -403,7 +410,7 @@ class OrgCheckerFixTest {
 				state.details(),
 				false,
 				true,
-				state.branchProtection(),
+				state.branchProtections(),
 				state.actionSecretNames(),
 				state.environmentSecretNames(),
 				state.workflowPermissions(),
@@ -459,7 +466,7 @@ class OrgCheckerFixTest {
 				baseState.details(),
 				false,
 				false,
-				baseState.branchProtection(),
+				baseState.branchProtections(),
 				baseState.actionSecretNames(),
 				baseState.environmentSecretNames(),
 				baseState.workflowPermissions(),
@@ -516,9 +523,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				false,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of(),
@@ -569,9 +579,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of(),
@@ -633,7 +646,14 @@ class OrgCheckerFixTest {
 						.willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo").build();
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.addBranchProtections(
+						BranchProtectionArgs.builder("main")
+								.enforceAdmins(true)
+								.requiredLinearHistory(true)
+								.build()
+				)
+				.build();
 
 		var state = new RepositoryState(
 				"repo",
@@ -641,7 +661,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				null,
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -719,9 +739,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of(),
@@ -754,7 +777,14 @@ class OrgCheckerFixTest {
 						.willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo").build();
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.addBranchProtections(
+						BranchProtectionArgs.builder("main")
+								.enforceAdmins(true)
+								.requiredLinearHistory(true)
+								.build()
+				)
+				.build();
 
 		var driftedBp = parse(
 				"""
@@ -781,7 +811,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				driftedBp,
+				Map.of("main", driftedBp),
 				List.of(),
 				Map.of(),
 				parse(
@@ -811,6 +841,160 @@ class OrgCheckerFixTest {
 							"enforce_admins": true,
 							"required_pull_request_reviews": null,
 							"restrictions": null,
+							"required_linear_history": true,
+							"allow_force_pushes": false
+						}
+						"""))
+		);
+	}
+
+	@Test
+	void branchProtectionWithPRReviews_putsBranchProtection() throws Exception {
+		stubFor(
+				put(urlEqualTo("/repos/ArloL/repo/branches/main/protection"))
+						.willReturn(okJson("{}"))
+		);
+
+		var bpArgs = BranchProtectionArgs.builder("main")
+				.enforceAdmins(true)
+				.requiredLinearHistory(true)
+				.requiredApprovingReviewCount(1)
+				.dismissStaleReviews(true)
+				.requireCodeOwnerReviews(true)
+				.build();
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.branchProtections(bpArgs)
+				.build();
+
+		var driftedBp = parse("""
+				{
+					"enforce_admins": {"enabled": false},
+					"required_linear_history": {"enabled": true},
+					"allow_force_pushes": {"enabled": false},
+					"required_status_checks": {
+						"strict": false,
+						"checks": []
+					}
+				}
+				""", BranchProtectionResponse.class);
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
+				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				true,
+				true,
+				Map.of("main", driftedBp),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(),
+				false
+		);
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				putRequestedFor(
+						urlEqualTo("/repos/ArloL/repo/branches/main/protection")
+				).withRequestBody(equalToJson("""
+						{
+							"required_status_checks": {
+								"strict": false,
+								"checks": []
+							},
+							"enforce_admins": true,
+							"required_pull_request_reviews": {
+								"dismiss_stale_reviews": true,
+								"require_code_owner_reviews": true,
+								"required_approving_review_count": 1,
+								"require_last_push_approval": null
+							},
+							"restrictions": null,
+							"required_linear_history": true,
+							"allow_force_pushes": false
+						}
+						"""))
+		);
+	}
+
+	@Test
+	void branchProtectionWithRestrictions_putsBranchProtection()
+			throws Exception {
+		stubFor(
+				put(urlEqualTo("/repos/ArloL/repo/branches/main/protection"))
+						.willReturn(okJson("{}"))
+		);
+
+		var bpArgs = BranchProtectionArgs.builder("main")
+				.enforceAdmins(true)
+				.requiredLinearHistory(true)
+				.users(List.of("admin-user", "dev-user"))
+				.teams(List.of("admins"))
+				.apps(List.of("my-app"))
+				.build();
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.branchProtections(bpArgs)
+				.build();
+
+		var driftedBp = parse("""
+				{
+					"enforce_admins": {"enabled": false},
+					"required_linear_history": {"enabled": true},
+					"allow_force_pushes": {"enabled": false},
+					"required_status_checks": {
+						"strict": false,
+						"checks": []
+					}
+				}
+				""", BranchProtectionResponse.class);
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
+				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				true,
+				true,
+				Map.of("main", driftedBp),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(),
+				false
+		);
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				putRequestedFor(
+						urlEqualTo("/repos/ArloL/repo/branches/main/protection")
+				).withRequestBody(equalToJson("""
+						{
+							"required_status_checks": {
+								"strict": false,
+								"checks": []
+							},
+							"enforce_admins": true,
+							"required_pull_request_reviews": null,
+							"restrictions": {
+								"users": ["admin-user", "dev-user"],
+								"teams": ["admins"],
+								"apps": ["my-app"]
+							},
 							"required_linear_history": true,
 							"allow_force_pushes": false
 						}
@@ -1007,9 +1191,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of(),
@@ -1101,9 +1288,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of(),
@@ -1154,9 +1344,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of("github-pages", List.of()),
@@ -1212,9 +1405,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of("github-pages", List.of()),
@@ -1291,9 +1487,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of("production", List.of()),
@@ -1350,9 +1549,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of("production", List.of()),
@@ -1408,9 +1610,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of("production", List.of()),
@@ -1471,9 +1676,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of(),
@@ -1514,9 +1722,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of(),
@@ -1580,9 +1791,12 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
 				true,
 				true,
-				parse(
-						GOOD_BRANCH_PROTECTION_JSON,
-						BranchProtectionResponse.class
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
 				),
 				List.of(),
 				Map.of("production", List.of()),

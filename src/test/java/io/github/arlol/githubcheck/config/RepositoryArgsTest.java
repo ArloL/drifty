@@ -1,10 +1,11 @@
 package io.github.arlol.githubcheck.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Set;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
@@ -12,13 +13,10 @@ class RepositoryArgsTest {
 
 	@Test
 	void toBuilderInheritsAllFields() {
-		var statusCheck = StatusCheckArgs.builder()
-				.context("base-check")
-				.build();
 		var original = RepositoryArgs.create("original")
 				.description("A description")
 				.pages()
-				.requiredStatusChecks(statusCheck)
+				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 
 		var copy = original.toBuilder().name("copy").build();
@@ -26,7 +24,10 @@ class RepositoryArgsTest {
 		assertEquals("copy", copy.name());
 		assertEquals("A description", copy.description());
 		assertTrue(copy.pages());
-		assertEquals(Set.of(statusCheck), copy.requiredStatusChecks());
+		assertEquals(
+				Map.of("main", BranchProtectionArgs.builder("main").build()),
+				copy.branchProtections()
+		);
 	}
 
 	@Test
@@ -40,130 +41,97 @@ class RepositoryArgsTest {
 	}
 
 	@Test
-	void requiredStatusChecksReplacesList() {
+	void branchProtectionsReplacesList() {
 		var base = RepositoryArgs.create("repo")
-				.requiredStatusChecks(
-						StatusCheckArgs.builder().context("old-check").build()
-				)
+				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 
 		var updated = base.toBuilder()
-				.requiredStatusChecks(
-						StatusCheckArgs.builder().context("new-check").build()
+				.branchProtections(
+						BranchProtectionArgs.builder("master").build()
 				)
 				.build();
 
-		assertEquals(
-				Set.of(StatusCheckArgs.builder().context("new-check").build()),
-				updated.requiredStatusChecks()
+		assertThat(updated.branchProtections().values()).containsExactly(
+				BranchProtectionArgs.builder("master").build()
 		);
 	}
 
 	@Test
-	void addRequiredStatusChecksAppends() {
+	void addBranchProtectionsAppends() {
 		var base = RepositoryArgs.create("repo")
-				.requiredStatusChecks(
-						StatusCheckArgs.builder().context("base-check").build()
-				)
+				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 
 		var extended = base.toBuilder()
-				.addRequiredStatusChecks(
-						StatusCheckArgs.builder().context("extra-check").build()
+				.addBranchProtections(
+						BranchProtectionArgs.builder("master").build()
 				)
 				.build();
 
-		assertEquals(
-				Set.of(
-						StatusCheckArgs.builder().context("base-check").build(),
-						StatusCheckArgs.builder().context("extra-check").build()
-				),
-				extended.requiredStatusChecks()
-		);
+		assertThat(extended.branchProtections().values())
+				.containsExactlyInAnyOrder(
+						BranchProtectionArgs.builder("main").build(),
+						BranchProtectionArgs.builder("master").build()
+				);
 	}
 
 	@Test
-	void addRequiredStatusChecksOnEmptyList() {
+	void addBranchProtectionsOnEmptyList() {
 		var base = RepositoryArgs.create("repo").build();
 
 		var extended = base.toBuilder()
-				.addRequiredStatusChecks(
-						StatusCheckArgs.builder().context("first-check").build()
+				.addBranchProtections(
+						BranchProtectionArgs.builder("main").build()
 				)
 				.build();
 
-		assertEquals(
-				Set.of(
-						StatusCheckArgs.builder().context("first-check").build()
-				),
-				extended.requiredStatusChecks()
-		);
+		assertThat(extended.branchProtections().values())
+				.containsExactly(BranchProtectionArgs.builder("main").build());
 	}
 
 	@Test
-	void addRequiredStatusChecksDoesNotMutateOriginal() {
+	void addBranchProtectionsDoesNotMutateOriginal() {
 		var base = RepositoryArgs.create("repo")
-				.requiredStatusChecks(
-						StatusCheckArgs.builder().context("base-check").build()
-				)
+				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 
 		base.toBuilder()
-				.addRequiredStatusChecks(
-						StatusCheckArgs.builder().context("extra-check").build()
+				.addBranchProtections(
+						BranchProtectionArgs.builder("master").build()
 				)
 				.build();
 
-		assertEquals(
-				Set.of(StatusCheckArgs.builder().context("base-check").build()),
-				base.requiredStatusChecks()
-		);
+		assertThat(base.branchProtections().values())
+				.containsExactly(BranchProtectionArgs.builder("main").build());
 	}
 
 	@Test
 	void groupDefaultNotAffectedByPerRepoOverride() {
 		var groupDefault = RepositoryArgs.create("_")
-				.requiredStatusChecks(
-						StatusCheckArgs.builder()
-								.context("main.required-status-check")
-								.build()
-				)
+				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 
 		var repoA = groupDefault.toBuilder().name("repo-a").build();
 		var repoB = groupDefault.toBuilder()
 				.name("repo-b")
-				.addRequiredStatusChecks(
-						StatusCheckArgs.builder().context("extra-check").build()
+				.addBranchProtections(
+						BranchProtectionArgs.builder("master").build()
 				)
 				.build();
 
-		assertEquals(
-				Set.of(
-						StatusCheckArgs.builder()
-								.context("main.required-status-check")
-								.build()
-				),
-				repoA.requiredStatusChecks()
-		);
-		assertEquals(
-				Set.of(
-						StatusCheckArgs.builder()
-								.context("main.required-status-check")
-								.build(),
-						StatusCheckArgs.builder().context("extra-check").build()
-				),
-				repoB.requiredStatusChecks()
-		);
+		assertThat(repoA.branchProtections().values())
+				.containsExactly(BranchProtectionArgs.builder("main").build());
+
+		assertThat(repoB.branchProtections().values())
+				.containsExactlyInAnyOrder(
+						BranchProtectionArgs.builder("main").build(),
+						BranchProtectionArgs.builder("master").build()
+				);
+
 		// group default is unchanged
-		assertEquals(
-				Set.of(
-						StatusCheckArgs.builder()
-								.context("main.required-status-check")
-								.build()
-				),
-				groupDefault.requiredStatusChecks()
-		);
+		assertThat(groupDefault.branchProtections().values())
+				.containsExactly(BranchProtectionArgs.builder("main").build());
 		assertFalse(groupDefault.pages());
 	}
 

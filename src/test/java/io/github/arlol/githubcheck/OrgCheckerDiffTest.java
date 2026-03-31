@@ -26,6 +26,7 @@ import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetRuleType;
 import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
+import io.github.arlol.githubcheck.config.BranchProtectionArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
@@ -124,7 +125,14 @@ class OrgCheckerDiffTest {
 	}
 
 	private static RepositoryArgs defaultArgs() {
-		return RepositoryArgs.create("repo").build();
+		return RepositoryArgs.create("repo")
+				.addBranchProtections(
+						BranchProtectionArgs.builder("main")
+								.enforceAdmins(true)
+								.requiredLinearHistory(true)
+								.build()
+				)
+				.build();
 	}
 
 	/**
@@ -229,12 +237,13 @@ class OrgCheckerDiffTest {
 					parse(detailsJson, RepositoryFull.class),
 					vulnerabilityAlerts,
 					automatedSecurityFixes,
-					hasBranchProtection
-							? parse(
+					hasBranchProtection ? Map.of(
+							"main",
+							parse(
 									branchProtectionJson,
 									BranchProtectionResponse.class
 							)
-							: null,
+					) : Map.of(),
 					actionSecretNames,
 					environmentSecretNames,
 					parse(workflowPermissionsJson, WorkflowPermissions.class),
@@ -482,17 +491,6 @@ class OrgCheckerDiffTest {
 		assertThat(diffs).isEmpty();
 	}
 
-	@Test
-	void privateRepo_skipsBranchProtectionCheck() {
-		var state = new StateBuilder().summaryOverride("""
-				{"visibility": "private"}
-				""").detailsOverride("""
-				{"visibility": "private"}
-				""").noBranchProtection().build();
-		List<String> diffs = checker.computeDiffs(state, defaultArgs());
-		assertThat(diffs).containsOnly("visibility: want=PUBLIC got=PRIVATE");
-	}
-
 	// ─── Branch protection drift
 	// ──────────────────────────────────────────────
 
@@ -500,7 +498,7 @@ class OrgCheckerDiffTest {
 	void drift_branchProtectionMissing() {
 		var state = new StateBuilder().noBranchProtection().build();
 		assertThat(checker.computeDiffs(state, defaultArgs()))
-				.contains("branch_protection: missing");
+				.contains("branch_protection.main: missing");
 	}
 
 	@Test
@@ -509,7 +507,7 @@ class OrgCheckerDiffTest {
 				{"enforce_admins": {"enabled": false}}
 				""").build();
 		assertThat(checker.computeDiffs(state, defaultArgs())).contains(
-				"branch_protection.enforce_admins: want=true got=false"
+				"branch_protection.main.enforce_admins: want=true got=false"
 		);
 	}
 
@@ -519,7 +517,7 @@ class OrgCheckerDiffTest {
 				{"required_linear_history": {"enabled": false}}
 				""").build();
 		assertThat(checker.computeDiffs(state, defaultArgs())).contains(
-				"branch_protection.required_linear_history: want=true got=false"
+				"branch_protection.main.required_linear_history: want=true got=false"
 		);
 	}
 
@@ -529,7 +527,7 @@ class OrgCheckerDiffTest {
 				{"allow_force_pushes": {"enabled": true}}
 				""").build();
 		assertThat(checker.computeDiffs(state, defaultArgs())).contains(
-				"branch_protection.allow_force_pushes: want=false got=true"
+				"branch_protection.main.allow_force_pushes: want=false got=true"
 		);
 	}
 
@@ -553,7 +551,7 @@ class OrgCheckerDiffTest {
 				)
 				.build();
 		assertThat(checker.computeDiffs(state, defaultArgs())).contains(
-				"branch_protection.required_status_checks.strict: want=false got=true"
+				"branch_protection.main.required_status_checks.strict: want=false got=true"
 		);
 	}
 
@@ -579,28 +577,40 @@ class OrgCheckerDiffTest {
 				checker.computeDiffs(
 						state,
 						defaultArgs().toBuilder()
-								.requiredStatusChecks(
-										StatusCheckArgs.builder()
-												.context(
-														"check-actions.required-status-check"
+								.addBranchProtections(
+										BranchProtectionArgs.builder("main")
+												.requiredStatusChecks(
+														StatusCheckArgs
+																.builder()
+																.context(
+																		"check-actions.required-status-check"
+																)
+																.build(),
+														StatusCheckArgs
+																.builder()
+																.context(
+																		"codeql-analysis.required-status-check"
+																)
+																.build(),
+														StatusCheckArgs
+																.builder()
+																.context(
+																		"CodeQL"
+																)
+																.build(),
+														StatusCheckArgs
+																.builder()
+																.context(
+																		"zizmor"
+																)
+																.build()
 												)
-												.build(),
-										StatusCheckArgs.builder()
-												.context(
-														"codeql-analysis.required-status-check"
-												)
-												.build(),
-										StatusCheckArgs.builder()
-												.context("CodeQL")
-												.build(),
-										StatusCheckArgs.builder()
-												.context("zizmor")
 												.build()
 								)
 								.build()
 				)
 		).anyMatch(
-				d -> d.contains("branch_protection.required_status_checks")
+				d -> d.contains("branch_protection.main.required_status_checks")
 						&& d.contains("missing") && d.contains("zizmor")
 		);
 	}
@@ -608,15 +618,21 @@ class OrgCheckerDiffTest {
 	@Test
 	void drift_missingExtraStatusCheck() {
 		var args = defaultArgs().toBuilder()
-				.requiredStatusChecks(
-						StatusCheckArgs.builder()
-								.context("main.required-status-check")
+				.addBranchProtections(
+						BranchProtectionArgs.builder("main")
+								.requiredStatusChecks(
+										StatusCheckArgs.builder()
+												.context(
+														"main.required-status-check"
+												)
+												.build()
+								)
 								.build()
 				)
 				.build();
 		var state = goodPublicState();
 		assertThat(checker.computeDiffs(state, args)).anyMatch(
-				d -> d.contains("branch_protection.required_status_checks")
+				d -> d.contains("branch_protection.main.required_status_checks")
 						&& d.contains("missing")
 						&& d.contains("main.required-status-check")
 		);
@@ -643,7 +659,7 @@ class OrgCheckerDiffTest {
 				)
 				.build();
 		assertThat(checker.computeDiffs(state, defaultArgs())).anyMatch(
-				d -> d.contains("branch_protection.required_status_checks")
+				d -> d.contains("branch_protection.main.required_status_checks")
 						&& d.contains("extra") && d.contains("unexpected-check")
 		);
 	}
@@ -780,7 +796,7 @@ class OrgCheckerDiffTest {
 		RepositoryArgs args = RepositoryArgs.create("repo")
 				.topics("java", "maven")
 				.build();
-		var state = new StateBuilder().detailsOverride("""
+		var state = new StateBuilder().noBranchProtection().detailsOverride("""
 				{"topics": ["java", "maven"]}
 				""").build();
 		assertThat(checker.computeDiffs(state, args)).isEmpty();

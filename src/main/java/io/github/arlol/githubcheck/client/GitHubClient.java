@@ -146,6 +146,30 @@ public class GitHubClient {
 		);
 	}
 
+	public List<BranchResponse> getBranches(String owner, String repo)
+			throws IOException, InterruptedException {
+		return getBranches(owner, repo, false);
+	}
+
+	public List<BranchResponse> getBranches(
+			String owner,
+			String repo,
+			boolean isProtected
+	) throws IOException, InterruptedException {
+		HttpResponse<String> resp = send(
+				baseUrl + "/repos/" + owner + "/" + repo
+						+ "/branches?per_page=100&protected=" + isProtected
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " GET branches on " + repo
+			);
+		}
+		return collectPaginatedArrayItems(resp, null).stream()
+				.map(e -> mapper.convertValue(e, BranchResponse.class))
+				.toList();
+	}
+
 	public Optional<BranchProtectionResponse> getBranchProtection(
 			String owner,
 			String repo,
