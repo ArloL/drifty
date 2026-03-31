@@ -28,6 +28,7 @@ public final class RepositoryArgs {
 	private final List<RulesetArgs> rulesets;
 	private final boolean immutableReleases;
 	private final boolean allowRebaseMerge;
+	private final boolean allowUpdateBranch;
 	private final Map<String, BranchProtectionArgs> branchProtections;
 	private final boolean vulnerabilityAlerts;
 	private final boolean automatedSecurityFixes;
@@ -48,6 +49,7 @@ public final class RepositoryArgs {
 		this.rulesets = List.copyOf(builder.rulesets);
 		this.immutableReleases = builder.immutableReleases;
 		this.allowRebaseMerge = builder.allowRebaseMerge;
+		this.allowUpdateBranch = builder.allowUpdateBranch;
 		this.branchProtections = Map.copyOf(builder.branchProtections);
 		this.vulnerabilityAlerts = builder.vulnerabilityAlerts;
 		this.automatedSecurityFixes = builder.automatedSecurityFixes;
@@ -107,6 +109,10 @@ public final class RepositoryArgs {
 		return allowRebaseMerge;
 	}
 
+	public boolean allowUpdateBranch() {
+		return allowUpdateBranch;
+	}
+
 	public Map<String, BranchProtectionArgs> branchProtections() {
 		return branchProtections;
 	}
@@ -139,6 +145,7 @@ public final class RepositoryArgs {
 		return archived == that.archived
 				&& immutableReleases == that.immutableReleases
 				&& allowRebaseMerge == that.allowRebaseMerge
+				&& allowUpdateBranch == that.allowUpdateBranch
 				&& vulnerabilityAlerts == that.vulnerabilityAlerts
 				&& automatedSecurityFixes == that.automatedSecurityFixes
 				&& secretScanning == that.secretScanning
@@ -170,6 +177,7 @@ public final class RepositoryArgs {
 				rulesets,
 				immutableReleases,
 				allowRebaseMerge,
+				allowUpdateBranch,
 				branchProtections,
 				vulnerabilityAlerts,
 				automatedSecurityFixes,
@@ -200,6 +208,7 @@ public final class RepositoryArgs {
 		private List<RulesetArgs> rulesets = List.of();
 		private boolean immutableReleases = false;
 		private boolean allowRebaseMerge = true;
+		private boolean allowUpdateBranch = false;
 		private Map<String, BranchProtectionArgs> branchProtections = Map.of();
 		private boolean vulnerabilityAlerts = true;
 		private boolean automatedSecurityFixes = false;
@@ -223,6 +232,7 @@ public final class RepositoryArgs {
 			this.rulesets = repositoryArgs.rulesets;
 			this.immutableReleases = repositoryArgs.immutableReleases;
 			this.allowRebaseMerge = repositoryArgs.allowRebaseMerge;
+			this.allowUpdateBranch = repositoryArgs.allowUpdateBranch;
 			this.branchProtections = repositoryArgs.branchProtections;
 			this.vulnerabilityAlerts = repositoryArgs.vulnerabilityAlerts;
 			this.automatedSecurityFixes = repositoryArgs.automatedSecurityFixes;
@@ -339,6 +349,11 @@ public final class RepositoryArgs {
 
 		public Builder allowRebaseMerge(boolean allowRebaseMerge) {
 			this.allowRebaseMerge = allowRebaseMerge;
+			return this;
+		}
+
+		public Builder allowUpdateBranch(boolean allowUpdateBranch) {
+			this.allowUpdateBranch = allowUpdateBranch;
 			return this;
 		}
 

@@ -315,6 +315,12 @@ public class OrgChecker {
 		check(diffs, "allow_auto_merge", true, details.allowAutoMerge());
 		check(
 				diffs,
+				"allow_update_branch",
+				desired.allowUpdateBranch(),
+				details.allowUpdateBranch()
+		);
+		check(
+				diffs,
 				"delete_branch_on_merge",
 				true,
 				details.deleteBranchOnMerge()
@@ -891,6 +897,7 @@ public class OrgChecker {
 			fields.put("allow_merge_commit", false);
 			fields.put("allow_squash_merge", false);
 			fields.put("allow_rebase_merge", desired.allowRebaseMerge());
+			fields.put("allow_update_branch", desired.allowUpdateBranch());
 			fields.put("allow_auto_merge", true);
 			fields.put("delete_branch_on_merge", true);
 			client.updateRepository(org, name, fields);

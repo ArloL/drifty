@@ -78,6 +78,7 @@ class OrgCheckerFixTest {
 				"allow_merge_commit": false,
 				"allow_squash_merge": false,
 				"allow_rebase_merge": true,
+				"allow_update_branch": false,
 				"allow_auto_merge": true,
 				"delete_branch_on_merge": true,
 				"visibility": "public",
@@ -119,6 +120,7 @@ class OrgCheckerFixTest {
 				"allow_merge_commit": false,
 				"allow_squash_merge": false,
 				"allow_rebase_merge": true,
+				"allow_update_branch": false,
 				"allow_auto_merge": true,
 				"delete_branch_on_merge": true
 			}
@@ -269,6 +271,7 @@ class OrgCheckerFixTest {
 									"allow_merge_commit": false,
 									"allow_squash_merge": false,
 									"allow_rebase_merge": true,
+									"allow_update_branch": false,
 									"allow_auto_merge": true,
 									"delete_branch_on_merge": true
 								}
@@ -308,6 +311,7 @@ class OrgCheckerFixTest {
 									"allow_merge_commit": false,
 									"allow_squash_merge": false,
 									"allow_rebase_merge": false,
+									"allow_update_branch": false,
 									"allow_auto_merge": true,
 									"delete_branch_on_merge": true
 								}
@@ -354,6 +358,7 @@ class OrgCheckerFixTest {
 									"allow_merge_commit": false,
 									"allow_squash_merge": false,
 									"allow_rebase_merge": true,
+									"allow_update_branch": false,
 									"allow_auto_merge": true,
 									"delete_branch_on_merge": true
 								}
@@ -1239,6 +1244,7 @@ class OrgCheckerFixTest {
 									"allow_merge_commit": false,
 									"allow_squash_merge": false,
 									"allow_rebase_merge": true,
+									"allow_update_branch": false,
 									"allow_auto_merge": true,
 									"delete_branch_on_merge": true
 								}
