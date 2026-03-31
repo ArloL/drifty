@@ -267,7 +267,7 @@ public class OrgChecker {
 				actual.details().defaultBranch()
 		);
 		checkSecuritySettings(diffs, actual, desired);
-		checkWorkflowPermissions(diffs, actual);
+		checkWorkflowPermissions(diffs, actual, desired);
 		checkBranchProtection(diffs, actual, desired);
 		checkRulesets(diffs, actual, desired);
 		checkPages(diffs, actual, desired);
@@ -301,18 +301,38 @@ public class OrgChecker {
 				desired.homepageUrl(),
 				Objects.toString(details.homepage(), "")
 		);
-		check(diffs, "has_issues", true, details.hasIssues());
-		check(diffs, "has_projects", true, details.hasProjects());
-		check(diffs, "has_wiki", true, details.hasWiki());
-		check(diffs, "allow_merge_commit", false, details.allowMergeCommit());
-		check(diffs, "allow_squash_merge", false, details.allowSquashMerge());
+		check(diffs, "has_issues", desired.hasIssues(), details.hasIssues());
+		check(
+				diffs,
+				"has_projects",
+				desired.hasProjects(),
+				details.hasProjects()
+		);
+		check(diffs, "has_wiki", desired.hasWiki(), details.hasWiki());
+		check(
+				diffs,
+				"allow_merge_commit",
+				desired.allowMergeCommit(),
+				details.allowMergeCommit()
+		);
+		check(
+				diffs,
+				"allow_squash_merge",
+				desired.allowSquashMerge(),
+				details.allowSquashMerge()
+		);
 		check(
 				diffs,
 				"allow_rebase_merge",
 				desired.allowRebaseMerge(),
 				details.allowRebaseMerge()
 		);
-		check(diffs, "allow_auto_merge", true, details.allowAutoMerge());
+		check(
+				diffs,
+				"allow_auto_merge",
+				desired.allowAutoMerge(),
+				details.allowAutoMerge()
+		);
 		check(
 				diffs,
 				"allow_update_branch",
@@ -322,7 +342,7 @@ public class OrgChecker {
 		check(
 				diffs,
 				"delete_branch_on_merge",
-				true,
+				desired.deleteBranchOnMerge(),
 				details.deleteBranchOnMerge()
 		);
 		check(diffs, "visibility", desired.visibility(), details.visibility());
@@ -400,18 +420,19 @@ public class OrgChecker {
 
 	private void checkWorkflowPermissions(
 			List<String> diffs,
-			RepositoryState actual
+			RepositoryState actual,
+			RepositoryArgs desired
 	) {
 		check(
 				diffs,
 				"workflow_permissions.default",
-				WorkflowPermissions.DefaultWorkflowPermissions.READ,
+				desired.defaultWorkflowPermissions(),
 				actual.workflowPermissions().defaultWorkflowPermissions()
 		);
 		check(
 				diffs,
 				"workflow_permissions.can_approve_prs",
-				true,
+				desired.canApprovePullRequestReviews(),
 				actual.workflowPermissions().canApprovePullRequestReviews()
 		);
 	}
@@ -897,15 +918,15 @@ public class OrgChecker {
 			fields.put("archived", desired.archived());
 			fields.put("description", desired.description());
 			fields.put("homepage", desired.homepageUrl());
-			fields.put("has_issues", true);
-			fields.put("has_projects", true);
-			fields.put("has_wiki", true);
-			fields.put("allow_merge_commit", false);
-			fields.put("allow_squash_merge", false);
+			fields.put("has_issues", desired.hasIssues());
+			fields.put("has_projects", desired.hasProjects());
+			fields.put("has_wiki", desired.hasWiki());
+			fields.put("allow_merge_commit", desired.allowMergeCommit());
+			fields.put("allow_squash_merge", desired.allowSquashMerge());
 			fields.put("allow_rebase_merge", desired.allowRebaseMerge());
 			fields.put("allow_update_branch", desired.allowUpdateBranch());
-			fields.put("allow_auto_merge", true);
-			fields.put("delete_branch_on_merge", true);
+			fields.put("allow_auto_merge", desired.allowAutoMerge());
+			fields.put("delete_branch_on_merge", desired.deleteBranchOnMerge());
 			fields.put("default_branch", desired.defaultBranch());
 			client.updateRepository(org, name, fields);
 			remaining.removeAll(repoSettingsDiffs);
@@ -1027,14 +1048,14 @@ public class OrgChecker {
 
 		// Workflow permissions (fixable)
 		List<String> workflowDiffs = new ArrayList<>();
-		checkWorkflowPermissions(workflowDiffs, actual);
+		checkWorkflowPermissions(workflowDiffs, actual, desired);
 		if (!workflowDiffs.isEmpty()) {
 			client.updateWorkflowPermissions(
 					org,
 					name,
 					new WorkflowPermissions(
-							WorkflowPermissions.DefaultWorkflowPermissions.READ,
-							true
+							desired.defaultWorkflowPermissions(),
+							desired.canApprovePullRequestReviews()
 					)
 			);
 			remaining.removeAll(workflowDiffs);

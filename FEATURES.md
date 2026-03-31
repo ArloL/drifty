@@ -168,13 +168,9 @@ Repos in config that don't exist on GitHub should be reported as MISSING with ex
 - Repos in config but not on GitHub get status MISSING.
 - Include in report and cause non-zero exit.
 
-## 26. Move Hardcoded Desired Values from OrgChecker to RepositoryArgs
+## ~~26. Move Hardcoded Desired Values from OrgChecker to RepositoryArgs~~ DONE
 
-Per spec: `RepositoryArgs` field defaults must match GitHub's defaults, and non-default desired values are set in `defaultRepository` in `GitHubCheck.repositories()`. Currently, many desired values are hardcoded in `OrgChecker.checkRepoSettings()` and related methods instead of being read from `RepositoryArgs`.
-
-### Plan
-
-Add the following fields to `RepositoryArgs` (all with GitHub-matching defaults):
+Implemented: Added nine new fields to `RepositoryArgs` with GitHub-matching defaults:
 - `hasIssues` (default: `true`)
 - `hasProjects` (default: `true`)
 - `hasWiki` (default: `true`)
@@ -182,7 +178,7 @@ Add the following fields to `RepositoryArgs` (all with GitHub-matching defaults)
 - `allowSquashMerge` (default: `true`)
 - `allowAutoMerge` (default: `false`)
 - `deleteBranchOnMerge` (default: `false`)
-- `defaultWorkflowPermissions` (default: `"write"`)
+- `defaultWorkflowPermissions` (default: `WRITE` via `WorkflowPermissions.DefaultWorkflowPermissions` enum)
 - `canApprovePullRequestReviews` (default: `true`)
 
-Update `OrgChecker` to read desired values from the `RepositoryArgs` config instead of using hardcoded literals. Set non-default desired values (e.g. `allowMergeCommit(false)`, `allowAutoMerge(true)`, `deleteBranchOnMerge(true)`, `defaultWorkflowPermissions("read")`) in `defaultRepository` in `GitHubCheck.repositories()`.
+Updated `OrgChecker.checkRepoSettings()` to read desired values from `RepositoryArgs` instead of using hardcoded literals. Updated `OrgChecker.checkWorkflowPermissions()` to accept a `desired` parameter and read `defaultWorkflowPermissions` and `canApprovePullRequestReviews` from config. Updated `OrgChecker.applyFixes()` to use `desired` values when constructing the PATCH payload for repo settings and workflow permissions. Set non-default desired values in `defaultRepository` in `GitHubCheck.repositories()`: `allowMergeCommit(false)`, `allowSquashMerge(false)`, `allowAutoMerge(true)`, `deleteBranchOnMerge(true)`, `defaultWorkflowPermissions(READ)`, `canApprovePullRequestReviews(true)`.

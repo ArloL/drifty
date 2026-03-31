@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
+import io.github.arlol.githubcheck.client.WorkflowPermissions;
 
 public final class RepositoryArgs {
 
@@ -35,6 +36,15 @@ public final class RepositoryArgs {
 	private final boolean automatedSecurityFixes;
 	private final boolean secretScanning;
 	private final boolean secretScanningPushProtection;
+	private final boolean hasIssues;
+	private final boolean hasProjects;
+	private final boolean hasWiki;
+	private final boolean allowMergeCommit;
+	private final boolean allowSquashMerge;
+	private final boolean allowAutoMerge;
+	private final boolean deleteBranchOnMerge;
+	private final WorkflowPermissions.DefaultWorkflowPermissions defaultWorkflowPermissions;
+	private final boolean canApprovePullRequestReviews;
 
 	private RepositoryArgs(Builder builder) {
 		this.name = builder.name;
@@ -57,6 +67,15 @@ public final class RepositoryArgs {
 		this.automatedSecurityFixes = builder.automatedSecurityFixes;
 		this.secretScanning = builder.secretScanning;
 		this.secretScanningPushProtection = builder.secretScanningPushProtection;
+		this.hasIssues = builder.hasIssues;
+		this.hasProjects = builder.hasProjects;
+		this.hasWiki = builder.hasWiki;
+		this.allowMergeCommit = builder.allowMergeCommit;
+		this.allowSquashMerge = builder.allowSquashMerge;
+		this.allowAutoMerge = builder.allowAutoMerge;
+		this.deleteBranchOnMerge = builder.deleteBranchOnMerge;
+		this.defaultWorkflowPermissions = builder.defaultWorkflowPermissions;
+		this.canApprovePullRequestReviews = builder.canApprovePullRequestReviews;
 	}
 
 	public String name() {
@@ -139,6 +158,42 @@ public final class RepositoryArgs {
 		return secretScanningPushProtection;
 	}
 
+	public boolean hasIssues() {
+		return hasIssues;
+	}
+
+	public boolean hasProjects() {
+		return hasProjects;
+	}
+
+	public boolean hasWiki() {
+		return hasWiki;
+	}
+
+	public boolean allowMergeCommit() {
+		return allowMergeCommit;
+	}
+
+	public boolean allowSquashMerge() {
+		return allowSquashMerge;
+	}
+
+	public boolean allowAutoMerge() {
+		return allowAutoMerge;
+	}
+
+	public boolean deleteBranchOnMerge() {
+		return deleteBranchOnMerge;
+	}
+
+	public WorkflowPermissions.DefaultWorkflowPermissions defaultWorkflowPermissions() {
+		return defaultWorkflowPermissions;
+	}
+
+	public boolean canApprovePullRequestReviews() {
+		return canApprovePullRequestReviews;
+	}
+
 	public Builder toBuilder() {
 		return new Builder(this);
 	}
@@ -156,6 +211,14 @@ public final class RepositoryArgs {
 				&& automatedSecurityFixes == that.automatedSecurityFixes
 				&& secretScanning == that.secretScanning
 				&& secretScanningPushProtection == that.secretScanningPushProtection
+				&& hasIssues == that.hasIssues
+				&& hasProjects == that.hasProjects && hasWiki == that.hasWiki
+				&& allowMergeCommit == that.allowMergeCommit
+				&& allowSquashMerge == that.allowSquashMerge
+				&& allowAutoMerge == that.allowAutoMerge
+				&& deleteBranchOnMerge == that.deleteBranchOnMerge
+				&& canApprovePullRequestReviews == that.canApprovePullRequestReviews
+				&& defaultWorkflowPermissions == that.defaultWorkflowPermissions
 				&& Objects.equals(name, that.name)
 				&& Objects.equals(pagesArgs, that.pagesArgs)
 				&& Objects.equals(description, that.description)
@@ -190,7 +253,16 @@ public final class RepositoryArgs {
 				vulnerabilityAlerts,
 				automatedSecurityFixes,
 				secretScanning,
-				secretScanningPushProtection
+				secretScanningPushProtection,
+				hasIssues,
+				hasProjects,
+				hasWiki,
+				allowMergeCommit,
+				allowSquashMerge,
+				allowAutoMerge,
+				deleteBranchOnMerge,
+				defaultWorkflowPermissions,
+				canApprovePullRequestReviews
 		);
 	}
 
@@ -223,6 +295,15 @@ public final class RepositoryArgs {
 		private boolean automatedSecurityFixes = false;
 		private boolean secretScanning = true;
 		private boolean secretScanningPushProtection = true;
+		private boolean hasIssues = true;
+		private boolean hasProjects = true;
+		private boolean hasWiki = true;
+		private boolean allowMergeCommit = true;
+		private boolean allowSquashMerge = true;
+		private boolean allowAutoMerge = false;
+		private boolean deleteBranchOnMerge = false;
+		private WorkflowPermissions.DefaultWorkflowPermissions defaultWorkflowPermissions = WorkflowPermissions.DefaultWorkflowPermissions.WRITE;
+		private boolean canApprovePullRequestReviews = true;
 
 		public Builder(String name) {
 			this.name = name;
@@ -248,6 +329,15 @@ public final class RepositoryArgs {
 			this.automatedSecurityFixes = repositoryArgs.automatedSecurityFixes;
 			this.secretScanning = repositoryArgs.secretScanning;
 			this.secretScanningPushProtection = repositoryArgs.secretScanningPushProtection;
+			this.hasIssues = repositoryArgs.hasIssues;
+			this.hasProjects = repositoryArgs.hasProjects;
+			this.hasWiki = repositoryArgs.hasWiki;
+			this.allowMergeCommit = repositoryArgs.allowMergeCommit;
+			this.allowSquashMerge = repositoryArgs.allowSquashMerge;
+			this.allowAutoMerge = repositoryArgs.allowAutoMerge;
+			this.deleteBranchOnMerge = repositoryArgs.deleteBranchOnMerge;
+			this.defaultWorkflowPermissions = repositoryArgs.defaultWorkflowPermissions;
+			this.canApprovePullRequestReviews = repositoryArgs.canApprovePullRequestReviews;
 		}
 
 		public Builder name(String name) {
@@ -391,6 +481,55 @@ public final class RepositoryArgs {
 				boolean secretScanningPushProtection
 		) {
 			this.secretScanningPushProtection = secretScanningPushProtection;
+			return this;
+		}
+
+		public Builder hasIssues(boolean hasIssues) {
+			this.hasIssues = hasIssues;
+			return this;
+		}
+
+		public Builder hasProjects(boolean hasProjects) {
+			this.hasProjects = hasProjects;
+			return this;
+		}
+
+		public Builder hasWiki(boolean hasWiki) {
+			this.hasWiki = hasWiki;
+			return this;
+		}
+
+		public Builder allowMergeCommit(boolean allowMergeCommit) {
+			this.allowMergeCommit = allowMergeCommit;
+			return this;
+		}
+
+		public Builder allowSquashMerge(boolean allowSquashMerge) {
+			this.allowSquashMerge = allowSquashMerge;
+			return this;
+		}
+
+		public Builder allowAutoMerge(boolean allowAutoMerge) {
+			this.allowAutoMerge = allowAutoMerge;
+			return this;
+		}
+
+		public Builder deleteBranchOnMerge(boolean deleteBranchOnMerge) {
+			this.deleteBranchOnMerge = deleteBranchOnMerge;
+			return this;
+		}
+
+		public Builder defaultWorkflowPermissions(
+				WorkflowPermissions.DefaultWorkflowPermissions defaultWorkflowPermissions
+		) {
+			this.defaultWorkflowPermissions = defaultWorkflowPermissions;
+			return this;
+		}
+
+		public Builder canApprovePullRequestReviews(
+				boolean canApprovePullRequestReviews
+		) {
+			this.canApprovePullRequestReviews = canApprovePullRequestReviews;
 			return this;
 		}
 

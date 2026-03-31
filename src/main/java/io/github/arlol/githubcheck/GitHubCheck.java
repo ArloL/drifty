@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.BranchProtectionArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
@@ -135,6 +136,14 @@ public class GitHubCheck {
 				.rulesets(defaultRuleset)
 				.branchProtections(defaultBranchProtection)
 				.automatedSecurityFixes(true)
+				.allowMergeCommit(false)
+				.allowSquashMerge(false)
+				.allowAutoMerge(true)
+				.deleteBranchOnMerge(true)
+				.defaultWorkflowPermissions(
+						WorkflowPermissions.DefaultWorkflowPermissions.READ
+				)
+				.canApprovePullRequestReviews(true)
 				.build();
 
 		// Variant for repos with the main CI required status check
