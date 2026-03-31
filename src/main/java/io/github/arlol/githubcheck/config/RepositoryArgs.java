@@ -432,8 +432,7 @@ public final class RepositoryArgs {
 				Consumer<BranchProtectionArgs.Builder> consumer
 		) {
 			var branchProtections = new HashMap<>(this.branchProtections);
-			var bpa = Optional
-					.ofNullable(this.branchProtections.remove(pattern))
+			var bpa = Optional.ofNullable(branchProtections.remove(pattern))
 					.orElseThrow();
 			var builder = bpa.toBuilder();
 			consumer.accept(builder);
