@@ -58,12 +58,12 @@ class OrgCheckerDiffTest {
 				"has_wiki": true,
 				"default_branch": "main",
 				"topics": [],
-				"allow_merge_commit": false,
-				"allow_squash_merge": false,
+				"allow_merge_commit": true,
+				"allow_squash_merge": true,
 				"allow_rebase_merge": true,
 				"allow_update_branch": false,
-				"allow_auto_merge": true,
-				"delete_branch_on_merge": true,
+				"allow_auto_merge": false,
+				"delete_branch_on_merge": false,
 				"visibility": "public",
 				"archived": false,
 				"security_and_analysis": {
@@ -87,7 +87,7 @@ class OrgCheckerDiffTest {
 
 	private static final String GOOD_WORKFLOW_PERMISSIONS_JSON = """
 			{
-				"default_workflow_permissions": "read",
+				"default_workflow_permissions": "write",
 				"can_approve_pull_request_reviews": true
 			}
 			""";
@@ -293,21 +293,21 @@ class OrgCheckerDiffTest {
 	// ──────────────────────────────────────────────────
 
 	@Test
-	void drift_allowMergeCommit_isTrue() {
+	void drift_allowMergeCommit_isFalse() {
 		var state = new StateBuilder().detailsOverride("""
-				{"allow_merge_commit": true}
+				{"allow_merge_commit": false}
 				""").build();
 		assertThat(checker.computeDiffs(state, defaultArgs()))
-				.contains("allow_merge_commit: want=false got=true");
+				.contains("allow_merge_commit: want=true got=false");
 	}
 
 	@Test
-	void drift_allowSquashMerge_isTrue() {
+	void drift_allowSquashMerge_isFalse() {
 		var state = new StateBuilder().detailsOverride("""
-				{"allow_squash_merge": true}
+				{"allow_squash_merge": false}
 				""").build();
 		assertThat(checker.computeDiffs(state, defaultArgs()))
-				.contains("allow_squash_merge: want=false got=true");
+				.contains("allow_squash_merge: want=true got=false");
 	}
 
 	@Test
@@ -330,21 +330,21 @@ class OrgCheckerDiffTest {
 	}
 
 	@Test
-	void drift_allowAutoMerge_isFalse() {
+	void drift_allowAutoMerge_isTrue() {
 		var state = new StateBuilder().detailsOverride("""
-				{"allow_auto_merge": false}
+				{"allow_auto_merge": true}
 				""").build();
 		assertThat(checker.computeDiffs(state, defaultArgs()))
-				.contains("allow_auto_merge: want=true got=false");
+				.contains("allow_auto_merge: want=false got=true");
 	}
 
 	@Test
-	void drift_deleteBranchOnMerge_isFalse() {
+	void drift_deleteBranchOnMerge_isTrue() {
 		var state = new StateBuilder().detailsOverride("""
-				{"delete_branch_on_merge": false}
+				{"delete_branch_on_merge": true}
 				""").build();
 		assertThat(checker.computeDiffs(state, defaultArgs()))
-				.contains("delete_branch_on_merge: want=true got=false");
+				.contains("delete_branch_on_merge: want=false got=true");
 	}
 
 	@Test
@@ -787,22 +787,22 @@ class OrgCheckerDiffTest {
 	// ──────────────────────────────────────────
 
 	@Test
-	void drift_workflowPermissionsDefault_isWrite() {
+	void drift_workflowPermissionsDefault_isRead() {
 		var state = new StateBuilder().workflowPermissions("""
 				{
-					"default_workflow_permissions": "write",
+					"default_workflow_permissions": "read",
 					"can_approve_pull_request_reviews": true
 				}
 				""").build();
 		assertThat(checker.computeDiffs(state, defaultArgs()))
-				.contains("workflow_permissions.default: want=READ got=WRITE");
+				.contains("workflow_permissions.default: want=WRITE got=READ");
 	}
 
 	@Test
 	void drift_canApprovePullRequestReviews_isFalse() {
 		var state = new StateBuilder().workflowPermissions("""
 				{
-					"default_workflow_permissions": "read",
+					"default_workflow_permissions": "write",
 					"can_approve_pull_request_reviews": false
 				}
 				""").build();

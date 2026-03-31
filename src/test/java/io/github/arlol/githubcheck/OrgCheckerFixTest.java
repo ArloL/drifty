@@ -76,12 +76,12 @@ class OrgCheckerFixTest {
 				"has_wiki": true,
 				"default_branch": "main",
 				"topics": [],
-				"allow_merge_commit": false,
-				"allow_squash_merge": false,
+				"allow_merge_commit": true,
+				"allow_squash_merge": true,
 				"allow_rebase_merge": true,
 				"allow_update_branch": false,
-				"allow_auto_merge": true,
-				"delete_branch_on_merge": true,
+				"allow_auto_merge": false,
+				"delete_branch_on_merge": false,
 				"visibility": "public",
 				"archived": false,
 				"security_and_analysis": {
@@ -105,7 +105,7 @@ class OrgCheckerFixTest {
 
 	private static final String GOOD_WORKFLOW_PERMISSIONS_JSON = """
 			{
-				"default_workflow_permissions": "read",
+				"default_workflow_permissions": "write",
 				"can_approve_pull_request_reviews": true
 			}
 			""";
@@ -118,12 +118,12 @@ class OrgCheckerFixTest {
 				"has_issues": true,
 				"has_projects": true,
 				"has_wiki": true,
-				"allow_merge_commit": false,
-				"allow_squash_merge": false,
+				"allow_merge_commit": true,
+				"allow_squash_merge": true,
 				"allow_rebase_merge": true,
 				"allow_update_branch": false,
-				"allow_auto_merge": true,
-				"delete_branch_on_merge": true
+				"allow_auto_merge": false,
+				"delete_branch_on_merge": false
 			}
 			""";
 
@@ -269,12 +269,12 @@ class OrgCheckerFixTest {
 									"has_issues": true,
 									"has_projects": true,
 									"has_wiki": true,
-									"allow_merge_commit": false,
-									"allow_squash_merge": false,
+									"allow_merge_commit": true,
+									"allow_squash_merge": true,
 									"allow_rebase_merge": true,
 									"allow_update_branch": false,
-									"allow_auto_merge": true,
-									"delete_branch_on_merge": true,
+									"allow_auto_merge": false,
+									"delete_branch_on_merge": false,
 									"default_branch": "main"
 								}
 								"""))
@@ -310,12 +310,12 @@ class OrgCheckerFixTest {
 									"has_issues": true,
 									"has_projects": true,
 									"has_wiki": true,
-									"allow_merge_commit": false,
-									"allow_squash_merge": false,
+									"allow_merge_commit": true,
+									"allow_squash_merge": true,
 									"allow_rebase_merge": false,
 									"allow_update_branch": false,
-									"allow_auto_merge": true,
-									"delete_branch_on_merge": true,
+									"allow_auto_merge": false,
+									"delete_branch_on_merge": false,
 									"default_branch": "main"
 								}
 								"""))
@@ -358,12 +358,12 @@ class OrgCheckerFixTest {
 									"has_issues": true,
 									"has_projects": true,
 									"has_wiki": true,
-									"allow_merge_commit": false,
-									"allow_squash_merge": false,
+									"allow_merge_commit": true,
+									"allow_squash_merge": true,
 									"allow_rebase_merge": true,
 									"allow_update_branch": false,
-									"allow_auto_merge": true,
-									"delete_branch_on_merge": true,
+									"allow_auto_merge": false,
+									"delete_branch_on_merge": false,
 									"default_branch": "main"
 								}
 								"""))
@@ -805,7 +805,7 @@ class OrgCheckerFixTest {
 						)
 				).withRequestBody(equalToJson("""
 						{
-							"default_workflow_permissions": "read",
+							"default_workflow_permissions": "write",
 							"can_approve_pull_request_reviews": true
 						}
 						"""))
@@ -1247,12 +1247,12 @@ class OrgCheckerFixTest {
 									"has_issues": true,
 									"has_projects": true,
 									"has_wiki": true,
-									"allow_merge_commit": false,
-									"allow_squash_merge": false,
+									"allow_merge_commit": true,
+									"allow_squash_merge": true,
 									"allow_rebase_merge": true,
 									"allow_update_branch": false,
-									"allow_auto_merge": true,
-									"delete_branch_on_merge": true,
+									"allow_auto_merge": false,
+									"delete_branch_on_merge": false,
 									"default_branch": "main"
 								}
 								"""))
