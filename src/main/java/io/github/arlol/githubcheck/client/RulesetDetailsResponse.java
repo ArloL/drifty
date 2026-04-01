@@ -124,46 +124,4 @@ public record RulesetDetailsResponse(
 
 	}
 
-	public record Rule(
-			RulesetRuleType type,
-			Parameters parameters
-	) {
-
-		public record Parameters(
-				// required_status_checks rule fields
-				List<StatusCheck> requiredStatusChecks,
-				Boolean strictRequiredStatusChecksPolicy,
-				// pull_request rule fields
-				Integer requiredApprovingReviewCount,
-				Boolean dismissStaleReviewsOnPush,
-				Boolean requireCodeOwnerReview,
-				Boolean requireLastPushApproval,
-				// code_scanning rule fields
-				List<CodeScanningTool> codeScanningTools
-		) {
-
-			public Parameters {
-				requiredStatusChecks = requiredStatusChecks == null ? null
-						: List.copyOf(requiredStatusChecks);
-				codeScanningTools = codeScanningTools == null ? null
-						: List.copyOf(codeScanningTools);
-			}
-
-			public record StatusCheck(
-					String context,
-					Integer integrationId
-			) {
-			}
-
-			public record CodeScanningTool(
-					String tool,
-					String alertsThreshold,
-					String securityAlertsThreshold
-			) {
-			}
-
-		}
-
-	}
-
 }

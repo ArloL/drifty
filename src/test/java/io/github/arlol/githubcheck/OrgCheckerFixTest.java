@@ -39,6 +39,7 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositoryFull;
 import io.github.arlol.githubcheck.client.RepositoryMinimal;
+import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetRuleType;
@@ -1427,20 +1428,6 @@ class OrgCheckerFixTest {
 				null,
 				null
 		);
-		var params = new RulesetDetailsResponse.Rule.Parameters(
-				List.of(
-						new RulesetDetailsResponse.Rule.Parameters.StatusCheck(
-								"CodeQL",
-								null
-						)
-				),
-				false,
-				null,
-				null,
-				null,
-				null,
-				null
-		);
 		var actualRuleset = new RulesetDetailsResponse(
 				1L,
 				"main-branch-rules",
@@ -1455,13 +1442,17 @@ class OrgCheckerFixTest {
 				null,
 				conditions,
 				List.of(
-						new RulesetDetailsResponse.Rule(
-								RulesetRuleType.REQUIRED_LINEAR_HISTORY,
-								null
-						),
-						new RulesetDetailsResponse.Rule(
-								RulesetRuleType.REQUIRED_STATUS_CHECKS,
-								params
+						new Rule.RequiredLinearHistory(),
+						new Rule.RequiredStatusChecks(
+								new Rule.RequiredStatusChecks.Parameters(
+										List.of(
+												new Rule.StatusCheck(
+														"CodeQL",
+														null
+												)
+										),
+										false
+								)
 						)
 				)
 		);
