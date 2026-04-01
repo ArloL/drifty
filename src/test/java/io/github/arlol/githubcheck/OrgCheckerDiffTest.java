@@ -21,6 +21,7 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositoryFull;
 import io.github.arlol.githubcheck.client.RepositoryMinimal;
+import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetRuleType;
@@ -990,6 +991,15 @@ class OrgCheckerDiffTest {
 	// ─── Rulesets drift
 	// ──────────────────────────────────────────────────────
 
+	private static Rule ruleFromType(RulesetRuleType type) {
+		return switch (type) {
+		case REQUIRED_LINEAR_HISTORY -> new Rule.RequiredLinearHistory();
+		case NON_FAST_FORWARD -> new Rule.NonFastForward();
+		default ->
+			new Rule.Unknown(type.name().toLowerCase(java.util.Locale.ROOT));
+		};
+	}
+
 	private static RulesetDetailsResponse rulesetWithRules(
 			String name,
 			RulesetRuleType... ruleTypes
@@ -1004,9 +1014,9 @@ class OrgCheckerDiffTest {
 				null,
 				null
 		);
-		List<RulesetDetailsResponse.Rule> rules = new java.util.ArrayList<>();
+		List<Rule> rules = new java.util.ArrayList<>();
 		for (RulesetRuleType type : ruleTypes) {
-			rules.add(new RulesetDetailsResponse.Rule(type, null));
+			rules.add(ruleFromType(type));
 		}
 		return new RulesetDetailsResponse(
 				1L,
@@ -1039,24 +1049,10 @@ class OrgCheckerDiffTest {
 				null,
 				null
 		);
-		List<RulesetDetailsResponse.Rule.Parameters.StatusCheck> checks = new java.util.ArrayList<>();
+		List<Rule.StatusCheck> checks = new java.util.ArrayList<>();
 		for (String ctx : contexts) {
-			checks.add(
-					new RulesetDetailsResponse.Rule.Parameters.StatusCheck(
-							ctx,
-							null
-					)
-			);
+			checks.add(new Rule.StatusCheck(ctx, null));
 		}
-		var params = new RulesetDetailsResponse.Rule.Parameters(
-				checks,
-				false,
-				null,
-				null,
-				null,
-				null,
-				null
-		);
 		return new RulesetDetailsResponse(
 				1L,
 				name,
@@ -1071,17 +1067,13 @@ class OrgCheckerDiffTest {
 				null,
 				conditions,
 				List.of(
-						new RulesetDetailsResponse.Rule(
-								RulesetRuleType.REQUIRED_LINEAR_HISTORY,
-								null
-						),
-						new RulesetDetailsResponse.Rule(
-								RulesetRuleType.NON_FAST_FORWARD,
-								null
-						),
-						new RulesetDetailsResponse.Rule(
-								RulesetRuleType.REQUIRED_STATUS_CHECKS,
-								params
+						new Rule.RequiredLinearHistory(),
+						new Rule.NonFastForward(),
+						new Rule.RequiredStatusChecks(
+								new Rule.RequiredStatusChecks.Parameters(
+										checks,
+										false
+								)
 						)
 				)
 		);
@@ -1498,15 +1490,6 @@ class OrgCheckerDiffTest {
 				null,
 				null
 		);
-		var prParams = new RulesetDetailsResponse.Rule.Parameters(
-				null,
-				null,
-				1,
-				false,
-				false,
-				false,
-				null
-		);
 		var actualRuleset = new RulesetDetailsResponse(
 				1L,
 				"main-branch-rules",
@@ -1521,9 +1504,13 @@ class OrgCheckerDiffTest {
 				null,
 				conditions,
 				List.of(
-						new RulesetDetailsResponse.Rule(
-								RulesetRuleType.PULL_REQUEST,
-								prParams
+						new Rule.PullRequest(
+								new Rule.PullRequest.Parameters(
+										1,
+										false,
+										false,
+										false
+								)
 						)
 				)
 		);
@@ -1557,21 +1544,6 @@ class OrgCheckerDiffTest {
 				null,
 				null
 		);
-		var csParams = new RulesetDetailsResponse.Rule.Parameters(
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				List.of(
-						new RulesetDetailsResponse.Rule.Parameters.CodeScanningTool(
-								"CodeQL",
-								"none",
-								"none"
-						)
-				)
-		);
 		var actualRuleset = new RulesetDetailsResponse(
 				1L,
 				"main-branch-rules",
@@ -1586,13 +1558,17 @@ class OrgCheckerDiffTest {
 				null,
 				conditions,
 				List.of(
-						new RulesetDetailsResponse.Rule(
-								RulesetRuleType.REQUIRED_LINEAR_HISTORY,
-								null
-						),
-						new RulesetDetailsResponse.Rule(
-								RulesetRuleType.CODE_SCANNING,
-								csParams
+						new Rule.RequiredLinearHistory(),
+						new Rule.CodeScanning(
+								new Rule.CodeScanning.Parameters(
+										List.of(
+												new Rule.CodeScanningTool(
+														"CodeQL",
+														"none",
+														"none"
+												)
+										)
+								)
 						)
 				)
 		);
@@ -1662,21 +1638,6 @@ class OrgCheckerDiffTest {
 				null,
 				null
 		);
-		var csParams = new RulesetDetailsResponse.Rule.Parameters(
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				List.of(
-						new RulesetDetailsResponse.Rule.Parameters.CodeScanningTool(
-								"CodeQL",
-								"none",
-								"none"
-						)
-				)
-		);
 		var actualRuleset = new RulesetDetailsResponse(
 				1L,
 				"main-branch-rules",
@@ -1691,9 +1652,16 @@ class OrgCheckerDiffTest {
 				null,
 				conditions,
 				List.of(
-						new RulesetDetailsResponse.Rule(
-								RulesetRuleType.CODE_SCANNING,
-								csParams
+						new Rule.CodeScanning(
+								new Rule.CodeScanning.Parameters(
+										List.of(
+												new Rule.CodeScanningTool(
+														"CodeQL",
+														"none",
+														"none"
+												)
+										)
+								)
 						)
 				)
 		);

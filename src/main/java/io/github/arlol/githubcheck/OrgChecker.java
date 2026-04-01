@@ -35,6 +35,7 @@ import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.PagesUpdateRequest;
 import io.github.arlol.githubcheck.client.RepositoryMinimal;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
+import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetRequest;
@@ -674,17 +675,14 @@ public class OrgChecker {
 			);
 
 			// Build a map of actual rules by type
-			Map<RulesetRuleType, RulesetDetailsResponse.Rule> actualRulesByType = Map
-					.of();
+			Map<RulesetRuleType, Rule> actualRulesByType = Map.of();
 			if (actualRuleset.rules() != null) {
 				actualRulesByType = actualRuleset.rules()
 						.stream()
+						.filter(r -> r.type() != null)
 						.collect(
-								Collectors.toMap(
-										RulesetDetailsResponse.Rule::type,
-										r -> r,
-										(a, b) -> a
-								)
+								Collectors
+										.toMap(Rule::type, r -> r, (a, b) -> a)
 						);
 			}
 
@@ -714,13 +712,12 @@ public class OrgChecker {
 					.map(StatusCheckArgs::getContext)
 					.collect(Collectors.toSet());
 			Set<String> gotChecks = new HashSet<>();
-			RulesetDetailsResponse.Rule statusCheckRule = actualRulesByType
-					.get(RulesetRuleType.REQUIRED_STATUS_CHECKS);
-			if (statusCheckRule != null && statusCheckRule.parameters() != null
-					&& statusCheckRule.parameters()
-							.requiredStatusChecks() != null) {
-				for (var sc : statusCheckRule.parameters()
-						.requiredStatusChecks()) {
+			if (actualRulesByType.get(
+					RulesetRuleType.REQUIRED_STATUS_CHECKS
+			) instanceof Rule.RequiredStatusChecks rsc
+					&& rsc.parameters() != null
+					&& rsc.parameters().requiredStatusChecks() != null) {
+				for (var sc : rsc.parameters().requiredStatusChecks()) {
 					gotChecks.add(sc.context());
 				}
 			}
@@ -735,12 +732,11 @@ public class OrgChecker {
 
 			// Check required reviews
 			if (wantedRuleset.requiredReviewCount() != null) {
-				RulesetDetailsResponse.Rule prRule = actualRulesByType
-						.get(RulesetRuleType.PULL_REQUEST);
 				Integer gotCount = null;
-				if (prRule != null && prRule.parameters() != null) {
-					gotCount = prRule.parameters()
-							.requiredApprovingReviewCount();
+				if (actualRulesByType.get(
+						RulesetRuleType.PULL_REQUEST
+				) instanceof Rule.PullRequest pr && pr.parameters() != null) {
+					gotCount = pr.parameters().requiredApprovingReviewCount();
 				}
 				check(
 						diffs,
@@ -751,33 +747,23 @@ public class OrgChecker {
 			}
 
 			// Check required code scanning
+			Rule.CodeScanning csRule = actualRulesByType.get(
+					RulesetRuleType.CODE_SCANNING
+			) instanceof Rule.CodeScanning cs ? cs : null;
+			List<Rule.CodeScanningTool> actualTools = csRule != null
+					&& csRule.parameters() != null
+					&& csRule.parameters().codeScanningTools() != null
+							? csRule.parameters().codeScanningTools()
+							: List.of();
 			if (!wantedRuleset.requiredCodeScanning().isEmpty()
-					|| (actualRulesByType
-							.containsKey(RulesetRuleType.CODE_SCANNING)
-							&& actualRulesByType
-									.get(RulesetRuleType.CODE_SCANNING)
-									.parameters() != null
-							&& actualRulesByType
-									.get(RulesetRuleType.CODE_SCANNING)
-									.parameters()
-									.codeScanningTools() != null
-							&& !actualRulesByType
-									.get(RulesetRuleType.CODE_SCANNING)
-									.parameters()
-									.codeScanningTools()
-									.isEmpty())) {
+					|| !actualTools.isEmpty()) {
 				Set<String> wantTools = wantedRuleset.requiredCodeScanning()
 						.stream()
 						.map(cst -> cst.tool())
 						.collect(Collectors.toSet());
 				Set<String> gotTools = new HashSet<>();
-				RulesetDetailsResponse.Rule csRule = actualRulesByType
-						.get(RulesetRuleType.CODE_SCANNING);
-				if (csRule != null && csRule.parameters() != null
-						&& csRule.parameters().codeScanningTools() != null) {
-					for (var tool : csRule.parameters().codeScanningTools()) {
-						gotTools.add(tool.tool());
-					}
+				for (var tool : actualTools) {
+					gotTools.add(tool.tool());
 				}
 				checkSets(
 						diffs,
@@ -1430,71 +1416,49 @@ public class OrgChecker {
 	}
 
 	private static RulesetRequest buildRulesetRequest(RulesetArgs args) {
-		List<RulesetRequest.Rule> rules = new ArrayList<>();
+		List<Rule> rules = new ArrayList<>();
 		if (args.requiredLinearHistory()) {
-			rules.add(
-					new RulesetRequest.Rule(
-							RulesetRuleType.REQUIRED_LINEAR_HISTORY,
-							null
-					)
-			);
+			rules.add(new Rule.RequiredLinearHistory());
 		}
 		if (args.noForcePushes()) {
-			rules.add(
-					new RulesetRequest.Rule(
-							RulesetRuleType.NON_FAST_FORWARD,
-							null
-					)
-			);
+			rules.add(new Rule.NonFastForward());
 		}
 		if (!args.requiredStatusChecks().isEmpty()) {
-			List<RulesetRequest.Rule.Parameters.StatusCheck> checks = args
-					.requiredStatusChecks()
+			List<Rule.StatusCheck> checks = args.requiredStatusChecks()
 					.stream()
 					.map(
-							statusCheckArgs -> new RulesetRequest.Rule.Parameters.StatusCheck(
+							statusCheckArgs -> new Rule.StatusCheck(
 									statusCheckArgs.getContext(),
 									statusCheckArgs.getAppId()
 							)
 					)
 					.toList();
 			rules.add(
-					new RulesetRequest.Rule(
-							RulesetRuleType.REQUIRED_STATUS_CHECKS,
-							new RulesetRequest.Rule.Parameters(
+					new Rule.RequiredStatusChecks(
+							new Rule.RequiredStatusChecks.Parameters(
 									checks,
-									false,
-									null,
-									null,
-									null,
-									null,
-									null
+									false
 							)
 					)
 			);
 		}
 		if (args.requiredReviewCount() != null) {
 			rules.add(
-					new RulesetRequest.Rule(
-							RulesetRuleType.PULL_REQUEST,
-							new RulesetRequest.Rule.Parameters(
-									null,
-									null,
+					new Rule.PullRequest(
+							new Rule.PullRequest.Parameters(
 									args.requiredReviewCount(),
 									false,
 									false,
-									false,
-									null
+									false
 							)
 					)
 			);
 		}
 		if (!args.requiredCodeScanning().isEmpty()) {
-			List<RulesetRequest.Rule.Parameters.CodeScanningTool> tools = args
-					.requiredCodeScanning()
+			List<Rule.CodeScanningTool> tools = args.requiredCodeScanning()
 					.stream()
 					.map(
-							csTool -> new RulesetRequest.Rule.Parameters.CodeScanningTool(
+							csTool -> new Rule.CodeScanningTool(
 									csTool.tool(),
 									csTool.alertsThreshold()
 											.name()
@@ -1506,17 +1470,8 @@ public class OrgChecker {
 					)
 					.toList();
 			rules.add(
-					new RulesetRequest.Rule(
-							RulesetRuleType.CODE_SCANNING,
-							new RulesetRequest.Rule.Parameters(
-									null,
-									null,
-									null,
-									null,
-									null,
-									null,
-									tools
-							)
+					new Rule.CodeScanning(
+							new Rule.CodeScanning.Parameters(tools)
 					)
 			);
 		}
