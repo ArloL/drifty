@@ -3,6 +3,7 @@ package io.github.arlol.githubcheck;
 import static com.github.tomakehurst.wiremock.client.WireMock.delete;
 import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.patch;
 import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
@@ -14,7 +15,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
-import static com.github.tomakehurst.wiremock.client.WireMock.matching;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
@@ -44,6 +45,7 @@ import io.github.arlol.githubcheck.client.RulesetRuleType;
 import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.BranchProtectionArgs;
+import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
@@ -1436,6 +1438,7 @@ class OrgCheckerFixTest {
 				null,
 				null,
 				null,
+				null,
 				null
 		);
 		var actualRuleset = new RulesetDetailsResponse(
@@ -1511,6 +1514,81 @@ class OrgCheckerFixTest {
 		verify(
 				0,
 				putRequestedFor(urlMatching("/repos/ArloL/repo/rulesets/.*"))
+		);
+	}
+
+	@Test
+	void rulesetCodeScanning_createsRuleset() throws Exception {
+		stubFor(
+				post(urlEqualTo("/repos/ArloL/repo/rulesets"))
+						.willReturn(WireMock.status(201).withBody("""
+								{
+									"id": 1,
+									"name": "main-branch-rules",
+									"target": "branch",
+									"enforcement": "active"
+								}
+								"""))
+		);
+
+		var conditions = new RulesetDetailsResponse.Conditions(
+				new RulesetDetailsResponse.Conditions.RefName(
+						List.of("~DEFAULT_BRANCH"),
+						List.of()
+				),
+				null,
+				null,
+				null
+		);
+		var desired = RepositoryArgs.create("repo")
+				.rulesets(
+						RulesetArgs.builder("main-branch-rules")
+								.includePatterns("~DEFAULT_BRANCH")
+								.addRequiredCodeScanning(
+										CodeScanningToolArgs.builder()
+												.tool("CodeQL")
+												.build()
+								)
+								.build()
+				)
+				.build();
+
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
+				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				true,
+				false,
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
+				),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(),
+				false
+		);
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				1,
+				postRequestedFor(urlEqualTo("/repos/ArloL/repo/rulesets"))
+						.withRequestBody(
+								containing("\"type\":\"code_scanning\"")
+						)
 		);
 	}
 

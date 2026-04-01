@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
+import io.github.arlol.githubcheck.config.StatusCheckArgs;
+
 public final class RulesetArgs {
 
 	private final String name;
@@ -13,6 +16,7 @@ public final class RulesetArgs {
 	private final boolean noForcePushes;
 	private final Set<StatusCheckArgs> requiredStatusChecks;
 	private final Integer requiredReviewCount;
+	private final Set<CodeScanningToolArgs> requiredCodeScanning;
 
 	private RulesetArgs(Builder builder) {
 		this.name = builder.name;
@@ -21,6 +25,7 @@ public final class RulesetArgs {
 		this.noForcePushes = builder.noForcePushes;
 		this.requiredStatusChecks = Set.copyOf(builder.requiredStatusChecks);
 		this.requiredReviewCount = builder.requiredReviewCount;
+		this.requiredCodeScanning = Set.copyOf(builder.requiredCodeScanning);
 	}
 
 	public String name() {
@@ -47,6 +52,10 @@ public final class RulesetArgs {
 		return requiredReviewCount;
 	}
 
+	public Set<CodeScanningToolArgs> requiredCodeScanning() {
+		return requiredCodeScanning;
+	}
+
 	public Builder toBuilder() {
 		return new Builder(this);
 	}
@@ -62,8 +71,11 @@ public final class RulesetArgs {
 				&& Objects.equals(includePatterns, that.includePatterns)
 				&& Objects
 						.equals(requiredStatusChecks, that.requiredStatusChecks)
-				&& Objects
-						.equals(requiredReviewCount, that.requiredReviewCount);
+				&& Objects.equals(requiredReviewCount, that.requiredReviewCount)
+				&& Objects.equals(
+						requiredCodeScanning,
+						that.requiredCodeScanning
+				);
 	}
 
 	@Override
@@ -74,7 +86,8 @@ public final class RulesetArgs {
 				requiredLinearHistory,
 				noForcePushes,
 				requiredStatusChecks,
-				requiredReviewCount
+				requiredReviewCount,
+				requiredCodeScanning
 		);
 	}
 
@@ -90,6 +103,7 @@ public final class RulesetArgs {
 		private boolean noForcePushes = false;
 		private Set<StatusCheckArgs> requiredStatusChecks = Set.of();
 		private Integer requiredReviewCount = null;
+		private Set<CodeScanningToolArgs> requiredCodeScanning = Set.of();
 
 		public Builder(String name) {
 			this.name = name;
@@ -102,6 +116,7 @@ public final class RulesetArgs {
 			this.noForcePushes = rulesetArgs.noForcePushes;
 			this.requiredStatusChecks = rulesetArgs.requiredStatusChecks;
 			this.requiredReviewCount = rulesetArgs.requiredReviewCount;
+			this.requiredCodeScanning = rulesetArgs.requiredCodeScanning;
 		}
 
 		public Builder name(String name) {
@@ -144,6 +159,24 @@ public final class RulesetArgs {
 
 		public Builder requiredReviewCount(Integer requiredReviewCount) {
 			this.requiredReviewCount = requiredReviewCount;
+			return this;
+		}
+
+		public Builder requiredCodeScanning(
+				CodeScanningToolArgs... codeScanningToolArgs
+		) {
+			this.requiredCodeScanning = Set.of(codeScanningToolArgs);
+			return this;
+		}
+
+		public Builder addRequiredCodeScanning(
+				CodeScanningToolArgs... codeScanningToolArgs
+		) {
+			Set<CodeScanningToolArgs> combined = new HashSet<>(
+					this.requiredCodeScanning
+			);
+			combined.addAll(List.of(codeScanningToolArgs));
+			this.requiredCodeScanning = combined;
 			return this;
 		}
 

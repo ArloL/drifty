@@ -105,18 +105,30 @@ public record RulesetRequest(
 				Integer requiredApprovingReviewCount,
 				Boolean dismissStaleReviewsOnPush,
 				Boolean requireCodeOwnerReview,
-				Boolean requireLastPushApproval
+				Boolean requireLastPushApproval,
+				// code_scanning rule fields
+				List<CodeScanningTool> codeScanningTools
 		) {
 
 			public Parameters {
 				requiredStatusChecks = requiredStatusChecks == null ? null
 						: List.copyOf(requiredStatusChecks);
+				codeScanningTools = codeScanningTools == null ? null
+						: List.copyOf(codeScanningTools);
 			}
 
 			@JsonInclude(JsonInclude.Include.NON_NULL)
 			public record StatusCheck(
 					String context,
 					Integer integrationId
+			) {
+			}
+
+			@JsonInclude(JsonInclude.Include.NON_NULL)
+			public record CodeScanningTool(
+					String tool,
+					String alertsThreshold,
+					String securityAlertsThreshold
 			) {
 			}
 
