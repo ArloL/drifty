@@ -27,6 +27,7 @@ import io.github.arlol.githubcheck.client.RulesetRuleType;
 import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.BranchProtectionArgs;
+import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
@@ -1053,6 +1054,7 @@ class OrgCheckerDiffTest {
 				null,
 				null,
 				null,
+				null,
 				null
 		);
 		return new RulesetDetailsResponse(
@@ -1502,7 +1504,8 @@ class OrgCheckerDiffTest {
 				1,
 				false,
 				false,
-				false
+				false,
+				null
 		);
 		var actualRuleset = new RulesetDetailsResponse(
 				1L,
@@ -1527,6 +1530,176 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
 		assertThat(checker.computeDiffs(state, args)).contains(
 				"ruleset.main-branch-rules.required_review_count: want=2 got=1"
+		);
+	}
+
+	@Test
+	void noDrift_codeScanningMatchesExactly() {
+		var args = defaultArgs().toBuilder()
+				.rulesets(
+						RulesetArgs.builder("main-branch-rules")
+								.includePatterns("~DEFAULT_BRANCH")
+								.requiredLinearHistory(true)
+								.addRequiredCodeScanning(
+										CodeScanningToolArgs.builder()
+												.tool("CodeQL")
+												.build()
+								)
+								.build()
+				)
+				.build();
+		var conditions = new RulesetDetailsResponse.Conditions(
+				new RulesetDetailsResponse.Conditions.RefName(
+						List.of("~DEFAULT_BRANCH"),
+						List.of()
+				),
+				null,
+				null,
+				null
+		);
+		var csParams = new RulesetDetailsResponse.Rule.Parameters(
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				List.of(
+						new RulesetDetailsResponse.Rule.Parameters.CodeScanningTool(
+								"CodeQL",
+								"none",
+								"none"
+						)
+				)
+		);
+		var actualRuleset = new RulesetDetailsResponse(
+				1L,
+				"main-branch-rules",
+				RulesetTarget.BRANCH,
+				RulesetEnforcement.ACTIVE,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				conditions,
+				List.of(
+						new RulesetDetailsResponse.Rule(
+								RulesetRuleType.REQUIRED_LINEAR_HISTORY,
+								null
+						),
+						new RulesetDetailsResponse.Rule(
+								RulesetRuleType.CODE_SCANNING,
+								csParams
+						)
+				)
+		);
+		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
+		assertThat(checker.computeDiffs(state, args)).isEmpty();
+	}
+
+	@Test
+	void drift_codeScanningMissing() {
+		var args = defaultArgs().toBuilder()
+				.rulesets(
+						RulesetArgs.builder("main-branch-rules")
+								.includePatterns("~DEFAULT_BRANCH")
+								.addRequiredCodeScanning(
+										CodeScanningToolArgs.builder()
+												.tool("CodeQL")
+												.build()
+								)
+								.build()
+				)
+				.build();
+		var conditions = new RulesetDetailsResponse.Conditions(
+				new RulesetDetailsResponse.Conditions.RefName(
+						List.of("~DEFAULT_BRANCH"),
+						List.of()
+				),
+				null,
+				null,
+				null
+		);
+		var actualRuleset = new RulesetDetailsResponse(
+				1L,
+				"main-branch-rules",
+				RulesetTarget.BRANCH,
+				RulesetEnforcement.ACTIVE,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				conditions,
+				List.of()
+		);
+		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
+		assertThat(checker.computeDiffs(state, args)).contains(
+				"ruleset.main-branch-rules.required_code_scanning missing: [CodeQL]"
+		);
+	}
+
+	@Test
+	void drift_codeScanningExtraTool() {
+		var args = defaultArgs().toBuilder()
+				.rulesets(
+						RulesetArgs.builder("main-branch-rules")
+								.includePatterns("~DEFAULT_BRANCH")
+								.build()
+				)
+				.build();
+		var conditions = new RulesetDetailsResponse.Conditions(
+				new RulesetDetailsResponse.Conditions.RefName(
+						List.of("~DEFAULT_BRANCH"),
+						List.of()
+				),
+				null,
+				null,
+				null
+		);
+		var csParams = new RulesetDetailsResponse.Rule.Parameters(
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				List.of(
+						new RulesetDetailsResponse.Rule.Parameters.CodeScanningTool(
+								"CodeQL",
+								"none",
+								"none"
+						)
+				)
+		);
+		var actualRuleset = new RulesetDetailsResponse(
+				1L,
+				"main-branch-rules",
+				RulesetTarget.BRANCH,
+				RulesetEnforcement.ACTIVE,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				conditions,
+				List.of(
+						new RulesetDetailsResponse.Rule(
+								RulesetRuleType.CODE_SCANNING,
+								csParams
+						)
+				)
+		);
+		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
+		assertThat(checker.computeDiffs(state, args)).contains(
+				"ruleset.main-branch-rules.required_code_scanning extra: [CodeQL]"
 		);
 	}
 

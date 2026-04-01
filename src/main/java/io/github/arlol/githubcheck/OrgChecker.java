@@ -46,6 +46,7 @@ import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.SimpleUser;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.BranchProtectionArgs;
+import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
 import io.github.arlol.githubcheck.config.EnvironmentArgs;
 import io.github.arlol.githubcheck.config.PagesArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
@@ -748,6 +749,43 @@ public class OrgChecker {
 						gotCount
 				);
 			}
+
+			// Check required code scanning
+			if (!wantedRuleset.requiredCodeScanning().isEmpty()
+					|| (actualRulesByType
+							.containsKey(RulesetRuleType.CODE_SCANNING)
+							&& actualRulesByType
+									.get(RulesetRuleType.CODE_SCANNING)
+									.parameters() != null
+							&& actualRulesByType
+									.get(RulesetRuleType.CODE_SCANNING)
+									.parameters()
+									.codeScanningTools() != null
+							&& !actualRulesByType
+									.get(RulesetRuleType.CODE_SCANNING)
+									.parameters()
+									.codeScanningTools()
+									.isEmpty())) {
+				Set<String> wantTools = wantedRuleset.requiredCodeScanning()
+						.stream()
+						.map(cst -> cst.tool())
+						.collect(Collectors.toSet());
+				Set<String> gotTools = new HashSet<>();
+				RulesetDetailsResponse.Rule csRule = actualRulesByType
+						.get(RulesetRuleType.CODE_SCANNING);
+				if (csRule != null && csRule.parameters() != null
+						&& csRule.parameters().codeScanningTools() != null) {
+					for (var tool : csRule.parameters().codeScanningTools()) {
+						gotTools.add(tool.tool());
+					}
+				}
+				checkSets(
+						diffs,
+						"ruleset." + rName + ".required_code_scanning",
+						wantTools,
+						gotTools
+				);
+			}
 		}
 	}
 
@@ -1429,6 +1467,7 @@ public class OrgChecker {
 									null,
 									null,
 									null,
+									null,
 									null
 							)
 					)
@@ -1444,7 +1483,39 @@ public class OrgChecker {
 									args.requiredReviewCount(),
 									false,
 									false,
-									false
+									false,
+									null
+							)
+					)
+			);
+		}
+		if (!args.requiredCodeScanning().isEmpty()) {
+			List<RulesetRequest.Rule.Parameters.CodeScanningTool> tools = args
+					.requiredCodeScanning()
+					.stream()
+					.map(
+							csTool -> new RulesetRequest.Rule.Parameters.CodeScanningTool(
+									csTool.tool(),
+									csTool.alertsThreshold()
+											.name()
+											.toLowerCase(Locale.ROOT),
+									csTool.securityAlertsThreshold()
+											.name()
+											.toLowerCase(Locale.ROOT)
+							)
+					)
+					.toList();
+			rules.add(
+					new RulesetRequest.Rule(
+							RulesetRuleType.CODE_SCANNING,
+							new RulesetRequest.Rule.Parameters(
+									null,
+									null,
+									null,
+									null,
+									null,
+									null,
+									tools
 							)
 					)
 			);

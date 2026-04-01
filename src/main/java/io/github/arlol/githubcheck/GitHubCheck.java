@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.BranchProtectionArgs;
+import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
@@ -85,12 +86,6 @@ public class GitHubCheck {
 										)
 										.build(),
 								StatusCheckArgs.builder()
-										.context("zizmor")
-										.appId(
-												StatusCheckArgs.APP_ID_GITHUB_ADVANCED_SECURITY
-										)
-										.build(),
-								StatusCheckArgs.builder()
 										.context("CodeQL")
 										.appId(
 												StatusCheckArgs.APP_ID_GITHUB_ADVANCED_SECURITY
@@ -98,6 +93,8 @@ public class GitHubCheck {
 										.build()
 						)
 				)
+				.enforceAdmins(true)
+				.requiredLinearHistory(true)
 				.build();
 
 		// Default ruleset mirroring legacy branch protection for all public
@@ -118,15 +115,29 @@ public class GitHubCheck {
 								.appId(StatusCheckArgs.APP_ID_GITHUB_ACTIONS)
 								.build(),
 						StatusCheckArgs.builder()
-								.context("zizmor")
-								.appId(
-										StatusCheckArgs.APP_ID_GITHUB_ADVANCED_SECURITY
-								)
-								.build(),
-						StatusCheckArgs.builder()
 								.context("CodeQL")
 								.appId(
 										StatusCheckArgs.APP_ID_GITHUB_ADVANCED_SECURITY
+								)
+								.build()
+				)
+				.requiredCodeScanning(
+						CodeScanningToolArgs.builder()
+								.tool("CodeQL")
+								.alertsThreshold(
+										CodeScanningToolArgs.AlertsThreshold.ERRORS
+								)
+								.securityAlertsThreshold(
+										CodeScanningToolArgs.SecurityAlertsThreshold.HIGH_OR_HIGHER
+								)
+								.build(),
+						CodeScanningToolArgs.builder()
+								.tool("zizmor")
+								.alertsThreshold(
+										CodeScanningToolArgs.AlertsThreshold.ERRORS
+								)
+								.securityAlertsThreshold(
+										CodeScanningToolArgs.SecurityAlertsThreshold.HIGH_OR_HIGHER
 								)
 								.build()
 				)
@@ -188,6 +199,9 @@ public class GitHubCheck {
 											.context(
 													"pr-check.required-status-check"
 											)
+											.appId(
+													StatusCheckArgs.APP_ID_GITHUB_ACTIONS
+											)
 											.build()
 							);
 						})
@@ -242,6 +256,9 @@ public class GitHubCheck {
 					builder.addRequiredStatusChecks(
 							StatusCheckArgs.builder()
 									.context("main.required-status-check")
+									.appId(
+											StatusCheckArgs.APP_ID_GITHUB_ACTIONS
+									)
 									.build()
 					);
 				})
@@ -403,6 +420,9 @@ public class GitHubCheck {
 											.context(
 													"test.required-status-check"
 											)
+											.appId(
+													StatusCheckArgs.APP_ID_GITHUB_ACTIONS
+											)
 											.build()
 							);
 						})
@@ -462,6 +482,9 @@ public class GitHubCheck {
 									StatusCheckArgs.builder()
 											.context(
 													"test.required-status-check"
+											)
+											.appId(
+													StatusCheckArgs.APP_ID_GITHUB_ACTIONS
 											)
 											.build()
 							);
