@@ -143,7 +143,7 @@ public class GitHubCheck {
 				)
 				.build();
 
-		var defaultRepository = RepositoryArgs.create("_")
+		var defaultRepository = RepositoryArgs.create("ArloL", "default")
 				.rulesets(defaultRuleset)
 				.branchProtections(defaultBranchProtection)
 				.automatedSecurityFixes(true)
@@ -501,64 +501,64 @@ public class GitHubCheck {
 		);
 
 		// Archived repos
-		var archived = List.of(
-				RepositoryArgs.archived("actions"),
-				RepositoryArgs.archived("actions-checkout-fetch-depth-demo"),
-				RepositoryArgs.archived("airmac"),
-				RepositoryArgs.archived("campuswoche-2018-webseiten-steuern"),
-				RepositoryArgs.archived("chop-kata"),
-				RepositoryArgs.archived("dotnet-http-client-reproduction"),
-				RepositoryArgs.archived("gitfx"),
-				RepositoryArgs.archived("graalfx"),
-				RepositoryArgs.archived("gwt-dragula-test"),
-				RepositoryArgs.archived("gwt-log-print-style-demo"),
-				RepositoryArgs.archived("gwt-refresh-demo"),
-				RepositoryArgs.archived("HalloJSX"),
-				RepositoryArgs.archived("HelloCocoaHTTPServer"),
-				RepositoryArgs.archived("HelloIntAirActServer"),
-				RepositoryArgs.archived("HelloRoutingServer"),
-				RepositoryArgs.archived("HelloServer"),
-				RepositoryArgs.archived("iebox"),
-				RepositoryArgs.archived("ilabwebworkshop"),
-				RepositoryArgs.archived("IntAirAct"),
-				RepositoryArgs.archived("IntAirAct-Performance"),
-				RepositoryArgs.archived("jBrowserDriver"),
-				RepositoryArgs
-						.archived("jbrowserdriver-cucumber-integration-tests"),
-				RepositoryArgs.archived("jbrowserdriver-test"),
-				RepositoryArgs.archived("jdk-newinstance-leak-demo"),
-				RepositoryArgs
-						.archived("jdk8u144-classloader-leak-demo-webapp"),
-				RepositoryArgs.archived("jhipster-app"),
-				RepositoryArgs
-						.archived("json-smart-dependency-resolution-test"),
-				RepositoryArgs.archived("m2e-wro4j-bug-demo"),
-				RepositoryArgs.archived("m2e-wro4j-bug-demo2"),
-				RepositoryArgs.archived("maven-quickstart-j2objc"),
-				RepositoryArgs.archived("Mirror"),
-				RepositoryArgs.archived("modern-ie-vagrant"),
-				RepositoryArgs.archived("MWPhotoBrowser"),
-				RepositoryArgs.archived("npmrc-github-action"),
-				RepositoryArgs.archived("packer-templates"),
-				RepositoryArgs.archived("pico-playground"),
-				RepositoryArgs.archived("postgres-query-error-demo"),
-				RepositoryArgs.archived("quickstart-buck-bazel-maven"),
-				RepositoryArgs.archived("selenium-xp-ie6"),
-				RepositoryArgs.archived("self-hosted-gh-actions-runner"),
-				RepositoryArgs
-						.archived("spring-cloud-context-classloader-leak-demo"),
-				RepositoryArgs.archived(
-						"spring-configuration-processor-metadata-bug-demo"
-				),
-				RepositoryArgs
-						.archived("spring-security-drupal-password-encoder"),
-				RepositoryArgs.archived("testcontainers-colima-github-actions"),
-				RepositoryArgs.archived("toado"),
-				RepositoryArgs.archived("vagrant-1"),
-				RepositoryArgs.archived("vitest-link-reproduction"),
-				RepositoryArgs.archived("vitest-mocking-reproduction"),
-				RepositoryArgs.archived("workflow-dispatch-input-defaults")
-		);
+		var archived = Stream
+				.of(
+						"actions",
+						"actions-checkout-fetch-depth-demo",
+						"airmac",
+						"campuswoche-2018-webseiten-steuern",
+						"chop-kata",
+						"dotnet-http-client-reproduction",
+						"gitfx",
+						"graalfx",
+						"gwt-dragula-test",
+						"gwt-log-print-style-demo",
+						"gwt-refresh-demo",
+						"HalloJSX",
+						"HelloCocoaHTTPServer",
+						"HelloIntAirActServer",
+						"HelloRoutingServer",
+						"HelloServer",
+						"iebox",
+						"ilabwebworkshop",
+						"IntAirAct",
+						"IntAirAct-Performance",
+						"jBrowserDriver",
+						"jbrowserdriver-cucumber-integration-tests",
+						"jbrowserdriver-test",
+						"jdk-newinstance-leak-demo",
+						"jdk8u144-classloader-leak-demo-webapp",
+						"jhipster-app",
+						"json-smart-dependency-resolution-test",
+						"m2e-wro4j-bug-demo",
+						"m2e-wro4j-bug-demo2",
+						"maven-quickstart-j2objc",
+						"Mirror",
+						"modern-ie-vagrant",
+						"MWPhotoBrowser",
+						"npmrc-github-action",
+						"packer-templates",
+						"pico-playground",
+						"postgres-query-error-demo",
+						"quickstart-buck-bazel-maven",
+						"selenium-xp-ie6",
+						"self-hosted-gh-actions-runner",
+						"spring-cloud-context-classloader-leak-demo",
+						"spring-configuration-processor-metadata-bug-demo",
+						"spring-security-drupal-password-encoder",
+						"testcontainers-colima-github-actions",
+						"toado",
+						"vagrant-1",
+						"vitest-link-reproduction",
+						"vitest-mocking-reproduction",
+						"workflow-dispatch-input-defaults"
+				)
+				.map(
+						name -> RepositoryArgs.create("ArloL", name)
+								.archived()
+								.build()
+				)
+				.toList();
 
 		return Stream.of(pagesSites, mainCiRepos, individual, archived)
 				.flatMap(List::stream)

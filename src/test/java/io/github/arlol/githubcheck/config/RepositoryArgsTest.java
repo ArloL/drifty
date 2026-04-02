@@ -13,7 +13,7 @@ class RepositoryArgsTest {
 
 	@Test
 	void toBuilderInheritsAllFields() {
-		var original = RepositoryArgs.create("original")
+		var original = RepositoryArgs.create("owner", "original")
 				.description("A description")
 				.pages()
 				.branchProtections(BranchProtectionArgs.builder("main").build())
@@ -32,7 +32,9 @@ class RepositoryArgsTest {
 
 	@Test
 	void nameSetterOverridesName() {
-		var defaults = RepositoryArgs.create("_").pages().build();
+		var defaults = RepositoryArgs.create("owner", "default")
+				.pages()
+				.build();
 
 		var repo = defaults.toBuilder().name("my-repo").build();
 
@@ -42,7 +44,7 @@ class RepositoryArgsTest {
 
 	@Test
 	void branchProtectionsReplacesList() {
-		var base = RepositoryArgs.create("repo")
+		var base = RepositoryArgs.create("owner", "repo")
 				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 
@@ -59,7 +61,7 @@ class RepositoryArgsTest {
 
 	@Test
 	void addBranchProtectionsAppends() {
-		var base = RepositoryArgs.create("repo")
+		var base = RepositoryArgs.create("owner", "repo")
 				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 
@@ -78,7 +80,7 @@ class RepositoryArgsTest {
 
 	@Test
 	void addBranchProtectionsOnEmptyList() {
-		var base = RepositoryArgs.create("repo").build();
+		var base = RepositoryArgs.create("owner", "repo").build();
 
 		var extended = base.toBuilder()
 				.addBranchProtections(
@@ -92,7 +94,7 @@ class RepositoryArgsTest {
 
 	@Test
 	void addBranchProtectionsDoesNotMutateOriginal() {
-		var base = RepositoryArgs.create("repo")
+		var base = RepositoryArgs.create("owner", "repo")
 				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 
@@ -108,7 +110,7 @@ class RepositoryArgsTest {
 
 	@Test
 	void groupDefaultNotAffectedByPerRepoOverride() {
-		var groupDefault = RepositoryArgs.create("_")
+		var groupDefault = RepositoryArgs.create("owner", "default")
 				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 

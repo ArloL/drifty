@@ -22,7 +22,7 @@ Repos are organized into groups that share defaults. Each group defines baseline
 
 ```java
 // GitHubCheck.repositories() — pseudocode showing the grouping model
-var defaultRepository = RepositoryArgs.create("_")
+var defaultRepository = RepositoryArgs.create("default")
     .allowAutoMerge(true)
     .allowMergeCommit(false)
     .deleteBranchOnMerge(true)
@@ -205,7 +205,7 @@ Repo-level rulesets managed via the `rulesets` list on `RepositoryArgs`. drifty 
 Defined as a base set per group plus per-repo additions:
 
 ```java
-var defaultRepository = RepositoryArgs.create("_")
+var defaultRepository = RepositoryArgs.create("default")
     .requiredStatusChecks("CodeQL", "codeql-analysis", "zizmor")
     .build();
 

@@ -49,14 +49,14 @@ class GitHubClientTest {
 
 	@Test
 	void listOrgRepos_singlePage() throws Exception {
-		stubFor(get(urlPathEqualTo("/orgs/ArloL/repos")).willReturn(okJson("""
+		stubFor(get(urlPathEqualTo("/orgs/owner/repos")).willReturn(okJson("""
 				[
 				  {"name": "repo-a", "archived": false, "visibility": "public"},
 				  {"name": "repo-b", "archived": true,  "visibility": "private"}
 				]
 				""")));
 
-		List<RepositoryMinimal> repos = client.listOrgRepos("ArloL");
+		List<RepositoryMinimal> repos = client.listOrgRepos("owner");
 
 		assertThat(repos).hasSize(2);
 		assertThat(repos.get(0).name()).isEqualTo("repo-a");
@@ -72,7 +72,7 @@ class GitHubClientTest {
 	@Test
 	void listOrgRepos_multiPage() throws Exception {
 		stubFor(
-				get(urlPathEqualTo("/orgs/ArloL/repos"))
+				get(urlPathEqualTo("/orgs/owner/repos"))
 						.withQueryParam("page", absent())
 						.willReturn(
 								okJson(
@@ -82,15 +82,15 @@ class GitHubClientTest {
 								).withHeader(
 										"Link",
 										"<" + baseUrl
-												+ "/orgs/ArloL/repos?page=2>; rel=\"next\", <"
+												+ "/orgs/owner/repos?page=2>; rel=\"next\", <"
 												+ baseUrl
-												+ "/orgs/ArloL/repos?page=2>; rel=\"last\""
+												+ "/orgs/owner/repos?page=2>; rel=\"last\""
 								)
 						)
 		);
 
 		stubFor(
-				get(urlPathEqualTo("/orgs/ArloL/repos"))
+				get(urlPathEqualTo("/orgs/owner/repos"))
 						.withQueryParam("page", equalTo("2"))
 						.willReturn(
 								okJson(
@@ -101,7 +101,7 @@ class GitHubClientTest {
 						)
 		);
 
-		List<RepositoryMinimal> repos = client.listOrgRepos("ArloL");
+		List<RepositoryMinimal> repos = client.listOrgRepos("owner");
 
 		assertThat(repos).hasSize(2);
 		assertThat(repos.get(0).name()).isEqualTo("repo-page1");
@@ -111,18 +111,18 @@ class GitHubClientTest {
 	@Test
 	void listOrgRepos_emptyOrg() throws Exception {
 		stubFor(
-				get(urlPathEqualTo("/orgs/ArloL/repos"))
+				get(urlPathEqualTo("/orgs/owner/repos"))
 						.willReturn(okJson("[]"))
 		);
 
-		List<RepositoryMinimal> repos = client.listOrgRepos("ArloL");
+		List<RepositoryMinimal> repos = client.listOrgRepos("owner");
 		assertThat(repos).isEmpty();
 	}
 
 	@Test
 	void listOrgRepos_fallsBackToUserEndpointOn404() throws Exception {
 		stubFor(
-				get(urlPathEqualTo("/orgs/ArloL/repos")).willReturn(
+				get(urlPathEqualTo("/orgs/owner/repos")).willReturn(
 						aResponse().withStatus(404)
 								.withHeader("Content-Type", "application/json")
 								.withBody(
@@ -139,7 +139,7 @@ class GitHubClientTest {
 				]
 				""")));
 
-		List<RepositoryMinimal> repos = client.listOrgRepos("ArloL");
+		List<RepositoryMinimal> repos = client.listOrgRepos("owner");
 
 		assertThat(repos).hasSize(2);
 		assertThat(repos.get(0).name()).isEqualTo("repo-a");
@@ -150,7 +150,7 @@ class GitHubClientTest {
 	@Test
 	void listOrgRepos_errorThrows() {
 		stubFor(
-				get(urlPathEqualTo("/orgs/ArloL/repos")).willReturn(
+				get(urlPathEqualTo("/orgs/owner/repos")).willReturn(
 						aResponse().withStatus(404)
 								.withHeader("Content-Type", "application/json")
 								.withBody(
@@ -170,7 +170,7 @@ class GitHubClientTest {
 				)
 		);
 
-		assertThatThrownBy(() -> client.listOrgRepos("ArloL"))
+		assertThatThrownBy(() -> client.listOrgRepos("owner"))
 				.isInstanceOf(RuntimeException.class)
 				.hasMessageContaining("HTTP 403");
 	}
@@ -184,7 +184,7 @@ class GitHubClientTest {
 			  "id": 1,
 			  "node_id": "R_1",
 			  "name": "my-repo",
-			  "full_name": "ArloL/my-repo",
+			  "full_name": "owner/my-repo",
 			  "private": false,
 			  "fork": false,
 			  "archived": false,
@@ -216,36 +216,36 @@ class GitHubClientTest {
 	@Test
 	void getRepo_parsesAllFields() throws Exception {
 		stubFor(
-				get(urlEqualTo("/repos/ArloL/my-repo")).willReturn(
+				get(urlEqualTo("/repos/owner/my-repo")).willReturn(
 						okJson(
 								"""
 										{
 										  "id": 1,
 										  "node_id": "R_1",
 										  "name": "my-repo",
-										  "full_name": "ArloL/my-repo",
+										  "full_name": "owner/my-repo",
 										  "owner": {
-										    "login": "ArloL",
+										    "login": "owner",
 										    "id": 123,
 										    "node_id": "U_123",
 										    "avatar_url": "https://avatars.githubusercontent.com/u/123?v=4",
 										    "gravatar_id": "",
-										    "url": "https://api.github.com/users/ArloL",
-										    "html_url": "https://github.com/ArloL",
+										    "url": "https://api.github.com/users/owner",
+										    "html_url": "https://github.com/owner",
 										    "type": "User",
 										    "site_admin": false
 										  },
 										  "private": false,
-										  "html_url": "https://github.com/ArloL/my-repo",
+										  "html_url": "https://github.com/owner/my-repo",
 										  "description": "My repo",
 										  "fork": false,
-										  "url": "https://api.github.com/repos/ArloL/my-repo",
-										  "git_url": "git://github.com/ArloL/my-repo.git",
-										  "ssh_url": "git@github.com:ArloL/my-repo.git",
-										  "clone_url": "https://github.com/ArloL/my-repo.git",
-										  "svn_url": "https://svn.github.com/ArloL/my-repo",
+										  "url": "https://api.github.com/repos/owner/my-repo",
+										  "git_url": "git://github.com/owner/my-repo.git",
+										  "ssh_url": "git@github.com:owner/my-repo.git",
+										  "clone_url": "https://github.com/owner/my-repo.git",
+										  "svn_url": "https://svn.github.com/owner/my-repo",
 										  "mirror_url": null,
-										  "hooks_url": "https://api.github.com/repos/ArloL/my-repo/hooks",
+										  "hooks_url": "https://api.github.com/repos/owner/my-repo/hooks",
 										  "homepage": "https://example.com",
 										  "language": "Java",
 										  "archived": false,
@@ -305,22 +305,22 @@ class GitHubClientTest {
 				)
 		);
 
-		RepositoryFull details = client.getRepo("ArloL", "my-repo");
+		RepositoryFull details = client.getRepo("owner", "my-repo");
 
-		assertThat(details.owner().login()).isEqualTo("ArloL");
+		assertThat(details.owner().login()).isEqualTo("owner");
 		assertThat(details.owner().id()).isEqualTo(123L);
 		assertThat(details.owner().type()).isEqualTo("User");
 		assertThat(details.htmlUrl())
-				.isEqualTo("https://github.com/ArloL/my-repo");
+				.isEqualTo("https://github.com/owner/my-repo");
 		assertThat(details.description()).isEqualTo("My repo");
 		assertThat(details.url())
-				.isEqualTo("https://api.github.com/repos/ArloL/my-repo");
+				.isEqualTo("https://api.github.com/repos/owner/my-repo");
 		assertThat(details.gitUrl())
-				.isEqualTo("git://github.com/ArloL/my-repo.git");
+				.isEqualTo("git://github.com/owner/my-repo.git");
 		assertThat(details.sshUrl())
-				.isEqualTo("git@github.com:ArloL/my-repo.git");
+				.isEqualTo("git@github.com:owner/my-repo.git");
 		assertThat(details.cloneUrl())
-				.isEqualTo("https://github.com/ArloL/my-repo.git");
+				.isEqualTo("https://github.com/owner/my-repo.git");
 		assertThat(details.mirrorUrl()).isNull();
 		assertThat(details.language()).isEqualTo("Java");
 		assertThat(details.homepage()).isEqualTo("https://example.com");
@@ -365,12 +365,12 @@ class GitHubClientTest {
 
 	@Test
 	void getRepo_disabledSecurityAnalysis() throws Exception {
-		stubFor(get(urlEqualTo("/repos/ArloL/my-repo")).willReturn(okJson("""
+		stubFor(get(urlEqualTo("/repos/owner/my-repo")).willReturn(okJson("""
 				{
 				  "id": 1,
 				  "node_id": "R_1",
 				  "name": "my-repo",
-				  "full_name": "ArloL/my-repo",
+				  "full_name": "owner/my-repo",
 				  "private": false,
 				  "fork": false,
 				  "archived": false,
@@ -405,7 +405,7 @@ class GitHubClientTest {
 				}
 				""")));
 
-		RepositoryFull details = client.getRepo("ArloL", "my-repo");
+		RepositoryFull details = client.getRepo("owner", "my-repo");
 
 		assertThat(details.securityAndAnalysis().secretScanning().status())
 				.isEqualTo(SecurityAndAnalysis.StatusObject.Status.DISABLED);
@@ -422,32 +422,32 @@ class GitHubClientTest {
 	@Test
 	void getVulnerabilityAlerts_204_returnsTrue() throws Exception {
 		stubFor(
-				get(urlEqualTo("/repos/ArloL/my-repo/vulnerability-alerts"))
+				get(urlEqualTo("/repos/owner/my-repo/vulnerability-alerts"))
 						.willReturn(aResponse().withStatus(204))
 		);
 
-		assertThat(client.getVulnerabilityAlerts("ArloL", "my-repo")).isTrue();
+		assertThat(client.getVulnerabilityAlerts("owner", "my-repo")).isTrue();
 	}
 
 	@Test
 	void getVulnerabilityAlerts_404_returnsFalse() throws Exception {
 		stubFor(
-				get(urlEqualTo("/repos/ArloL/my-repo/vulnerability-alerts"))
+				get(urlEqualTo("/repos/owner/my-repo/vulnerability-alerts"))
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		assertThat(client.getVulnerabilityAlerts("ArloL", "my-repo")).isFalse();
+		assertThat(client.getVulnerabilityAlerts("owner", "my-repo")).isFalse();
 	}
 
 	@Test
 	void getVulnerabilityAlerts_unexpectedStatus_throws() {
 		stubFor(
-				get(urlEqualTo("/repos/ArloL/my-repo/vulnerability-alerts"))
+				get(urlEqualTo("/repos/owner/my-repo/vulnerability-alerts"))
 						.willReturn(aResponse().withStatus(500))
 		);
 
 		assertThatThrownBy(
-				() -> client.getVulnerabilityAlerts("ArloL", "my-repo")
+				() -> client.getVulnerabilityAlerts("owner", "my-repo")
 		).isInstanceOf(RuntimeException.class).hasMessageContaining("500");
 	}
 
@@ -457,49 +457,49 @@ class GitHubClientTest {
 	@Test
 	void getAutomatedSecurityFixes_enabled_returnsTrue() throws Exception {
 		stubFor(
-				get(urlEqualTo("/repos/ArloL/my-repo/automated-security-fixes"))
+				get(urlEqualTo("/repos/owner/my-repo/automated-security-fixes"))
 						.willReturn(okJson("""
 								{"enabled": true}
 								"""))
 		);
 
-		assertThat(client.getAutomatedSecurityFixes("ArloL", "my-repo"))
+		assertThat(client.getAutomatedSecurityFixes("owner", "my-repo"))
 				.isTrue();
 	}
 
 	@Test
 	void getAutomatedSecurityFixes_disabled_returnsFalse() throws Exception {
 		stubFor(
-				get(urlEqualTo("/repos/ArloL/my-repo/automated-security-fixes"))
+				get(urlEqualTo("/repos/owner/my-repo/automated-security-fixes"))
 						.willReturn(okJson("""
 								{"enabled": false}
 								"""))
 		);
 
-		assertThat(client.getAutomatedSecurityFixes("ArloL", "my-repo"))
+		assertThat(client.getAutomatedSecurityFixes("owner", "my-repo"))
 				.isFalse();
 	}
 
 	@Test
 	void getAutomatedSecurityFixes_404_returnsFalse() throws Exception {
 		stubFor(
-				get(urlEqualTo("/repos/ArloL/my-repo/automated-security-fixes"))
+				get(urlEqualTo("/repos/owner/my-repo/automated-security-fixes"))
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		assertThat(client.getAutomatedSecurityFixes("ArloL", "my-repo"))
+		assertThat(client.getAutomatedSecurityFixes("owner", "my-repo"))
 				.isFalse();
 	}
 
 	@Test
 	void getAutomatedSecurityFixes_unexpectedStatus_throws() {
 		stubFor(
-				get(urlEqualTo("/repos/ArloL/my-repo/automated-security-fixes"))
+				get(urlEqualTo("/repos/owner/my-repo/automated-security-fixes"))
 						.willReturn(aResponse().withStatus(500))
 		);
 
 		assertThatThrownBy(
-				() -> client.getAutomatedSecurityFixes("ArloL", "my-repo")
+				() -> client.getAutomatedSecurityFixes("owner", "my-repo")
 		).isInstanceOf(RuntimeException.class).hasMessageContaining("500");
 	}
 
@@ -509,14 +509,14 @@ class GitHubClientTest {
 	@Test
 	void getBranchProtection_full() throws Exception {
 		stubFor(
-				get(urlEqualTo("/repos/ArloL/my-repo/branches/main/protection"))
+				get(urlEqualTo("/repos/owner/my-repo/branches/main/protection"))
 						.willReturn(
 								okJson(
 										"""
 												{
-												  "url": "https://api.github.com/repos/ArloL/my-repo/branches/main/protection",
+												  "url": "https://api.github.com/repos/owner/my-repo/branches/main/protection",
 												  "enforce_admins": {
-												    "url": "https://api.github.com/repos/ArloL/my-repo/branches/main/protection/enforce_admins",
+												    "url": "https://api.github.com/repos/owner/my-repo/branches/main/protection/enforce_admins",
 												    "enabled": true
 												  },
 												  "required_linear_history": {"enabled": true},
@@ -525,24 +525,24 @@ class GitHubClientTest {
 												  "block_creations": {"enabled": false},
 												  "required_conversation_resolution": {"enabled": true},
 												  "required_status_checks": {
-												    "url": "https://api.github.com/repos/ArloL/my-repo/branches/main/protection/required_status_checks",
+												    "url": "https://api.github.com/repos/owner/my-repo/branches/main/protection/required_status_checks",
 												    "enforcement_level": "non_admins",
 												    "strict": false,
 												    "checks": [
 												      {"context": "check-actions.required-status-check", "app_id": 42},
 												      {"context": "CodeQL", "app_id": null}
 												    ],
-												    "contexts_url": "https://api.github.com/repos/ArloL/my-repo/branches/main/protection/required_status_checks/contexts"
+												    "contexts_url": "https://api.github.com/repos/owner/my-repo/branches/main/protection/required_status_checks/contexts"
 												  },
 												  "required_pull_request_reviews": {
-												    "url": "https://api.github.com/repos/ArloL/my-repo/branches/main/protection/required_pull_request_reviews",
+												    "url": "https://api.github.com/repos/owner/my-repo/branches/main/protection/required_pull_request_reviews",
 												    "dismiss_stale_reviews": true,
 												    "require_code_owner_reviews": true,
 												    "required_approving_review_count": 2,
 												    "require_last_push_approval": false
 												  },
 												  "required_signatures": {
-												    "url": "https://api.github.com/repos/ArloL/my-repo/branches/main/protection/required_signatures",
+												    "url": "https://api.github.com/repos/owner/my-repo/branches/main/protection/required_signatures",
 												    "enabled": false
 												  },
 												  "lock_branch": {"enabled": false},
@@ -554,15 +554,15 @@ class GitHubClientTest {
 		);
 
 		Optional<BranchProtectionResponse> opt = client
-				.getBranchProtection("ArloL", "my-repo", "main");
+				.getBranchProtection("owner", "my-repo", "main");
 
 		assertThat(opt).isPresent();
 		BranchProtectionResponse bp = opt.orElseThrow();
 		assertThat(bp.url()).isEqualTo(
-				"https://api.github.com/repos/ArloL/my-repo/branches/main/protection"
+				"https://api.github.com/repos/owner/my-repo/branches/main/protection"
 		);
 		assertThat(bp.enforceAdmins().url()).isEqualTo(
-				"https://api.github.com/repos/ArloL/my-repo/branches/main/protection/enforce_admins"
+				"https://api.github.com/repos/owner/my-repo/branches/main/protection/enforce_admins"
 		);
 		assertThat(bp.enforceAdmins().enabled()).isTrue();
 		assertThat(bp.requiredLinearHistory().enabled()).isTrue();
@@ -598,7 +598,7 @@ class GitHubClientTest {
 	@Test
 	void getBranchProtection_legacyContextsArray() throws Exception {
 		stubFor(
-				get(urlEqualTo("/repos/ArloL/my-repo/branches/main/protection"))
+				get(urlEqualTo("/repos/owner/my-repo/branches/main/protection"))
 						.willReturn(
 								okJson(
 										"""
@@ -617,7 +617,7 @@ class GitHubClientTest {
 		);
 
 		Optional<BranchProtectionResponse> opt = client
-				.getBranchProtection("ArloL", "my-repo", "main");
+				.getBranchProtection("owner", "my-repo", "main");
 
 		assertThat(opt).isPresent();
 		assertThat(opt.orElseThrow().requiredStatusChecks().contexts())
@@ -627,11 +627,11 @@ class GitHubClientTest {
 	@Test
 	void getBranchProtection_404_returnsEmpty() throws Exception {
 		stubFor(
-				get(urlEqualTo("/repos/ArloL/my-repo/branches/main/protection"))
+				get(urlEqualTo("/repos/owner/my-repo/branches/main/protection"))
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		assertThat(client.getBranchProtection("ArloL", "my-repo", "main"))
+		assertThat(client.getBranchProtection("owner", "my-repo", "main"))
 				.isEmpty();
 	}
 
@@ -641,7 +641,7 @@ class GitHubClientTest {
 	@Test
 	void getActionSecretNames_parsesNames() throws Exception {
 		stubFor(
-				get(urlPathEqualTo("/repos/ArloL/my-repo/actions/secrets"))
+				get(urlPathEqualTo("/repos/owner/my-repo/actions/secrets"))
 						.willReturn(
 								okJson(
 										"""
@@ -657,20 +657,20 @@ class GitHubClientTest {
 						)
 		);
 
-		List<String> names = client.getActionSecretNames("ArloL", "my-repo");
+		List<String> names = client.getActionSecretNames("owner", "my-repo");
 		assertThat(names).containsExactlyInAnyOrder("PAT", "DEPLOY_KEY");
 	}
 
 	@Test
 	void getActionSecretNames_empty() throws Exception {
 		stubFor(
-				get(urlPathEqualTo("/repos/ArloL/my-repo/actions/secrets"))
+				get(urlPathEqualTo("/repos/owner/my-repo/actions/secrets"))
 						.willReturn(okJson("""
 								{"total_count": 0, "secrets": []}
 								"""))
 		);
 
-		assertThat(client.getActionSecretNames("ArloL", "my-repo")).isEmpty();
+		assertThat(client.getActionSecretNames("owner", "my-repo")).isEmpty();
 	}
 
 	// ─── getEnvironments
@@ -679,7 +679,7 @@ class GitHubClientTest {
 	@Test
 	void getEnvironments_parsesNames() throws Exception {
 		stubFor(
-				get(urlPathEqualTo("/repos/ArloL/my-repo/environments"))
+				get(urlPathEqualTo("/repos/owner/my-repo/environments"))
 						.willReturn(okJson("""
 								{
 								  "total_count": 2,
@@ -691,7 +691,7 @@ class GitHubClientTest {
 								"""))
 		);
 
-		var envs = client.getEnvironments("ArloL", "my-repo");
+		var envs = client.getEnvironments("owner", "my-repo");
 		assertThat(envs).extracting(EnvironmentDetailsResponse::name)
 				.containsExactlyInAnyOrder("production", "staging");
 	}
@@ -699,19 +699,19 @@ class GitHubClientTest {
 	@Test
 	void getEnvironments_empty() throws Exception {
 		stubFor(
-				get(urlPathEqualTo("/repos/ArloL/my-repo/environments"))
+				get(urlPathEqualTo("/repos/owner/my-repo/environments"))
 						.willReturn(okJson("""
 								{"total_count": 0, "environments": []}
 								"""))
 		);
 
-		assertThat(client.getEnvironments("ArloL", "my-repo")).isEmpty();
+		assertThat(client.getEnvironments("owner", "my-repo")).isEmpty();
 	}
 
 	@Test
 	void getActionSecretNames_multiPage() throws Exception {
 		stubFor(
-				get(urlPathEqualTo("/repos/ArloL/my-repo/actions/secrets"))
+				get(urlPathEqualTo("/repos/owner/my-repo/actions/secrets"))
 						.withQueryParam("page", absent())
 						.willReturn(
 								okJson(
@@ -721,12 +721,12 @@ class GitHubClientTest {
 								).withHeader(
 										"Link",
 										"<" + baseUrl
-												+ "/repos/ArloL/my-repo/actions/secrets?page=2>; rel=\"next\""
+												+ "/repos/owner/my-repo/actions/secrets?page=2>; rel=\"next\""
 								)
 						)
 		);
 		stubFor(
-				get(urlPathEqualTo("/repos/ArloL/my-repo/actions/secrets"))
+				get(urlPathEqualTo("/repos/owner/my-repo/actions/secrets"))
 						.withQueryParam("page", equalTo("2"))
 						.willReturn(
 								okJson(
@@ -737,7 +737,7 @@ class GitHubClientTest {
 						)
 		);
 
-		List<String> names = client.getActionSecretNames("ArloL", "my-repo");
+		List<String> names = client.getActionSecretNames("owner", "my-repo");
 		assertThat(names)
 				.containsExactlyInAnyOrder("SECRET_1", "SECRET_2", "SECRET_3");
 	}
@@ -745,7 +745,7 @@ class GitHubClientTest {
 	@Test
 	void getEnvironments_multiPage() throws Exception {
 		stubFor(
-				get(urlPathEqualTo("/repos/ArloL/my-repo/environments"))
+				get(urlPathEqualTo("/repos/owner/my-repo/environments"))
 						.withQueryParam("page", absent())
 						.willReturn(
 								okJson(
@@ -755,12 +755,12 @@ class GitHubClientTest {
 								).withHeader(
 										"Link",
 										"<" + baseUrl
-												+ "/repos/ArloL/my-repo/environments?page=2>; rel=\"next\""
+												+ "/repos/owner/my-repo/environments?page=2>; rel=\"next\""
 								)
 						)
 		);
 		stubFor(
-				get(urlPathEqualTo("/repos/ArloL/my-repo/environments"))
+				get(urlPathEqualTo("/repos/owner/my-repo/environments"))
 						.withQueryParam("page", equalTo("2"))
 						.willReturn(
 								okJson(
@@ -771,7 +771,7 @@ class GitHubClientTest {
 						)
 		);
 
-		var envs = client.getEnvironments("ArloL", "my-repo");
+		var envs = client.getEnvironments("owner", "my-repo");
 		assertThat(envs).extracting(EnvironmentDetailsResponse::name)
 				.containsExactlyInAnyOrder("production", "staging", "dev");
 	}
@@ -784,7 +784,7 @@ class GitHubClientTest {
 		stubFor(
 				get(
 						urlPathEqualTo(
-								"/repos/ArloL/my-repo/environments/production/secrets"
+								"/repos/owner/my-repo/environments/production/secrets"
 						)
 				).willReturn(okJson("""
 						{
@@ -795,7 +795,7 @@ class GitHubClientTest {
 		);
 
 		List<String> names = client
-				.getEnvironmentSecretNames("ArloL", "my-repo", "production");
+				.getEnvironmentSecretNames("owner", "my-repo", "production");
 		assertThat(names).containsExactly("TF_GITHUB_TOKEN");
 	}
 
@@ -804,7 +804,7 @@ class GitHubClientTest {
 		stubFor(
 				get(
 						urlPathEqualTo(
-								"/repos/ArloL/my-repo/environments/production/secrets"
+								"/repos/owner/my-repo/environments/production/secrets"
 						)
 				).withQueryParam("page", absent())
 						.willReturn(
@@ -815,14 +815,14 @@ class GitHubClientTest {
 								).withHeader(
 										"Link",
 										"<" + baseUrl
-												+ "/repos/ArloL/my-repo/environments/production/secrets?page=2>; rel=\"next\""
+												+ "/repos/owner/my-repo/environments/production/secrets?page=2>; rel=\"next\""
 								)
 						)
 		);
 		stubFor(
 				get(
 						urlPathEqualTo(
-								"/repos/ArloL/my-repo/environments/production/secrets"
+								"/repos/owner/my-repo/environments/production/secrets"
 						)
 				).withQueryParam("page", equalTo("2")).willReturn(okJson("""
 						{"total_count": 2, "secrets": [{"name": "SECRET_B"}]}
@@ -830,7 +830,7 @@ class GitHubClientTest {
 		);
 
 		List<String> names = client
-				.getEnvironmentSecretNames("ArloL", "my-repo", "production");
+				.getEnvironmentSecretNames("owner", "my-repo", "production");
 		assertThat(names).containsExactlyInAnyOrder("SECRET_A", "SECRET_B");
 	}
 
@@ -842,7 +842,7 @@ class GitHubClientTest {
 		stubFor(
 				get(
 						urlEqualTo(
-								"/repos/ArloL/my-repo/actions/permissions/workflow"
+								"/repos/owner/my-repo/actions/permissions/workflow"
 						)
 				).willReturn(okJson("""
 						{
@@ -853,7 +853,7 @@ class GitHubClientTest {
 		);
 
 		WorkflowPermissions perms = client
-				.getWorkflowPermissions("ArloL", "my-repo");
+				.getWorkflowPermissions("owner", "my-repo");
 		assertThat(perms.defaultWorkflowPermissions())
 				.isEqualTo(WorkflowPermissions.DefaultWorkflowPermissions.READ);
 		assertThat(perms.canApprovePullRequestReviews()).isTrue();
@@ -864,13 +864,13 @@ class GitHubClientTest {
 		stubFor(
 				get(
 						urlEqualTo(
-								"/repos/ArloL/my-repo/actions/permissions/workflow"
+								"/repos/owner/my-repo/actions/permissions/workflow"
 						)
 				).willReturn(aResponse().withStatus(403))
 		);
 
 		assertThatThrownBy(
-				() -> client.getWorkflowPermissions("ArloL", "my-repo")
+				() -> client.getWorkflowPermissions("owner", "my-repo")
 		).isInstanceOf(RuntimeException.class).hasMessageContaining("403");
 	}
 
@@ -880,7 +880,7 @@ class GitHubClientTest {
 	@Test
 	void sendsAuthorizationHeader() throws Exception {
 		stubFor(
-				get(urlPathEqualTo("/repos/ArloL/my-repo/environments"))
+				get(urlPathEqualTo("/repos/owner/my-repo/environments"))
 						.withHeader(
 								"Authorization",
 								equalTo("Bearer test-token")
@@ -892,11 +892,11 @@ class GitHubClientTest {
 
 		// If the header doesn't match, WireMock returns 404 — so successful
 		// response confirms header was sent
-		client.getEnvironments("ArloL", "my-repo");
+		client.getEnvironments("owner", "my-repo");
 
 		verify(
 				getRequestedFor(
-						urlPathEqualTo("/repos/ArloL/my-repo/environments")
+						urlPathEqualTo("/repos/owner/my-repo/environments")
 				).withHeader("Authorization", equalTo("Bearer test-token"))
 		);
 	}
@@ -962,7 +962,7 @@ class GitHubClientTest {
 	@Test
 	void pages_notFound() throws Exception {
 		stubFor(
-				get(urlPathEqualTo("/repos/ArloL/dotfiles/pages")).willReturn(
+				get(urlPathEqualTo("/repos/owner/dotfiles/pages")).willReturn(
 						aResponse().withStatus(404)
 								.withHeader("Content-Type", "application/json")
 								.withBody(
@@ -977,7 +977,7 @@ class GitHubClientTest {
 				)
 		);
 
-		var pages = client.getPages("ArloL", "dotfiles");
+		var pages = client.getPages("owner", "dotfiles");
 
 		assertThat(pages).isEmpty();
 	}
@@ -985,12 +985,12 @@ class GitHubClientTest {
 	@Test
 	void pages_realResponse() throws Exception {
 		stubFor(
-				get(urlPathEqualTo("/repos/ArloL/eclipse-projects/pages"))
+				get(urlPathEqualTo("/repos/owner/eclipse-projects/pages"))
 						.willReturn(
 								okJson(
 										"""
 												{
-												  "url": "https://api.github.com/repos/ArloL/eclipse-projects/pages",
+												  "url": "https://api.github.com/repos/owner/eclipse-projects/pages",
 												  "status": "built",
 												  "cname": null,
 												  "custom_404": false,
@@ -1010,7 +1010,7 @@ class GitHubClientTest {
 						)
 		);
 
-		var pages = client.getPages("ArloL", "eclipse-projects").orElseThrow();
+		var pages = client.getPages("owner", "eclipse-projects").orElseThrow();
 
 		assertThat(pages.buildType())
 				.isEqualTo(PagesResponse.BuildType.WORKFLOW);
@@ -1024,21 +1024,21 @@ class GitHubClientTest {
 	@Test
 	void deletePages_204() throws Exception {
 		stubFor(
-				delete(urlPathEqualTo("/repos/ArloL/my-repo/pages"))
+				delete(urlPathEqualTo("/repos/owner/my-repo/pages"))
 						.willReturn(aResponse().withStatus(204))
 		);
 
-		client.deletePages("ArloL", "my-repo");
+		client.deletePages("owner", "my-repo");
 	}
 
 	@Test
 	void deletePages_404() throws Exception {
 		stubFor(
-				delete(urlPathEqualTo("/repos/ArloL/my-repo/pages"))
+				delete(urlPathEqualTo("/repos/owner/my-repo/pages"))
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		client.deletePages("ArloL", "my-repo");
+		client.deletePages("owner", "my-repo");
 	}
 
 	// ─── updateRepository
@@ -1047,18 +1047,18 @@ class GitHubClientTest {
 	@Test
 	void updateRepository_singleField() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/my-repo"))
+				patch(urlEqualTo("/repos/owner/my-repo"))
 						.willReturn(okJson(REPO_BASE_JSON))
 		);
 
 		client.updateRepository(
-				"ArloL",
+				"owner",
 				"my-repo",
 				Map.of("description", "New description")
 		);
 
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/ArloL/my-repo"))
+				patchRequestedFor(urlEqualTo("/repos/owner/my-repo"))
 						.withRequestBody(
 								equalToJson(
 										"{\"description\":\"New description\"}"
@@ -1070,12 +1070,12 @@ class GitHubClientTest {
 	@Test
 	void updateRepository_multipleFields() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/my-repo"))
+				patch(urlEqualTo("/repos/owner/my-repo"))
 						.willReturn(okJson(REPO_BASE_JSON))
 		);
 
 		client.updateRepository(
-				"ArloL",
+				"owner",
 				"my-repo",
 				Map.of(
 						"description",
@@ -1088,7 +1088,7 @@ class GitHubClientTest {
 		);
 
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/ArloL/my-repo"))
+				patchRequestedFor(urlEqualTo("/repos/owner/my-repo"))
 						.withRequestBody(equalToJson("""
 								{
 								  "description": "New description",
@@ -1102,14 +1102,14 @@ class GitHubClientTest {
 	@Test
 	void updateRepository_emptyDescription() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/my-repo"))
+				patch(urlEqualTo("/repos/owner/my-repo"))
 						.willReturn(okJson(REPO_BASE_JSON))
 		);
 
-		client.updateRepository("ArloL", "my-repo", Map.of("description", ""));
+		client.updateRepository("owner", "my-repo", Map.of("description", ""));
 
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/ArloL/my-repo"))
+				patchRequestedFor(urlEqualTo("/repos/owner/my-repo"))
 						.withRequestBody(equalToJson("{\"description\":\"\"}"))
 		);
 	}
@@ -1117,7 +1117,7 @@ class GitHubClientTest {
 	@Test
 	void updateRepository_errorThrows() {
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/my-repo")).willReturn(
+				patch(urlEqualTo("/repos/owner/my-repo")).willReturn(
 						aResponse().withStatus(422)
 								.withHeader("Content-Type", "application/json")
 								.withBody("{\"message\":\"Validation Failed\"}")
@@ -1126,7 +1126,7 @@ class GitHubClientTest {
 
 		assertThatThrownBy(
 				() -> client.updateRepository(
-						"ArloL",
+						"owner",
 						"my-repo",
 						Map.of("description", "desc")
 				)
@@ -1139,14 +1139,14 @@ class GitHubClientTest {
 	@Test
 	void replaceTopics_success() throws Exception {
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/my-repo/topics"))
+				put(urlEqualTo("/repos/owner/my-repo/topics"))
 						.willReturn(okJson("{\"names\":[\"java\",\"maven\"]}"))
 		);
 
-		client.replaceTopics("ArloL", "my-repo", List.of("java", "maven"));
+		client.replaceTopics("owner", "my-repo", List.of("java", "maven"));
 
 		verify(
-				putRequestedFor(urlEqualTo("/repos/ArloL/my-repo/topics"))
+				putRequestedFor(urlEqualTo("/repos/owner/my-repo/topics"))
 						.withRequestBody(
 								equalToJson("{\"names\":[\"java\",\"maven\"]}")
 						)
@@ -1156,7 +1156,7 @@ class GitHubClientTest {
 	@Test
 	void replaceTopics_errorThrows() {
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/my-repo/topics")).willReturn(
+				put(urlEqualTo("/repos/owner/my-repo/topics")).willReturn(
 						aResponse().withStatus(422)
 								.withHeader("Content-Type", "application/json")
 								.withBody("{\"message\":\"Validation Failed\"}")
@@ -1164,7 +1164,7 @@ class GitHubClientTest {
 		);
 
 		assertThatThrownBy(
-				() -> client.replaceTopics("ArloL", "my-repo", List.of("bad"))
+				() -> client.replaceTopics("owner", "my-repo", List.of("bad"))
 		).isInstanceOf(RuntimeException.class).hasMessageContaining("HTTP 422");
 	}
 

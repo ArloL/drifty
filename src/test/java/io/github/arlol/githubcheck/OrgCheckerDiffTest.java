@@ -98,7 +98,7 @@ class OrgCheckerDiffTest {
 
 	@BeforeEach
 	void setUp() {
-		checker = new OrgChecker((GitHubClient) null, "ArloL");
+		checker = new OrgChecker((GitHubClient) null, "owner");
 	}
 
 	// ─── Helpers
@@ -128,7 +128,7 @@ class OrgCheckerDiffTest {
 	}
 
 	private static RepositoryArgs defaultArgs() {
-		return RepositoryArgs.create("repo")
+		return RepositoryArgs.create("owner", "repo")
 				.addBranchProtections(
 						BranchProtectionArgs.builder("main")
 								.enforceAdmins(true)
@@ -948,7 +948,7 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void noDrift_topicsMatch() {
-		RepositoryArgs args = RepositoryArgs.create("repo")
+		RepositoryArgs args = RepositoryArgs.create("owner", "repo")
 				.topics("java", "maven")
 				.build();
 		var state = new StateBuilder().noBranchProtection().detailsOverride("""
@@ -959,7 +959,7 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void drift_topicsMissing() {
-		RepositoryArgs args = RepositoryArgs.create("repo")
+		RepositoryArgs args = RepositoryArgs.create("owner", "repo")
 				.topics("java", "maven")
 				.build();
 		var state = new StateBuilder().detailsOverride("""
