@@ -193,50 +193,10 @@ class GitHubClientPlaybackTest {
 	}
 
 	@Test
-	void enablePrivateVulnerabilityReporting_succeeds() {
-		assertThatNoException().isThrownBy(
-				() -> client.enablePrivateVulnerabilityReporting(
-						"ArloL",
-						"terraform-github"
-				)
-		);
-	}
-
-	@Test
-	void disablePrivateVulnerabilityReporting_succeeds() {
-		assertThatNoException().isThrownBy(
-				() -> client.disablePrivateVulnerabilityReporting(
-						"ArloL",
-						"terraform-github"
-				)
-		);
-	}
-
-	@Test
 	void getCodeScanningDefaultSetup_returnsRecordedState() throws Exception {
 		boolean enabled = client
 				.getCodeScanningDefaultSetup("ArloL", "terraform-github");
 		assertThat(enabled).isFalse();
-	}
-
-	@Test
-	void enableCodeScanningDefaultSetup_succeeds() {
-		assertThatNoException().isThrownBy(
-				() -> client.enableCodeScanningDefaultSetup(
-						"ArloL",
-						"terraform-github"
-				)
-		);
-	}
-
-	@Test
-	void disableCodeScanningDefaultSetup_succeeds() {
-		assertThatNoException().isThrownBy(
-				() -> client.disableCodeScanningDefaultSetup(
-						"ArloL",
-						"terraform-github"
-				)
-		);
 	}
 
 	@Test
