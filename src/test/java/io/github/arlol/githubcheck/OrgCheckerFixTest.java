@@ -191,6 +191,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 	}
@@ -222,6 +224,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 	}
@@ -431,6 +435,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -491,6 +497,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -559,6 +567,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -614,6 +624,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -668,6 +680,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -758,6 +772,334 @@ class OrgCheckerFixTest {
 	}
 
 	@Test
+	void secretScanningValidityChecksDrift_patches() throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.secretScanningValidityChecks(true)
+				.build();
+
+		var state = stateWithDetailsOverride(
+				"""
+						{
+							"security_and_analysis": {
+								"secret_scanning": {"status": "enabled"},
+								"secret_scanning_push_protection": {"status": "enabled"},
+								"secret_scanning_validity_checks": {"status": "disabled"}
+							}
+						}
+						"""
+		);
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+						.withRequestBody(
+								equalToJson(
+										"""
+												{
+													"security_and_analysis": {
+														"secret_scanning_validity_checks": {"status": "enabled"}
+													}
+												}
+												"""
+								)
+						)
+		);
+	}
+
+	@Test
+	void secretScanningNonProviderPatternsDrift_patches() throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.secretScanningNonProviderPatterns(true)
+				.build();
+
+		var state = stateWithDetailsOverride(
+				"""
+						{
+							"security_and_analysis": {
+								"secret_scanning": {"status": "enabled"},
+								"secret_scanning_push_protection": {"status": "enabled"},
+								"secret_scanning_non_provider_patterns": {"status": "disabled"}
+							}
+						}
+						"""
+		);
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+						.withRequestBody(
+								equalToJson(
+										"""
+												{
+													"security_and_analysis": {
+														"secret_scanning_non_provider_patterns": {"status": "enabled"}
+													}
+												}
+												"""
+								)
+						)
+		);
+	}
+
+	@Test
+	void enablePrivateVulnerabilityReporting_whenDesiredTrue()
+			throws Exception {
+		stubFor(
+				put(
+						urlEqualTo(
+								"/repos/ArloL/repo/private-vulnerability-reporting"
+						)
+				).willReturn(WireMock.noContent())
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.privateVulnerabilityReporting(true)
+				.build();
+
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
+				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				true,
+				false,
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
+				),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(),
+				false,
+				false,
+				false
+		);
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				putRequestedFor(
+						urlEqualTo(
+								"/repos/ArloL/repo/private-vulnerability-reporting"
+						)
+				)
+		);
+		verify(
+				0,
+				deleteRequestedFor(
+						urlEqualTo(
+								"/repos/ArloL/repo/private-vulnerability-reporting"
+						)
+				)
+		);
+	}
+
+	@Test
+	void disablePrivateVulnerabilityReporting_whenDesiredFalse()
+			throws Exception {
+		stubFor(
+				delete(
+						urlEqualTo(
+								"/repos/ArloL/repo/private-vulnerability-reporting"
+						)
+				).willReturn(WireMock.noContent())
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.privateVulnerabilityReporting(false)
+				.build();
+
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
+				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				true,
+				false,
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
+				),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(),
+				false,
+				true,
+				false
+		);
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				deleteRequestedFor(
+						urlEqualTo(
+								"/repos/ArloL/repo/private-vulnerability-reporting"
+						)
+				)
+		);
+		verify(
+				0,
+				putRequestedFor(
+						urlEqualTo(
+								"/repos/ArloL/repo/private-vulnerability-reporting"
+						)
+				)
+		);
+	}
+
+	@Test
+	void enableCodeScanningDefaultSetup_whenDesiredTrue() throws Exception {
+		stubFor(
+				patch(
+						urlEqualTo(
+								"/repos/ArloL/repo/code-scanning/default-setup"
+						)
+				).willReturn(okJson("{}"))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.codeScanningDefaultSetup(true)
+				.build();
+
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
+				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				true,
+				false,
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
+				),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(),
+				false,
+				false,
+				false
+		);
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				1,
+				patchRequestedFor(
+						urlEqualTo(
+								"/repos/ArloL/repo/code-scanning/default-setup"
+						)
+				).withRequestBody(equalToJson("{\"state\": \"configured\"}"))
+		);
+	}
+
+	@Test
+	void disableCodeScanningDefaultSetup_whenDesiredFalse() throws Exception {
+		stubFor(
+				patch(
+						urlEqualTo(
+								"/repos/ArloL/repo/code-scanning/default-setup"
+						)
+				).willReturn(okJson("{}"))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("repo")
+				.codeScanningDefaultSetup(false)
+				.build();
+
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
+				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				true,
+				false,
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
+				),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(),
+				false,
+				false,
+				true
+		);
+
+		List<String> diffs = checker.computeDiffs(state, desired);
+		List<String> remaining = checker
+				.applyFixes("repo", state, desired, diffs);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				1,
+				patchRequestedFor(
+						urlEqualTo(
+								"/repos/ArloL/repo/code-scanning/default-setup"
+						)
+				).withRequestBody(
+						equalToJson("{\"state\": \"not-configured\"}")
+				)
+		);
+	}
+
+	@Test
 	void workflowPermissionsDrift_putsWorkflowPermissions() throws Exception {
 		stubFor(
 				put(
@@ -793,6 +1135,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -867,6 +1211,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -951,7 +1297,9 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
-				true
+				true,
+				false,
+				false
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -1017,6 +1365,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -1089,6 +1439,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -1167,6 +1519,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -1405,6 +1759,8 @@ class OrgCheckerFixTest {
 				List.of(actualRuleset),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -1493,6 +1849,8 @@ class OrgCheckerFixTest {
 				List.of(actualRuleset),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -1566,6 +1924,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -1624,6 +1984,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -1685,6 +2047,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.of(actualPages),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 
@@ -1767,6 +2131,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of("production", actualEnv),
+				false,
+				false,
 				false
 		);
 
@@ -1829,6 +2195,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of("production", actualEnv),
+				false,
+				false,
 				false
 		);
 
@@ -1890,6 +2258,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of("production", actualEnv),
+				false,
+				false,
 				false
 		);
 
@@ -1956,6 +2326,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 		var desired = RepositoryArgs.create("repo")
@@ -2002,6 +2374,8 @@ class OrgCheckerFixTest {
 				List.of(),
 				Optional.empty(),
 				Map.of(),
+				false,
+				false,
 				false
 		);
 		var desired = RepositoryArgs.create("repo")
@@ -2074,6 +2448,8 @@ class OrgCheckerFixTest {
 						"production",
 						parse("{}", EnvironmentDetailsResponse.class)
 				),
+				false,
+				false,
 				false
 		);
 		var desired = RepositoryArgs.create("repo")

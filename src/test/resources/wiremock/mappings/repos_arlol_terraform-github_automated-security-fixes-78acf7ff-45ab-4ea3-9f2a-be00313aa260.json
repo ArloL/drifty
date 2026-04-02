@@ -1,37 +1,41 @@
 {
-  "id" : "d0f94b23-3c58-4fb3-ab55-38fc9387ee1b",
-  "name" : "repos_arlol_terraform-github_vulnerability-alerts",
+  "id" : "78acf7ff-45ab-4ea3-9f2a-be00313aa260",
+  "name" : "repos_arlol_terraform-github_automated-security-fixes",
   "request" : {
-    "url" : "/repos/ArloL/terraform-github/vulnerability-alerts",
-    "method" : "PUT"
+    "url" : "/repos/ArloL/terraform-github/automated-security-fixes",
+    "method" : "GET"
   },
   "response" : {
-    "status" : 204,
+    "status" : 200,
+    "body" : "{\"enabled\":true,\"paused\":false}",
     "headers" : {
       "X-Accepted-OAuth-Scopes" : "repo",
       "X-RateLimit-Resource" : "core",
       "Server" : "github.com",
-      "X-RateLimit-Used" : "7",
+      "X-RateLimit-Used" : "1706",
       "Access-Control-Allow-Origin" : "*",
-      "X-Content-Type-Options" : "nosniff",
-      "X-RateLimit-Reset" : "1774967377",
       "x-github-api-version-selected" : "2026-03-10",
-      "Date" : "Tue, 31 Mar 2026 13:29:39 GMT",
       "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
       "X-Frame-Options" : "deny",
       "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
       "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
-      "X-RateLimit-Remaining" : "4993",
+      "X-RateLimit-Remaining" : "3294",
       "X-GitHub-Media-Type" : "github.v3; format=json",
       "Content-Security-Policy" : "default-src 'none'",
-      "Vary" : "Accept-Encoding, Accept, X-Requested-With",
-      "X-RateLimit-Limit" : "5000",
       "X-XSS-Protection" : "0",
+      "X-GitHub-Request-Id" : "8F77:2BCAA7:2739825:211164E:69CD89C0",
+      "Content-Type" : "application/json; charset=utf-8",
+      "X-Content-Type-Options" : "nosniff",
+      "X-RateLimit-Reset" : "1775078588",
+      "Date" : "Wed, 01 Apr 2026 21:10:24 GMT",
+      "Cache-Control" : "private, max-age=60, s-maxage=60",
+      "ETag" : "\"29dde8d6b567899965eaa13b15942d26caf19a89c3b1bb544cb4d50f82e23193\"",
+      "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
+      "X-RateLimit-Limit" : "5000",
       "X-OAuth-Scopes" : "read:discussion, repo",
-      "github-authentication-token-expiration" : "2026-04-18 19:24:56 UTC",
-      "X-GitHub-Request-Id" : "8F5C:1B06F1:7A2E8B:6B82F9:69CBCC43"
+      "github-authentication-token-expiration" : "2026-04-18 19:24:56 UTC"
     }
   },
   "persistent" : true,
-  "insertionIndex" : 48
+  "insertionIndex" : 53
 }

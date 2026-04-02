@@ -641,6 +641,121 @@ public class GitHubClient {
 		}
 	}
 
+	public boolean getPrivateVulnerabilityReporting(String owner, String repo)
+			throws IOException, InterruptedException {
+		HttpResponse<String> resp = send(
+				baseUrl + "/repos/" + owner + "/" + repo
+						+ "/private-vulnerability-reporting"
+		);
+		if (resp.statusCode() == 200) {
+			return mapper
+					.readValue(resp.body(), PrivateVulnerabilityReporting.class)
+					.enabled();
+		}
+		if (resp.statusCode() == 404) {
+			return false;
+		}
+		throw new GitHubApiException(
+				"HTTP " + resp.statusCode()
+						+ " GET private-vulnerability-reporting on " + repo
+		);
+	}
+
+	public void enablePrivateVulnerabilityReporting(String owner, String repo)
+			throws IOException, InterruptedException {
+		HttpResponse<String> resp = put(
+				baseUrl + "/repos/" + owner + "/" + repo
+						+ "/private-vulnerability-reporting",
+				""
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " enabling private-vulnerability-reporting on "
+							+ repo
+			);
+		}
+	}
+
+	public void disablePrivateVulnerabilityReporting(String owner, String repo)
+			throws IOException, InterruptedException {
+		HttpRequest request = HttpRequest
+				.newBuilder(
+						URI.create(
+								baseUrl + "/repos/" + owner + "/" + repo
+										+ "/private-vulnerability-reporting"
+						)
+				)
+				.header("Authorization", "Bearer " + token)
+				.header("Accept", "application/vnd.github+json")
+				.header("X-GitHub-Api-Version", "2026-03-10")
+				.DELETE()
+				.build();
+		HttpResponse<String> resp = http
+				.send(request, HttpResponse.BodyHandlers.ofString());
+		handleRateLimit(resp);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " disabling private-vulnerability-reporting on "
+							+ repo
+			);
+		}
+	}
+
+	public boolean getCodeScanningDefaultSetup(String owner, String repo)
+			throws IOException, InterruptedException {
+		HttpResponse<String> resp = send(
+				baseUrl + "/repos/" + owner + "/" + repo
+						+ "/code-scanning/default-setup"
+		);
+		if (resp.statusCode() == 200) {
+			return mapper.readValue(resp.body(), CodeScanningDefaultSetup.class)
+					.isEnabled();
+		}
+		if (resp.statusCode() == 404) {
+			return false;
+		}
+		throw new GitHubApiException(
+				"HTTP " + resp.statusCode()
+						+ " GET code-scanning/default-setup on " + repo
+		);
+	}
+
+	public void enableCodeScanningDefaultSetup(String owner, String repo)
+			throws IOException, InterruptedException {
+		String body = mapper.writeValueAsString(Map.of("state", "configured"));
+		HttpResponse<String> resp = patch(
+				baseUrl + "/repos/" + owner + "/" + repo
+						+ "/code-scanning/default-setup",
+				body
+		);
+		if (resp.statusCode() != 200 && resp.statusCode() != 202) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " enabling code-scanning/default-setup on " + repo
+			);
+		}
+	}
+
+	public void disableCodeScanningDefaultSetup(String owner, String repo)
+			throws IOException, InterruptedException {
+		String body = mapper
+				.writeValueAsString(Map.of("state", "not-configured"));
+		HttpResponse<String> resp = patch(
+				baseUrl + "/repos/" + owner + "/" + repo
+						+ "/code-scanning/default-setup",
+				body
+		);
+		if (resp.statusCode() != 200 && resp.statusCode() != 202) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " disabling code-scanning/default-setup on "
+							+ repo
+			);
+		}
+	}
+
 	public List<RulesetSummaryResponse> listRulesets(String owner, String repo)
 			throws IOException, InterruptedException {
 		String url = baseUrl + "/repos/" + owner + "/" + repo

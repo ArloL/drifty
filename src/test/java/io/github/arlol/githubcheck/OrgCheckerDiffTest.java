@@ -253,7 +253,9 @@ class OrgCheckerDiffTest {
 					rulesets,
 					pages,
 					environmentDetails,
-					immutableReleases
+					immutableReleases,
+					false,
+					false
 			);
 		}
 
@@ -505,6 +507,108 @@ class OrgCheckerDiffTest {
 		assertThat(checker.computeDiffs(goodPublicState(), desired)).contains(
 				"secret_scanning_push_protection: want=false got=true"
 		);
+	}
+
+	@Test
+	void drift_secretScanningValidityChecks_wantTrue_gotFalse() {
+		var state = new StateBuilder()
+				.detailsOverride(
+						"""
+								{
+									"security_and_analysis": {
+										"secret_scanning": {"status": "enabled"},
+										"secret_scanning_push_protection": {"status": "enabled"},
+										"secret_scanning_validity_checks": {"status": "disabled"}
+									}
+								}
+								"""
+				)
+				.build();
+		var desired = defaultArgs().toBuilder()
+				.secretScanningValidityChecks(true)
+				.build();
+		assertThat(checker.computeDiffs(state, desired)).contains(
+				"secret_scanning_validity_checks: want=true got=false"
+		);
+	}
+
+	@Test
+	void noDrift_secretScanningValidityChecks_bothFalse() {
+		assertThat(checker.computeDiffs(goodPublicState(), defaultArgs()))
+				.doesNotContain("secret_scanning_validity_checks");
+	}
+
+	@Test
+	void drift_secretScanningNonProviderPatterns_wantTrue_gotFalse() {
+		var state = new StateBuilder()
+				.detailsOverride(
+						"""
+								{
+									"security_and_analysis": {
+										"secret_scanning": {"status": "enabled"},
+										"secret_scanning_push_protection": {"status": "enabled"},
+										"secret_scanning_non_provider_patterns": {"status": "disabled"}
+									}
+								}
+								"""
+				)
+				.build();
+		var desired = defaultArgs().toBuilder()
+				.secretScanningNonProviderPatterns(true)
+				.build();
+		assertThat(checker.computeDiffs(state, desired)).contains(
+				"secret_scanning_non_provider_patterns: want=true got=false"
+		);
+	}
+
+	@Test
+	void noDrift_secretScanningNonProviderPatterns_bothFalse() {
+		assertThat(checker.computeDiffs(goodPublicState(), defaultArgs()))
+				.doesNotContain("secret_scanning_non_provider_patterns");
+	}
+
+	@Test
+	void drift_privateVulnerabilityReporting_wantTrue_gotFalse() {
+		var state = new StateBuilder().build();
+		var desired = defaultArgs().toBuilder()
+				.privateVulnerabilityReporting(true)
+				.build();
+		assertThat(checker.computeDiffs(state, desired)).contains(
+				"private_vulnerability_reporting: want=true got=false"
+		);
+	}
+
+	@Test
+	void noDrift_privateVulnerabilityReporting_bothFalse() {
+		assertThat(checker.computeDiffs(goodPublicState(), defaultArgs()))
+				.doesNotContain("private_vulnerability_reporting");
+	}
+
+	@Test
+	void drift_privateVulnerabilityReporting_wantFalse_gotTrue() {
+		var state = new StateBuilder().build();
+		var desired = defaultArgs().toBuilder()
+				.privateVulnerabilityReporting(false)
+				.build();
+		// state has pvr=false, desired=false -> no drift
+		assertThat(checker.computeDiffs(state, desired))
+				.doesNotContain("private_vulnerability_reporting");
+	}
+
+	@Test
+	void drift_codeScanningDefaultSetup_wantTrue_gotFalse() {
+		var state = new StateBuilder().build();
+		var desired = defaultArgs().toBuilder()
+				.codeScanningDefaultSetup(true)
+				.build();
+		assertThat(checker.computeDiffs(state, desired))
+				.contains("code_scanning_default_setup: want=true got=false");
+	}
+
+	@Test
+	void noDrift_codeScanningDefaultSetup_bothFalse() {
+		assertThat(checker.computeDiffs(goodPublicState(), defaultArgs()))
+				.doesNotContain("code_scanning_default_setup");
 	}
 
 	// ─── Archived / private

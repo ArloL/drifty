@@ -62,12 +62,15 @@ class GitHubClientRecordingTest {
 		client.getVulnerabilityAlerts(owner, repo);
 		client.getAutomatedSecurityFixes(owner, repo);
 		client.getImmutableReleases(owner, repo);
+		client.getPrivateVulnerabilityReporting(owner, repo);
+		client.getCodeScanningDefaultSetup(owner, repo);
 		var branches = client.getBranches(owner, repo, true);
 		for (var branch : branches) {
 			client.getBranchProtection(owner, repo, branch.name());
 		}
 		var perms = client.getWorkflowPermissions(owner, repo);
 		// Non-destructive writes: write back what was just read (idempotent)
+		client.enablePrivateVulnerabilityReporting(owner, repo);
 		client.enableVulnerabilityAlerts(owner, repo);
 		client.updateWorkflowPermissions(owner, repo, perms);
 		client.replaceTopics(owner, repo, List.of());

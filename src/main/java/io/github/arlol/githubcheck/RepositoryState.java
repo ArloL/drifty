@@ -25,7 +25,9 @@ public record RepositoryState(
 		List<RulesetDetailsResponse> rulesets,
 		Optional<PagesResponse> pages,
 		Map<String, EnvironmentDetailsResponse> environmentDetails,
-		boolean immutableReleases
+		boolean immutableReleases,
+		boolean privateVulnerabilityReporting,
+		boolean codeScanningDefaultSetup
 ) {
 
 	public RepositoryState {
