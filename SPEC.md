@@ -126,7 +126,7 @@ All settings below are fields on `RepositoryArgs`. Field defaults in `Repository
 
 ### Security Settings
 
-All configurable per-repo via `RepositoryArgs`, with defaults matching GitHub's defaults. drifty manages every security setting exposed by the GitHub REST API:
+All configurable per-repo via `RepositoryArgs`, with defaults matching GitHub's defaults.
 
 | Setting | GitHub default (public repos) | Check | Fix |
 |---------|-------------------------------|-------|-----|
@@ -136,8 +136,12 @@ All configurable per-repo via `RepositoryArgs`, with defaults matching GitHub's 
 | Secret scanning push protection | enabled | Yes | Yes |
 | Secret scanning validity checks | disabled | Yes | Yes |
 | Secret scanning non-provider patterns | disabled | Yes | Yes |
+| Secret scanning AI detection | disabled | Yes | Yes |
+| Secret scanning delegated alert dismissal | disabled | Yes | Yes |
+| Secret scanning delegated bypass | disabled | Yes | Yes |
 | Private vulnerability reporting | disabled | Yes | Yes |
 | Code scanning default setup | disabled | Yes | Yes |
+| GitHub Advanced Security (GHAS) | disabled | Yes | Yes |
 
 ### Workflow Settings
 
