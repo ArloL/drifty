@@ -5,7 +5,7 @@ import java.util.Objects;
 public class StatusCheckArgs {
 
 	public static final Integer APP_ID_GITHUB_ACTIONS = 15368;
-	public static final Integer APP_ID_GITHUB_ADVANCED_SECURITY = 15368;
+	public static final Integer APP_ID_GITHUB_ADVANCED_SECURITY = 57789;
 
 	private final String context;
 	private final Integer appId;
