@@ -545,29 +545,37 @@ public class OrgChecker {
 					strict
 			);
 
-			List<String> statusContexts = List.of();
+			List<StatusCheckArgs> statusChecks = List.of();
 			if (rsc != null) {
 				var checks = rsc.checks();
 				if (checks != null && !checks.isEmpty()) {
-					statusContexts = checks.stream()
+					statusChecks = checks.stream()
 							.map(
-									BranchProtectionResponse.RequiredStatusChecks.StatusCheck::context
+									c -> StatusCheckArgs.builder()
+											.context(c.context())
+											.appId(c.appId())
+											.build()
 							)
 							.toList();
 				} else {
 					var contexts = rsc.contexts();
-					statusContexts = contexts != null ? contexts : List.of();
+					if (contexts != null) {
+						statusChecks = contexts.stream()
+								.map(
+										c -> StatusCheckArgs.builder()
+												.context(c)
+												.build()
+								)
+								.toList();
+					}
 				}
 			}
 
-			Set<String> wantContexts = wantedChecks.stream()
-					.map(StatusCheckArgs::getContext)
-					.collect(Collectors.toSet());
-			checkSets(
+			checkStatusCheckSets(
 					diffs,
 					prefix + ".required_status_checks",
-					wantContexts,
-					new HashSet<>(statusContexts)
+					new HashSet<>(wantedChecks),
+					new HashSet<>(statusChecks)
 			);
 
 			var rpr = actualBp.requiredPullRequestReviews();
@@ -749,22 +757,26 @@ public class OrgChecker {
 			);
 
 			// Check required_status_checks
-			Set<String> wantChecks = wantedRuleset.requiredStatusChecks()
-					.stream()
-					.map(StatusCheckArgs::getContext)
-					.collect(Collectors.toSet());
-			Set<String> gotChecks = new HashSet<>();
+			Set<StatusCheckArgs> wantChecks = new HashSet<>(
+					wantedRuleset.requiredStatusChecks()
+			);
+			Set<StatusCheckArgs> gotChecks = new HashSet<>();
 			if (actualRulesByType.get(
 					RulesetRuleType.REQUIRED_STATUS_CHECKS
 			) instanceof Rule.RequiredStatusChecks rsc
 					&& rsc.parameters() != null
 					&& rsc.parameters().requiredStatusChecks() != null) {
 				for (var sc : rsc.parameters().requiredStatusChecks()) {
-					gotChecks.add(sc.context());
+					gotChecks.add(
+							StatusCheckArgs.builder()
+									.context(sc.context())
+									.appId(sc.integrationId())
+									.build()
+					);
 				}
 			}
 			if (!wantChecks.isEmpty() || !gotChecks.isEmpty()) {
-				checkSets(
+				checkStatusCheckSets(
 						diffs,
 						"ruleset." + rName + ".required_status_checks",
 						wantChecks,
@@ -1364,16 +1376,14 @@ public class OrgChecker {
 					continue;
 				}
 
-				Set<String> wantContexts = wantedBp.requiredStatusChecks()
-						.stream()
-						.map(StatusCheckArgs::getContext)
-						.collect(Collectors.toSet());
-				List<BranchProtectionRequest.RequiredStatusChecks.StatusCheck> checks = wantContexts
+				Set<StatusCheckArgs> wantedStatusChecks = wantedBp
+						.requiredStatusChecks();
+				List<BranchProtectionRequest.RequiredStatusChecks.StatusCheck> checks = wantedStatusChecks
 						.stream()
 						.map(
-								ctx -> new BranchProtectionRequest.RequiredStatusChecks.StatusCheck(
-										ctx,
-										null
+								sc -> new BranchProtectionRequest.RequiredStatusChecks.StatusCheck(
+										sc.getContext(),
+										sc.getAppId()
 								)
 						)
 						.toList();
@@ -1942,6 +1952,34 @@ public class OrgChecker {
 		);
 		check(diffs, field + ".operator", want.operator(), got.operator());
 		check(diffs, field + ".pattern", want.pattern(), got.pattern());
+	}
+
+	private static void checkStatusCheckSets(
+			List<String> diffs,
+			String field,
+			Set<StatusCheckArgs> want,
+			Set<StatusCheckArgs> got
+	) {
+		Set<StatusCheckArgs> missing = new HashSet<>(want);
+		missing.removeAll(got);
+		Set<StatusCheckArgs> extra = new HashSet<>(got);
+		extra.removeAll(want);
+		if (!missing.isEmpty()) {
+			diffs.add(field + " missing: " + sortedStatusCheckArgs(missing));
+		}
+		if (!extra.isEmpty()) {
+			diffs.add(field + " extra: " + sortedStatusCheckArgs(extra));
+		}
+	}
+
+	private static String sortedStatusCheckArgs(Set<StatusCheckArgs> s) {
+		List<String> list = new ArrayList<>(s.stream().map(sc -> {
+			Integer appId = sc.getAppId();
+			return appId != null ? sc.getContext() + " (appId=" + appId + ")"
+					: sc.getContext();
+		}).toList());
+		Collections.sort(list);
+		return list.toString();
 	}
 
 	private static void checkSets(
