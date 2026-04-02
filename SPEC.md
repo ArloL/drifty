@@ -115,6 +115,14 @@ All settings below are fields on `RepositoryArgs`. Field defaults in `Repository
 | Allow update branch | `false` | Yes | Yes |
 | Delete branch on merge | `false` | Yes | Yes |
 | Archived | `false` | Yes | Yes (can archive active repos) |
+| Discussions enabled | `false` | Yes | Yes |
+| Is template | `false` | Yes | Yes |
+| Allow forking (private repos) | `false` | Yes | Yes |
+| Web commit signoff required | `false` | Yes | Yes |
+| Squash merge commit title | `"COMMIT_OR_PR_TITLE"` | Yes | Yes |
+| Squash merge commit message | `"COMMIT_MESSAGES"` | Yes | Yes |
+| Merge commit title | `"MERGE_MESSAGE"` | Yes | Yes |
+| Merge commit message | `"PR_TITLE"` | Yes | Yes |
 
 ### Security Settings
 

@@ -76,6 +76,10 @@ class OrgCheckerFixTest {
 				"has_issues": true,
 				"has_projects": true,
 				"has_wiki": true,
+				"has_discussions": false,
+				"is_template": false,
+				"allow_forking": false,
+				"web_commit_signoff_required": false,
 				"default_branch": "main",
 				"topics": [],
 				"allow_merge_commit": true,
@@ -84,6 +88,10 @@ class OrgCheckerFixTest {
 				"allow_update_branch": false,
 				"allow_auto_merge": false,
 				"delete_branch_on_merge": false,
+				"squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+				"squash_merge_commit_message": "COMMIT_MESSAGES",
+				"merge_commit_title": "MERGE_MESSAGE",
+				"merge_commit_message": "PR_TITLE",
 				"visibility": "public",
 				"archived": false,
 				"security_and_analysis": {
@@ -266,24 +274,33 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
-						.withRequestBody(equalToJson("""
-								{
-									"archived": false,
-									"description": "correct",
-									"homepage": "",
-									"has_issues": true,
-									"has_projects": true,
-									"has_wiki": true,
-									"allow_merge_commit": true,
-									"allow_squash_merge": true,
-									"allow_rebase_merge": true,
-									"allow_update_branch": false,
-									"allow_auto_merge": false,
-									"delete_branch_on_merge": false,
-									"default_branch": "main"
-								}
-								"""))
+				patchRequestedFor(
+						urlEqualTo("/repos/owner/repo")
+				).withRequestBody(equalToJson("""
+						{
+							"archived": false,
+							"description": "correct",
+							"homepage": "",
+							"has_issues": true,
+							"has_projects": true,
+							"has_wiki": true,
+							"has_discussions": false,
+							"is_template": false,
+							"allow_forking": false,
+							"web_commit_signoff_required": false,
+							"allow_merge_commit": true,
+							"allow_squash_merge": true,
+							"allow_rebase_merge": true,
+							"allow_update_branch": false,
+							"allow_auto_merge": false,
+							"delete_branch_on_merge": false,
+							"squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+							"squash_merge_commit_message": "COMMIT_MESSAGES",
+							"merge_commit_title": "MERGE_MESSAGE",
+							"merge_commit_message": "PR_TITLE",
+							"default_branch": "main"
+						}
+						"""))
 		);
 	}
 
@@ -307,24 +324,33 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
-						.withRequestBody(equalToJson("""
-								{
-									"archived": false,
-									"description": "",
-									"homepage": "",
-									"has_issues": true,
-									"has_projects": true,
-									"has_wiki": true,
-									"allow_merge_commit": true,
-									"allow_squash_merge": true,
-									"allow_rebase_merge": false,
-									"allow_update_branch": false,
-									"allow_auto_merge": false,
-									"delete_branch_on_merge": false,
-									"default_branch": "main"
-								}
-								"""))
+				patchRequestedFor(
+						urlEqualTo("/repos/owner/repo")
+				).withRequestBody(equalToJson("""
+						{
+							"archived": false,
+							"description": "",
+							"homepage": "",
+							"has_issues": true,
+							"has_projects": true,
+							"has_wiki": true,
+							"has_discussions": false,
+							"is_template": false,
+							"allow_forking": false,
+							"web_commit_signoff_required": false,
+							"allow_merge_commit": true,
+							"allow_squash_merge": true,
+							"allow_rebase_merge": false,
+							"allow_update_branch": false,
+							"allow_auto_merge": false,
+							"delete_branch_on_merge": false,
+							"squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+							"squash_merge_commit_message": "COMMIT_MESSAGES",
+							"merge_commit_title": "MERGE_MESSAGE",
+							"merge_commit_message": "PR_TITLE",
+							"default_branch": "main"
+						}
+						"""))
 		);
 	}
 
@@ -355,24 +381,33 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				1,
-				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
-						.withRequestBody(equalToJson("""
-								{
-									"archived": false,
-									"description": "correct",
-									"homepage": "https://example.com",
-									"has_issues": true,
-									"has_projects": true,
-									"has_wiki": true,
-									"allow_merge_commit": true,
-									"allow_squash_merge": true,
-									"allow_rebase_merge": true,
-									"allow_update_branch": false,
-									"allow_auto_merge": false,
-									"delete_branch_on_merge": false,
-									"default_branch": "main"
-								}
-								"""))
+				patchRequestedFor(
+						urlEqualTo("/repos/owner/repo")
+				).withRequestBody(equalToJson("""
+						{
+							"archived": false,
+							"description": "correct",
+							"homepage": "https://example.com",
+							"has_issues": true,
+							"has_projects": true,
+							"has_wiki": true,
+							"has_discussions": false,
+							"is_template": false,
+							"allow_forking": false,
+							"web_commit_signoff_required": false,
+							"allow_merge_commit": true,
+							"allow_squash_merge": true,
+							"allow_rebase_merge": true,
+							"allow_update_branch": false,
+							"allow_auto_merge": false,
+							"delete_branch_on_merge": false,
+							"squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+							"squash_merge_commit_message": "COMMIT_MESSAGES",
+							"merge_commit_title": "MERGE_MESSAGE",
+							"merge_commit_message": "PR_TITLE",
+							"default_branch": "main"
+						}
+						"""))
 		);
 	}
 
@@ -1594,24 +1629,33 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
-						.withRequestBody(equalToJson("""
-								{
-									"archived": false,
-									"description": "correct",
-									"homepage": "",
-									"has_issues": true,
-									"has_projects": true,
-									"has_wiki": true,
-									"allow_merge_commit": true,
-									"allow_squash_merge": true,
-									"allow_rebase_merge": true,
-									"allow_update_branch": false,
-									"allow_auto_merge": false,
-									"delete_branch_on_merge": false,
-									"default_branch": "main"
-								}
-								"""))
+				patchRequestedFor(
+						urlEqualTo("/repos/owner/repo")
+				).withRequestBody(equalToJson("""
+						{
+							"archived": false,
+							"description": "correct",
+							"homepage": "",
+							"has_issues": true,
+							"has_projects": true,
+							"has_wiki": true,
+							"has_discussions": false,
+							"is_template": false,
+							"allow_forking": false,
+							"web_commit_signoff_required": false,
+							"allow_merge_commit": true,
+							"allow_squash_merge": true,
+							"allow_rebase_merge": true,
+							"allow_update_branch": false,
+							"allow_auto_merge": false,
+							"delete_branch_on_merge": false,
+							"squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+							"squash_merge_commit_message": "COMMIT_MESSAGES",
+							"merge_commit_title": "MERGE_MESSAGE",
+							"merge_commit_message": "PR_TITLE",
+							"default_branch": "main"
+						}
+						"""))
 		);
 		verify(
 				putRequestedFor(urlEqualTo("/repos/owner/repo/topics"))

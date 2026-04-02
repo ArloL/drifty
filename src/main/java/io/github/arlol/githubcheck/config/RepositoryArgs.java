@@ -44,10 +44,18 @@ public final class RepositoryArgs {
 	private final boolean hasIssues;
 	private final boolean hasProjects;
 	private final boolean hasWiki;
+	private final boolean hasDiscussions;
+	private final boolean isTemplate;
+	private final boolean allowForking;
+	private final boolean webCommitSignoffRequired;
 	private final boolean allowMergeCommit;
 	private final boolean allowSquashMerge;
 	private final boolean allowAutoMerge;
 	private final boolean deleteBranchOnMerge;
+	private final String squashMergeCommitTitle;
+	private final String squashMergeCommitMessage;
+	private final String mergeCommitTitle;
+	private final String mergeCommitMessage;
 	private final WorkflowPermissions.DefaultWorkflowPermissions defaultWorkflowPermissions;
 	private final boolean canApprovePullRequestReviews;
 
@@ -80,10 +88,18 @@ public final class RepositoryArgs {
 		this.hasIssues = builder.hasIssues;
 		this.hasProjects = builder.hasProjects;
 		this.hasWiki = builder.hasWiki;
+		this.hasDiscussions = builder.hasDiscussions;
+		this.isTemplate = builder.isTemplate;
+		this.allowForking = builder.allowForking;
+		this.webCommitSignoffRequired = builder.webCommitSignoffRequired;
 		this.allowMergeCommit = builder.allowMergeCommit;
 		this.allowSquashMerge = builder.allowSquashMerge;
 		this.allowAutoMerge = builder.allowAutoMerge;
 		this.deleteBranchOnMerge = builder.deleteBranchOnMerge;
+		this.squashMergeCommitTitle = builder.squashMergeCommitTitle;
+		this.squashMergeCommitMessage = builder.squashMergeCommitMessage;
+		this.mergeCommitTitle = builder.mergeCommitTitle;
+		this.mergeCommitMessage = builder.mergeCommitMessage;
 		this.defaultWorkflowPermissions = builder.defaultWorkflowPermissions;
 		this.canApprovePullRequestReviews = builder.canApprovePullRequestReviews;
 	}
@@ -200,6 +216,22 @@ public final class RepositoryArgs {
 		return hasWiki;
 	}
 
+	public boolean hasDiscussions() {
+		return hasDiscussions;
+	}
+
+	public boolean isTemplate() {
+		return isTemplate;
+	}
+
+	public boolean allowForking() {
+		return allowForking;
+	}
+
+	public boolean webCommitSignoffRequired() {
+		return webCommitSignoffRequired;
+	}
+
 	public boolean allowMergeCommit() {
 		return allowMergeCommit;
 	}
@@ -214,6 +246,22 @@ public final class RepositoryArgs {
 
 	public boolean deleteBranchOnMerge() {
 		return deleteBranchOnMerge;
+	}
+
+	public String squashMergeCommitTitle() {
+		return squashMergeCommitTitle;
+	}
+
+	public String squashMergeCommitMessage() {
+		return squashMergeCommitMessage;
+	}
+
+	public String mergeCommitTitle() {
+		return mergeCommitTitle;
+	}
+
+	public String mergeCommitMessage() {
+		return mergeCommitMessage;
 	}
 
 	public WorkflowPermissions.DefaultWorkflowPermissions defaultWorkflowPermissions() {
@@ -247,6 +295,10 @@ public final class RepositoryArgs {
 				&& codeScanningDefaultSetup == that.codeScanningDefaultSetup
 				&& hasIssues == that.hasIssues
 				&& hasProjects == that.hasProjects && hasWiki == that.hasWiki
+				&& hasDiscussions == that.hasDiscussions
+				&& isTemplate == that.isTemplate
+				&& allowForking == that.allowForking
+				&& webCommitSignoffRequired == that.webCommitSignoffRequired
 				&& allowMergeCommit == that.allowMergeCommit
 				&& allowSquashMerge == that.allowSquashMerge
 				&& allowAutoMerge == that.allowAutoMerge
@@ -264,7 +316,16 @@ public final class RepositoryArgs {
 				&& Objects.equals(environments, that.environments)
 				&& Objects.equals(rulesets, that.rulesets)
 				&& Objects.equals(defaultBranch, that.defaultBranch)
-				&& Objects.equals(branchProtections, that.branchProtections);
+				&& Objects.equals(branchProtections, that.branchProtections)
+				&& Objects.equals(
+						squashMergeCommitTitle,
+						that.squashMergeCommitTitle
+				)
+				&& Objects.equals(
+						squashMergeCommitMessage,
+						that.squashMergeCommitMessage
+				) && Objects.equals(mergeCommitTitle, that.mergeCommitTitle)
+				&& Objects.equals(mergeCommitMessage, that.mergeCommitMessage);
 	}
 
 	@Override
@@ -297,10 +358,18 @@ public final class RepositoryArgs {
 				hasIssues,
 				hasProjects,
 				hasWiki,
+				hasDiscussions,
+				isTemplate,
+				allowForking,
+				webCommitSignoffRequired,
 				allowMergeCommit,
 				allowSquashMerge,
 				allowAutoMerge,
 				deleteBranchOnMerge,
+				squashMergeCommitTitle,
+				squashMergeCommitMessage,
+				mergeCommitTitle,
+				mergeCommitMessage,
 				defaultWorkflowPermissions,
 				canApprovePullRequestReviews
 		);
@@ -339,10 +408,18 @@ public final class RepositoryArgs {
 		private boolean hasIssues = true;
 		private boolean hasProjects = true;
 		private boolean hasWiki = true;
+		private boolean hasDiscussions = false;
+		private boolean isTemplate = false;
+		private boolean allowForking = false;
+		private boolean webCommitSignoffRequired = false;
 		private boolean allowMergeCommit = true;
 		private boolean allowSquashMerge = true;
 		private boolean allowAutoMerge = false;
 		private boolean deleteBranchOnMerge = false;
+		private String squashMergeCommitTitle = "COMMIT_OR_PR_TITLE";
+		private String squashMergeCommitMessage = "COMMIT_MESSAGES";
+		private String mergeCommitTitle = "MERGE_MESSAGE";
+		private String mergeCommitMessage = "PR_TITLE";
 		private WorkflowPermissions.DefaultWorkflowPermissions defaultWorkflowPermissions = WorkflowPermissions.DefaultWorkflowPermissions.WRITE;
 		private boolean canApprovePullRequestReviews = true;
 
@@ -379,10 +456,18 @@ public final class RepositoryArgs {
 			this.hasIssues = repositoryArgs.hasIssues;
 			this.hasProjects = repositoryArgs.hasProjects;
 			this.hasWiki = repositoryArgs.hasWiki;
+			this.hasDiscussions = repositoryArgs.hasDiscussions;
+			this.isTemplate = repositoryArgs.isTemplate;
+			this.allowForking = repositoryArgs.allowForking;
+			this.webCommitSignoffRequired = repositoryArgs.webCommitSignoffRequired;
 			this.allowMergeCommit = repositoryArgs.allowMergeCommit;
 			this.allowSquashMerge = repositoryArgs.allowSquashMerge;
 			this.allowAutoMerge = repositoryArgs.allowAutoMerge;
 			this.deleteBranchOnMerge = repositoryArgs.deleteBranchOnMerge;
+			this.squashMergeCommitTitle = repositoryArgs.squashMergeCommitTitle;
+			this.squashMergeCommitMessage = repositoryArgs.squashMergeCommitMessage;
+			this.mergeCommitTitle = repositoryArgs.mergeCommitTitle;
+			this.mergeCommitMessage = repositoryArgs.mergeCommitMessage;
 			this.defaultWorkflowPermissions = repositoryArgs.defaultWorkflowPermissions;
 			this.canApprovePullRequestReviews = repositoryArgs.canApprovePullRequestReviews;
 		}
@@ -578,6 +663,28 @@ public final class RepositoryArgs {
 			return this;
 		}
 
+		public Builder hasDiscussions(boolean hasDiscussions) {
+			this.hasDiscussions = hasDiscussions;
+			return this;
+		}
+
+		public Builder isTemplate(boolean isTemplate) {
+			this.isTemplate = isTemplate;
+			return this;
+		}
+
+		public Builder allowForking(boolean allowForking) {
+			this.allowForking = allowForking;
+			return this;
+		}
+
+		public Builder webCommitSignoffRequired(
+				boolean webCommitSignoffRequired
+		) {
+			this.webCommitSignoffRequired = webCommitSignoffRequired;
+			return this;
+		}
+
 		public Builder allowMergeCommit(boolean allowMergeCommit) {
 			this.allowMergeCommit = allowMergeCommit;
 			return this;
@@ -595,6 +702,28 @@ public final class RepositoryArgs {
 
 		public Builder deleteBranchOnMerge(boolean deleteBranchOnMerge) {
 			this.deleteBranchOnMerge = deleteBranchOnMerge;
+			return this;
+		}
+
+		public Builder squashMergeCommitTitle(String squashMergeCommitTitle) {
+			this.squashMergeCommitTitle = squashMergeCommitTitle;
+			return this;
+		}
+
+		public Builder squashMergeCommitMessage(
+				String squashMergeCommitMessage
+		) {
+			this.squashMergeCommitMessage = squashMergeCommitMessage;
+			return this;
+		}
+
+		public Builder mergeCommitTitle(String mergeCommitTitle) {
+			this.mergeCommitTitle = mergeCommitTitle;
+			return this;
+		}
+
+		public Builder mergeCommitMessage(String mergeCommitMessage) {
+			this.mergeCommitMessage = mergeCommitMessage;
 			return this;
 		}
 
