@@ -323,6 +323,25 @@ public class OrgChecker {
 		check(diffs, "has_wiki", desired.hasWiki(), details.hasWiki());
 		check(
 				diffs,
+				"has_discussions",
+				desired.hasDiscussions(),
+				details.hasDiscussions()
+		);
+		check(diffs, "is_template", desired.isTemplate(), details.isTemplate());
+		check(
+				diffs,
+				"allow_forking",
+				desired.allowForking(),
+				details.allowForking()
+		);
+		check(
+				diffs,
+				"web_commit_signoff_required",
+				desired.webCommitSignoffRequired(),
+				details.webCommitSignoffRequired()
+		);
+		check(
+				diffs,
 				"allow_merge_commit",
 				desired.allowMergeCommit(),
 				details.allowMergeCommit()
@@ -356,6 +375,30 @@ public class OrgChecker {
 				"delete_branch_on_merge",
 				desired.deleteBranchOnMerge(),
 				details.deleteBranchOnMerge()
+		);
+		check(
+				diffs,
+				"squash_merge_commit_title",
+				desired.squashMergeCommitTitle(),
+				details.squashMergeCommitTitle()
+		);
+		check(
+				diffs,
+				"squash_merge_commit_message",
+				desired.squashMergeCommitMessage(),
+				details.squashMergeCommitMessage()
+		);
+		check(
+				diffs,
+				"merge_commit_title",
+				desired.mergeCommitTitle(),
+				details.mergeCommitTitle()
+		);
+		check(
+				diffs,
+				"merge_commit_message",
+				desired.mergeCommitMessage(),
+				details.mergeCommitMessage()
 		);
 		check(diffs, "visibility", desired.visibility(), details.visibility());
 		check(
@@ -1150,12 +1193,29 @@ public class OrgChecker {
 			fields.put("has_issues", desired.hasIssues());
 			fields.put("has_projects", desired.hasProjects());
 			fields.put("has_wiki", desired.hasWiki());
+			fields.put("has_discussions", desired.hasDiscussions());
+			fields.put("is_template", desired.isTemplate());
+			fields.put("allow_forking", desired.allowForking());
+			fields.put(
+					"web_commit_signoff_required",
+					desired.webCommitSignoffRequired()
+			);
 			fields.put("allow_merge_commit", desired.allowMergeCommit());
 			fields.put("allow_squash_merge", desired.allowSquashMerge());
 			fields.put("allow_rebase_merge", desired.allowRebaseMerge());
 			fields.put("allow_update_branch", desired.allowUpdateBranch());
 			fields.put("allow_auto_merge", desired.allowAutoMerge());
 			fields.put("delete_branch_on_merge", desired.deleteBranchOnMerge());
+			fields.put(
+					"squash_merge_commit_title",
+					desired.squashMergeCommitTitle()
+			);
+			fields.put(
+					"squash_merge_commit_message",
+					desired.squashMergeCommitMessage()
+			);
+			fields.put("merge_commit_title", desired.mergeCommitTitle());
+			fields.put("merge_commit_message", desired.mergeCommitMessage());
 			fields.put("default_branch", desired.defaultBranch());
 			client.updateRepository(org, name, fields);
 			remaining.removeAll(repoSettingsDiffs);

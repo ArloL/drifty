@@ -118,6 +118,20 @@ Implemented: `BypassActorArgs` config record added (reusing `RulesetDetailsRespo
 
 Implemented: `OrgChecker.checkRulesets()` now identifies actual rulesets not in desired config and adds `ruleset.<name>: extra` diffs. `applyFixes()` iterates extra rulesets and calls `GitHubClient.deleteRuleset()` for each. `GitHubClient.deleteRuleset(owner, repo, rulesetId)` sends `DELETE /repos/{owner}/{repo}/rulesets/{id}` and expects 204.
 
+## ~~27. Additional Repository Settings~~ DONE
+
+Implemented: Eight new settings added to `RepositoryArgs` (with GitHub-matching defaults) and wired into `checkRepoSettings()` and the PATCH payload in `applyFixes()`:
+- `hasDiscussions` (default: `false`) — discussions tab
+- `isTemplate` (default: `false`) — make repo available as a template
+- `allowForking` (default: `false`) — allow forking of private repos
+- `webCommitSignoffRequired` (default: `false`) — require sign-off on web-UI commits
+- `squashMergeCommitTitle` (default: `"COMMIT_OR_PR_TITLE"`) — default title for squash merges
+- `squashMergeCommitMessage` (default: `"COMMIT_MESSAGES"`) — default message for squash merges
+- `mergeCommitTitle` (default: `"MERGE_MESSAGE"`) — default title for merge commits
+- `mergeCommitMessage` (default: `"PR_TITLE"`) — default message for merge commits
+
+All fields are already present in `RepositoryFull` (fetched from the API), so no new API calls were needed.
+
 ## 25. Missing Repo Detection
 
 Repos in config that don't exist on GitHub should be reported as MISSING with exit code 1.
