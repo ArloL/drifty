@@ -47,10 +47,12 @@ import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.SimpleUser;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.BranchProtectionArgs;
+import io.github.arlol.githubcheck.config.BypassActorArgs;
 import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
 import io.github.arlol.githubcheck.config.EnvironmentArgs;
 import io.github.arlol.githubcheck.config.PagesArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.config.RulePatternArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
 
@@ -812,6 +814,157 @@ public class OrgChecker {
 						gotTools
 				);
 			}
+
+			// Check creation
+			check(
+					diffs,
+					"ruleset." + rName + ".creation",
+					wantedRuleset.creation(),
+					actualRulesByType.containsKey(RulesetRuleType.CREATION)
+			);
+
+			// Check deletion
+			check(
+					diffs,
+					"ruleset." + rName + ".deletion",
+					wantedRuleset.deletion(),
+					actualRulesByType.containsKey(RulesetRuleType.DELETION)
+			);
+
+			// Check required_signatures
+			check(
+					diffs,
+					"ruleset." + rName + ".required_signatures",
+					wantedRuleset.requiredSignatures(),
+					actualRulesByType
+							.containsKey(RulesetRuleType.REQUIRED_SIGNATURES)
+			);
+
+			// Check update
+			check(
+					diffs,
+					"ruleset." + rName + ".update",
+					wantedRuleset.update(),
+					actualRulesByType.containsKey(RulesetRuleType.UPDATE)
+			);
+			if (wantedRuleset.update() && actualRulesByType.get(
+					RulesetRuleType.UPDATE
+			) instanceof Rule.Update updateRule) {
+				Boolean gotAllowsFetch = updateRule.parameters() != null
+						? updateRule.parameters().updateAllowsFetchAndMerge()
+						: null;
+				check(
+						diffs,
+						"ruleset." + rName + ".update_allows_fetch_and_merge",
+						wantedRuleset.updateAllowsFetchAndMerge(),
+						Boolean.TRUE.equals(gotAllowsFetch)
+				);
+			}
+
+			// Check pattern rules
+			checkPatternRule(
+					diffs,
+					"ruleset." + rName + ".commit_message_pattern",
+					wantedRuleset.commitMessagePattern(),
+					actualRulesByType.get(
+							RulesetRuleType.COMMIT_MESSAGE_PATTERN
+					) instanceof Rule.CommitMessagePattern r ? r.parameters()
+							: null
+			);
+			checkPatternRule(
+					diffs,
+					"ruleset." + rName + ".commit_author_email_pattern",
+					wantedRuleset.commitAuthorEmailPattern(),
+					actualRulesByType.get(
+							RulesetRuleType.COMMIT_AUTHOR_EMAIL_PATTERN
+					) instanceof Rule.CommitAuthorEmailPattern r
+							? r.parameters()
+							: null
+			);
+			checkPatternRule(
+					diffs,
+					"ruleset." + rName + ".committer_email_pattern",
+					wantedRuleset.committerEmailPattern(),
+					actualRulesByType.get(
+							RulesetRuleType.COMMITTER_EMAIL_PATTERN
+					) instanceof Rule.CommitterEmailPattern r ? r.parameters()
+							: null
+			);
+			checkPatternRule(
+					diffs,
+					"ruleset." + rName + ".branch_name_pattern",
+					wantedRuleset.branchNamePattern(),
+					actualRulesByType.get(
+							RulesetRuleType.BRANCH_NAME_PATTERN
+					) instanceof Rule.BranchNamePattern r ? r.parameters()
+							: null
+			);
+			checkPatternRule(
+					diffs,
+					"ruleset." + rName + ".tag_name_pattern",
+					wantedRuleset.tagNamePattern(),
+					actualRulesByType.get(
+							RulesetRuleType.TAG_NAME_PATTERN
+					) instanceof Rule.TagNamePattern r ? r.parameters() : null
+			);
+
+			// Check required_deployments
+			Set<String> wantDeployments = wantedRuleset.requiredDeployments();
+			Set<String> gotDeployments = new HashSet<>();
+			if (actualRulesByType.get(
+					RulesetRuleType.REQUIRED_DEPLOYMENTS
+			) instanceof Rule.RequiredDeployments rd && rd.parameters() != null
+					&& rd.parameters()
+							.requiredDeploymentEnvironments() != null) {
+				gotDeployments.addAll(
+						rd.parameters().requiredDeploymentEnvironments()
+				);
+			}
+			if (!wantDeployments.isEmpty() || !gotDeployments.isEmpty()) {
+				checkSets(
+						diffs,
+						"ruleset." + rName + ".required_deployments",
+						wantDeployments,
+						gotDeployments
+				);
+			}
+
+			// Check bypass actors (Feature 23)
+			List<BypassActorArgs> wantBypass = wantedRuleset.bypassActors();
+			if (!wantBypass.isEmpty()) {
+				List<RulesetDetailsResponse.BypassActor> gotBypass = actualRuleset
+						.bypassActors() != null ? actualRuleset.bypassActors()
+								: List.of();
+				Set<String> wantSet = wantBypass.stream()
+						.map(
+								a -> a.actorType() + ":" + a.actorId() + ":"
+										+ a.bypassMode()
+						)
+						.collect(Collectors.toSet());
+				Set<String> gotSet = gotBypass.stream()
+						.map(
+								a -> a.actorType() + ":" + a.actorId() + ":"
+										+ a.bypassMode()
+						)
+						.collect(Collectors.toSet());
+				checkSets(
+						diffs,
+						"ruleset." + rName + ".bypass_actors",
+						wantSet,
+						gotSet
+				);
+			}
+		}
+
+		// Check for extra rulesets (Feature 24)
+		Set<String> desiredNames = desired.rulesets()
+				.stream()
+				.map(RulesetArgs::name)
+				.collect(Collectors.toSet());
+		for (RulesetDetailsResponse extra : actual.rulesets()) {
+			if (!desiredNames.contains(extra.name())) {
+				diffs.add("ruleset." + extra.name() + ": extra");
+			}
 		}
 	}
 
@@ -1315,6 +1468,22 @@ public class OrgChecker {
 					);
 				}
 			}
+			// Delete extra rulesets (Feature 24)
+			Set<String> desiredNames = desired.rulesets()
+					.stream()
+					.map(RulesetArgs::name)
+					.collect(Collectors.toSet());
+			for (RulesetDetailsResponse extra : actual.rulesets()) {
+				if (!desiredNames.contains(extra.name()) && rulesetDiffs
+						.contains("ruleset." + extra.name() + ": extra")) {
+					client.deleteRuleset(org, name, extra.id());
+					System.out.printf(
+							"[FIXED]   %s: ruleset.%s deleted%n",
+							name,
+							extra.name()
+					);
+				}
+			}
 			remaining.removeAll(rulesetDiffs);
 		}
 
@@ -1527,11 +1696,29 @@ public class OrgChecker {
 
 	private static RulesetRequest buildRulesetRequest(RulesetArgs args) {
 		List<Rule> rules = new ArrayList<>();
+		if (args.creation()) {
+			rules.add(new Rule.Creation());
+		}
+		if (args.deletion()) {
+			rules.add(new Rule.Deletion());
+		}
+		if (args.requiredSignatures()) {
+			rules.add(new Rule.RequiredSignatures());
+		}
 		if (args.requiredLinearHistory()) {
 			rules.add(new Rule.RequiredLinearHistory());
 		}
 		if (args.noForcePushes()) {
 			rules.add(new Rule.NonFastForward());
+		}
+		if (args.update()) {
+			rules.add(
+					new Rule.Update(
+							new Rule.Update.Parameters(
+									args.updateAllowsFetchAndMerge()
+							)
+					)
+			);
 		}
 		if (!args.requiredStatusChecks().isEmpty()) {
 			List<Rule.StatusCheck> checks = args.requiredStatusChecks()
@@ -1585,6 +1772,61 @@ public class OrgChecker {
 					)
 			);
 		}
+		if (args.commitMessagePattern() != null) {
+			rules.add(
+					new Rule.CommitMessagePattern(
+							toPatternParameters(args.commitMessagePattern())
+					)
+			);
+		}
+		if (args.commitAuthorEmailPattern() != null) {
+			rules.add(
+					new Rule.CommitAuthorEmailPattern(
+							toPatternParameters(args.commitAuthorEmailPattern())
+					)
+			);
+		}
+		if (args.committerEmailPattern() != null) {
+			rules.add(
+					new Rule.CommitterEmailPattern(
+							toPatternParameters(args.committerEmailPattern())
+					)
+			);
+		}
+		if (args.branchNamePattern() != null) {
+			rules.add(
+					new Rule.BranchNamePattern(
+							toPatternParameters(args.branchNamePattern())
+					)
+			);
+		}
+		if (args.tagNamePattern() != null) {
+			rules.add(
+					new Rule.TagNamePattern(
+							toPatternParameters(args.tagNamePattern())
+					)
+			);
+		}
+		if (!args.requiredDeployments().isEmpty()) {
+			rules.add(
+					new Rule.RequiredDeployments(
+							new Rule.RequiredDeployments.Parameters(
+									List.copyOf(args.requiredDeployments())
+							)
+					)
+			);
+		}
+		List<RulesetRequest.BypassActorRequest> bypassActors = args
+				.bypassActors()
+				.stream()
+				.map(
+						a -> new RulesetRequest.BypassActorRequest(
+								a.actorId(),
+								a.actorType(),
+								a.bypassMode()
+						)
+				)
+				.toList();
 		var refName = new RulesetRequest.Conditions.RefName(
 				args.includePatterns(),
 				List.of()
@@ -1599,8 +1841,20 @@ public class OrgChecker {
 				args.name(),
 				RulesetTarget.BRANCH,
 				RulesetEnforcement.ACTIVE,
+				bypassActors,
 				conditions,
 				rules
+		);
+	}
+
+	private static Rule.PatternParameters toPatternParameters(
+			RulePatternArgs args
+	) {
+		return new Rule.PatternParameters(
+				args.name(),
+				args.negate(),
+				args.operator(),
+				args.pattern()
 		);
 	}
 
@@ -1665,6 +1919,29 @@ public class OrgChecker {
 		if (!Objects.equals(want, got)) {
 			diffs.add(field + ": want=" + want + " got=" + got);
 		}
+	}
+
+	private static void checkPatternRule(
+			List<String> diffs,
+			String field,
+			RulePatternArgs want,
+			Rule.PatternParameters got
+	) {
+		if (want == null) {
+			return;
+		}
+		if (got == null) {
+			diffs.add(field + ": missing");
+			return;
+		}
+		check(
+				diffs,
+				field + ".negate",
+				want.negate(),
+				Boolean.TRUE.equals(got.negate())
+		);
+		check(diffs, field + ".operator", want.operator(), got.operator());
+		check(diffs, field + ".pattern", want.pattern(), got.pattern());
 	}
 
 	private static void checkSets(

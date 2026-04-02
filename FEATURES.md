@@ -106,47 +106,17 @@ Implemented: `RepositoryArgs` now has four configurable boolean security fields:
 
 Implemented: `RepositoryArgs` has four new configurable boolean fields: `secretScanningValidityChecks` (default `false`), `secretScanningNonProviderPatterns` (default `false`), `privateVulnerabilityReporting` (default `false`), `codeScanningDefaultSetup` (default `false`). `SecurityAndAnalysis` record extended with `secretScanningValidityChecks` field. Two new client response records added: `PrivateVulnerabilityReporting` and `CodeScanningDefaultSetup`. `RepositoryState` extended with `privateVulnerabilityReporting` and `codeScanningDefaultSetup` boolean fields (fetched via dedicated GET endpoints). `GitHubClient` has `getPrivateVulnerabilityReporting()`, `enablePrivateVulnerabilityReporting()`, `disablePrivateVulnerabilityReporting()`, `getCodeScanningDefaultSetup()`, `enableCodeScanningDefaultSetup()`, `disableCodeScanningDefaultSetup()`. `OrgChecker.fetchState()` fetches both new settings for non-archived repos. `checkSecuritySettings()` diffs all four new settings. `applyFixes()` fixes: validity checks and non-provider patterns via `security_and_analysis` PATCH; private vulnerability reporting via PUT/DELETE; code scanning default setup via PATCH with `{"state": "configured"|"not-configured"}`. `defaultRepository` in `GitHubCheck.repositories()` enables `secretScanningValidityChecks`, `secretScanningNonProviderPatterns`, and `privateVulnerabilityReporting`. WireMock mappings added for all new GET/PUT/DELETE/PATCH endpoints; playback and diff/fix tests added.
 
-## 22. Ruleset: All Rule Types
+## ~~22. Ruleset: All Rule Types~~ DONE
 
-Currently only required_linear_history, non_fast_forward, required_status_checks, and pull_request rules are managed. The spec calls for all rule types.
+Implemented: Extended `Rule` sealed interface with new record types confirmed against the GitHub API schema (`schemas/repos/{owner}/{repo}/rules/branches/{branch}/get/schema.json`): `Creation`, `Deletion`, `RequiredSignatures` (no-param rules), `Update` (with `updateAllowsFetchAndMerge` boolean param), `CommitMessagePattern`, `CommitAuthorEmailPattern`, `CommitterEmailPattern`, `BranchNamePattern`, `TagNamePattern` (all using a shared `PatternParameters` record with `name`, `negate`, `operator`, `pattern`; operator is a `RulePatternArgs.PatternOperator` enum with values `STARTS_WITH`, `ENDS_WITH`, `CONTAINS`, `REGEX`), and `RequiredDeployments` (with `requiredDeploymentEnvironments` list). `RulesetArgs` extended with corresponding fields and builder methods. `OrgChecker.checkRulesets()` extended with diff checks for all new types; pattern rules use a `checkPatternRule()` helper. `buildRulesetRequest()` extended to build all new rule types.
 
-### Plan
+## ~~23. Ruleset: Bypass Actors~~ DONE
 
-Add support for all GitHub ruleset rule types:
-- creation
-- update
-- deletion
-- required_signatures
-- commit_message_pattern
-- commit_author_email_pattern
-- committer_email_pattern
-- branch_name_pattern
-- tag_name_pattern
-- required_deployments
-- required_code_scanning
+Implemented: `BypassActorArgs` config record added (reusing `RulesetDetailsResponse.BypassActor.ActorType` and `BypassMode` enums). `RulesetArgs` has a `bypassActors` list (default empty). `RulesetRequest` extended with a `bypassActors` field (`@JsonInclude(NON_EMPTY)`) using a nested `BypassActorRequest` record that reuses the same enums (serializing correctly as `"Integration"`, `"OrganizationAdmin"`, etc.). `OrgChecker.checkRulesets()` diffs desired vs actual bypass actors as a set of `actorType:actorId:bypassMode` strings. `buildRulesetRequest()` maps `BypassActorArgs` to `BypassActorRequest`.
 
-Extend `RulesetArgs` with fields for each rule type and update diff/fix logic.
+## ~~24. Ruleset: Delete Extra Rulesets~~ DONE
 
-## 23. Ruleset: Bypass Actors
-
-Ruleset bypass actors (roles, teams, apps that can bypass rules) are not currently managed.
-
-### Plan
-
-- Add `bypassActors` config to `RulesetArgs` (list of actor type + actor ID + bypass mode).
-- Diff against actual bypass actors from the API response.
-- Include in create/update ruleset payloads.
-
-## 24. Ruleset: Delete Extra Rulesets
-
-Rulesets that exist on the repo but are not in config should be deleted by `--fix`.
-
-### Plan
-
-- In `checkRulesets()`, identify rulesets present on GitHub but not in config.
-- Report as drift.
-- In `applyFixes()`, call `GitHubClient.deleteRuleset()` to remove them.
-- Add `GitHubClient.deleteRuleset(owner, repo, rulesetId)`.
+Implemented: `OrgChecker.checkRulesets()` now identifies actual rulesets not in desired config and adds `ruleset.<name>: extra` diffs. `applyFixes()` iterates extra rulesets and calls `GitHubClient.deleteRuleset()` for each. `GitHubClient.deleteRuleset(owner, repo, rulesetId)` sends `DELETE /repos/{owner}/{repo}/rulesets/{id}` and expects 204.
 
 ## 25. Missing Repo Detection
 

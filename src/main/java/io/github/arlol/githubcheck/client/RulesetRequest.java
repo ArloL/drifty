@@ -9,12 +9,24 @@ public record RulesetRequest(
 		String name,
 		RulesetTarget target,
 		RulesetEnforcement enforcement,
+		@JsonInclude(
+			JsonInclude.Include.NON_EMPTY
+		) List<BypassActorRequest> bypassActors,
 		Conditions conditions,
 		List<Rule> rules
 ) {
 
 	public RulesetRequest {
+		bypassActors = bypassActors == null ? null : List.copyOf(bypassActors);
 		rules = rules == null ? null : List.copyOf(rules);
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record BypassActorRequest(
+			Long actorId,
+			RulesetDetailsResponse.BypassActor.ActorType actorType,
+			RulesetDetailsResponse.BypassActor.BypassMode bypassMode
+	) {
 	}
 
 	@JsonInclude(JsonInclude.Include.NON_NULL)
