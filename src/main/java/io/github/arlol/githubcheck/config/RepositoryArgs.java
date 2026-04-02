@@ -36,6 +36,10 @@ public final class RepositoryArgs {
 	private final boolean automatedSecurityFixes;
 	private final boolean secretScanning;
 	private final boolean secretScanningPushProtection;
+	private final boolean secretScanningValidityChecks;
+	private final boolean secretScanningNonProviderPatterns;
+	private final boolean privateVulnerabilityReporting;
+	private final boolean codeScanningDefaultSetup;
 	private final boolean hasIssues;
 	private final boolean hasProjects;
 	private final boolean hasWiki;
@@ -67,6 +71,10 @@ public final class RepositoryArgs {
 		this.automatedSecurityFixes = builder.automatedSecurityFixes;
 		this.secretScanning = builder.secretScanning;
 		this.secretScanningPushProtection = builder.secretScanningPushProtection;
+		this.secretScanningValidityChecks = builder.secretScanningValidityChecks;
+		this.secretScanningNonProviderPatterns = builder.secretScanningNonProviderPatterns;
+		this.privateVulnerabilityReporting = builder.privateVulnerabilityReporting;
+		this.codeScanningDefaultSetup = builder.codeScanningDefaultSetup;
 		this.hasIssues = builder.hasIssues;
 		this.hasProjects = builder.hasProjects;
 		this.hasWiki = builder.hasWiki;
@@ -158,6 +166,22 @@ public final class RepositoryArgs {
 		return secretScanningPushProtection;
 	}
 
+	public boolean secretScanningValidityChecks() {
+		return secretScanningValidityChecks;
+	}
+
+	public boolean secretScanningNonProviderPatterns() {
+		return secretScanningNonProviderPatterns;
+	}
+
+	public boolean privateVulnerabilityReporting() {
+		return privateVulnerabilityReporting;
+	}
+
+	public boolean codeScanningDefaultSetup() {
+		return codeScanningDefaultSetup;
+	}
+
 	public boolean hasIssues() {
 		return hasIssues;
 	}
@@ -211,6 +235,10 @@ public final class RepositoryArgs {
 				&& automatedSecurityFixes == that.automatedSecurityFixes
 				&& secretScanning == that.secretScanning
 				&& secretScanningPushProtection == that.secretScanningPushProtection
+				&& secretScanningValidityChecks == that.secretScanningValidityChecks
+				&& secretScanningNonProviderPatterns == that.secretScanningNonProviderPatterns
+				&& privateVulnerabilityReporting == that.privateVulnerabilityReporting
+				&& codeScanningDefaultSetup == that.codeScanningDefaultSetup
 				&& hasIssues == that.hasIssues
 				&& hasProjects == that.hasProjects && hasWiki == that.hasWiki
 				&& allowMergeCommit == that.allowMergeCommit
@@ -254,6 +282,10 @@ public final class RepositoryArgs {
 				automatedSecurityFixes,
 				secretScanning,
 				secretScanningPushProtection,
+				secretScanningValidityChecks,
+				secretScanningNonProviderPatterns,
+				privateVulnerabilityReporting,
+				codeScanningDefaultSetup,
 				hasIssues,
 				hasProjects,
 				hasWiki,
@@ -295,6 +327,10 @@ public final class RepositoryArgs {
 		private boolean automatedSecurityFixes = false;
 		private boolean secretScanning = true;
 		private boolean secretScanningPushProtection = true;
+		private boolean secretScanningValidityChecks = false;
+		private boolean secretScanningNonProviderPatterns = false;
+		private boolean privateVulnerabilityReporting = false;
+		private boolean codeScanningDefaultSetup = false;
 		private boolean hasIssues = true;
 		private boolean hasProjects = true;
 		private boolean hasWiki = true;
@@ -329,6 +365,10 @@ public final class RepositoryArgs {
 			this.automatedSecurityFixes = repositoryArgs.automatedSecurityFixes;
 			this.secretScanning = repositoryArgs.secretScanning;
 			this.secretScanningPushProtection = repositoryArgs.secretScanningPushProtection;
+			this.secretScanningValidityChecks = repositoryArgs.secretScanningValidityChecks;
+			this.secretScanningNonProviderPatterns = repositoryArgs.secretScanningNonProviderPatterns;
+			this.privateVulnerabilityReporting = repositoryArgs.privateVulnerabilityReporting;
+			this.codeScanningDefaultSetup = repositoryArgs.codeScanningDefaultSetup;
 			this.hasIssues = repositoryArgs.hasIssues;
 			this.hasProjects = repositoryArgs.hasProjects;
 			this.hasWiki = repositoryArgs.hasWiki;
@@ -480,6 +520,34 @@ public final class RepositoryArgs {
 				boolean secretScanningPushProtection
 		) {
 			this.secretScanningPushProtection = secretScanningPushProtection;
+			return this;
+		}
+
+		public Builder secretScanningValidityChecks(
+				boolean secretScanningValidityChecks
+		) {
+			this.secretScanningValidityChecks = secretScanningValidityChecks;
+			return this;
+		}
+
+		public Builder secretScanningNonProviderPatterns(
+				boolean secretScanningNonProviderPatterns
+		) {
+			this.secretScanningNonProviderPatterns = secretScanningNonProviderPatterns;
+			return this;
+		}
+
+		public Builder privateVulnerabilityReporting(
+				boolean privateVulnerabilityReporting
+		) {
+			this.privateVulnerabilityReporting = privateVulnerabilityReporting;
+			return this;
+		}
+
+		public Builder codeScanningDefaultSetup(
+				boolean codeScanningDefaultSetup
+		) {
+			this.codeScanningDefaultSetup = codeScanningDefaultSetup;
 			return this;
 		}
 

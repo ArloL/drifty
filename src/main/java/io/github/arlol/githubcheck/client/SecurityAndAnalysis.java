@@ -11,6 +11,7 @@ public record SecurityAndAnalysis(
 		StatusObject dependabotSecurityUpdates,
 		StatusObject codeSecurity,
 		StatusObject secretScanningNonProviderPatterns,
+		StatusObject secretScanningValidityChecks,
 		StatusObject secretScanningAiDetection,
 		StatusObject secretScanningDelegatedAlertDismissal,
 		StatusObject secretScanningDelegatedBypass

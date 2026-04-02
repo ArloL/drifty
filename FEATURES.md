@@ -102,19 +102,9 @@ Implemented: `RepositoryArgs` now has a `defaultBranch` field (default: `"main"`
 
 Implemented: `RepositoryArgs` now has four configurable boolean security fields: `vulnerabilityAlerts` (default `true`), `automatedSecurityFixes` (default `false`), `secretScanning` (default `true`), `secretScanningPushProtection` (default `true`). `OrgChecker.checkSecuritySettings()` reads desired values from config instead of hardcoding `true`. `applyFixes()` handles both enable and disable paths for all four settings — vulnerability alerts and automated security fixes use dedicated DELETE endpoints (`disableVulnerabilityAlerts()`, `disableAutomatedSecurityFixes()` added to `GitHubClient`); secret scanning settings use a single PATCH call with per-field status, fixing a pre-existing bug where `d.startsWith("secret_scanning")` also matched `secret_scanning_push_protection`. `defaultRepository` in `GitHubCheck.repositories()` sets `automatedSecurityFixes(true)`. WireMock mappings added for GET/DELETE automated-security-fixes and DELETE vulnerability-alerts; playback and recording tests updated.
 
-## 21. Additional Security Settings
+## ~~21. Additional Security Settings~~ DONE
 
-New security settings to manage (all API-exposed). Defaults match GitHub's defaults for newly created public repos.
-
-### Plan
-
-- Add boolean fields to `RepositoryArgs`:
-  - `secretScanningValidityChecks` (default: `false`)
-  - `secretScanningNonProviderPatterns` (default: `false`)
-  - `privateVulnerabilityReporting` (default: `false`)
-  - `codeScanningDefaultSetup` (default: `false`)
-- Set non-default desired values in `defaultRepository` in `GitHubCheck.repositories()`.
-- Check and fix via REST API.
+Implemented: `RepositoryArgs` has four new configurable boolean fields: `secretScanningValidityChecks` (default `false`), `secretScanningNonProviderPatterns` (default `false`), `privateVulnerabilityReporting` (default `false`), `codeScanningDefaultSetup` (default `false`). `SecurityAndAnalysis` record extended with `secretScanningValidityChecks` field. Two new client response records added: `PrivateVulnerabilityReporting` and `CodeScanningDefaultSetup`. `RepositoryState` extended with `privateVulnerabilityReporting` and `codeScanningDefaultSetup` boolean fields (fetched via dedicated GET endpoints). `GitHubClient` has `getPrivateVulnerabilityReporting()`, `enablePrivateVulnerabilityReporting()`, `disablePrivateVulnerabilityReporting()`, `getCodeScanningDefaultSetup()`, `enableCodeScanningDefaultSetup()`, `disableCodeScanningDefaultSetup()`. `OrgChecker.fetchState()` fetches both new settings for non-archived repos. `checkSecuritySettings()` diffs all four new settings. `applyFixes()` fixes: validity checks and non-provider patterns via `security_and_analysis` PATCH; private vulnerability reporting via PUT/DELETE; code scanning default setup via PATCH with `{"state": "configured"|"not-configured"}`. `defaultRepository` in `GitHubCheck.repositories()` enables `secretScanningValidityChecks`, `secretScanningNonProviderPatterns`, and `privateVulnerabilityReporting`. WireMock mappings added for all new GET/PUT/DELETE/PATCH endpoints; playback and diff/fix tests added.
 
 ## 22. Ruleset: All Rule Types
 

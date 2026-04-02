@@ -180,6 +180,8 @@ public class OrgChecker {
 		boolean vulnAlerts = false;
 		boolean automatedSecurityFixes = false;
 		boolean immutableReleases = false;
+		boolean privateVulnerabilityReporting = false;
+		boolean codeScanningDefaultSetup = false;
 		if (!archived) {
 			vulnAlerts = client.getVulnerabilityAlerts(org, name);
 			automatedSecurityFixes = client
@@ -188,6 +190,10 @@ public class OrgChecker {
 			if (ir.isPresent()) {
 				immutableReleases = ir.orElseThrow().enabled();
 			}
+			privateVulnerabilityReporting = client
+					.getPrivateVulnerabilityReporting(org, name);
+			codeScanningDefaultSetup = client
+					.getCodeScanningDefaultSetup(org, name);
 		}
 
 		Map<String, BranchProtectionResponse> branchProtections = new HashMap<>();
@@ -242,7 +248,9 @@ public class OrgChecker {
 				rulesets,
 				pages,
 				envDetails,
-				immutableReleases
+				immutableReleases,
+				privateVulnerabilityReporting,
+				codeScanningDefaultSetup
 		);
 	}
 
@@ -417,7 +425,40 @@ public class OrgChecker {
 					desired.secretScanningPushProtection(),
 					secretScanningPush
 			);
+			boolean secretScanningValidityChecks = sa
+					.secretScanningValidityChecks() != null
+					&& SecurityAndAnalysis.StatusObject.Status.ENABLED
+							.equals(sa.secretScanningValidityChecks().status());
+			boolean secretScanningNonProviderPatterns = sa
+					.secretScanningNonProviderPatterns() != null
+					&& SecurityAndAnalysis.StatusObject.Status.ENABLED.equals(
+							sa.secretScanningNonProviderPatterns().status()
+					);
+			check(
+					diffs,
+					"secret_scanning_validity_checks",
+					desired.secretScanningValidityChecks(),
+					secretScanningValidityChecks
+			);
+			check(
+					diffs,
+					"secret_scanning_non_provider_patterns",
+					desired.secretScanningNonProviderPatterns(),
+					secretScanningNonProviderPatterns
+			);
 		}
+		check(
+				diffs,
+				"private_vulnerability_reporting",
+				desired.privateVulnerabilityReporting(),
+				actual.privateVulnerabilityReporting()
+		);
+		check(
+				diffs,
+				"code_scanning_default_setup",
+				desired.codeScanningDefaultSetup(),
+				actual.codeScanningDefaultSetup()
+		);
 	}
 
 	private void checkWorkflowPermissions(
@@ -1034,7 +1075,19 @@ public class OrgChecker {
 									"secret_scanning_push_protection:"
 							)
 					);
-			if (ssDrifted || sspDrifted) {
+			boolean ssvDrifted = securityDiffs.stream()
+					.anyMatch(
+							d -> d.startsWith(
+									"secret_scanning_validity_checks:"
+							)
+					);
+			boolean ssnpDrifted = securityDiffs.stream()
+					.anyMatch(
+							d -> d.startsWith(
+									"secret_scanning_non_provider_patterns:"
+							)
+					);
+			if (ssDrifted || sspDrifted || ssvDrifted || ssnpDrifted) {
 				Map<String, Object> saUpdate = new LinkedHashMap<>();
 				if (ssDrifted) {
 					saUpdate.put(
@@ -1057,6 +1110,28 @@ public class OrgChecker {
 							)
 					);
 				}
+				if (ssvDrifted) {
+					saUpdate.put(
+							"secret_scanning_validity_checks",
+							Map.of(
+									"status",
+									desired.secretScanningValidityChecks()
+											? "enabled"
+											: "disabled"
+							)
+					);
+				}
+				if (ssnpDrifted) {
+					saUpdate.put(
+							"secret_scanning_non_provider_patterns",
+							Map.of(
+									"status",
+									desired.secretScanningNonProviderPatterns()
+											? "enabled"
+											: "disabled"
+							)
+					);
+				}
 				client.updateRepository(
 						org,
 						name,
@@ -1066,6 +1141,42 @@ public class OrgChecker {
 						"[FIXED]   %s: secret_scanning settings updated%n",
 						name
 				);
+			}
+			if (securityDiffs.stream()
+					.anyMatch(
+							d -> d.startsWith("private_vulnerability_reporting")
+					)) {
+				if (desired.privateVulnerabilityReporting()) {
+					client.enablePrivateVulnerabilityReporting(org, name);
+					System.out.printf(
+							"[FIXED]   %s: private_vulnerability_reporting enabled%n",
+							name
+					);
+				} else {
+					client.disablePrivateVulnerabilityReporting(org, name);
+					System.out.printf(
+							"[FIXED]   %s: private_vulnerability_reporting disabled%n",
+							name
+					);
+				}
+			}
+			if (securityDiffs.stream()
+					.anyMatch(
+							d -> d.startsWith("code_scanning_default_setup")
+					)) {
+				if (desired.codeScanningDefaultSetup()) {
+					client.enableCodeScanningDefaultSetup(org, name);
+					System.out.printf(
+							"[FIXED]   %s: code_scanning_default_setup enabled%n",
+							name
+					);
+				} else {
+					client.disableCodeScanningDefaultSetup(org, name);
+					System.out.printf(
+							"[FIXED]   %s: code_scanning_default_setup disabled%n",
+							name
+					);
+				}
 			}
 			remaining.removeAll(securityDiffs);
 		}
