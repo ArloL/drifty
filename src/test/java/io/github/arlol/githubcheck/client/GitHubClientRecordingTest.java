@@ -70,7 +70,6 @@ class GitHubClientRecordingTest {
 		}
 		var perms = client.getWorkflowPermissions(owner, repo);
 		// Non-destructive writes: write back what was just read (idempotent)
-		client.enablePrivateVulnerabilityReporting(owner, repo);
 		client.enableVulnerabilityAlerts(owner, repo);
 		client.updateWorkflowPermissions(owner, repo, perms);
 		client.replaceTopics(owner, repo, List.of());
