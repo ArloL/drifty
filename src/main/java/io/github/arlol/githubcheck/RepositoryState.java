@@ -31,6 +31,7 @@ public record RepositoryState(
 ) {
 
 	public RepositoryState {
+		branchProtections = Map.copyOf(branchProtections);
 		actionSecretNames = List.copyOf(actionSecretNames);
 		environmentSecretNames = Map.copyOf(environmentSecretNames);
 		rulesets = List.copyOf(rulesets);

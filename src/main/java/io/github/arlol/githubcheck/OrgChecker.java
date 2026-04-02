@@ -505,7 +505,6 @@ public class OrgChecker {
 				diffs.add(prefix + ": missing");
 				continue;
 			}
-			actualBps.remove(actualBp);
 
 			check(
 					diffs,
