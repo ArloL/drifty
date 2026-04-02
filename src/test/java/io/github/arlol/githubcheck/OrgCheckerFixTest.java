@@ -1,5 +1,6 @@
 package io.github.arlol.githubcheck;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.delete;
 import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
@@ -15,7 +16,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
-import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
@@ -42,7 +42,6 @@ import io.github.arlol.githubcheck.client.RepositoryMinimal;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
-import io.github.arlol.githubcheck.client.RulesetRuleType;
 import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.BranchProtectionArgs;
@@ -135,7 +134,7 @@ class OrgCheckerFixTest {
 	@BeforeEach
 	void setUp(WireMockRuntimeInfo wm) {
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
-		checker = new OrgChecker(client, "ArloL", true);
+		checker = new OrgChecker(client, "owner", true);
 	}
 
 	// ─── Helpers
@@ -146,7 +145,7 @@ class OrgCheckerFixTest {
 			Map<String, String> secrets
 	) {
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
-		return new OrgChecker(client, "ArloL", true, secrets);
+		return new OrgChecker(client, "owner", true, secrets);
 	}
 
 	private static <T> T parse(String json, Class<T> type) {
@@ -239,21 +238,21 @@ class OrgCheckerFixTest {
 		List<String> remaining = checker.applyFixes(
 				"repo",
 				state,
-				RepositoryArgs.create("repo").build(),
+				RepositoryArgs.create("owner", "repo").build(),
 				List.of()
 		);
 		assertThat(remaining).isEmpty();
-		verify(0, patchRequestedFor(urlEqualTo("/repos/ArloL/repo")));
-		verify(0, putRequestedFor(urlEqualTo("/repos/ArloL/repo/topics")));
+		verify(0, patchRequestedFor(urlEqualTo("/repos/owner/repo")));
+		verify(0, putRequestedFor(urlEqualTo("/repos/owner/repo/topics")));
 	}
 
 	@Test
 	void descriptionDrift_patchesFullDesiredState() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.description("correct")
 				.build();
 
@@ -267,7 +266,7 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
 						.withRequestBody(equalToJson("""
 								{
 									"archived": false,
@@ -291,10 +290,10 @@ class OrgCheckerFixTest {
 	@Test
 	void allowRebaseMergeFalse_patchesWithConfigValue() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.allowRebaseMerge(false)
 				.build();
 
@@ -308,7 +307,7 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
 						.withRequestBody(equalToJson("""
 								{
 									"archived": false,
@@ -332,10 +331,10 @@ class OrgCheckerFixTest {
 	@Test
 	void multipleFieldsDrift_singlePatchCall() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.description("correct")
 				.homepageUrl("https://example.com")
 				.build();
@@ -356,7 +355,7 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				1,
-				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
 						.withRequestBody(equalToJson("""
 								{
 									"archived": false,
@@ -380,11 +379,11 @@ class OrgCheckerFixTest {
 	@Test
 	void topicsDrift_putsTopics() throws Exception {
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/topics"))
+				put(urlEqualTo("/repos/owner/repo/topics"))
 						.willReturn(okJson("{\"names\":[\"java\"]}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.topics("java")
 				.build();
 
@@ -396,7 +395,7 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				putRequestedFor(urlEqualTo("/repos/ArloL/repo/topics"))
+				putRequestedFor(urlEqualTo("/repos/owner/repo/topics"))
 						.withRequestBody(equalToJson("{\"names\":[\"java\"]}"))
 		);
 	}
@@ -404,14 +403,14 @@ class OrgCheckerFixTest {
 	@Test
 	void unfixableDiffs_remainInList() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/vulnerability-alerts"))
+				put(urlEqualTo("/repos/owner/repo/vulnerability-alerts"))
 						.willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.description("correct")
 				.build();
 
@@ -447,11 +446,11 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/vulnerability-alerts")
+						urlEqualTo("/repos/owner/repo/vulnerability-alerts")
 				)
 		);
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
 						.withRequestBody(matching(".*default_branch.*main.*"))
 		);
 	}
@@ -459,18 +458,18 @@ class OrgCheckerFixTest {
 	@Test
 	void securitySettingsDrift_fixesAllSettings() throws Exception {
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/vulnerability-alerts"))
+				put(urlEqualTo("/repos/owner/repo/vulnerability-alerts"))
 						.willReturn(WireMock.noContent())
 		);
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/automated-security-fixes"))
+				put(urlEqualTo("/repos/owner/repo/automated-security-fixes"))
 						.willReturn(WireMock.noContent())
 		);
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.automatedSecurityFixes(true)
 				.build();
 
@@ -509,16 +508,16 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/vulnerability-alerts")
+						urlEqualTo("/repos/owner/repo/vulnerability-alerts")
 				)
 		);
 		verify(
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/automated-security-fixes")
+						urlEqualTo("/repos/owner/repo/automated-security-fixes")
 				)
 		);
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
 						.withRequestBody(
 								equalToJson(
 										"""
@@ -537,11 +536,11 @@ class OrgCheckerFixTest {
 	@Test
 	void partialSecurityDrift_fixesOnlyDrifted() throws Exception {
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/vulnerability-alerts"))
+				put(urlEqualTo("/repos/owner/repo/vulnerability-alerts"))
 						.willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.automatedSecurityFixes(true)
 				.build();
 
@@ -579,26 +578,26 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/vulnerability-alerts")
+						urlEqualTo("/repos/owner/repo/vulnerability-alerts")
 				)
 		);
 		verify(
 				0,
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/automated-security-fixes")
+						urlEqualTo("/repos/owner/repo/automated-security-fixes")
 				)
 		);
-		verify(0, patchRequestedFor(urlEqualTo("/repos/ArloL/repo")));
+		verify(0, patchRequestedFor(urlEqualTo("/repos/owner/repo")));
 	}
 
 	@Test
 	void disableVulnerabilityAlerts_whenDesiredFalse() throws Exception {
 		stubFor(
-				delete(urlEqualTo("/repos/ArloL/repo/vulnerability-alerts"))
+				delete(urlEqualTo("/repos/owner/repo/vulnerability-alerts"))
 						.willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.vulnerabilityAlerts(false)
 				.build();
 
@@ -636,13 +635,13 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				deleteRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/vulnerability-alerts")
+						urlEqualTo("/repos/owner/repo/vulnerability-alerts")
 				)
 		);
 		verify(
 				0,
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/vulnerability-alerts")
+						urlEqualTo("/repos/owner/repo/vulnerability-alerts")
 				)
 		);
 	}
@@ -650,11 +649,11 @@ class OrgCheckerFixTest {
 	@Test
 	void disableAutomatedSecurityFixes_whenDesiredFalse() throws Exception {
 		stubFor(
-				delete(urlEqualTo("/repos/ArloL/repo/automated-security-fixes"))
+				delete(urlEqualTo("/repos/owner/repo/automated-security-fixes"))
 						.willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.automatedSecurityFixes(false)
 				.build();
 
@@ -692,13 +691,13 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				deleteRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/automated-security-fixes")
+						urlEqualTo("/repos/owner/repo/automated-security-fixes")
 				)
 		);
 		verify(
 				0,
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/automated-security-fixes")
+						urlEqualTo("/repos/owner/repo/automated-security-fixes")
 				)
 		);
 	}
@@ -706,10 +705,10 @@ class OrgCheckerFixTest {
 	@Test
 	void disableSecretScanning_whenDesiredFalse() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.secretScanning(false)
 				.secretScanningPushProtection(false)
 				.build();
@@ -722,7 +721,7 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
 						.withRequestBody(
 								equalToJson(
 										"""
@@ -741,10 +740,10 @@ class OrgCheckerFixTest {
 	@Test
 	void partialSecretScanningDrift_onlyDriftedFieldPatched() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.secretScanningPushProtection(false)
 				.build();
 
@@ -756,7 +755,7 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
 						.withRequestBody(
 								equalToJson(
 										"""
@@ -774,10 +773,10 @@ class OrgCheckerFixTest {
 	@Test
 	void secretScanningValidityChecksDrift_patches() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.secretScanningValidityChecks(true)
 				.build();
 
@@ -799,7 +798,7 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
 						.withRequestBody(
 								equalToJson(
 										"""
@@ -817,10 +816,10 @@ class OrgCheckerFixTest {
 	@Test
 	void secretScanningNonProviderPatternsDrift_patches() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.secretScanningNonProviderPatterns(true)
 				.build();
 
@@ -842,7 +841,7 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
 						.withRequestBody(
 								equalToJson(
 										"""
@@ -863,12 +862,12 @@ class OrgCheckerFixTest {
 		stubFor(
 				put(
 						urlEqualTo(
-								"/repos/ArloL/repo/private-vulnerability-reporting"
+								"/repos/owner/repo/private-vulnerability-reporting"
 						)
 				).willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.privateVulnerabilityReporting(true)
 				.build();
 
@@ -907,7 +906,7 @@ class OrgCheckerFixTest {
 		verify(
 				putRequestedFor(
 						urlEqualTo(
-								"/repos/ArloL/repo/private-vulnerability-reporting"
+								"/repos/owner/repo/private-vulnerability-reporting"
 						)
 				)
 		);
@@ -915,7 +914,7 @@ class OrgCheckerFixTest {
 				0,
 				deleteRequestedFor(
 						urlEqualTo(
-								"/repos/ArloL/repo/private-vulnerability-reporting"
+								"/repos/owner/repo/private-vulnerability-reporting"
 						)
 				)
 		);
@@ -927,12 +926,12 @@ class OrgCheckerFixTest {
 		stubFor(
 				delete(
 						urlEqualTo(
-								"/repos/ArloL/repo/private-vulnerability-reporting"
+								"/repos/owner/repo/private-vulnerability-reporting"
 						)
 				).willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.privateVulnerabilityReporting(false)
 				.build();
 
@@ -971,7 +970,7 @@ class OrgCheckerFixTest {
 		verify(
 				deleteRequestedFor(
 						urlEqualTo(
-								"/repos/ArloL/repo/private-vulnerability-reporting"
+								"/repos/owner/repo/private-vulnerability-reporting"
 						)
 				)
 		);
@@ -979,7 +978,7 @@ class OrgCheckerFixTest {
 				0,
 				putRequestedFor(
 						urlEqualTo(
-								"/repos/ArloL/repo/private-vulnerability-reporting"
+								"/repos/owner/repo/private-vulnerability-reporting"
 						)
 				)
 		);
@@ -990,12 +989,12 @@ class OrgCheckerFixTest {
 		stubFor(
 				patch(
 						urlEqualTo(
-								"/repos/ArloL/repo/code-scanning/default-setup"
+								"/repos/owner/repo/code-scanning/default-setup"
 						)
 				).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.codeScanningDefaultSetup(true)
 				.build();
 
@@ -1035,7 +1034,7 @@ class OrgCheckerFixTest {
 				1,
 				patchRequestedFor(
 						urlEqualTo(
-								"/repos/ArloL/repo/code-scanning/default-setup"
+								"/repos/owner/repo/code-scanning/default-setup"
 						)
 				).withRequestBody(equalToJson("{\"state\": \"configured\"}"))
 		);
@@ -1046,12 +1045,12 @@ class OrgCheckerFixTest {
 		stubFor(
 				patch(
 						urlEqualTo(
-								"/repos/ArloL/repo/code-scanning/default-setup"
+								"/repos/owner/repo/code-scanning/default-setup"
 						)
 				).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.codeScanningDefaultSetup(false)
 				.build();
 
@@ -1091,7 +1090,7 @@ class OrgCheckerFixTest {
 				1,
 				patchRequestedFor(
 						urlEqualTo(
-								"/repos/ArloL/repo/code-scanning/default-setup"
+								"/repos/owner/repo/code-scanning/default-setup"
 						)
 				).withRequestBody(
 						equalToJson("{\"state\": \"not-configured\"}")
@@ -1104,12 +1103,12 @@ class OrgCheckerFixTest {
 		stubFor(
 				put(
 						urlEqualTo(
-								"/repos/ArloL/repo/actions/permissions/workflow"
+								"/repos/owner/repo/actions/permissions/workflow"
 						)
 				).willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo").build();
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo").build();
 
 		var state = new RepositoryState(
 				"repo",
@@ -1148,7 +1147,7 @@ class OrgCheckerFixTest {
 		verify(
 				putRequestedFor(
 						urlEqualTo(
-								"/repos/ArloL/repo/actions/permissions/workflow"
+								"/repos/owner/repo/actions/permissions/workflow"
 						)
 				).withRequestBody(equalToJson("""
 						{
@@ -1161,7 +1160,7 @@ class OrgCheckerFixTest {
 
 	@Test
 	void noWorkflowPermissionsDrift_noPutCall() throws Exception {
-		RepositoryArgs desired = RepositoryArgs.create("repo").build();
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo").build();
 		var state = goodPublicState();
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -1173,7 +1172,7 @@ class OrgCheckerFixTest {
 				0,
 				putRequestedFor(
 						urlEqualTo(
-								"/repos/ArloL/repo/actions/permissions/workflow"
+								"/repos/owner/repo/actions/permissions/workflow"
 						)
 				)
 		);
@@ -1182,11 +1181,11 @@ class OrgCheckerFixTest {
 	@Test
 	void branchProtectionMissing_putsBranchProtection() throws Exception {
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/branches/main/protection"))
+				put(urlEqualTo("/repos/owner/repo/branches/main/protection"))
 						.willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.addBranchProtections(
 						BranchProtectionArgs.builder("main")
 								.enforceAdmins(true)
@@ -1223,7 +1222,7 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/branches/main/protection")
+						urlEqualTo("/repos/owner/repo/branches/main/protection")
 				).withRequestBody(equalToJson("""
 						{
 							"required_status_checks": {
@@ -1243,11 +1242,11 @@ class OrgCheckerFixTest {
 	@Test
 	void immutableReleasesDisabled_enablesThem() throws Exception {
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/immutable-releases"))
+				put(urlEqualTo("/repos/owner/repo/immutable-releases"))
 						.willReturn(WireMock.noContent())
 		);
 
-		var desired = RepositoryArgs.create("repo")
+		var desired = RepositoryArgs.create("owner", "repo")
 				.immutableReleases(true)
 				.build();
 
@@ -1260,7 +1259,7 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/immutable-releases")
+						urlEqualTo("/repos/owner/repo/immutable-releases")
 				)
 		);
 	}
@@ -1269,11 +1268,11 @@ class OrgCheckerFixTest {
 	void immutableReleasesEnabled_disablesThem() throws Exception {
 		stubFor(
 				WireMock.delete(
-						urlEqualTo("/repos/ArloL/repo/immutable-releases")
+						urlEqualTo("/repos/owner/repo/immutable-releases")
 				).willReturn(WireMock.noContent())
 		);
 
-		var desired = RepositoryArgs.create("repo").build();
+		var desired = RepositoryArgs.create("owner", "repo").build();
 
 		var state = new RepositoryState(
 				"repo",
@@ -1309,7 +1308,7 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				WireMock.deleteRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/immutable-releases")
+						urlEqualTo("/repos/owner/repo/immutable-releases")
 				)
 		);
 	}
@@ -1317,11 +1316,11 @@ class OrgCheckerFixTest {
 	@Test
 	void branchProtectionDrift_putsBranchProtection() throws Exception {
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/branches/main/protection"))
+				put(urlEqualTo("/repos/owner/repo/branches/main/protection"))
 						.willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.addBranchProtections(
 						BranchProtectionArgs.builder("main")
 								.enforceAdmins(true)
@@ -1377,7 +1376,7 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/branches/main/protection")
+						urlEqualTo("/repos/owner/repo/branches/main/protection")
 				).withRequestBody(equalToJson("""
 						{
 							"required_status_checks": {
@@ -1397,7 +1396,7 @@ class OrgCheckerFixTest {
 	@Test
 	void branchProtectionWithPRReviews_putsBranchProtection() throws Exception {
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/branches/main/protection"))
+				put(urlEqualTo("/repos/owner/repo/branches/main/protection"))
 						.willReturn(okJson("{}"))
 		);
 
@@ -1408,7 +1407,7 @@ class OrgCheckerFixTest {
 				.dismissStaleReviews(true)
 				.requireCodeOwnerReviews(true)
 				.build();
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.branchProtections(bpArgs)
 				.build();
 
@@ -1451,7 +1450,7 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/branches/main/protection")
+						urlEqualTo("/repos/owner/repo/branches/main/protection")
 				).withRequestBody(equalToJson("""
 						{
 							"required_status_checks": {
@@ -1477,7 +1476,7 @@ class OrgCheckerFixTest {
 	void branchProtectionWithRestrictions_putsBranchProtection()
 			throws Exception {
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/branches/main/protection"))
+				put(urlEqualTo("/repos/owner/repo/branches/main/protection"))
 						.willReturn(okJson("{}"))
 		);
 
@@ -1488,7 +1487,7 @@ class OrgCheckerFixTest {
 				.teams(List.of("admins"))
 				.apps(List.of("my-app"))
 				.build();
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.branchProtections(bpArgs)
 				.build();
 
@@ -1531,7 +1530,7 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/branches/main/protection")
+						urlEqualTo("/repos/owner/repo/branches/main/protection")
 				).withRequestBody(equalToJson("""
 						{
 							"required_status_checks": {
@@ -1554,7 +1553,7 @@ class OrgCheckerFixTest {
 
 	@Test
 	void noBranchProtectionDrift_noPutCall() throws Exception {
-		RepositoryArgs desired = RepositoryArgs.create("repo").build();
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo").build();
 		var state = goodPublicState();
 
 		List<String> diffs = checker.computeDiffs(state, desired);
@@ -1565,7 +1564,7 @@ class OrgCheckerFixTest {
 		verify(
 				0,
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/branches/main/protection")
+						urlEqualTo("/repos/owner/repo/branches/main/protection")
 				)
 		);
 	}
@@ -1573,14 +1572,14 @@ class OrgCheckerFixTest {
 	@Test
 	void repoFieldsAndTopics_bothFixed() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/ArloL/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/topics"))
+				put(urlEqualTo("/repos/owner/repo/topics"))
 						.willReturn(okJson("{\"names\":[\"java\"]}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("repo")
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.description("correct")
 				.topics("java")
 				.build();
@@ -1595,7 +1594,7 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				patchRequestedFor(urlEqualTo("/repos/ArloL/repo"))
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
 						.withRequestBody(equalToJson("""
 								{
 									"archived": false,
@@ -1615,7 +1614,7 @@ class OrgCheckerFixTest {
 								"""))
 		);
 		verify(
-				putRequestedFor(urlEqualTo("/repos/ArloL/repo/topics"))
+				putRequestedFor(urlEqualTo("/repos/owner/repo/topics"))
 						.withRequestBody(equalToJson("{\"names\":[\"java\"]}"))
 		);
 	}
@@ -1626,12 +1625,12 @@ class OrgCheckerFixTest {
 	@Test
 	void rulesetMissing_postsToCreateRuleset() throws Exception {
 		stubFor(
-				post(urlEqualTo("/repos/ArloL/repo/rulesets")).willReturn(
+				post(urlEqualTo("/repos/owner/repo/rulesets")).willReturn(
 						WireMock.status(201).withBody("{\"id\": 1}")
 				)
 		);
 
-		var desired = RepositoryArgs.create("repo")
+		var desired = RepositoryArgs.create("owner", "repo")
 				.rulesets(
 						RulesetArgs.builder("main-branch-rules")
 								.includePatterns("~DEFAULT_BRANCH")
@@ -1657,7 +1656,7 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				postRequestedFor(urlEqualTo("/repos/ArloL/repo/rulesets"))
+				postRequestedFor(urlEqualTo("/repos/owner/repo/rulesets"))
 						.withRequestBody(
 								equalToJson(
 										"""
@@ -1697,11 +1696,11 @@ class OrgCheckerFixTest {
 	@Test
 	void rulesetDrift_putsToUpdateRuleset() throws Exception {
 		stubFor(
-				put(urlMatching("/repos/ArloL/repo/rulesets/42"))
+				put(urlMatching("/repos/owner/repo/rulesets/42"))
 						.willReturn(okJson("{\"id\": 42}"))
 		);
 
-		var desired = RepositoryArgs.create("repo")
+		var desired = RepositoryArgs.create("owner", "repo")
 				.rulesets(
 						RulesetArgs.builder("main-branch-rules")
 								.includePatterns("~DEFAULT_BRANCH")
@@ -1769,7 +1768,7 @@ class OrgCheckerFixTest {
 				.applyFixes("repo", state, desired, diffs);
 
 		assertThat(remaining).isEmpty();
-		verify(putRequestedFor(urlEqualTo("/repos/ArloL/repo/rulesets/42")));
+		verify(putRequestedFor(urlEqualTo("/repos/owner/repo/rulesets/42")));
 	}
 
 	@Test
@@ -1813,7 +1812,7 @@ class OrgCheckerFixTest {
 				)
 		);
 
-		var desired = RepositoryArgs.create("repo")
+		var desired = RepositoryArgs.create("owner", "repo")
 				.rulesets(
 						RulesetArgs.builder("main-branch-rules")
 								.includePatterns("~DEFAULT_BRANCH")
@@ -1859,17 +1858,17 @@ class OrgCheckerFixTest {
 				.applyFixes("repo", state, desired, diffs);
 
 		assertThat(remaining).isEmpty();
-		verify(0, postRequestedFor(urlEqualTo("/repos/ArloL/repo/rulesets")));
+		verify(0, postRequestedFor(urlEqualTo("/repos/owner/repo/rulesets")));
 		verify(
 				0,
-				putRequestedFor(urlMatching("/repos/ArloL/repo/rulesets/.*"))
+				putRequestedFor(urlMatching("/repos/owner/repo/rulesets/.*"))
 		);
 	}
 
 	@Test
 	void rulesetCodeScanning_createsRuleset() throws Exception {
 		stubFor(
-				post(urlEqualTo("/repos/ArloL/repo/rulesets"))
+				post(urlEqualTo("/repos/owner/repo/rulesets"))
 						.willReturn(WireMock.status(201).withBody("""
 								{
 									"id": 1,
@@ -1889,7 +1888,7 @@ class OrgCheckerFixTest {
 				null,
 				null
 		);
-		var desired = RepositoryArgs.create("repo")
+		var desired = RepositoryArgs.create("owner", "repo")
 				.rulesets(
 						RulesetArgs.builder("main-branch-rules")
 								.includePatterns("~DEFAULT_BRANCH")
@@ -1936,7 +1935,7 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				1,
-				postRequestedFor(urlEqualTo("/repos/ArloL/repo/rulesets"))
+				postRequestedFor(urlEqualTo("/repos/owner/repo/rulesets"))
 						.withRequestBody(
 								containing("\"type\":\"code_scanning\"")
 						)
@@ -1949,7 +1948,7 @@ class OrgCheckerFixTest {
 	@Test
 	void pagesMissing_postsToCreate() throws Exception {
 		stubFor(
-				post(urlEqualTo("/repos/ArloL/repo/pages"))
+				post(urlEqualTo("/repos/owner/repo/pages"))
 						.willReturn(WireMock.status(201).withBody("""
 								{
 									"build_type": "workflow",
@@ -1960,7 +1959,7 @@ class OrgCheckerFixTest {
 								"""))
 		);
 
-		var desired = RepositoryArgs.create("repo").pages().build();
+		var desired = RepositoryArgs.create("owner", "repo").pages().build();
 
 		var state = new RepositoryState(
 				"repo",
@@ -1995,7 +1994,7 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				postRequestedFor(urlEqualTo("/repos/ArloL/repo/pages"))
+				postRequestedFor(urlEqualTo("/repos/owner/repo/pages"))
 						.withRequestBody(equalToJson("""
 								{"build_type": "workflow"}
 								"""))
@@ -2005,11 +2004,11 @@ class OrgCheckerFixTest {
 	@Test
 	void pagesDrift_putsToUpdate() throws Exception {
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/pages"))
+				put(urlEqualTo("/repos/owner/repo/pages"))
 						.willReturn(WireMock.noContent())
 		);
 
-		var desired = RepositoryArgs.create("repo").pages().build();
+		var desired = RepositoryArgs.create("owner", "repo").pages().build();
 
 		var actualPages = new PagesResponse(
 				null,
@@ -2058,7 +2057,7 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				putRequestedFor(urlEqualTo("/repos/ArloL/repo/pages"))
+				putRequestedFor(urlEqualTo("/repos/owner/repo/pages"))
 						.withRequestBody(equalToJson("""
 								{
 									"build_type": "workflow",
@@ -2070,8 +2069,9 @@ class OrgCheckerFixTest {
 
 	@Test
 	void noPagesDesired_noPagesApiCall() throws Exception {
-		var desired = RepositoryArgs.create("repo").build(); // pages() not
-															 // called
+		var desired = RepositoryArgs.create("owner", "repo").build(); // pages()
+																	  // not
+		// called
 
 		var state = goodPublicState();
 
@@ -2080,8 +2080,8 @@ class OrgCheckerFixTest {
 				.applyFixes("repo", state, desired, diffs);
 
 		assertThat(remaining).isEmpty();
-		verify(0, postRequestedFor(urlEqualTo("/repos/ArloL/repo/pages")));
-		verify(0, putRequestedFor(urlEqualTo("/repos/ArloL/repo/pages")));
+		verify(0, postRequestedFor(urlEqualTo("/repos/owner/repo/pages")));
+		verify(0, putRequestedFor(urlEqualTo("/repos/owner/repo/pages")));
 	}
 
 	// ─── Environment config fix tests
@@ -2090,11 +2090,11 @@ class OrgCheckerFixTest {
 	@Test
 	void environmentWaitTimerDrift_putsEnvironmentUpdate() throws Exception {
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/environments/production"))
+				put(urlEqualTo("/repos/owner/repo/environments/production"))
 						.willReturn(okJson("{}"))
 		);
 
-		var desired = RepositoryArgs.create("repo")
+		var desired = RepositoryArgs.create("owner", "repo")
 				.environment("production", env -> env.waitTimer(30))
 				.build();
 
@@ -2143,7 +2143,7 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/environments/production")
+						urlEqualTo("/repos/owner/repo/environments/production")
 				).withRequestBody(equalToJson("""
 						{"wait_timer": 30}
 						"""))
@@ -2154,11 +2154,11 @@ class OrgCheckerFixTest {
 	void environmentDeploymentBranchPolicyDrift_putsEnvironmentUpdate()
 			throws Exception {
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/environments/production"))
+				put(urlEqualTo("/repos/owner/repo/environments/production"))
 						.willReturn(okJson("{}"))
 		);
 
-		var desired = RepositoryArgs.create("repo")
+		var desired = RepositoryArgs.create("owner", "repo")
 				.environment(
 						"production",
 						env -> env.deploymentBranchPolicy(true, false)
@@ -2207,7 +2207,7 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/environments/production")
+						urlEqualTo("/repos/owner/repo/environments/production")
 				).withRequestBody(equalToJson("""
 						{
 							"deployment_branch_policy": {
@@ -2221,7 +2221,7 @@ class OrgCheckerFixTest {
 
 	@Test
 	void noEnvironmentConfigDrift_noEnvironmentApiCall() throws Exception {
-		var desired = RepositoryArgs.create("repo")
+		var desired = RepositoryArgs.create("owner", "repo")
 				.environment("production", env -> env.waitTimer(30))
 				.build();
 
@@ -2271,7 +2271,7 @@ class OrgCheckerFixTest {
 		verify(
 				0,
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/environments/production")
+						urlEqualTo("/repos/owner/repo/environments/production")
 				)
 		);
 	}
@@ -2289,14 +2289,14 @@ class OrgCheckerFixTest {
 		stubFor(
 				WireMock.get(
 						urlEqualTo(
-								"/repos/ArloL/repo/actions/secrets/public-key"
+								"/repos/owner/repo/actions/secrets/public-key"
 						)
 				).willReturn(okJson("""
 						{"key_id": "123", "key": "%s"}
 						""".formatted(TEST_PUBLIC_KEY)))
 		);
 		stubFor(
-				put(urlEqualTo("/repos/ArloL/repo/actions/secrets/PAT"))
+				put(urlEqualTo("/repos/owner/repo/actions/secrets/PAT"))
 						.willReturn(WireMock.status(201))
 		);
 
@@ -2330,7 +2330,7 @@ class OrgCheckerFixTest {
 				false,
 				false
 		);
-		var desired = RepositoryArgs.create("repo")
+		var desired = RepositoryArgs.create("owner", "repo")
 				.actionsSecrets("PAT")
 				.build();
 
@@ -2342,7 +2342,7 @@ class OrgCheckerFixTest {
 		verify(
 				1,
 				putRequestedFor(
-						urlEqualTo("/repos/ArloL/repo/actions/secrets/PAT")
+						urlEqualTo("/repos/owner/repo/actions/secrets/PAT")
 				)
 		);
 	}
@@ -2378,7 +2378,7 @@ class OrgCheckerFixTest {
 				false,
 				false
 		);
-		var desired = RepositoryArgs.create("repo")
+		var desired = RepositoryArgs.create("owner", "repo")
 				.actionsSecrets("PAT")
 				.build();
 
@@ -2393,7 +2393,7 @@ class OrgCheckerFixTest {
 		verify(
 				0,
 				putRequestedFor(
-						urlMatching("/repos/ArloL/repo/actions/secrets/.*")
+						urlMatching("/repos/owner/repo/actions/secrets/.*")
 				)
 		);
 	}
@@ -2405,7 +2405,7 @@ class OrgCheckerFixTest {
 		stubFor(
 				WireMock.get(
 						urlEqualTo(
-								"/repos/ArloL/repo/environments/production/secrets/public-key"
+								"/repos/owner/repo/environments/production/secrets/public-key"
 						)
 				).willReturn(okJson("""
 						{"key_id": "456", "key": "%s"}
@@ -2414,7 +2414,7 @@ class OrgCheckerFixTest {
 		stubFor(
 				put(
 						urlEqualTo(
-								"/repos/ArloL/repo/environments/production/secrets/TF_GITHUB_TOKEN"
+								"/repos/owner/repo/environments/production/secrets/TF_GITHUB_TOKEN"
 						)
 				).willReturn(WireMock.status(201))
 		);
@@ -2452,7 +2452,7 @@ class OrgCheckerFixTest {
 				false,
 				false
 		);
-		var desired = RepositoryArgs.create("repo")
+		var desired = RepositoryArgs.create("owner", "repo")
 				.environment(
 						"production",
 						env -> env.secrets("TF_GITHUB_TOKEN")
@@ -2468,7 +2468,7 @@ class OrgCheckerFixTest {
 				1,
 				putRequestedFor(
 						urlEqualTo(
-								"/repos/ArloL/repo/environments/production/secrets/TF_GITHUB_TOKEN"
+								"/repos/owner/repo/environments/production/secrets/TF_GITHUB_TOKEN"
 						)
 				)
 		);

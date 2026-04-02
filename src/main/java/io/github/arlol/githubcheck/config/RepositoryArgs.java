@@ -17,6 +17,7 @@ import io.github.arlol.githubcheck.client.WorkflowPermissions;
 
 public final class RepositoryArgs {
 
+	private final String owner;
 	private final String name;
 	private final boolean archived;
 	private final PagesArgs pagesArgs;
@@ -51,6 +52,7 @@ public final class RepositoryArgs {
 	private final boolean canApprovePullRequestReviews;
 
 	private RepositoryArgs(Builder builder) {
+		this.owner = builder.owner;
 		this.name = builder.name;
 		this.archived = builder.archived;
 		this.pagesArgs = builder.pagesArgs;
@@ -84,6 +86,10 @@ public final class RepositoryArgs {
 		this.deleteBranchOnMerge = builder.deleteBranchOnMerge;
 		this.defaultWorkflowPermissions = builder.defaultWorkflowPermissions;
 		this.canApprovePullRequestReviews = builder.canApprovePullRequestReviews;
+	}
+
+	public String owner() {
+		return owner;
 	}
 
 	public String name() {
@@ -247,6 +253,7 @@ public final class RepositoryArgs {
 				&& deleteBranchOnMerge == that.deleteBranchOnMerge
 				&& canApprovePullRequestReviews == that.canApprovePullRequestReviews
 				&& defaultWorkflowPermissions == that.defaultWorkflowPermissions
+				&& Objects.equals(owner, that.owner)
 				&& Objects.equals(name, that.name)
 				&& Objects.equals(pagesArgs, that.pagesArgs)
 				&& Objects.equals(description, that.description)
@@ -263,6 +270,7 @@ public final class RepositoryArgs {
 	@Override
 	public int hashCode() {
 		return Objects.hash(
+				owner,
 				name,
 				archived,
 				pagesArgs,
@@ -298,16 +306,13 @@ public final class RepositoryArgs {
 		);
 	}
 
-	public static Builder create(String name) {
-		return new Builder(name);
-	}
-
-	public static RepositoryArgs archived(String name) {
-		return new Builder(name).archived().build();
+	public static Builder create(String owner, String name) {
+		return new Builder(owner, name);
 	}
 
 	public static final class Builder {
 
+		private String owner;
 		private String name;
 		private boolean archived = false;
 		private PagesArgs pagesArgs = null;
@@ -341,11 +346,13 @@ public final class RepositoryArgs {
 		private WorkflowPermissions.DefaultWorkflowPermissions defaultWorkflowPermissions = WorkflowPermissions.DefaultWorkflowPermissions.WRITE;
 		private boolean canApprovePullRequestReviews = true;
 
-		public Builder(String name) {
+		public Builder(String owner, String name) {
+			this.owner = owner;
 			this.name = name;
 		}
 
 		public Builder(RepositoryArgs repositoryArgs) {
+			this.owner = repositoryArgs.owner;
 			this.name = repositoryArgs.name;
 			this.archived = repositoryArgs.archived;
 			this.pagesArgs = repositoryArgs.pagesArgs;
@@ -378,6 +385,11 @@ public final class RepositoryArgs {
 			this.deleteBranchOnMerge = repositoryArgs.deleteBranchOnMerge;
 			this.defaultWorkflowPermissions = repositoryArgs.defaultWorkflowPermissions;
 			this.canApprovePullRequestReviews = repositoryArgs.canApprovePullRequestReviews;
+		}
+
+		public Builder owner(String owner) {
+			this.owner = owner;
+			return this;
 		}
 
 		public Builder name(String name) {
