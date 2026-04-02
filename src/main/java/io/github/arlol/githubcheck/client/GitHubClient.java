@@ -796,6 +796,32 @@ public class GitHubClient {
 		return mapper.readValue(resp.body(), RulesetDetailsResponse.class);
 	}
 
+	public void deleteRuleset(String owner, String repo, long rulesetId)
+			throws IOException, InterruptedException {
+		HttpRequest request = HttpRequest
+				.newBuilder(
+						URI.create(
+								baseUrl + "/repos/" + owner + "/" + repo
+										+ "/rulesets/" + rulesetId
+						)
+				)
+				.header("Authorization", "Bearer " + token)
+				.header("Accept", "application/vnd.github+json")
+				.header("X-GitHub-Api-Version", "2026-03-10")
+				.DELETE()
+				.build();
+		HttpResponse<String> resp = http
+				.send(request, HttpResponse.BodyHandlers.ofString());
+		handleRateLimit(resp);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " deleting ruleset "
+							+ rulesetId + " on " + owner + "/" + repo + ": "
+							+ resp.body()
+			);
+		}
+	}
+
 	public RulesetDetailsResponse updateRuleset(
 			String owner,
 			String repo,
