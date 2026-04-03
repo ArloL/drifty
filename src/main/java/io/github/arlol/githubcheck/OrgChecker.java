@@ -34,6 +34,7 @@ import io.github.arlol.githubcheck.client.PagesCreateRequest;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.PagesUpdateRequest;
 import io.github.arlol.githubcheck.client.RepositoryMinimal;
+import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
@@ -1176,7 +1177,11 @@ public class OrgChecker {
 		// Special case: archive the repo
 		if (desired.archived()) {
 			if (remaining.remove("archived")) {
-				client.updateRepository(org, name, Map.of("archived", true));
+				client.updateRepository(
+						org,
+						name,
+						RepositoryUpdateRequest.builder().archived(true).build()
+				);
 				System.out.printf("[FIXED]   %s: archived%n", name);
 			}
 			return remaining;
@@ -1186,41 +1191,37 @@ public class OrgChecker {
 		List<String> repoSettingsDiffs = new ArrayList<>();
 		checkRepoSettings(repoSettingsDiffs, actual, desired);
 		if (!repoSettingsDiffs.isEmpty()) {
-			Map<String, Object> fields = new LinkedHashMap<>();
-			fields.put("archived", desired.archived());
-			fields.put("description", desired.description());
-			fields.put("homepage", desired.homepageUrl());
-			fields.put("has_issues", desired.hasIssues());
-			fields.put("has_projects", desired.hasProjects());
-			fields.put("has_wiki", desired.hasWiki());
-			fields.put("has_discussions", desired.hasDiscussions());
-			fields.put("is_template", desired.isTemplate());
-			fields.put("allow_forking", desired.allowForking());
-			fields.put(
-					"web_commit_signoff_required",
-					desired.webCommitSignoffRequired()
-			);
-			fields.put("allow_merge_commit", desired.allowMergeCommit());
-			fields.put("allow_squash_merge", desired.allowSquashMerge());
-			fields.put("allow_rebase_merge", desired.allowRebaseMerge());
-			fields.put("allow_update_branch", desired.allowUpdateBranch());
-			fields.put("allow_auto_merge", desired.allowAutoMerge());
-			fields.put("delete_branch_on_merge", desired.deleteBranchOnMerge());
-			fields.put(
-					"squash_merge_commit_title",
-					desired.squashMergeCommitTitle()
-			);
-			fields.put(
-					"squash_merge_commit_message",
-					desired.squashMergeCommitMessage()
-			);
-			fields.put("merge_commit_title", desired.mergeCommitTitle());
-			fields.put("merge_commit_message", desired.mergeCommitMessage());
-			fields.put("default_branch", desired.defaultBranch());
-			client.updateRepository(org, name, fields);
+			var request = RepositoryUpdateRequest.builder()
+					.archived(desired.archived())
+					.description(desired.description())
+					.homepage(desired.homepageUrl())
+					.hasIssues(desired.hasIssues())
+					.hasProjects(desired.hasProjects())
+					.hasWiki(desired.hasWiki())
+					.hasDiscussions(desired.hasDiscussions())
+					.isTemplate(desired.isTemplate())
+					.allowForking(desired.allowForking())
+					.webCommitSignoffRequired(
+							desired.webCommitSignoffRequired()
+					)
+					.allowMergeCommit(desired.allowMergeCommit())
+					.allowSquashMerge(desired.allowSquashMerge())
+					.allowRebaseMerge(desired.allowRebaseMerge())
+					.allowUpdateBranch(desired.allowUpdateBranch())
+					.allowAutoMerge(desired.allowAutoMerge())
+					.deleteBranchOnMerge(desired.deleteBranchOnMerge())
+					.squashMergeCommitTitle(desired.squashMergeCommitTitle())
+					.squashMergeCommitMessage(
+							desired.squashMergeCommitMessage()
+					)
+					.mergeCommitTitle(desired.mergeCommitTitle())
+					.mergeCommitMessage(desired.mergeCommitMessage())
+					.defaultBranch(desired.defaultBranch())
+					.build();
+			client.updateRepository(org, name, request);
 			remaining.removeAll(repoSettingsDiffs);
-			for (String field : fields.keySet()) {
-				System.out.printf("[FIXED]   %s: %s updated%n", name, field);
+			for (String diff : repoSettingsDiffs) {
+				System.out.printf("[FIXED]   %s: %s updated%n", name, diff);
 			}
 		}
 
@@ -1312,54 +1313,32 @@ public class OrgChecker {
 							)
 					);
 			if (ssDrifted || sspDrifted || ssvDrifted || ssnpDrifted) {
-				Map<String, Object> saUpdate = new LinkedHashMap<>();
+				var saBuilder = SecurityAndAnalysis.builder();
 				if (ssDrifted) {
-					saUpdate.put(
-							"secret_scanning",
-							Map.of(
-									"status",
-									desired.secretScanning() ? "enabled"
-											: "disabled"
-							)
-					);
+					saBuilder.secretScanning(desired.secretScanning());
 				}
 				if (sspDrifted) {
-					saUpdate.put(
-							"secret_scanning_push_protection",
-							Map.of(
-									"status",
-									desired.secretScanningPushProtection()
-											? "enabled"
-											: "disabled"
-							)
+					saBuilder.secretScanningPushProtection(
+							desired.secretScanningPushProtection()
 					);
 				}
 				if (ssvDrifted) {
-					saUpdate.put(
-							"secret_scanning_validity_checks",
-							Map.of(
-									"status",
-									desired.secretScanningValidityChecks()
-											? "enabled"
-											: "disabled"
-							)
+					saBuilder.secretScanningValidityChecks(
+							desired.secretScanningValidityChecks()
 					);
 				}
 				if (ssnpDrifted) {
-					saUpdate.put(
-							"secret_scanning_non_provider_patterns",
-							Map.of(
-									"status",
-									desired.secretScanningNonProviderPatterns()
-											? "enabled"
-											: "disabled"
-							)
+					saBuilder.secretScanningNonProviderPatterns(
+							desired.secretScanningNonProviderPatterns()
 					);
 				}
+				var sa = saBuilder.build();
 				client.updateRepository(
 						org,
 						name,
-						Map.of("security_and_analysis", saUpdate)
+						RepositoryUpdateRequest.builder()
+								.securityAndAnalysis(sa)
+								.build()
 				);
 				System.out.printf(
 						"[FIXED]   %s: secret_scanning settings updated%n",

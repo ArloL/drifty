@@ -1054,7 +1054,9 @@ class GitHubClientTest {
 		client.updateRepository(
 				"owner",
 				"my-repo",
-				Map.of("description", "New description")
+				RepositoryUpdateRequest.builder()
+						.description("New description")
+						.build()
 		);
 
 		verify(
@@ -1077,14 +1079,11 @@ class GitHubClientTest {
 		client.updateRepository(
 				"owner",
 				"my-repo",
-				Map.of(
-						"description",
-						"New description",
-						"has_wiki",
-						true,
-						"allow_merge_commit",
-						false
-				)
+				RepositoryUpdateRequest.builder()
+						.description("New description")
+						.hasWiki(true)
+						.allowMergeCommit(false)
+						.build()
 		);
 
 		verify(
@@ -1106,7 +1105,11 @@ class GitHubClientTest {
 						.willReturn(okJson(REPO_BASE_JSON))
 		);
 
-		client.updateRepository("owner", "my-repo", Map.of("description", ""));
+		client.updateRepository(
+				"owner",
+				"my-repo",
+				RepositoryUpdateRequest.builder().description("").build()
+		);
 
 		verify(
 				patchRequestedFor(urlEqualTo("/repos/owner/my-repo"))
@@ -1128,7 +1131,9 @@ class GitHubClientTest {
 				() -> client.updateRepository(
 						"owner",
 						"my-repo",
-						Map.of("description", "desc")
+						RepositoryUpdateRequest.builder()
+								.description("desc")
+								.build()
 				)
 		).isInstanceOf(RuntimeException.class).hasMessageContaining("HTTP 422");
 	}

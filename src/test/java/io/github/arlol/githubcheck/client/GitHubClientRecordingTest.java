@@ -73,7 +73,11 @@ class GitHubClientRecordingTest {
 		client.enableVulnerabilityAlerts(owner, repo);
 		client.updateWorkflowPermissions(owner, repo, perms);
 		client.replaceTopics(owner, repo, List.of());
-		client.updateRepository(owner, repo, Map.of("default_branch", "main"));
+		client.updateRepository(
+				owner,
+				repo,
+				RepositoryUpdateRequest.builder().defaultBranch("main").build()
+		);
 		var rulesets = client.listRulesets(owner, repo);
 		client.getRuleset(owner, repo, rulesets.getFirst().id());
 		client.getPages(owner, repo);

@@ -6,4 +6,8 @@ public class GitHubApiException extends RuntimeException {
 		super(message);
 	}
 
+	public GitHubApiException(String message, Throwable cause) {
+		super(message, cause);
+	}
+
 }

@@ -8,8 +8,6 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -53,20 +51,20 @@ public class GitHubClient {
 	// ─── Public API
 	// ──────────────────────────────────────────────────────────
 
-	public List<RepositoryMinimal> listOrgRepos(String org)
-			throws IOException, InterruptedException {
-		String url = baseUrl + "/orgs/" + org + "/repos?per_page=100&type=all";
-		HttpResponse<String> resp = send(url);
+	public List<RepositoryMinimal> listOrgRepos(String owner) {
+		String url = baseUrl + "/orgs/" + owner
+				+ "/repos?per_page=100&type=all";
+		HttpResponse<String> resp = get(url);
 		if (resp.statusCode() == 404) {
 			// Not an org — personal account. /users/{name}/repos only
 			// returns public repos; /user/repos returns everything
 			// (public + private + archived) for the authenticated user.
 			url = baseUrl + "/user/repos?per_page=100&type=owner";
-			resp = send(url);
+			resp = get(url);
 		}
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
-					"HTTP " + resp.statusCode() + " listing repos for " + org
+					"HTTP " + resp.statusCode() + " listing repos for " + owner
 							+ ": " + resp.body()
 			);
 		}
@@ -75,25 +73,20 @@ public class GitHubClient {
 				.toList();
 	}
 
-	public RepositoryFull getRepo(String org, String repo)
-			throws IOException, InterruptedException {
-		HttpResponse<String> resp = send(
-				baseUrl + "/repos/" + org + "/" + repo
-		);
+	public RepositoryFull getRepo(String owner, String repo) {
+		HttpResponse<String> resp = get(repoUrl(owner, repo));
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
-					"HTTP " + resp.statusCode() + " fetching repo " + org + "/"
-							+ repo + ": " + resp.body()
+					"HTTP " + resp.statusCode() + " fetching repo " + owner
+							+ "/" + repo + ": " + resp.body()
 			);
 		}
-		return mapper.readValue(resp.body(), RepositoryFull.class);
+		return readValue(resp.body(), RepositoryFull.class);
 	}
 
-	public boolean getVulnerabilityAlerts(String owner, String repo)
-			throws IOException, InterruptedException {
-		HttpResponse<String> resp = send(
-				baseUrl + "/repos/" + owner + "/" + repo
-						+ "/vulnerability-alerts"
+	public boolean getVulnerabilityAlerts(String owner, String repo) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/vulnerability-alerts"
 		);
 		if (resp.statusCode() == 204) {
 			return true;
@@ -107,14 +100,12 @@ public class GitHubClient {
 		);
 	}
 
-	public boolean getAutomatedSecurityFixes(String org, String repo)
-			throws IOException, InterruptedException {
-		HttpResponse<String> resp = send(
-				baseUrl + "/repos/" + org + "/" + repo
-						+ "/automated-security-fixes"
+	public boolean getAutomatedSecurityFixes(String owner, String repo) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/automated-security-fixes"
 		);
 		if (resp.statusCode() == 200) {
-			return mapper.readValue(resp.body(), AutomatedSecurityFixes.class)
+			return readValue(resp.body(), AutomatedSecurityFixes.class)
 					.enabled();
 		}
 		if (resp.statusCode() == 404) {
@@ -129,13 +120,12 @@ public class GitHubClient {
 	public Optional<ImmutableReleases> getImmutableReleases(
 			String owner,
 			String repo
-	) throws IOException, InterruptedException {
-		HttpResponse<String> resp = send(
-				baseUrl + "/repos/" + owner + "/" + repo + "/immutable-releases"
+	) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/immutable-releases"
 		);
 		if (resp.statusCode() == 200) {
-			return Optional
-					.of(mapper.readValue(resp.body(), ImmutableReleases.class));
+			return Optional.of(readValue(resp.body(), ImmutableReleases.class));
 		}
 		if (resp.statusCode() == 404) {
 			return Optional.empty();
@@ -146,8 +136,7 @@ public class GitHubClient {
 		);
 	}
 
-	public List<BranchResponse> getBranches(String owner, String repo)
-			throws IOException, InterruptedException {
+	public List<BranchResponse> getBranches(String owner, String repo) {
 		return getBranches(owner, repo, false);
 	}
 
@@ -155,10 +144,10 @@ public class GitHubClient {
 			String owner,
 			String repo,
 			boolean isProtected
-	) throws IOException, InterruptedException {
-		HttpResponse<String> resp = send(
-				baseUrl + "/repos/" + owner + "/" + repo
-						+ "/branches?per_page=100&protected=" + isProtected
+	) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/branches?per_page=100&protected="
+						+ isProtected
 		);
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
@@ -174,10 +163,9 @@ public class GitHubClient {
 			String owner,
 			String repo,
 			String branch
-	) throws IOException, InterruptedException {
-		HttpResponse<String> resp = send(
-				baseUrl + "/repos/" + owner + "/" + repo + "/branches/" + branch
-						+ "/protection"
+	) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/branches/" + branch + "/protection"
 		);
 		if (resp.statusCode() == 404) {
 			return Optional.empty();
@@ -188,16 +176,13 @@ public class GitHubClient {
 							+ repo
 			);
 		}
-		return Optional.of(
-				mapper.readValue(resp.body(), BranchProtectionResponse.class)
-		);
+		return Optional
+				.of(readValue(resp.body(), BranchProtectionResponse.class));
 	}
 
-	public List<String> getActionSecretNames(String org, String repo)
-			throws IOException, InterruptedException {
-		String url = baseUrl + "/repos/" + org + "/" + repo
-				+ "/actions/secrets?per_page=100";
-		HttpResponse<String> resp = send(url);
+	public List<String> getActionSecretNames(String owner, String repo) {
+		String url = repoUrl(owner, repo) + "/actions/secrets?per_page=100";
+		HttpResponse<String> resp = get(url);
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " for action secrets on "
@@ -210,12 +195,11 @@ public class GitHubClient {
 	}
 
 	public List<EnvironmentDetailsResponse> getEnvironments(
-			String org,
+			String owner,
 			String repo
-	) throws IOException, InterruptedException {
-		String url = baseUrl + "/repos/" + org + "/" + repo
-				+ "/environments?per_page=100";
-		HttpResponse<String> resp = send(url);
+	) {
+		String url = repoUrl(owner, repo) + "/environments?per_page=100";
+		HttpResponse<String> resp = get(url);
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " for environments on " + repo
@@ -233,34 +217,33 @@ public class GitHubClient {
 	}
 
 	public void updateEnvironment(
-			String org,
+			String owner,
 			String repo,
 			String envName,
 			EnvironmentUpdateRequest payload
-	) throws IOException, InterruptedException {
-		String body = mapper.writeValueAsString(payload);
+	) {
+		String body = writeValue(payload);
 		HttpResponse<String> resp = put(
-				baseUrl + "/repos/" + org + "/" + repo + "/environments/"
-						+ envName,
+				repoUrl(owner, repo) + "/environments/" + envName,
 				body
 		);
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " updating environment "
-							+ envName + " on " + org + "/" + repo + ": "
+							+ envName + " on " + owner + "/" + repo + ": "
 							+ resp.body()
 			);
 		}
 	}
 
 	public List<String> getEnvironmentSecretNames(
-			String org,
+			String owner,
 			String repo,
 			String env
-	) throws IOException, InterruptedException {
-		String url = baseUrl + "/repos/" + org + "/" + repo + "/environments/"
-				+ env + "/secrets?per_page=100";
-		HttpResponse<String> resp = send(url);
+	) {
+		String url = repoUrl(owner, repo) + "/environments/" + env
+				+ "/secrets?per_page=100";
+		HttpResponse<String> resp = get(url);
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " for environment secrets on "
@@ -273,12 +256,11 @@ public class GitHubClient {
 	}
 
 	public SecretPublicKeyResponse getActionSecretPublicKey(
-			String org,
+			String owner,
 			String repo
-	) throws IOException, InterruptedException {
-		HttpResponse<String> resp = send(
-				baseUrl + "/repos/" + org + "/" + repo
-						+ "/actions/secrets/public-key"
+	) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/actions/secrets/public-key"
 		);
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
@@ -286,19 +268,18 @@ public class GitHubClient {
 							+ " GET action secret public key on " + repo
 			);
 		}
-		return mapper.readValue(resp.body(), SecretPublicKeyResponse.class);
+		return readValue(resp.body(), SecretPublicKeyResponse.class);
 	}
 
 	public void createOrUpdateActionSecret(
-			String org,
+			String owner,
 			String repo,
 			String name,
 			SecretRequest request
-	) throws IOException, InterruptedException {
-		String body = mapper.writeValueAsString(request);
+	) {
+		String body = writeValue(request);
 		HttpResponse<String> resp = put(
-				baseUrl + "/repos/" + org + "/" + repo + "/actions/secrets/"
-						+ name,
+				repoUrl(owner, repo) + "/actions/secrets/" + name,
 				body
 		);
 		if (resp.statusCode() != 201 && resp.statusCode() != 204) {
@@ -310,12 +291,12 @@ public class GitHubClient {
 	}
 
 	public SecretPublicKeyResponse getEnvironmentSecretPublicKey(
-			String org,
+			String owner,
 			String repo,
 			String env
-	) throws IOException, InterruptedException {
-		HttpResponse<String> resp = send(
-				baseUrl + "/repos/" + org + "/" + repo + "/environments/" + env
+	) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/environments/" + env
 						+ "/secrets/public-key"
 		);
 		if (resp.statusCode() != 200) {
@@ -325,20 +306,20 @@ public class GitHubClient {
 							+ env
 			);
 		}
-		return mapper.readValue(resp.body(), SecretPublicKeyResponse.class);
+		return readValue(resp.body(), SecretPublicKeyResponse.class);
 	}
 
 	public void createOrUpdateEnvironmentSecret(
-			String org,
+			String owner,
 			String repo,
 			String env,
 			String name,
 			SecretRequest request
-	) throws IOException, InterruptedException {
-		String body = mapper.writeValueAsString(request);
+	) {
+		String body = writeValue(request);
 		HttpResponse<String> resp = put(
-				baseUrl + "/repos/" + org + "/" + repo + "/environments/" + env
-						+ "/secrets/" + name,
+				repoUrl(owner, repo) + "/environments/" + env + "/secrets/"
+						+ name,
 				body
 		);
 		if (resp.statusCode() != 201 && resp.statusCode() != 204) {
@@ -349,11 +330,12 @@ public class GitHubClient {
 		}
 	}
 
-	public WorkflowPermissions getWorkflowPermissions(String org, String repo)
-			throws IOException, InterruptedException {
-		HttpResponse<String> resp = send(
-				baseUrl + "/repos/" + org + "/" + repo
-						+ "/actions/permissions/workflow"
+	public WorkflowPermissions getWorkflowPermissions(
+			String owner,
+			String repo
+	) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/actions/permissions/workflow"
 		);
 		if (resp.statusCode() == 403) {
 			throw new GitHubApiException(
@@ -367,27 +349,17 @@ public class GitHubClient {
 							+ " GET workflow permissions on " + repo
 			);
 		}
-		return mapper.readValue(resp.body(), WorkflowPermissions.class);
+		return readValue(resp.body(), WorkflowPermissions.class);
 	}
 
 	public void updateWorkflowPermissions(
 			String owner,
 			String repo,
 			WorkflowPermissions permissions
-	) throws IOException, InterruptedException {
-		String body = mapper.writeValueAsString(
-				Map.of(
-						"default_workflow_permissions",
-						permissions.defaultWorkflowPermissions()
-								.name()
-								.toLowerCase(Locale.ROOT),
-						"can_approve_pull_request_reviews",
-						permissions.canApprovePullRequestReviews()
-				)
-		);
+	) {
+		String body = writeValue(permissions);
 		HttpResponse<String> resp = put(
-				baseUrl + "/repos/" + owner + "/" + repo
-						+ "/actions/permissions/workflow",
+				repoUrl(owner, repo) + "/actions/permissions/workflow",
 				body
 		);
 		if (resp.statusCode() != 204) {
@@ -403,11 +375,10 @@ public class GitHubClient {
 			String repo,
 			String branch,
 			BranchProtectionRequest payload
-	) throws IOException, InterruptedException {
-		String body = mapper.writeValueAsString(payload);
+	) {
+		String body = writeValue(payload);
 		HttpResponse<String> resp = put(
-				baseUrl + "/repos/" + owner + "/" + repo + "/branches/" + branch
-						+ "/protection",
+				repoUrl(owner, repo) + "/branches/" + branch + "/protection",
 				body
 		);
 		if (resp.statusCode() != 200) {
@@ -416,32 +387,26 @@ public class GitHubClient {
 							+ " updating branch protection on " + repo
 			);
 		}
-		return mapper.readValue(resp.body(), BranchProtectionResponse.class);
+		return readValue(resp.body(), BranchProtectionResponse.class);
 	}
 
 	public void updateRepository(
-			String org,
+			String owner,
 			String repo,
-			Map<String, Object> fields
-	) throws IOException, InterruptedException {
-		String body = mapper.writeValueAsString(fields);
-		HttpResponse<String> resp = patch(
-				baseUrl + "/repos/" + org + "/" + repo,
-				body
-		);
+			RepositoryUpdateRequest request
+	) {
+		String body = writeValue(request);
+		HttpResponse<String> resp = patch(repoUrl(owner, repo), body);
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
-					"HTTP " + resp.statusCode() + " updating " + org + "/"
+					"HTTP " + resp.statusCode() + " updating " + owner + "/"
 							+ repo + ": " + resp.body()
 			);
 		}
 	}
 
-	public Optional<PagesResponse> getPages(String owner, String repo)
-			throws IOException, InterruptedException {
-		HttpResponse<String> resp = send(
-				baseUrl + "/repos/" + owner + "/" + repo + "/pages"
-		);
+	public Optional<PagesResponse> getPages(String owner, String repo) {
+		HttpResponse<String> resp = get(repoUrl(owner, repo) + "/pages");
 		if (resp.statusCode() == 403) {
 			throw new GitHubApiException(
 					"HTTP 403 for pages on " + repo
@@ -456,38 +421,32 @@ public class GitHubClient {
 					"HTTP " + resp.statusCode() + " GET pages on " + repo
 			);
 		}
-		return Optional.of(mapper.readValue(resp.body(), PagesResponse.class));
+		return Optional.of(readValue(resp.body(), PagesResponse.class));
 	}
 
 	public PagesResponse createPages(
 			String owner,
 			String repo,
 			PagesCreateRequest payload
-	) throws IOException, InterruptedException {
-		String body = mapper.writeValueAsString(payload);
-		HttpResponse<String> resp = post(
-				baseUrl + "/repos/" + owner + "/" + repo + "/pages",
-				body
-		);
+	) {
+		String body = writeValue(payload);
+		HttpResponse<String> resp = post(repoUrl(owner, repo) + "/pages", body);
 		if (resp.statusCode() != 201) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " creating pages for " + owner
 							+ "/" + repo + ": " + resp.body()
 			);
 		}
-		return mapper.readValue(resp.body(), PagesResponse.class);
+		return readValue(resp.body(), PagesResponse.class);
 	}
 
 	public void updatePages(
 			String owner,
 			String repo,
 			PagesUpdateRequest payload
-	) throws IOException, InterruptedException {
-		String body = mapper.writeValueAsString(payload);
-		HttpResponse<String> resp = put(
-				baseUrl + "/repos/" + owner + "/" + repo + "/pages",
-				body
-		);
+	) {
+		String body = writeValue(payload);
+		HttpResponse<String> resp = put(repoUrl(owner, repo) + "/pages", body);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " updating pages for " + owner
@@ -496,23 +455,8 @@ public class GitHubClient {
 		}
 	}
 
-	public void deletePages(String owner, String repo)
-			throws IOException, InterruptedException {
-		HttpRequest request = HttpRequest
-				.newBuilder(
-						URI.create(
-								baseUrl + "/repos/" + owner + "/" + repo
-										+ "/pages"
-						)
-				)
-				.header("Authorization", "Bearer " + token)
-				.header("Accept", "application/vnd.github+json")
-				.header("X-GitHub-Api-Version", "2026-03-10")
-				.DELETE()
-				.build();
-		HttpResponse<String> resp = http
-				.send(request, HttpResponse.BodyHandlers.ofString());
-		handleRateLimit(resp);
+	public void deletePages(String owner, String repo) {
+		HttpResponse<String> resp = delete(repoUrl(owner, repo) + "/pages");
 		if (resp.statusCode() != 204 && resp.statusCode() != 404) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " deleting pages for " + owner
@@ -521,12 +465,9 @@ public class GitHubClient {
 		}
 	}
 
-	public void enableVulnerabilityAlerts(String owner, String repo)
-			throws IOException, InterruptedException {
+	public void enableVulnerabilityAlerts(String owner, String repo) {
 		HttpResponse<String> resp = put(
-				baseUrl + "/repos/" + owner + "/" + repo
-						+ "/vulnerability-alerts",
-				""
+				repoUrl(owner, repo) + "/vulnerability-alerts"
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -536,12 +477,9 @@ public class GitHubClient {
 		}
 	}
 
-	public void enableAutomatedSecurityFixes(String owner, String repo)
-			throws IOException, InterruptedException {
+	public void enableAutomatedSecurityFixes(String owner, String repo) {
 		HttpResponse<String> resp = put(
-				baseUrl + "/repos/" + owner + "/" + repo
-						+ "/automated-security-fixes",
-				""
+				repoUrl(owner, repo) + "/automated-security-fixes"
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -551,23 +489,10 @@ public class GitHubClient {
 		}
 	}
 
-	public void disableVulnerabilityAlerts(String owner, String repo)
-			throws IOException, InterruptedException {
-		HttpRequest request = HttpRequest
-				.newBuilder(
-						URI.create(
-								baseUrl + "/repos/" + owner + "/" + repo
-										+ "/vulnerability-alerts"
-						)
-				)
-				.header("Authorization", "Bearer " + token)
-				.header("Accept", "application/vnd.github+json")
-				.header("X-GitHub-Api-Version", "2026-03-10")
-				.DELETE()
-				.build();
-		HttpResponse<String> resp = http
-				.send(request, HttpResponse.BodyHandlers.ofString());
-		handleRateLimit(resp);
+	public void disableVulnerabilityAlerts(String owner, String repo) {
+		HttpResponse<String> resp = delete(
+				repoUrl(owner, repo) + "/vulnerability-alerts"
+		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode()
@@ -576,23 +501,10 @@ public class GitHubClient {
 		}
 	}
 
-	public void disableAutomatedSecurityFixes(String owner, String repo)
-			throws IOException, InterruptedException {
-		HttpRequest request = HttpRequest
-				.newBuilder(
-						URI.create(
-								baseUrl + "/repos/" + owner + "/" + repo
-										+ "/automated-security-fixes"
-						)
-				)
-				.header("Authorization", "Bearer " + token)
-				.header("Accept", "application/vnd.github+json")
-				.header("X-GitHub-Api-Version", "2026-03-10")
-				.DELETE()
-				.build();
-		HttpResponse<String> resp = http
-				.send(request, HttpResponse.BodyHandlers.ofString());
-		handleRateLimit(resp);
+	public void disableAutomatedSecurityFixes(String owner, String repo) {
+		HttpResponse<String> resp = delete(
+				repoUrl(owner, repo) + "/automated-security-fixes"
+		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode()
@@ -601,12 +513,9 @@ public class GitHubClient {
 		}
 	}
 
-	public void enableImmutableReleases(String owner, String repo)
-			throws IOException, InterruptedException {
+	public void enableImmutableReleases(String owner, String repo) {
 		HttpResponse<String> resp = put(
-				baseUrl + "/repos/" + owner + "/" + repo
-						+ "/immutable-releases",
-				""
+				repoUrl(owner, repo) + "/immutable-releases"
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -616,23 +525,10 @@ public class GitHubClient {
 		}
 	}
 
-	public void disableImmutableReleases(String owner, String repo)
-			throws IOException, InterruptedException {
-		HttpRequest request = HttpRequest
-				.newBuilder(
-						URI.create(
-								baseUrl + "/repos/" + owner + "/" + repo
-										+ "/immutable-releases"
-						)
-				)
-				.header("Authorization", "Bearer " + token)
-				.header("Accept", "application/vnd.github+json")
-				.header("X-GitHub-Api-Version", "2026-03-10")
-				.DELETE()
-				.build();
-		HttpResponse<String> resp = http
-				.send(request, HttpResponse.BodyHandlers.ofString());
-		handleRateLimit(resp);
+	public void disableImmutableReleases(String owner, String repo) {
+		HttpResponse<String> resp = delete(
+				repoUrl(owner, repo) + "/immutable-releases"
+		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode()
@@ -641,15 +537,12 @@ public class GitHubClient {
 		}
 	}
 
-	public boolean getPrivateVulnerabilityReporting(String owner, String repo)
-			throws IOException, InterruptedException {
-		HttpResponse<String> resp = send(
-				baseUrl + "/repos/" + owner + "/" + repo
-						+ "/private-vulnerability-reporting"
+	public boolean getPrivateVulnerabilityReporting(String owner, String repo) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/private-vulnerability-reporting"
 		);
 		if (resp.statusCode() == 200) {
-			return mapper
-					.readValue(resp.body(), PrivateVulnerabilityReporting.class)
+			return readValue(resp.body(), PrivateVulnerabilityReporting.class)
 					.enabled();
 		}
 		if (resp.statusCode() == 404) {
@@ -661,12 +554,9 @@ public class GitHubClient {
 		);
 	}
 
-	public void enablePrivateVulnerabilityReporting(String owner, String repo)
-			throws IOException, InterruptedException {
+	public void enablePrivateVulnerabilityReporting(String owner, String repo) {
 		HttpResponse<String> resp = put(
-				baseUrl + "/repos/" + owner + "/" + repo
-						+ "/private-vulnerability-reporting",
-				""
+				repoUrl(owner, repo) + "/private-vulnerability-reporting"
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -677,23 +567,13 @@ public class GitHubClient {
 		}
 	}
 
-	public void disablePrivateVulnerabilityReporting(String owner, String repo)
-			throws IOException, InterruptedException {
-		HttpRequest request = HttpRequest
-				.newBuilder(
-						URI.create(
-								baseUrl + "/repos/" + owner + "/" + repo
-										+ "/private-vulnerability-reporting"
-						)
-				)
-				.header("Authorization", "Bearer " + token)
-				.header("Accept", "application/vnd.github+json")
-				.header("X-GitHub-Api-Version", "2026-03-10")
-				.DELETE()
-				.build();
-		HttpResponse<String> resp = http
-				.send(request, HttpResponse.BodyHandlers.ofString());
-		handleRateLimit(resp);
+	public void disablePrivateVulnerabilityReporting(
+			String owner,
+			String repo
+	) {
+		HttpResponse<String> resp = delete(
+				repoUrl(owner, repo) + "/private-vulnerability-reporting"
+		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode()
@@ -703,14 +583,12 @@ public class GitHubClient {
 		}
 	}
 
-	public boolean getCodeScanningDefaultSetup(String owner, String repo)
-			throws IOException, InterruptedException {
-		HttpResponse<String> resp = send(
-				baseUrl + "/repos/" + owner + "/" + repo
-						+ "/code-scanning/default-setup"
+	public boolean getCodeScanningDefaultSetup(String owner, String repo) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/code-scanning/default-setup"
 		);
 		if (resp.statusCode() == 200) {
-			return mapper.readValue(resp.body(), CodeScanningDefaultSetup.class)
+			return readValue(resp.body(), CodeScanningDefaultSetup.class)
 					.isEnabled();
 		}
 		if (resp.statusCode() == 404) {
@@ -722,12 +600,12 @@ public class GitHubClient {
 		);
 	}
 
-	public void enableCodeScanningDefaultSetup(String owner, String repo)
-			throws IOException, InterruptedException {
-		String body = mapper.writeValueAsString(Map.of("state", "configured"));
+	public void enableCodeScanningDefaultSetup(String owner, String repo) {
+		String body = writeValue(
+				new CodeScanningDefaultSetupRequest("configured")
+		);
 		HttpResponse<String> resp = patch(
-				baseUrl + "/repos/" + owner + "/" + repo
-						+ "/code-scanning/default-setup",
+				repoUrl(owner, repo) + "/code-scanning/default-setup",
 				body
 		);
 		if (resp.statusCode() != 200 && resp.statusCode() != 202) {
@@ -738,13 +616,12 @@ public class GitHubClient {
 		}
 	}
 
-	public void disableCodeScanningDefaultSetup(String owner, String repo)
-			throws IOException, InterruptedException {
-		String body = mapper
-				.writeValueAsString(Map.of("state", "not-configured"));
+	public void disableCodeScanningDefaultSetup(String owner, String repo) {
+		String body = writeValue(
+				new CodeScanningDefaultSetupRequest("not-configured")
+		);
 		HttpResponse<String> resp = patch(
-				baseUrl + "/repos/" + owner + "/" + repo
-						+ "/code-scanning/default-setup",
+				repoUrl(owner, repo) + "/code-scanning/default-setup",
 				body
 		);
 		if (resp.statusCode() != 200 && resp.statusCode() != 202) {
@@ -756,11 +633,12 @@ public class GitHubClient {
 		}
 	}
 
-	public List<RulesetSummaryResponse> listRulesets(String owner, String repo)
-			throws IOException, InterruptedException {
-		String url = baseUrl + "/repos/" + owner + "/" + repo
-				+ "/rulesets?per_page=100";
-		HttpResponse<String> resp = send(url);
+	public List<RulesetSummaryResponse> listRulesets(
+			String owner,
+			String repo
+	) {
+		String url = repoUrl(owner, repo) + "/rulesets?per_page=100";
+		HttpResponse<String> resp = get(url);
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " listing rulesets for "
@@ -781,10 +659,10 @@ public class GitHubClient {
 			String owner,
 			String repo,
 			RulesetRequest payload
-	) throws IOException, InterruptedException {
-		String body = mapper.writeValueAsString(payload);
+	) {
+		String body = writeValue(payload);
 		HttpResponse<String> resp = post(
-				baseUrl + "/repos/" + owner + "/" + repo + "/rulesets",
+				repoUrl(owner, repo) + "/rulesets",
 				body
 		);
 		if (resp.statusCode() != 201) {
@@ -793,26 +671,13 @@ public class GitHubClient {
 							+ owner + "/" + repo + ": " + resp.body()
 			);
 		}
-		return mapper.readValue(resp.body(), RulesetDetailsResponse.class);
+		return readValue(resp.body(), RulesetDetailsResponse.class);
 	}
 
-	public void deleteRuleset(String owner, String repo, long rulesetId)
-			throws IOException, InterruptedException {
-		HttpRequest request = HttpRequest
-				.newBuilder(
-						URI.create(
-								baseUrl + "/repos/" + owner + "/" + repo
-										+ "/rulesets/" + rulesetId
-						)
-				)
-				.header("Authorization", "Bearer " + token)
-				.header("Accept", "application/vnd.github+json")
-				.header("X-GitHub-Api-Version", "2026-03-10")
-				.DELETE()
-				.build();
-		HttpResponse<String> resp = http
-				.send(request, HttpResponse.BodyHandlers.ofString());
-		handleRateLimit(resp);
+	public void deleteRuleset(String owner, String repo, long rulesetId) {
+		HttpResponse<String> resp = delete(
+				repoUrl(owner, repo) + "/rulesets/" + rulesetId
+		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " deleting ruleset "
@@ -827,11 +692,10 @@ public class GitHubClient {
 			String repo,
 			long rulesetId,
 			RulesetRequest payload
-	) throws IOException, InterruptedException {
-		String body = mapper.writeValueAsString(payload);
+	) {
+		String body = writeValue(payload);
 		HttpResponse<String> resp = put(
-				baseUrl + "/repos/" + owner + "/" + repo + "/rulesets/"
-						+ rulesetId,
+				repoUrl(owner, repo) + "/rulesets/" + rulesetId,
 				body
 		);
 		if (resp.statusCode() != 200) {
@@ -841,16 +705,12 @@ public class GitHubClient {
 							+ resp.body()
 			);
 		}
-		return mapper.readValue(resp.body(), RulesetDetailsResponse.class);
+		return readValue(resp.body(), RulesetDetailsResponse.class);
 	}
 
-	public void replaceTopics(String owner, String repo, List<String> topics)
-			throws IOException, InterruptedException {
-		String body = mapper.writeValueAsString(Map.of("names", topics));
-		HttpResponse<String> resp = put(
-				baseUrl + "/repos/" + owner + "/" + repo + "/topics",
-				body
-		);
+	public void replaceTopics(String owner, String repo, List<String> topics) {
+		String body = writeValue(new ReplaceTopicsRequest(topics));
+		HttpResponse<String> resp = put(repoUrl(owner, repo) + "/topics", body);
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " updating topics for "
@@ -871,11 +731,11 @@ public class GitHubClient {
 	private List<JsonNode> collectPaginatedArrayItems(
 			HttpResponse<String> firstResp,
 			String arrayField
-	) throws IOException, InterruptedException {
+	) {
 		List<JsonNode> items = new ArrayList<>();
 		HttpResponse<String> resp = firstResp;
 		while (true) {
-			JsonNode page = mapper.readTree(resp.body());
+			JsonNode page = readTree(resp.body());
 			Iterable<JsonNode> array = arrayField != null
 					? page.path(arrayField)
 					: page;
@@ -888,7 +748,7 @@ public class GitHubClient {
 			if (next == null) {
 				break;
 			}
-			resp = send(next);
+			resp = get(next);
 			if (resp.statusCode() != 200) {
 				throw new GitHubApiException(
 						"HTTP " + resp.statusCode() + " fetching next page: "
@@ -899,67 +759,107 @@ public class GitHubClient {
 		return items;
 	}
 
-	private HttpResponse<String> post(String url, String body)
-			throws IOException, InterruptedException {
-		HttpRequest request = HttpRequest.newBuilder(URI.create(url))
-				.header("Authorization", "Bearer " + token)
-				.header("Accept", "application/vnd.github+json")
-				.header("Content-Type", "application/json")
-				.header("X-GitHub-Api-Version", "2026-03-10")
-				.POST(HttpRequest.BodyPublishers.ofString(body))
-				.build();
-		HttpResponse<String> resp = http
-				.send(request, HttpResponse.BodyHandlers.ofString());
-		handleRateLimit(resp);
-		return resp;
+	private String repoUrl(String owner, String repo) {
+		return baseUrl + "/repos/" + owner + "/" + repo;
 	}
 
-	private HttpResponse<String> patch(String url, String body)
-			throws IOException, InterruptedException {
-		HttpRequest request = HttpRequest.newBuilder(URI.create(url))
-				.header("Authorization", "Bearer " + token)
-				.header("Accept", "application/vnd.github+json")
-				.header("Content-Type", "application/json")
-				.header("X-GitHub-Api-Version", "2026-03-10")
-				.method("PATCH", HttpRequest.BodyPublishers.ofString(body))
-				.build();
-		HttpResponse<String> resp = http
-				.send(request, HttpResponse.BodyHandlers.ofString());
-		handleRateLimit(resp);
-		return resp;
+	private <T> T readValue(String json, Class<T> type) {
+		try {
+			return mapper.readValue(json, type);
+		} catch (IOException e) {
+			throw new GitHubApiException(
+					"Failed to parse " + type.getSimpleName(),
+					e
+			);
+		}
 	}
 
-	private HttpResponse<String> put(String url, String body)
-			throws IOException, InterruptedException {
-		HttpRequest request = HttpRequest.newBuilder(URI.create(url))
-				.header("Authorization", "Bearer " + token)
-				.header("Accept", "application/vnd.github+json")
-				.header("Content-Type", "application/json")
-				.header("X-GitHub-Api-Version", "2026-03-10")
-				.PUT(HttpRequest.BodyPublishers.ofString(body))
-				.build();
-		HttpResponse<String> resp = http
-				.send(request, HttpResponse.BodyHandlers.ofString());
-		handleRateLimit(resp);
-		return resp;
+	private String writeValue(Object value) {
+		try {
+			return mapper.writeValueAsString(value);
+		} catch (IOException e) {
+			throw new GitHubApiException("Failed to serialize request body", e);
+		}
 	}
 
-	private HttpResponse<String> send(String url)
-			throws IOException, InterruptedException {
-		HttpRequest request = HttpRequest.newBuilder(URI.create(url))
-				.header("Authorization", "Bearer " + token)
-				.header("Accept", "application/vnd.github+json")
-				.header("X-GitHub-Api-Version", "2026-03-10")
-				.GET()
-				.build();
-		HttpResponse<String> resp = http
-				.send(request, HttpResponse.BodyHandlers.ofString());
-		handleRateLimit(resp);
-		return resp;
+	private JsonNode readTree(String json) {
+		try {
+			return mapper.readTree(json);
+		} catch (IOException e) {
+			throw new GitHubApiException("Failed to parse JSON", e);
+		}
 	}
 
-	private void handleRateLimit(HttpResponse<String> resp)
-			throws InterruptedException {
+	private HttpRequest.Builder requestBuilder(String url) {
+		return HttpRequest.newBuilder(URI.create(url))
+				.header("Authorization", "Bearer " + token)
+				.header("Accept", "application/vnd.github+json")
+				.header("X-GitHub-Api-Version", "2026-03-10");
+	}
+
+	private HttpResponse<String> sendRequest(HttpRequest request) {
+		try {
+			HttpResponse<String> resp = http
+					.send(request, HttpResponse.BodyHandlers.ofString());
+			handleRateLimit(resp);
+			return resp;
+		} catch (IOException e) {
+			throw new GitHubApiException(
+					request.method() + " " + request.uri() + " failed",
+					e
+			);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new GitHubApiException(
+					request.method() + " " + request.uri() + " interrupted",
+					e
+			);
+		}
+	}
+
+	private HttpResponse<String> get(String url) {
+		return sendRequest(requestBuilder(url).GET().build());
+	}
+
+	private HttpResponse<String> post(String url, String body) {
+		return sendRequest(
+				requestBuilder(url).header("Content-Type", "application/json")
+						.POST(HttpRequest.BodyPublishers.ofString(body))
+						.build()
+		);
+	}
+
+	private HttpResponse<String> patch(String url, String body) {
+		return sendRequest(
+				requestBuilder(url).header("Content-Type", "application/json")
+						.method(
+								"PATCH",
+								HttpRequest.BodyPublishers.ofString(body)
+						)
+						.build()
+		);
+	}
+
+	private HttpResponse<String> put(String url, String body) {
+		return sendRequest(
+				requestBuilder(url).header("Content-Type", "application/json")
+						.PUT(HttpRequest.BodyPublishers.ofString(body))
+						.build()
+		);
+	}
+
+	private HttpResponse<String> put(String url) {
+		return sendRequest(
+				requestBuilder(url).PUT(HttpRequest.BodyPublishers.noBody())
+						.build()
+		);
+	}
+
+	private HttpResponse<String> delete(String url) {
+		return sendRequest(requestBuilder(url).DELETE().build());
+	}
+
+	private void handleRateLimit(HttpResponse<String> resp) {
 		String remaining = resp.headers()
 				.firstValue("X-RateLimit-Remaining")
 				.orElse("1000");
@@ -974,7 +874,15 @@ public class GitHubClient {
 						"Rate limit reached. Sleeping %.1f seconds until reset...%n",
 						sleepMs / 1000.0
 				);
-				Thread.sleep(sleepMs);
+				try {
+					Thread.sleep(sleepMs);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					throw new GitHubApiException(
+							"Interrupted while waiting for rate limit reset",
+							e
+					);
+				}
 			}
 		}
 	}
@@ -997,10 +905,9 @@ public class GitHubClient {
 			String owner,
 			String repo,
 			long rulesetId
-	) throws IOException, InterruptedException {
-		HttpResponse<String> resp = send(
-				baseUrl + "/repos/" + owner + "/" + repo + "/rulesets/"
-						+ rulesetId
+	) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/rulesets/" + rulesetId
 		);
 		if (resp.statusCode() == 403) {
 			throw new GitHubApiException(
@@ -1014,7 +921,7 @@ public class GitHubClient {
 							+ " GET workflow permissions on " + repo
 			);
 		}
-		return mapper.readValue(resp.body(), RulesetDetailsResponse.class);
+		return readValue(resp.body(), RulesetDetailsResponse.class);
 	}
 
 }
