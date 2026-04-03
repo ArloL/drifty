@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -28,9 +27,6 @@ import org.junit.jupiter.api.Test;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-
-import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
-import io.github.arlol.githubcheck.client.RepositoryVisibility;
 
 @WireMockTest
 class GitHubClientTest {
@@ -1017,8 +1013,7 @@ class GitHubClientTest {
 
 		var pages = client.getPages("owner", "eclipse-projects").orElseThrow();
 
-		assertThat(pages.buildType())
-				.isEqualTo(PagesResponse.BuildType.WORKFLOW);
+		assertThat(pages.buildType()).isEqualTo(PagesBuildType.WORKFLOW);
 		assertThat(pages.cname()).isNull();
 		assertThat(pages.protectedDomainState()).isNull();
 		assertThat(pages.pendingDomainUnverifiedAt()).isNull();

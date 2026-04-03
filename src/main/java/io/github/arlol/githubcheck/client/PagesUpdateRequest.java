@@ -2,10 +2,11 @@ package io.github.arlol.githubcheck.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record PagesUpdateRequest(
-		String buildType,
-		@JsonInclude(JsonInclude.Include.NON_NULL) Source source,
-		boolean httpsEnforced
+		PagesBuildType buildType,
+		Source source,
+		Boolean httpsEnforced
 ) {
 
 	public record Source(

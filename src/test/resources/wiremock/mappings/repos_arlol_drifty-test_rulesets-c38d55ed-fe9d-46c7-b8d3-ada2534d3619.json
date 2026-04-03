@@ -1,0 +1,45 @@
+{
+  "id" : "c38d55ed-fe9d-46c7-b8d3-ada2534d3619",
+  "name" : "repos_arlol_drifty-test_rulesets",
+  "request" : {
+    "urlPath" : "/repos/ArloL/drifty-test/rulesets",
+    "method" : "GET",
+    "queryParameters" : {
+      "per_page" : {
+        "equalTo" : "100"
+      }
+    }
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "[{\"id\":14682762,\"name\":\"main-branch-rules\",\"target\":\"branch\",\"source_type\":\"Repository\",\"source\":\"ArloL/drifty-test\",\"enforcement\":\"active\",\"node_id\":\"RRS_lACqUmVwb3NpdG9yec5HkgqvzgDgCoo\",\"_links\":{\"self\":{\"href\":\"https://api.github.com/repos/ArloL/drifty-test/rulesets/14682762\"},\"html\":{\"href\":\"https://github.com/ArloL/drifty-test/rules/14682762\"}},\"created_at\":\"2026-04-03T21:37:34.871+02:00\",\"updated_at\":\"2026-04-03T21:37:34.881+02:00\"}]",
+    "headers" : {
+      "X-RateLimit-Resource" : "core",
+      "Server" : "github.com",
+      "X-RateLimit-Used" : "150",
+      "Access-Control-Allow-Origin" : "*",
+      "X-Content-Type-Options" : "nosniff",
+      "X-RateLimit-Reset" : "1775247895",
+      "x-github-api-version-selected" : "2026-03-10",
+      "Date" : "Fri, 03 Apr 2026 19:37:35 GMT",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "X-Frame-Options" : "deny",
+      "x-accepted-github-permissions" : "metadata=read",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
+      "X-RateLimit-Remaining" : "4850",
+      "Cache-Control" : "private, max-age=60, s-maxage=60",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "ETag" : "\"dc761b14321e1a5c68ce311a3836fbe411de2a7c46b657226be562a1fa92b112\"",
+      "Content-Security-Policy" : "default-src 'none'",
+      "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
+      "X-RateLimit-Limit" : "5000",
+      "X-XSS-Protection" : "0",
+      "github-authentication-token-expiration" : "2026-04-10 18:25:23 UTC",
+      "X-GitHub-Request-Id" : "8F53:225E77:228E8AB:1D758B1:69D016FF",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "persistent" : true,
+  "insertionIndex" : 20
+}

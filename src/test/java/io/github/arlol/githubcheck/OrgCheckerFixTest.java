@@ -36,6 +36,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.PagesBuildType;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
@@ -2060,7 +2061,7 @@ class OrgCheckerFixTest {
 				null,
 				false,
 				null,
-				PagesResponse.BuildType.WORKFLOW,
+				PagesBuildType.WORKFLOW,
 				null,
 				true,
 				null,

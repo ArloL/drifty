@@ -223,6 +223,27 @@ public class GitHubClient {
 				.toList();
 	}
 
+	public EnvironmentDetailsResponse createOrUpdateEnvironment(
+			String owner,
+			String repo,
+			String envName,
+			EnvironmentUpdateRequest payload
+	) {
+		String body = writeValue(payload);
+		HttpResponse<String> resp = put(
+				repoUrl(owner, repo) + "/environments/" + envName,
+				body
+		);
+		if (resp.statusCode() != 200 && resp.statusCode() != 201) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " creating/updating environment " + envName
+							+ " on " + owner + "/" + repo + ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), EnvironmentDetailsResponse.class);
+	}
+
 	public void updateEnvironment(
 			String owner,
 			String repo,
@@ -237,6 +258,19 @@ public class GitHubClient {
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " updating environment "
+							+ envName + " on " + owner + "/" + repo + ": "
+							+ resp.body()
+			);
+		}
+	}
+
+	public void deleteEnvironment(String owner, String repo, String envName) {
+		HttpResponse<String> resp = delete(
+				repoUrl(owner, repo) + "/environments/" + envName
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " deleting environment "
 							+ envName + " on " + owner + "/" + repo + ": "
 							+ resp.body()
 			);
@@ -732,6 +766,41 @@ public class GitHubClient {
 							+ owner + "/" + repo + ": " + resp.body()
 			);
 		}
+	}
+
+	public RepositoryDetailsResponse createUserRepository(
+			RepositoryCreateRequest request
+	) {
+		String body = writeValue(request);
+		HttpResponse<String> resp = post(baseUrl + "/user/repos", body);
+		if (resp.statusCode() != 201) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " creating user repository: "
+							+ resp.body()
+			);
+		}
+		return readValue(resp.body(), RepositoryDetailsResponse.class);
+	}
+
+	public void deleteRepository(String owner, String repo) {
+		HttpResponse<String> resp = delete(repoUrl(owner, repo));
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " deleting " + owner + "/"
+							+ repo + ": " + resp.body()
+			);
+		}
+	}
+
+	public SimpleUser getAuthenticatedUser() {
+		HttpResponse<String> resp = get(baseUrl + "/user");
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " getting authenticated user: " + resp.body()
+			);
+		}
+		return readValue(resp.body(), SimpleUser.class);
 	}
 
 	// ─── Pagination

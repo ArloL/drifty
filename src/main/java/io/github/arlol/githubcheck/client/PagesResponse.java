@@ -1,9 +1,7 @@
 package io.github.arlol.githubcheck.client;
 
 import java.util.List;
-import java.util.Locale;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record PagesResponse(
@@ -13,7 +11,7 @@ public record PagesResponse(
 		@JsonProperty("custom_404") boolean custom404,
 		String htmlUrl,
 		// Absent in legacy Pages responses that predate the build_type field.
-		BuildType buildType,
+		PagesBuildType buildType,
 		Source source,
 		@JsonProperty("public") boolean isPublic,
 		String pendingDomainUnverifiedAt,
@@ -22,17 +20,6 @@ public record PagesResponse(
 		HttpsCertificate httpsCertificate,
 		boolean httpsEnforced
 ) {
-
-	public enum BuildType {
-
-		WORKFLOW, LEGACY;
-
-		@JsonCreator
-		public static BuildType fromValue(String value) {
-			return valueOf(value.toUpperCase(Locale.ROOT));
-		}
-
-	}
 
 	public enum Status {
 		@JsonProperty("built")

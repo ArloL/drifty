@@ -30,6 +30,7 @@ import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.EnvironmentUpdateRequest;
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.PagesBuildType;
 import io.github.arlol.githubcheck.client.PagesCreateRequest;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.PagesUpdateRequest;
@@ -49,7 +50,6 @@ import io.github.arlol.githubcheck.client.SimpleUser;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.BranchProtectionArgs;
 import io.github.arlol.githubcheck.config.BypassActorArgs;
-import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
 import io.github.arlol.githubcheck.config.EnvironmentArgs;
 import io.github.arlol.githubcheck.config.PagesArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
@@ -1144,8 +1144,7 @@ public class OrgChecker {
 						: null
 		);
 
-		if (want.buildType() == PagesResponse.BuildType.LEGACY
-				&& p.source() != null) {
+		if (want.buildType() == PagesBuildType.LEGACY && p.source() != null) {
 			check(
 					diffs,
 					"pages.source.branch",
@@ -1690,31 +1689,24 @@ public class OrgChecker {
 
 	private static PagesCreateRequest buildPagesCreateRequest(PagesArgs args) {
 		PagesCreateRequest.Source source = null;
-		if (args.buildType() == PagesResponse.BuildType.LEGACY) {
+		if (args.buildType() == PagesBuildType.LEGACY) {
 			source = new PagesCreateRequest.Source(
 					args.sourceBranch(),
 					args.sourcePath()
 			);
 		}
-		return new PagesCreateRequest(
-				args.buildType().name().toLowerCase(Locale.ROOT),
-				source
-		);
+		return new PagesCreateRequest(args.buildType(), source);
 	}
 
 	private static PagesUpdateRequest buildPagesUpdateRequest(PagesArgs args) {
 		PagesUpdateRequest.Source source = null;
-		if (args.buildType() == PagesResponse.BuildType.LEGACY) {
+		if (args.buildType() == PagesBuildType.LEGACY) {
 			source = new PagesUpdateRequest.Source(
 					args.sourceBranch(),
 					args.sourcePath()
 			);
 		}
-		return new PagesUpdateRequest(
-				args.buildType().name().toLowerCase(Locale.ROOT),
-				source,
-				true
-		);
+		return new PagesUpdateRequest(args.buildType(), source, true);
 	}
 
 	private static EnvironmentUpdateRequest buildEnvironmentUpdateRequest(

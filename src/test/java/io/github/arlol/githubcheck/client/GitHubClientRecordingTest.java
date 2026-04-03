@@ -3,13 +3,13 @@ package io.github.arlol.githubcheck.client;
 import static com.github.tomakehurst.wiremock.client.WireMock.recordSpec;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assumptions.assumeThat;
+import static org.awaitility.Awaitility.given;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -55,48 +55,129 @@ class GitHubClientRecordingTest {
 				wm.getRuntimeInfo().getHttpBaseUrl(),
 				token
 		);
-		String owner = "ArloL";
-		String repo = "terraform-github";
-		client.listOrgRepos(owner);
-		client.getRepo(owner, repo);
-		client.getVulnerabilityAlerts(owner, repo);
-		client.getAutomatedSecurityFixes(owner, repo);
-		client.getImmutableReleases(owner, repo);
-		client.getPrivateVulnerabilityReporting(owner, repo);
-		client.getCodeScanningDefaultSetup(owner, repo);
-		var branches = client.getBranches(owner, repo, true);
-		for (var branch : branches) {
-			client.getBranchProtection(owner, repo, branch.name());
+
+		String repo = "drifty-test";
+		String owner = client.getAuthenticatedUser().login();
+		var repositoryCreateRequest = RepositoryCreateRequest.builder()
+				.name(repo)
+				.autoInit(true)
+				.description("A test project only to test things with drifty")
+				.build();
+
+		try {
+			client.createUserRepository(repositoryCreateRequest);
+		} catch (GitHubApiException e) {
+			client.deleteRepository(owner, repo);
+			client.createUserRepository(repositoryCreateRequest);
 		}
-		var perms = client.getWorkflowPermissions(owner, repo);
-		// Non-destructive writes: write back what was just read (idempotent)
-		client.enableVulnerabilityAlerts(owner, repo);
-		client.updateWorkflowPermissions(owner, repo, perms);
-		client.replaceTopics(owner, repo, List.of());
-		client.updateRepository(
-				owner,
-				repo,
-				RepositoryUpdateRequest.builder().defaultBranch("main").build()
-		);
-		var rulesets = client.listRulesets(owner, repo);
-		client.getRuleset(owner, repo, rulesets.getFirst().id());
-		client.getPages(owner, repo);
-		client.deletePages(owner, repo);
-		var environments = client.getEnvironments(owner, repo);
-		if (!environments.isEmpty()) {
-			var env = environments.getFirst();
-			var payload = new EnvironmentUpdateRequest(
-					env.getWaitTimer(),
-					null,
-					null
+
+		given().ignoreExceptions()
+				.await()
+				.until(() -> client.getRepo(owner, repo) != null);
+
+		try {
+			client.listOrgRepos(owner);
+			var apiRepo = client.getRepo(owner, repo);
+			client.getVulnerabilityAlerts(owner, repo);
+			client.getAutomatedSecurityFixes(owner, repo);
+			client.getImmutableReleases(owner, repo);
+			client.getPrivateVulnerabilityReporting(owner, repo);
+			client.getCodeScanningDefaultSetup(owner, repo);
+			client.updateBranchProtection(
+					owner,
+					repo,
+					apiRepo.defaultBranch(),
+					new BranchProtectionRequest(
+							null,
+							true,
+							null,
+							null,
+							true,
+							false
+					)
 			);
-			client.updateEnvironment(owner, repo, env.name(), payload);
+			var branches = client.getBranches(owner, repo, true);
+			for (var branch : branches) {
+				client.getBranchProtection(owner, repo, branch.name());
+			}
+			client.getWorkflowPermissions(owner, repo);
+			client.enableVulnerabilityAlerts(owner, repo);
+			client.updateWorkflowPermissions(
+					owner,
+					repo,
+					new WorkflowPermissions(
+							WorkflowPermissions.DefaultWorkflowPermissions.READ,
+							true
+					)
+			);
+			client.replaceTopics(owner, repo, List.of());
+			client.updateRepository(
+					owner,
+					repo,
+					RepositoryUpdateRequest.builder()
+							.defaultBranch("main")
+							.build()
+			);
+			client.createRuleset(
+					owner,
+					repo,
+					new RulesetRequest(
+							"main-branch-rules",
+							RulesetTarget.BRANCH,
+							RulesetEnforcement.ACTIVE,
+							List.of(),
+							new RulesetRequest.Conditions(
+									new RulesetRequest.Conditions.RefName(
+											List.of(
+													"refs/heads/" + apiRepo
+															.defaultBranch()
+											),
+											List.of()
+									),
+									null,
+									null,
+									null
+							),
+							List.of(new Rule.RequiredLinearHistory())
+					)
+			);
+			var rulesets = client.listRulesets(owner, repo);
+			client.getRuleset(owner, repo, rulesets.getFirst().id());
+			client.getPages(owner, repo);
+			client.createPages(
+					owner,
+					repo,
+					new PagesCreateRequest(PagesBuildType.WORKFLOW, null)
+			);
+			client.updatePages(
+					owner,
+					repo,
+					new PagesUpdateRequest(PagesBuildType.WORKFLOW, null, null)
+			);
+			client.deletePages(owner, repo);
+
+			client.createOrUpdateEnvironment(
+					owner,
+					repo,
+					"production",
+					new EnvironmentUpdateRequest(15, null, null)
+			);
+			client.updateEnvironment(
+					owner,
+					repo,
+					"production",
+					new EnvironmentUpdateRequest(30, null, null)
+			);
+			client.getEnvironments(owner, repo);
+			client.deleteEnvironment(owner, repo, "production");
+		} finally {
+			client.deleteRepository(owner, repo);
 		}
 
 		wm.stopRecording();
 	}
 
-	private static void clearDirectory(Path dir) {
+	private static void clearDirectory(Path dir) throws IOException {
 		if (!Files.isDirectory(dir)) {
 			return;
 		}
