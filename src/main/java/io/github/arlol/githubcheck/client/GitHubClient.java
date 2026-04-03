@@ -613,7 +613,9 @@ public class GitHubClient {
 
 	public void enableCodeScanningDefaultSetup(String owner, String repo) {
 		String body = writeValue(
-				new CodeScanningDefaultSetupRequest("configured")
+				new CodeScanningDefaultSetupRequest(
+						CodeScanningDefaultSetupResponse.State.CONFIGURED
+				)
 		);
 		HttpResponse<String> resp = patch(
 				repoUrl(owner, repo) + "/code-scanning/default-setup",
@@ -629,7 +631,9 @@ public class GitHubClient {
 
 	public void disableCodeScanningDefaultSetup(String owner, String repo) {
 		String body = writeValue(
-				new CodeScanningDefaultSetupRequest("not-configured")
+				new CodeScanningDefaultSetupRequest(
+						CodeScanningDefaultSetupResponse.State.NOT_CONFIGURED
+				)
 		);
 		HttpResponse<String> resp = patch(
 				repoUrl(owner, repo) + "/code-scanning/default-setup",

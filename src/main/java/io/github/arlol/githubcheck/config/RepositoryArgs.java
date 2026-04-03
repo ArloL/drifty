@@ -12,7 +12,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.github.arlol.githubcheck.client.MergeCommitMessage;
+import io.github.arlol.githubcheck.client.MergeCommitTitle;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
+import io.github.arlol.githubcheck.client.SquashMergeCommitMessage;
+import io.github.arlol.githubcheck.client.SquashMergeCommitTitle;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 
 public final class RepositoryArgs {
@@ -52,10 +56,10 @@ public final class RepositoryArgs {
 	private final boolean allowSquashMerge;
 	private final boolean allowAutoMerge;
 	private final boolean deleteBranchOnMerge;
-	private final String squashMergeCommitTitle;
-	private final String squashMergeCommitMessage;
-	private final String mergeCommitTitle;
-	private final String mergeCommitMessage;
+	private final SquashMergeCommitTitle squashMergeCommitTitle;
+	private final SquashMergeCommitMessage squashMergeCommitMessage;
+	private final MergeCommitTitle mergeCommitTitle;
+	private final MergeCommitMessage mergeCommitMessage;
 	private final WorkflowPermissions.DefaultWorkflowPermissions defaultWorkflowPermissions;
 	private final boolean canApprovePullRequestReviews;
 
@@ -248,19 +252,19 @@ public final class RepositoryArgs {
 		return deleteBranchOnMerge;
 	}
 
-	public String squashMergeCommitTitle() {
+	public SquashMergeCommitTitle squashMergeCommitTitle() {
 		return squashMergeCommitTitle;
 	}
 
-	public String squashMergeCommitMessage() {
+	public SquashMergeCommitMessage squashMergeCommitMessage() {
 		return squashMergeCommitMessage;
 	}
 
-	public String mergeCommitTitle() {
+	public MergeCommitTitle mergeCommitTitle() {
 		return mergeCommitTitle;
 	}
 
-	public String mergeCommitMessage() {
+	public MergeCommitMessage mergeCommitMessage() {
 		return mergeCommitMessage;
 	}
 
@@ -416,10 +420,10 @@ public final class RepositoryArgs {
 		private boolean allowSquashMerge = true;
 		private boolean allowAutoMerge = false;
 		private boolean deleteBranchOnMerge = false;
-		private String squashMergeCommitTitle = "COMMIT_OR_PR_TITLE";
-		private String squashMergeCommitMessage = "COMMIT_MESSAGES";
-		private String mergeCommitTitle = "MERGE_MESSAGE";
-		private String mergeCommitMessage = "PR_TITLE";
+		private SquashMergeCommitTitle squashMergeCommitTitle = SquashMergeCommitTitle.COMMIT_OR_PR_TITLE;
+		private SquashMergeCommitMessage squashMergeCommitMessage = SquashMergeCommitMessage.COMMIT_MESSAGES;
+		private MergeCommitTitle mergeCommitTitle = MergeCommitTitle.MERGE_MESSAGE;
+		private MergeCommitMessage mergeCommitMessage = MergeCommitMessage.PR_TITLE;
 		private WorkflowPermissions.DefaultWorkflowPermissions defaultWorkflowPermissions = WorkflowPermissions.DefaultWorkflowPermissions.WRITE;
 		private boolean canApprovePullRequestReviews = true;
 
@@ -705,24 +709,28 @@ public final class RepositoryArgs {
 			return this;
 		}
 
-		public Builder squashMergeCommitTitle(String squashMergeCommitTitle) {
+		public Builder squashMergeCommitTitle(
+				SquashMergeCommitTitle squashMergeCommitTitle
+		) {
 			this.squashMergeCommitTitle = squashMergeCommitTitle;
 			return this;
 		}
 
 		public Builder squashMergeCommitMessage(
-				String squashMergeCommitMessage
+				SquashMergeCommitMessage squashMergeCommitMessage
 		) {
 			this.squashMergeCommitMessage = squashMergeCommitMessage;
 			return this;
 		}
 
-		public Builder mergeCommitTitle(String mergeCommitTitle) {
+		public Builder mergeCommitTitle(MergeCommitTitle mergeCommitTitle) {
 			this.mergeCommitTitle = mergeCommitTitle;
 			return this;
 		}
 
-		public Builder mergeCommitMessage(String mergeCommitMessage) {
+		public Builder mergeCommitMessage(
+				MergeCommitMessage mergeCommitMessage
+		) {
 			this.mergeCommitMessage = mergeCommitMessage;
 			return this;
 		}

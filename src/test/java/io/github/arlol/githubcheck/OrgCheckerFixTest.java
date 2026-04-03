@@ -2056,7 +2056,7 @@ class OrgCheckerFixTest {
 
 		var actualPages = new PagesResponse(
 				null,
-				"built",
+				PagesResponse.Status.BUILT,
 				null,
 				false,
 				null,

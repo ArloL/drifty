@@ -40,7 +40,7 @@ public record RepositoryDetailsResponse(
 		boolean hasDiscussions,
 		boolean hasPages,
 		Boolean hasPullRequests, // optional
-		String pullRequestCreationPolicy, // optional
+		PullRequestCreationPolicy pullRequestCreationPolicy, // optional
 		Boolean hasCommitComments, // optional
 		boolean allowForking,
 		boolean webCommitSignoffRequired,
@@ -50,10 +50,10 @@ public record RepositoryDetailsResponse(
 		boolean allowAutoMerge,
 		boolean deleteBranchOnMerge,
 		boolean allowUpdateBranch,
-		String squashMergeCommitTitle,
-		String squashMergeCommitMessage,
-		String mergeCommitTitle,
-		String mergeCommitMessage,
+		SquashMergeCommitTitle squashMergeCommitTitle,
+		SquashMergeCommitMessage squashMergeCommitMessage,
+		MergeCommitTitle mergeCommitTitle,
+		MergeCommitMessage mergeCommitMessage,
 		String pushedAt,
 		String createdAt,
 		String updatedAt,

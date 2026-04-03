@@ -1,11 +1,19 @@
 package io.github.arlol.githubcheck.client;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public record CodeScanningDefaultSetupResponse(
-		String state
+		State state
 ) {
 
 	public boolean isEnabled() {
-		return !"not-configured".equals(state);
+		return State.NOT_CONFIGURED != state;
+	}
+
+	public enum State {
+		@JsonProperty("configured")
+		CONFIGURED, @JsonProperty("not-configured")
+		NOT_CONFIGURED
 	}
 
 }
