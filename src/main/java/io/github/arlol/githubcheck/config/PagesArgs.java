@@ -1,15 +1,15 @@
 package io.github.arlol.githubcheck.config;
 
-import io.github.arlol.githubcheck.client.PagesResponse;
+import io.github.arlol.githubcheck.client.PagesBuildType;
 
 public final class PagesArgs {
 
-	private final PagesResponse.BuildType buildType;
+	private final PagesBuildType buildType;
 	private final String sourceBranch;
 	private final String sourcePath;
 
 	private PagesArgs(
-			PagesResponse.BuildType buildType,
+			PagesBuildType buildType,
 			String sourceBranch,
 			String sourcePath
 	) {
@@ -19,18 +19,14 @@ public final class PagesArgs {
 	}
 
 	public static PagesArgs workflow() {
-		return new PagesArgs(PagesResponse.BuildType.WORKFLOW, null, null);
+		return new PagesArgs(PagesBuildType.WORKFLOW, null, null);
 	}
 
 	public static PagesArgs legacy(String sourceBranch, String sourcePath) {
-		return new PagesArgs(
-				PagesResponse.BuildType.LEGACY,
-				sourceBranch,
-				sourcePath
-		);
+		return new PagesArgs(PagesBuildType.LEGACY, sourceBranch, sourcePath);
 	}
 
-	public PagesResponse.BuildType buildType() {
+	public PagesBuildType buildType() {
 		return buildType;
 	}
 

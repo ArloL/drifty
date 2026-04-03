@@ -3,7 +3,7 @@ package io.github.arlol.githubcheck.client;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 public record PagesCreateRequest(
-		String buildType,
+		PagesBuildType buildType,
 		@JsonInclude(JsonInclude.Include.NON_NULL) Source source
 ) {
 

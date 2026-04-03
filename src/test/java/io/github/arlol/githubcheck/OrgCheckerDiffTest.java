@@ -18,6 +18,7 @@ import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.EnvironmentReviewerType;
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.PagesBuildType;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
@@ -1013,7 +1014,7 @@ class OrgCheckerDiffTest {
 				null,
 				false,
 				null,
-				PagesResponse.BuildType.WORKFLOW,
+				PagesBuildType.WORKFLOW,
 				null,
 				true,
 				null,
@@ -1046,7 +1047,7 @@ class OrgCheckerDiffTest {
 										null,
 										false,
 										null,
-										PagesResponse.BuildType.LEGACY,
+										PagesBuildType.LEGACY,
 										new PagesResponse.Source(
 												"gh-pages",
 												"/"
@@ -1077,7 +1078,7 @@ class OrgCheckerDiffTest {
 										null,
 										false,
 										null,
-										PagesResponse.BuildType.WORKFLOW,
+										PagesBuildType.WORKFLOW,
 										null,
 										true,
 										null,

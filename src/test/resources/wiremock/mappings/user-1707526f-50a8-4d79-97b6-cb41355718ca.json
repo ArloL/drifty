@@ -1,0 +1,41 @@
+{
+  "id" : "1707526f-50a8-4d79-97b6-cb41355718ca",
+  "name" : "user",
+  "request" : {
+    "url" : "/user",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "{\"login\":\"ArloL\",\"id\":195367,\"node_id\":\"MDQ6VXNlcjE5NTM2Nw==\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/195367?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/ArloL\",\"html_url\":\"https://github.com/ArloL\",\"followers_url\":\"https://api.github.com/users/ArloL/followers\",\"following_url\":\"https://api.github.com/users/ArloL/following{/other_user}\",\"gists_url\":\"https://api.github.com/users/ArloL/gists{/gist_id}\",\"starred_url\":\"https://api.github.com/users/ArloL/starred{/owner}{/repo}\",\"subscriptions_url\":\"https://api.github.com/users/ArloL/subscriptions\",\"organizations_url\":\"https://api.github.com/users/ArloL/orgs\",\"repos_url\":\"https://api.github.com/users/ArloL/repos\",\"events_url\":\"https://api.github.com/users/ArloL/events{/privacy}\",\"received_events_url\":\"https://api.github.com/users/ArloL/received_events\",\"type\":\"User\",\"user_view_type\":\"public\",\"site_admin\":false,\"name\":\"Arlo O'Keeffe\",\"company\":null,\"blog\":\"http://arlol.github.io\",\"location\":\"NRW, Germany\",\"email\":null,\"hireable\":null,\"bio\":null,\"twitter_username\":null,\"notification_email\":null,\"public_repos\":85,\"public_gists\":25,\"followers\":21,\"following\":0,\"created_at\":\"2010-02-03T10:10:54Z\",\"updated_at\":\"2026-02-19T08:41:42Z\"}",
+    "headers" : {
+      "Server" : "github.com",
+      "X-RateLimit-Resource" : "core",
+      "Access-Control-Allow-Origin" : "*",
+      "X-RateLimit-Used" : "7",
+      "Last-Modified" : "Thu, 19 Feb 2026 08:41:42 GMT",
+      "x-github-api-version-selected" : "2026-03-10",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "X-Frame-Options" : "deny",
+      "x-accepted-github-permissions" : "allows_permissionless_access=true",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
+      "X-RateLimit-Remaining" : "4993",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "Content-Security-Policy" : "default-src 'none'",
+      "X-XSS-Protection" : "0",
+      "X-GitHub-Request-Id" : "8EE4:387926:21AEB60:1CA6F5A:69D016F5",
+      "Content-Type" : "application/json; charset=utf-8",
+      "X-Content-Type-Options" : "nosniff",
+      "X-RateLimit-Reset" : "1775247895",
+      "Date" : "Fri, 03 Apr 2026 19:37:25 GMT",
+      "Cache-Control" : "private, max-age=60, s-maxage=60",
+      "ETag" : "\"17dabaf94a285adb06a0123bdb4a46f7889fac96aab87cfeaa2d0d4346c41af1\"",
+      "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
+      "X-RateLimit-Limit" : "5000",
+      "github-authentication-token-expiration" : "2026-04-10 18:25:23 UTC"
+    }
+  },
+  "persistent" : true,
+  "insertionIndex" : 1
+}
