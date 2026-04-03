@@ -1,6 +1,6 @@
 package io.github.arlol.githubcheck.client;
 
-public record ImmutableReleases(
+public record ImmutableReleasesResponse(
 		boolean enabled
 ) {
 }

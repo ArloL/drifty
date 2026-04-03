@@ -37,8 +37,8 @@ import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesResponse;
-import io.github.arlol.githubcheck.client.RepositoryFull;
-import io.github.arlol.githubcheck.client.RepositoryMinimal;
+import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
+import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
@@ -178,8 +178,8 @@ class OrgCheckerFixTest {
 	private static RepositoryState goodPublicState() {
 		return new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -211,8 +211,8 @@ class OrgCheckerFixTest {
 				.toString();
 		return new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(mergedDetails, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(mergedDetails, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -581,8 +581,8 @@ class OrgCheckerFixTest {
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				false,
 				true,
 				Map.of(
@@ -638,8 +638,8 @@ class OrgCheckerFixTest {
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -694,8 +694,8 @@ class OrgCheckerFixTest {
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				true,
 				Map.of(
@@ -908,8 +908,8 @@ class OrgCheckerFixTest {
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -972,8 +972,8 @@ class OrgCheckerFixTest {
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -1035,8 +1035,8 @@ class OrgCheckerFixTest {
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -1091,8 +1091,8 @@ class OrgCheckerFixTest {
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -1147,8 +1147,8 @@ class OrgCheckerFixTest {
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -1231,8 +1231,8 @@ class OrgCheckerFixTest {
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(),
@@ -1311,8 +1311,8 @@ class OrgCheckerFixTest {
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -1385,8 +1385,8 @@ class OrgCheckerFixTest {
 		);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of("main", driftedBp),
@@ -1459,8 +1459,8 @@ class OrgCheckerFixTest {
 				""", BranchProtectionResponse.class);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of("main", driftedBp),
@@ -1539,8 +1539,8 @@ class OrgCheckerFixTest {
 				""", BranchProtectionResponse.class);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of("main", driftedBp),
@@ -1782,8 +1782,8 @@ class OrgCheckerFixTest {
 		);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -1872,8 +1872,8 @@ class OrgCheckerFixTest {
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -1947,8 +1947,8 @@ class OrgCheckerFixTest {
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -2007,8 +2007,8 @@ class OrgCheckerFixTest {
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -2070,8 +2070,8 @@ class OrgCheckerFixTest {
 		);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -2155,8 +2155,8 @@ class OrgCheckerFixTest {
 		);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -2219,8 +2219,8 @@ class OrgCheckerFixTest {
 		);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -2282,8 +2282,8 @@ class OrgCheckerFixTest {
 		);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -2350,8 +2350,8 @@ class OrgCheckerFixTest {
 		);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -2398,8 +2398,8 @@ class OrgCheckerFixTest {
 		var localChecker = checkerWithSecrets(wm, Map.of());
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
@@ -2469,8 +2469,8 @@ class OrgCheckerFixTest {
 		);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositoryMinimal.class),
-				parse(GOOD_DETAILS_JSON, RepositoryFull.class),
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
 				Map.of(
