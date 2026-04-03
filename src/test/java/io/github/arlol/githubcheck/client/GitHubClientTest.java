@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
-import io.github.arlol.githubcheck.client.RepositoryFull;
+import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 
 @WireMockTest
@@ -56,7 +56,7 @@ class GitHubClientTest {
 				]
 				""")));
 
-		List<RepositoryMinimal> repos = client.listOrgRepos("owner");
+		List<RepositorySummaryResponse> repos = client.listOrgRepos("owner");
 
 		assertThat(repos).hasSize(2);
 		assertThat(repos.get(0).name()).isEqualTo("repo-a");
@@ -101,7 +101,7 @@ class GitHubClientTest {
 						)
 		);
 
-		List<RepositoryMinimal> repos = client.listOrgRepos("owner");
+		List<RepositorySummaryResponse> repos = client.listOrgRepos("owner");
 
 		assertThat(repos).hasSize(2);
 		assertThat(repos.get(0).name()).isEqualTo("repo-page1");
@@ -115,7 +115,7 @@ class GitHubClientTest {
 						.willReturn(okJson("[]"))
 		);
 
-		List<RepositoryMinimal> repos = client.listOrgRepos("owner");
+		List<RepositorySummaryResponse> repos = client.listOrgRepos("owner");
 		assertThat(repos).isEmpty();
 	}
 
@@ -139,7 +139,7 @@ class GitHubClientTest {
 				]
 				""")));
 
-		List<RepositoryMinimal> repos = client.listOrgRepos("owner");
+		List<RepositorySummaryResponse> repos = client.listOrgRepos("owner");
 
 		assertThat(repos).hasSize(2);
 		assertThat(repos.get(0).name()).isEqualTo("repo-a");
@@ -305,7 +305,7 @@ class GitHubClientTest {
 				)
 		);
 
-		RepositoryFull details = client.getRepo("owner", "my-repo");
+		RepositoryDetailsResponse details = client.getRepo("owner", "my-repo");
 
 		assertThat(details.owner().login()).isEqualTo("owner");
 		assertThat(details.owner().id()).isEqualTo(123L);
@@ -405,7 +405,7 @@ class GitHubClientTest {
 				}
 				""")));
 
-		RepositoryFull details = client.getRepo("owner", "my-repo");
+		RepositoryDetailsResponse details = client.getRepo("owner", "my-repo");
 
 		assertThat(details.securityAndAnalysis().secretScanning().status())
 				.isEqualTo(SecurityAndAnalysis.StatusObject.Status.DISABLED);

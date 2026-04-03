@@ -1,6 +1,6 @@
 package io.github.arlol.githubcheck.client;
 
-public record CodeScanningDefaultSetup(
+public record CodeScanningDefaultSetupResponse(
 		String state
 ) {
 

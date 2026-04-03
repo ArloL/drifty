@@ -7,15 +7,15 @@ import java.util.Optional;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.PagesResponse;
-import io.github.arlol.githubcheck.client.RepositoryFull;
-import io.github.arlol.githubcheck.client.RepositoryMinimal;
+import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
+import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 
 public record RepositoryState(
 		String name,
-		RepositoryMinimal summary,
-		RepositoryFull details,
+		RepositorySummaryResponse summary,
+		RepositoryDetailsResponse details,
 		boolean vulnerabilityAlerts,
 		boolean automatedSecurityFixes,
 		Map<String, BranchProtectionResponse> branchProtections,

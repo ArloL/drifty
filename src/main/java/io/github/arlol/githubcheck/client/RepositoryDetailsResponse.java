@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public record RepositoryFull(
+public record RepositoryDetailsResponse(
 		long id,
 		String nodeId,
 		String name,
@@ -72,7 +72,7 @@ public record RepositoryFull(
 		SecurityAndAnalysis securityAndAnalysis
 ) {
 
-	public RepositoryFull {
+	public RepositoryDetailsResponse {
 		topics = topics == null ? null : List.copyOf(topics);
 	}
 

@@ -51,7 +51,7 @@ public class GitHubClient {
 	// ─── Public API
 	// ──────────────────────────────────────────────────────────
 
-	public List<RepositoryMinimal> listOrgRepos(String owner) {
+	public List<RepositorySummaryResponse> listOrgRepos(String owner) {
 		String url = baseUrl + "/orgs/" + owner
 				+ "/repos?per_page=100&type=all";
 		HttpResponse<String> resp = get(url);
@@ -69,11 +69,16 @@ public class GitHubClient {
 			);
 		}
 		return collectPaginatedArrayItems(resp, null).stream()
-				.map(node -> mapper.convertValue(node, RepositoryMinimal.class))
+				.map(
+						node -> mapper.convertValue(
+								node,
+								RepositorySummaryResponse.class
+						)
+				)
 				.toList();
 	}
 
-	public RepositoryFull getRepo(String owner, String repo) {
+	public RepositoryDetailsResponse getRepo(String owner, String repo) {
 		HttpResponse<String> resp = get(repoUrl(owner, repo));
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
@@ -81,7 +86,7 @@ public class GitHubClient {
 							+ "/" + repo + ": " + resp.body()
 			);
 		}
-		return readValue(resp.body(), RepositoryFull.class);
+		return readValue(resp.body(), RepositoryDetailsResponse.class);
 	}
 
 	public boolean getVulnerabilityAlerts(String owner, String repo) {
@@ -105,7 +110,7 @@ public class GitHubClient {
 				repoUrl(owner, repo) + "/automated-security-fixes"
 		);
 		if (resp.statusCode() == 200) {
-			return readValue(resp.body(), AutomatedSecurityFixes.class)
+			return readValue(resp.body(), AutomatedSecurityFixesResponse.class)
 					.enabled();
 		}
 		if (resp.statusCode() == 404) {
@@ -117,7 +122,7 @@ public class GitHubClient {
 		);
 	}
 
-	public Optional<ImmutableReleases> getImmutableReleases(
+	public Optional<ImmutableReleasesResponse> getImmutableReleases(
 			String owner,
 			String repo
 	) {
@@ -125,7 +130,9 @@ public class GitHubClient {
 				repoUrl(owner, repo) + "/immutable-releases"
 		);
 		if (resp.statusCode() == 200) {
-			return Optional.of(readValue(resp.body(), ImmutableReleases.class));
+			return Optional.of(
+					readValue(resp.body(), ImmutableReleasesResponse.class)
+			);
 		}
 		if (resp.statusCode() == 404) {
 			return Optional.empty();
@@ -542,8 +549,10 @@ public class GitHubClient {
 				repoUrl(owner, repo) + "/private-vulnerability-reporting"
 		);
 		if (resp.statusCode() == 200) {
-			return readValue(resp.body(), PrivateVulnerabilityReporting.class)
-					.enabled();
+			return readValue(
+					resp.body(),
+					PrivateVulnerabilityReportingResponse.class
+			).enabled();
 		}
 		if (resp.statusCode() == 404) {
 			return false;
@@ -588,8 +597,10 @@ public class GitHubClient {
 				repoUrl(owner, repo) + "/code-scanning/default-setup"
 		);
 		if (resp.statusCode() == 200) {
-			return readValue(resp.body(), CodeScanningDefaultSetup.class)
-					.isEnabled();
+			return readValue(
+					resp.body(),
+					CodeScanningDefaultSetupResponse.class
+			).isEnabled();
 		}
 		if (resp.statusCode() == 404) {
 			return false;

@@ -33,7 +33,7 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesCreateRequest;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.PagesUpdateRequest;
-import io.github.arlol.githubcheck.client.RepositoryMinimal;
+import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.Rule;
@@ -104,7 +104,7 @@ public class OrgChecker {
 	public CheckResult check(List<RepositoryArgs> repositories)
 			throws IOException, InterruptedException, ExecutionException {
 		System.out.println("Fetching repo list for org: " + org);
-		List<RepositoryMinimal> summaries = client.listOrgRepos(org);
+		List<RepositorySummaryResponse> summaries = client.listOrgRepos(org);
 		System.out.printf(
 				"Found %d repos. Fetching details in parallel...%n",
 				summaries.size()
@@ -134,7 +134,7 @@ public class OrgChecker {
 
 		// Repos declared in config but not found in the org
 		Set<String> foundNames = summaries.stream()
-				.map(RepositoryMinimal::name)
+				.map(RepositorySummaryResponse::name)
 				.collect(Collectors.toSet());
 		repositories.stream()
 				.filter(r -> !foundNames.contains(r.name()))
@@ -149,7 +149,7 @@ public class OrgChecker {
 	}
 
 	private CheckResult.RepoCheckResult checkOne(
-			RepositoryMinimal summary,
+			RepositorySummaryResponse summary,
 			Map<String, RepositoryArgs> desiredByName
 	) {
 		String name = summary.name();
@@ -173,7 +173,7 @@ public class OrgChecker {
 	// ─── Fetch
 	// ──────────────────────────────────────────────────────────────
 
-	RepositoryState fetchState(RepositoryMinimal summary)
+	RepositoryState fetchState(RepositorySummaryResponse summary)
 			throws IOException, InterruptedException {
 		String name = summary.name();
 		boolean archived = summary.archived();

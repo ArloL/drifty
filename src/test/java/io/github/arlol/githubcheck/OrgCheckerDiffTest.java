@@ -19,8 +19,8 @@ import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.EnvironmentReviewerType;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesResponse;
-import io.github.arlol.githubcheck.client.RepositoryFull;
-import io.github.arlol.githubcheck.client.RepositoryMinimal;
+import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
+import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
@@ -244,8 +244,8 @@ class OrgCheckerDiffTest {
 		RepositoryState build() {
 			return new RepositoryState(
 					"repo",
-					parse(summaryJson, RepositoryMinimal.class),
-					parse(detailsJson, RepositoryFull.class),
+					parse(summaryJson, RepositorySummaryResponse.class),
+					parse(detailsJson, RepositoryDetailsResponse.class),
 					vulnerabilityAlerts,
 					automatedSecurityFixes,
 					hasBranchProtection ? Map.of(

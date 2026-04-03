@@ -37,15 +37,16 @@ class GitHubClientPlaybackTest {
 
 	@Test
 	void listOrgRepos_returnsRecordedRepos() throws Exception {
-		List<RepositoryMinimal> repos = client.listOrgRepos("ArloL");
+		List<RepositorySummaryResponse> repos = client.listOrgRepos("ArloL");
 		assertThat(repos).isNotEmpty();
-		assertThat(repos).extracting(RepositoryMinimal::name)
+		assertThat(repos).extracting(RepositorySummaryResponse::name)
 				.contains("terraform-github");
 	}
 
 	@Test
 	void getRepo_returnsRecordedDetails() throws Exception {
-		RepositoryFull repo = client.getRepo("ArloL", "terraform-github");
+		RepositoryDetailsResponse repo = client
+				.getRepo("ArloL", "terraform-github");
 		assertThat(repo.name()).isEqualTo("terraform-github");
 		assertThat(repo.visibility()).isEqualTo(RepositoryVisibility.PUBLIC);
 		assertThat(repo.description()).isEqualTo(
