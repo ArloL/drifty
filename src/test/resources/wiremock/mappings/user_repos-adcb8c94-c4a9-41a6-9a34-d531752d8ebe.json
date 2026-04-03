@@ -1,0 +1,48 @@
+{
+  "id" : "adcb8c94-c4a9-41a6-9a34-d531752d8ebe",
+  "name" : "user_repos",
+  "request" : {
+    "urlPath" : "/user/repos",
+    "method" : "GET",
+    "queryParameters" : {
+      "per_page" : {
+        "equalTo" : "100"
+      },
+      "type" : {
+        "equalTo" : "owner"
+      }
+    }
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "user_repos-adcb8c94-c4a9-41a6-9a34-d531752d8ebe.json",
+    "headers" : {
+      "X-RateLimit-Resource" : "core",
+      "Server" : "github.com",
+      "X-RateLimit-Used" : "93",
+      "Access-Control-Allow-Origin" : "*",
+      "X-Content-Type-Options" : "nosniff",
+      "X-RateLimit-Reset" : "1775251784",
+      "x-github-api-version-selected" : "2026-03-10",
+      "Date" : "Fri, 03 Apr 2026 20:44:40 GMT",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "X-Frame-Options" : "deny",
+      "x-accepted-github-permissions" : "metadata=read",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
+      "X-RateLimit-Remaining" : "4907",
+      "Cache-Control" : "private, max-age=60, s-maxage=60",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "ETag" : "\"4c526d815bdbb4389f6a75a19f6c721520e18abd8243eede9efe29f99121bf64\"",
+      "Content-Security-Policy" : "default-src 'none'",
+      "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
+      "X-RateLimit-Limit" : "5000",
+      "X-XSS-Protection" : "0",
+      "github-authentication-token-expiration" : "2026-04-10 18:25:23 UTC",
+      "X-GitHub-Request-Id" : "8EE9:1B2708:2896573:229FF2D:69D026B7",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "persistent" : true,
+  "insertionIndex" : 90
+}

@@ -1,0 +1,45 @@
+{
+  "id" : "6415cddd-273b-446c-b3b2-c64b56968de8",
+  "name" : "repos_arlol_drifty-test_environments_production",
+  "request" : {
+    "url" : "/repos/ArloL/drifty-test/environments/production",
+    "method" : "PUT",
+    "bodyPatterns" : [ {
+      "equalToJson" : "{\"wait_timer\":15}",
+      "ignoreArrayOrder" : true,
+      "ignoreExtraElements" : true
+    } ]
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "{\"id\":13757708922,\"node_id\":\"EN_kwDOR5KkiM8AAAADNAX6eg\",\"name\":\"production\",\"url\":\"https://api.github.com/repos/ArloL/drifty-test/environments/production\",\"html_url\":\"https://github.com/ArloL/drifty-test/deployments/activity_log?environments_filter=production\",\"created_at\":\"2026-04-03T20:44:52Z\",\"updated_at\":\"2026-04-03T20:44:52Z\",\"can_admins_bypass\":true,\"protection_rules\":[{\"id\":51498398,\"node_id\":\"GA_kwDOR5KkiM4DEc2e\",\"type\":\"wait_timer\",\"wait_timer\":15}],\"deployment_branch_policy\":null}",
+    "headers" : {
+      "X-RateLimit-Resource" : "core",
+      "Server" : "github.com",
+      "X-RateLimit-Used" : "125",
+      "Access-Control-Allow-Origin" : "*",
+      "X-Content-Type-Options" : "nosniff",
+      "X-RateLimit-Reset" : "1775251784",
+      "x-github-api-version-selected" : "2026-03-10",
+      "Date" : "Fri, 03 Apr 2026 20:44:52 GMT",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "X-Frame-Options" : "deny",
+      "x-accepted-github-permissions" : "administration=write",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
+      "X-RateLimit-Remaining" : "4875",
+      "Cache-Control" : "private, max-age=60, s-maxage=60",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "ETag" : "\"081f90610bdc3f4cf8d7870206559998bb89f4a60e797fbe4ad0f398f94d6696\"",
+      "Content-Security-Policy" : "default-src 'none'",
+      "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
+      "X-RateLimit-Limit" : "5000",
+      "X-XSS-Protection" : "0",
+      "github-authentication-token-expiration" : "2026-04-10 18:25:23 UTC",
+      "X-GitHub-Request-Id" : "8ED1:3BE189:2AAA0E1:24A043A:69D026C4",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "persistent" : true,
+  "insertionIndex" : 122
+}

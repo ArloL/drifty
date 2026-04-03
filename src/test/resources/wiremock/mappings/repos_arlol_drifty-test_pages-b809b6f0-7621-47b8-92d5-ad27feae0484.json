@@ -1,0 +1,41 @@
+{
+  "id" : "b809b6f0-7621-47b8-92d5-ad27feae0484",
+  "name" : "repos_arlol_drifty-test_pages",
+  "request" : {
+    "url" : "/repos/ArloL/drifty-test/pages",
+    "method" : "PUT",
+    "bodyPatterns" : [ {
+      "equalToJson" : "{\"build_type\":\"workflow\"}",
+      "ignoreArrayOrder" : true,
+      "ignoreExtraElements" : true
+    } ]
+  },
+  "response" : {
+    "status" : 204,
+    "headers" : {
+      "X-RateLimit-Resource" : "core",
+      "Server" : "github.com",
+      "X-RateLimit-Used" : "117",
+      "Access-Control-Allow-Origin" : "*",
+      "X-Content-Type-Options" : "nosniff",
+      "X-RateLimit-Reset" : "1775251784",
+      "x-github-api-version-selected" : "2026-03-10",
+      "Date" : "Fri, 03 Apr 2026 20:44:49 GMT",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "X-Frame-Options" : "deny",
+      "x-accepted-github-permissions" : "pages=write,administration=write",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
+      "X-RateLimit-Remaining" : "4883",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "Content-Security-Policy" : "default-src 'none'",
+      "Vary" : "Accept-Encoding, Accept, X-Requested-With",
+      "X-RateLimit-Limit" : "5000",
+      "X-XSS-Protection" : "0",
+      "github-authentication-token-expiration" : "2026-04-10 18:25:23 UTC",
+      "X-GitHub-Request-Id" : "8F72:19E741:28B9DC2:22B83A8:69D026C1"
+    }
+  },
+  "persistent" : true,
+  "insertionIndex" : 114
+}

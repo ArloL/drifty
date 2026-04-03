@@ -1,0 +1,45 @@
+{
+  "id" : "bdd57c43-1662-43c9-b72c-797ecb22cfc2",
+  "name" : "repos_arlol_drifty-test_code-scanning_default-setup",
+  "request" : {
+    "url" : "/repos/ArloL/drifty-test/code-scanning/default-setup",
+    "method" : "PATCH",
+    "bodyPatterns" : [ {
+      "equalToJson" : "{\"state\":\"not-configured\"}",
+      "ignoreArrayOrder" : true,
+      "ignoreExtraElements" : true
+    } ]
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "{}",
+    "headers" : {
+      "X-RateLimit-Resource" : "core",
+      "Server" : "github.com",
+      "X-RateLimit-Used" : "109",
+      "Access-Control-Allow-Origin" : "*",
+      "X-Content-Type-Options" : "nosniff",
+      "X-RateLimit-Reset" : "1775251784",
+      "x-github-api-version-selected" : "2026-03-10",
+      "Date" : "Fri, 03 Apr 2026 20:44:46 GMT",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "X-Frame-Options" : "deny",
+      "x-accepted-github-permissions" : "administration=write",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
+      "X-RateLimit-Remaining" : "4891",
+      "Cache-Control" : "private, max-age=60, s-maxage=60",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "ETag" : "\"3d67119fd9d72115394405182e969e6505ca89c51ac4e5786ac6d7555b60dd4d\"",
+      "Content-Security-Policy" : "default-src 'none'",
+      "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
+      "X-RateLimit-Limit" : "5000",
+      "X-XSS-Protection" : "0",
+      "github-authentication-token-expiration" : "2026-04-10 18:25:23 UTC",
+      "X-GitHub-Request-Id" : "8F22:1B2708:28987A8:22A1C63:69D026BD",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "persistent" : true,
+  "insertionIndex" : 106
+}

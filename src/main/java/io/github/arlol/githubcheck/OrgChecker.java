@@ -1936,7 +1936,7 @@ public class OrgChecker {
 		System.out.printf("Unknown:        %d%n", result.unknownCount());
 	}
 
-	private static String encryptSecret(
+	public static String encryptSecret(
 			String base64PublicKey,
 			String plaintext
 	) {

@@ -1,0 +1,40 @@
+{
+  "id" : "8d8a055a-2009-4612-82ed-9fdfd6733efc",
+  "name" : "repos_arlol_drifty-test_code-scanning_default-setup",
+  "request" : {
+    "url" : "/repos/ArloL/drifty-test/code-scanning/default-setup",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "{\"state\":\"configured\",\"languages\":[],\"query_suite\":\"default\",\"threat_model\":\"remote\",\"updated_at\":null,\"schedule\":null,\"runner_type\":\"standard\",\"runner_label\":\"\"}",
+    "headers" : {
+      "X-RateLimit-Resource" : "core",
+      "Server" : "github.com",
+      "X-RateLimit-Used" : "108",
+      "Access-Control-Allow-Origin" : "*",
+      "X-Content-Type-Options" : "nosniff",
+      "X-RateLimit-Reset" : "1775251784",
+      "x-github-api-version-selected" : "2026-03-10",
+      "Date" : "Fri, 03 Apr 2026 20:44:45 GMT",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "X-Frame-Options" : "deny",
+      "x-accepted-github-permissions" : "administration=read",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
+      "X-RateLimit-Remaining" : "4892",
+      "Cache-Control" : "private, max-age=60, s-maxage=60",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "ETag" : "\"c79f44b1468f056bb13f8d9a130018999214e99527748d27f380deb45c02f40f\"",
+      "Content-Security-Policy" : "default-src 'none'",
+      "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
+      "X-RateLimit-Limit" : "5000",
+      "X-XSS-Protection" : "0",
+      "github-authentication-token-expiration" : "2026-04-10 18:25:23 UTC",
+      "X-GitHub-Request-Id" : "8F55:8E5B6:28C27C3:22C6A74:69D026BD",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "persistent" : true,
+  "insertionIndex" : 105
+}

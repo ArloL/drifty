@@ -14,7 +14,12 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+
+import io.github.arlol.githubcheck.OrgChecker;
 
 class GitHubClientRecordingTest {
 
@@ -78,11 +83,8 @@ class GitHubClientRecordingTest {
 		try {
 			client.listOrgRepos(owner);
 			var apiRepo = client.getRepo(owner, repo);
-			client.getVulnerabilityAlerts(owner, repo);
-			client.getAutomatedSecurityFixes(owner, repo);
-			client.getImmutableReleases(owner, repo);
-			client.getPrivateVulnerabilityReporting(owner, repo);
-			client.getCodeScanningDefaultSetup(owner, repo);
+			client.getBranches(owner, repo, false);
+
 			client.updateBranchProtection(
 					owner,
 					repo,
@@ -100,17 +102,30 @@ class GitHubClientRecordingTest {
 			for (var branch : branches) {
 				client.getBranchProtection(owner, repo, branch.name());
 			}
-			client.getWorkflowPermissions(owner, repo);
-			client.enableVulnerabilityAlerts(owner, repo);
+
 			client.updateWorkflowPermissions(
 					owner,
 					repo,
 					new WorkflowPermissions(
 							WorkflowPermissions.DefaultWorkflowPermissions.READ,
-							true
+							false
 					)
 			);
-			client.replaceTopics(owner, repo, List.of());
+			client.getWorkflowPermissions(owner, repo);
+
+			client.enableVulnerabilityAlerts(owner, repo);
+			client.getVulnerabilityAlerts(owner, repo);
+			client.disableVulnerabilityAlerts(owner, repo);
+
+			client.enablePrivateVulnerabilityReporting(owner, repo);
+			client.getPrivateVulnerabilityReporting(owner, repo);
+			client.disablePrivateVulnerabilityReporting(owner, repo);
+
+			client.enableCodeScanningDefaultSetup(owner, repo);
+			client.getCodeScanningDefaultSetup(owner, repo);
+			client.disableCodeScanningDefaultSetup(owner, repo);
+
+			client.replaceTopics(owner, repo, List.of("test"));
 			client.updateRepository(
 					owner,
 					repo,
@@ -118,6 +133,7 @@ class GitHubClientRecordingTest {
 							.defaultBranch("main")
 							.build()
 			);
+
 			client.createRuleset(
 					owner,
 					repo,
@@ -143,6 +159,7 @@ class GitHubClientRecordingTest {
 			);
 			var rulesets = client.listRulesets(owner, repo);
 			client.getRuleset(owner, repo, rulesets.getFirst().id());
+
 			client.getPages(owner, repo);
 			client.createPages(
 					owner,
@@ -156,25 +173,63 @@ class GitHubClientRecordingTest {
 			);
 			client.deletePages(owner, repo);
 
+			var actionKey = client.getActionSecretPublicKey(owner, repo);
+			client.createOrUpdateActionSecret(
+					owner,
+					repo,
+					"ACTION_SECRET",
+					new SecretRequest(
+							OrgChecker.encryptSecret(
+									actionKey.key(),
+									"test-secret-value"
+							),
+							actionKey.keyId()
+					)
+			);
+			client.getActionSecretNames(owner, repo);
+
+			client.enableImmutableReleases(owner, repo);
+			client.getImmutableReleases(owner, repo);
+			client.disableImmutableReleases(owner, repo);
+
+			String envName = "production";
 			client.createOrUpdateEnvironment(
 					owner,
 					repo,
-					"production",
+					envName,
 					new EnvironmentUpdateRequest(15, null, null)
 			);
 			client.updateEnvironment(
 					owner,
 					repo,
-					"production",
+					envName,
 					new EnvironmentUpdateRequest(30, null, null)
 			);
+			var envKey = client
+					.getEnvironmentSecretPublicKey(owner, repo, envName);
+			client.createOrUpdateEnvironmentSecret(
+					owner,
+					repo,
+					envName,
+					"ENV_SECRET",
+					new SecretRequest(
+							OrgChecker.encryptSecret(
+									envKey.key(),
+									"test-secret-value"
+							),
+							envKey.keyId()
+					)
+			);
+			client.getEnvironmentSecretNames(owner, repo, envName);
 			client.getEnvironments(owner, repo);
-			client.deleteEnvironment(owner, repo, "production");
+			client.deleteEnvironment(owner, repo, envName);
 		} finally {
 			client.deleteRepository(owner, repo);
 		}
 
 		wm.stopRecording();
+
+		postProcess();
 	}
 
 	private static void clearDirectory(Path dir) throws IOException {
@@ -189,6 +244,39 @@ class GitHubClientRecordingTest {
 					throw new UncheckedIOException(e);
 				}
 			});
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+	}
+
+	private static void postProcess() {
+		ObjectMapper mapper = new ObjectMapper();
+
+		try (var stream = Files.list(MAPPINGS_DIR)) {
+			for (Path file : stream.filter(Files::isRegularFile).toList()) {
+				JsonNode root = mapper.readTree(Files.newInputStream(file));
+
+				ObjectNode request = (ObjectNode) root.get("request");
+
+				var url = request.get("url");
+				if (url == null) {
+					continue;
+				}
+
+				if ("/repos/ArloL/drifty-test/actions/secrets/ACTION_SECRET"
+						.equals(url.asText())
+						&& "PUT".equals(request.get("method").asText())) {
+					request.remove("bodyPatterns");
+				}
+				if ("/repos/ArloL/drifty-test/environments/production/secrets/ENV_SECRET"
+						.equals(url.asText())
+						&& "PUT".equals(request.get("method").asText())) {
+					request.remove("bodyPatterns");
+				}
+
+				mapper.writerWithDefaultPrettyPrinter()
+						.writeValue(Files.newOutputStream(file), root);
+			}
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}

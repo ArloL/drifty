@@ -20,10 +20,14 @@ class GitHubClientPlaybackTest {
 	static WireMockExtension wm = WireMockExtension.newInstance()
 			.options(
 					wireMockConfig().dynamicPort()
-							.usingFilesUnderClasspath("wiremock")
+							.usingFilesUnderDirectory(
+									"src/test/resources/wiremock"
+							)
 			)
 			.build();
 
+	private String owner = "ArloL";
+	private String repo = "drifty-test";
 	private GitHubClient client;
 
 	@BeforeEach
@@ -60,7 +64,7 @@ class GitHubClientPlaybackTest {
 	@Test
 	void getVulnerabilityAlerts_returnsRecordedState() throws Exception {
 		boolean enabled = client.getVulnerabilityAlerts("ArloL", "drifty-test");
-		assertThat(enabled).isFalse();
+		assertThat(enabled).isTrue();
 	}
 
 	@Test
@@ -95,15 +99,14 @@ class GitHubClientPlaybackTest {
 
 	@Test
 	void updateWorkflowPermissions_succeeds() {
-		var perms = new WorkflowPermissions(
-				DefaultWorkflowPermissions.READ,
-				true
-		);
 		assertThatNoException().isThrownBy(
 				() -> client.updateWorkflowPermissions(
-						"ArloL",
-						"drifty-test",
-						perms
+						owner,
+						repo,
+						new WorkflowPermissions(
+								WorkflowPermissions.DefaultWorkflowPermissions.READ,
+								false
+						)
 				)
 		);
 	}
@@ -111,7 +114,8 @@ class GitHubClientPlaybackTest {
 	@Test
 	void replaceTopics_succeeds() {
 		assertThatNoException().isThrownBy(
-				() -> client.replaceTopics("ArloL", "drifty-test", List.of())
+				() -> client
+						.replaceTopics("ArloL", "drifty-test", List.of("test"))
 		);
 	}
 
@@ -196,7 +200,7 @@ class GitHubClientPlaybackTest {
 	void getCodeScanningDefaultSetup_returnsRecordedState() throws Exception {
 		boolean enabled = client
 				.getCodeScanningDefaultSetup("ArloL", "drifty-test");
-		assertThat(enabled).isFalse();
+		assertThat(enabled).isTrue();
 	}
 
 	@Test
@@ -207,6 +211,155 @@ class GitHubClientPlaybackTest {
 		assertThat(bp.enforceAdmins().enabled()).isTrue();
 		assertThat(bp.requiredLinearHistory().enabled()).isTrue();
 		assertThat(bp.allowForcePushes().enabled()).isFalse();
+	}
+
+	@Test
+	void disableVulnerabilityAlerts_succeeds() {
+		assertThatNoException().isThrownBy(
+				() -> client.disableVulnerabilityAlerts("ArloL", "drifty-test")
+		);
+	}
+
+	@Test
+	void enablePrivateVulnerabilityReporting_succeeds() {
+		assertThatNoException().isThrownBy(
+				() -> client.enablePrivateVulnerabilityReporting(
+						"ArloL",
+						"drifty-test"
+				)
+		);
+	}
+
+	@Test
+	void disablePrivateVulnerabilityReporting_succeeds() {
+		assertThatNoException().isThrownBy(
+				() -> client.disablePrivateVulnerabilityReporting(
+						"ArloL",
+						"drifty-test"
+				)
+		);
+	}
+
+	@Test
+	void enableCodeScanningDefaultSetup_succeeds() {
+		assertThatNoException().isThrownBy(
+				() -> client
+						.enableCodeScanningDefaultSetup("ArloL", "drifty-test")
+		);
+	}
+
+	@Test
+	void disableCodeScanningDefaultSetup_succeeds() {
+		assertThatNoException().isThrownBy(
+				() -> client
+						.disableCodeScanningDefaultSetup("ArloL", "drifty-test")
+		);
+	}
+
+	@Test
+	void getActionSecretNames_returnsRecordedSecrets() throws Exception {
+		List<String> names = client
+				.getActionSecretNames("ArloL", "drifty-test");
+		assertThat(names).contains("ACTION_SECRET");
+	}
+
+	@Test
+	void createOrUpdateActionSecret_succeeds() {
+		assertThatNoException().isThrownBy(() -> {
+			var actionKey = client.getActionSecretPublicKey(owner, repo);
+			client.createOrUpdateActionSecret(
+					owner,
+					repo,
+					"ACTION_SECRET",
+					new SecretRequest(
+							"b+IVZvhDLJmeYKNNAWpPg2rSPzvp7p11oENe/V8YU37SnEbUPlGugWCh1cvRuHhy9yZRQyTBR7vVPRhYy1o03LI=",
+							actionKey.keyId()
+					)
+			);
+		});
+	}
+
+	@Test
+	void getEnvironmentSecretNames_returnsRecordedSecrets() throws Exception {
+		List<String> names = client.getEnvironmentSecretNames(
+				"ArloL",
+				"drifty-test",
+				"production"
+		);
+		assertThat(names).contains("ENV_SECRET");
+	}
+
+	@Test
+	void createOrUpdateEnvironmentSecret_succeeds() {
+		assertThatNoException().isThrownBy(() -> {
+			var envKey = client
+					.getEnvironmentSecretPublicKey(owner, repo, "production");
+			client.createOrUpdateEnvironmentSecret(
+					"ArloL",
+					repo,
+					"production",
+					"ENV_SECRET",
+					new SecretRequest(
+							"YNybzgE1h2YUsH0B3rjsTEM3ioG4Hstw7yG1CGPWEWvj2egzlqbewHejFrwuSvLEt4xytzM/+gLDh1WPmHKNWN8=",
+							envKey.keyId()
+					)
+			);
+		});
+	}
+
+	@Test
+	void getBranches_returnsRecordedBranches() throws Exception {
+		List<BranchResponse> branches = client
+				.getBranches("ArloL", "drifty-test", false);
+		assertThat(branches).isNotEmpty();
+		assertThat(branches).extracting(BranchResponse::name).contains("main");
+	}
+
+	@Test
+	void enableImmutableReleases_succeeds() {
+		assertThatNoException().isThrownBy(
+				() -> client.enableImmutableReleases("ArloL", "drifty-test")
+		);
+	}
+
+	@Test
+	void disableImmutableReleases_succeeds() {
+		assertThatNoException().isThrownBy(
+				() -> client.disableImmutableReleases("ArloL", "drifty-test")
+		);
+	}
+
+	@Test
+	void deleteEnvironment_succeeds() {
+		assertThatNoException().isThrownBy(
+				() -> client
+						.deleteEnvironment("ArloL", "drifty-test", "production")
+		);
+	}
+
+	@Test
+	void getAuthenticatedUser_returnsRecordedUser() throws Exception {
+		SimpleUser user = client.getAuthenticatedUser();
+		assertThat(user.login()).isNotBlank();
+	}
+
+	@Test
+	void updateBranchProtection_succeeds() {
+		assertThatNoException().isThrownBy(
+				() -> client.updateBranchProtection(
+						"ArloL",
+						"drifty-test",
+						"main",
+						new BranchProtectionRequest(
+								null,
+								true,
+								null,
+								null,
+								true,
+								false
+						)
+				)
+		);
 	}
 
 }

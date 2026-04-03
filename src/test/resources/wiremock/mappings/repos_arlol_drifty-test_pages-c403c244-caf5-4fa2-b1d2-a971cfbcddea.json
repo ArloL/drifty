@@ -1,0 +1,47 @@
+{
+  "id" : "c403c244-caf5-4fa2-b1d2-a971cfbcddea",
+  "name" : "repos_arlol_drifty-test_pages",
+  "request" : {
+    "url" : "/repos/ArloL/drifty-test/pages",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalToJson" : "{\"build_type\":\"workflow\"}",
+      "ignoreArrayOrder" : true,
+      "ignoreExtraElements" : true
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\"url\":\"https://api.github.com/repos/ArloL/drifty-test/pages\",\"status\":null,\"cname\":null,\"custom_404\":false,\"html_url\":\"https://arlol.github.io/drifty-test/\",\"build_type\":\"workflow\",\"source\":{\"branch\":\"main\",\"path\":\"/\"},\"public\":true,\"protected_domain_state\":null,\"pending_domain_unverified_at\":null,\"https_enforced\":true}",
+    "headers" : {
+      "X-RateLimit-Resource" : "core",
+      "Server" : "github.com",
+      "X-RateLimit-Used" : "116",
+      "Access-Control-Allow-Origin" : "*",
+      "Last-Modified" : "Fri, 03 Apr 2026 20:44:46 GMT",
+      "x-github-api-version-selected" : "2026-03-10",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "X-Frame-Options" : "deny",
+      "x-accepted-github-permissions" : "pages=write,administration=write",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
+      "X-RateLimit-Remaining" : "4884",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "Content-Security-Policy" : "default-src 'none'",
+      "X-XSS-Protection" : "0",
+      "X-GitHub-Request-Id" : "8ED5:3BE189:2AA8CA6:249F297:69D026C0",
+      "Content-Type" : "application/json; charset=utf-8",
+      "X-Content-Type-Options" : "nosniff",
+      "X-RateLimit-Reset" : "1775251784",
+      "Date" : "Fri, 03 Apr 2026 20:44:48 GMT",
+      "Cache-Control" : "private, max-age=60, s-maxage=60",
+      "ETag" : "\"e28c78b00c9ca74996c0e0065b6e45429baeb08d011705c8ea7555ac4c965c46\"",
+      "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
+      "X-RateLimit-Limit" : "5000",
+      "github-authentication-token-expiration" : "2026-04-10 18:25:23 UTC",
+      "Location" : "https://api.github.com/repos/ArloL/drifty-test/pages"
+    }
+  },
+  "persistent" : true,
+  "insertionIndex" : 113
+}

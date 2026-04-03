@@ -1,0 +1,40 @@
+{
+  "id" : "504d2216-3f73-4848-b6e8-bdb18748f7cc",
+  "name" : "repos_arlol_drifty-test_branches_main_protection",
+  "request" : {
+    "url" : "/repos/ArloL/drifty-test/branches/main/protection",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "{\"url\":\"https://api.github.com/repos/ArloL/drifty-test/branches/main/protection\",\"required_signatures\":{\"url\":\"https://api.github.com/repos/ArloL/drifty-test/branches/main/protection/required_signatures\",\"enabled\":false},\"enforce_admins\":{\"url\":\"https://api.github.com/repos/ArloL/drifty-test/branches/main/protection/enforce_admins\",\"enabled\":true},\"required_linear_history\":{\"enabled\":true},\"allow_force_pushes\":{\"enabled\":false},\"allow_deletions\":{\"enabled\":false},\"block_creations\":{\"enabled\":false},\"required_conversation_resolution\":{\"enabled\":false},\"lock_branch\":{\"enabled\":false},\"allow_fork_syncing\":{\"enabled\":false}}",
+    "headers" : {
+      "X-RateLimit-Resource" : "core",
+      "Server" : "github.com",
+      "X-RateLimit-Used" : "98",
+      "Access-Control-Allow-Origin" : "*",
+      "X-Content-Type-Options" : "nosniff",
+      "X-RateLimit-Reset" : "1775251784",
+      "x-github-api-version-selected" : "2026-03-10",
+      "Date" : "Fri, 03 Apr 2026 20:44:42 GMT",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "X-Frame-Options" : "deny",
+      "x-accepted-github-permissions" : "administration=read",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
+      "X-RateLimit-Remaining" : "4902",
+      "Cache-Control" : "private, max-age=60, s-maxage=60",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "ETag" : "\"59c6d7b2186b2174c2aec55de074a82e27cd1405e4499f4ff332ff44f18abb4f\"",
+      "Content-Security-Policy" : "default-src 'none'",
+      "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
+      "X-RateLimit-Limit" : "5000",
+      "X-XSS-Protection" : "0",
+      "github-authentication-token-expiration" : "2026-04-10 18:25:23 UTC",
+      "X-GitHub-Request-Id" : "8F1D:3AC0E7:27C39E4:21DED69:69D026BA",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "persistent" : true,
+  "insertionIndex" : 95
+}
