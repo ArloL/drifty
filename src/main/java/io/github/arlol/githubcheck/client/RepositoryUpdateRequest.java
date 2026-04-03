@@ -20,10 +20,10 @@ public record RepositoryUpdateRequest(
 		Boolean allowUpdateBranch,
 		Boolean allowAutoMerge,
 		Boolean deleteBranchOnMerge,
-		String squashMergeCommitTitle,
-		String squashMergeCommitMessage,
-		String mergeCommitTitle,
-		String mergeCommitMessage,
+		SquashMergeCommitTitle squashMergeCommitTitle,
+		SquashMergeCommitMessage squashMergeCommitMessage,
+		MergeCommitTitle mergeCommitTitle,
+		MergeCommitMessage mergeCommitMessage,
 		String defaultBranch,
 		SecurityAndAnalysis securityAndAnalysis
 ) {
@@ -50,10 +50,10 @@ public record RepositoryUpdateRequest(
 		private Boolean allowUpdateBranch;
 		private Boolean allowAutoMerge;
 		private Boolean deleteBranchOnMerge;
-		private String squashMergeCommitTitle;
-		private String squashMergeCommitMessage;
-		private String mergeCommitTitle;
-		private String mergeCommitMessage;
+		private SquashMergeCommitTitle squashMergeCommitTitle;
+		private SquashMergeCommitMessage squashMergeCommitMessage;
+		private MergeCommitTitle mergeCommitTitle;
+		private MergeCommitMessage mergeCommitMessage;
 		private String defaultBranch;
 		private SecurityAndAnalysis securityAndAnalysis;
 
@@ -142,24 +142,28 @@ public record RepositoryUpdateRequest(
 			return this;
 		}
 
-		public Builder squashMergeCommitTitle(String squashMergeCommitTitle) {
+		public Builder squashMergeCommitTitle(
+				SquashMergeCommitTitle squashMergeCommitTitle
+		) {
 			this.squashMergeCommitTitle = squashMergeCommitTitle;
 			return this;
 		}
 
 		public Builder squashMergeCommitMessage(
-				String squashMergeCommitMessage
+				SquashMergeCommitMessage squashMergeCommitMessage
 		) {
 			this.squashMergeCommitMessage = squashMergeCommitMessage;
 			return this;
 		}
 
-		public Builder mergeCommitTitle(String mergeCommitTitle) {
+		public Builder mergeCommitTitle(MergeCommitTitle mergeCommitTitle) {
 			this.mergeCommitTitle = mergeCommitTitle;
 			return this;
 		}
 
-		public Builder mergeCommitMessage(String mergeCommitMessage) {
+		public Builder mergeCommitMessage(
+				MergeCommitMessage mergeCommitMessage
+		) {
 			this.mergeCommitMessage = mergeCommitMessage;
 			return this;
 		}

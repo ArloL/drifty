@@ -1009,7 +1009,7 @@ class OrgCheckerDiffTest {
 	private static PagesResponse goodPagesResponse() {
 		return new PagesResponse(
 				null,
-				"built",
+				PagesResponse.Status.BUILT,
 				null,
 				false,
 				null,
@@ -1042,7 +1042,7 @@ class OrgCheckerDiffTest {
 						Optional.of(
 								new PagesResponse(
 										null,
-										"built",
+										PagesResponse.Status.BUILT,
 										null,
 										false,
 										null,
@@ -1073,7 +1073,7 @@ class OrgCheckerDiffTest {
 						Optional.of(
 								new PagesResponse(
 										null,
-										"built",
+										PagesResponse.Status.BUILT,
 										null,
 										false,
 										null,

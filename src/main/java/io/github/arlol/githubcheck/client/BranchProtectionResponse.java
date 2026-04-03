@@ -2,6 +2,8 @@ package io.github.arlol.githubcheck.client;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public record BranchProtectionResponse(
 		String url, // optional
 		Boolean enabled, // optional
@@ -71,7 +73,7 @@ public record BranchProtectionResponse(
 
 	public record RequiredStatusChecks(
 			String url, // optional
-			String enforcementLevel, // optional
+			EnforcementLevel enforcementLevel, // optional
 			boolean strict,
 			// Modern API returns checks[].context; legacy returns contexts[].
 			List<StatusCheck> checks,
@@ -88,6 +90,13 @@ public record BranchProtectionResponse(
 				String context,
 				Integer appId // nullable
 		) {
+		}
+
+		public enum EnforcementLevel {
+			@JsonProperty("off")
+			OFF, @JsonProperty("non_admins")
+			NON_ADMINS, @JsonProperty("everyone")
+			EVERYONE
 		}
 
 	}

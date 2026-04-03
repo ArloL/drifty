@@ -309,7 +309,7 @@ class GitHubClientTest {
 
 		assertThat(details.owner().login()).isEqualTo("owner");
 		assertThat(details.owner().id()).isEqualTo(123L);
-		assertThat(details.owner().type()).isEqualTo("User");
+		assertThat(details.owner().type()).isEqualTo(SimpleUser.UserType.USER);
 		assertThat(details.htmlUrl())
 				.isEqualTo("https://github.com/owner/my-repo");
 		assertThat(details.description()).isEqualTo("My repo");
@@ -338,8 +338,10 @@ class GitHubClientTest {
 		assertThat(details.allowRebaseMerge()).isTrue();
 		assertThat(details.allowUpdateBranch()).isFalse();
 		assertThat(details.webCommitSignoffRequired()).isFalse();
-		assertThat(details.squashMergeCommitTitle()).isEqualTo("PR_TITLE");
-		assertThat(details.mergeCommitTitle()).isEqualTo("PR_TITLE");
+		assertThat(details.squashMergeCommitTitle())
+				.isEqualTo(SquashMergeCommitTitle.PR_TITLE);
+		assertThat(details.mergeCommitTitle())
+				.isEqualTo(MergeCommitTitle.PR_TITLE);
 		assertThat(details.topics())
 				.containsExactlyInAnyOrder("java", "github");
 		assertThat(details.pushedAt()).isEqualTo("2024-01-15T10:00:00Z");
@@ -571,8 +573,9 @@ class GitHubClientTest {
 		assertThat(bp.blockCreations().enabled()).isFalse();
 		assertThat(bp.requiredConversationResolution().enabled()).isTrue();
 		assertThat(bp.requiredStatusChecks().strict()).isFalse();
-		assertThat(bp.requiredStatusChecks().enforcementLevel())
-				.isEqualTo("non_admins");
+		assertThat(bp.requiredStatusChecks().enforcementLevel()).isEqualTo(
+				BranchProtectionResponse.RequiredStatusChecks.EnforcementLevel.NON_ADMINS
+		);
 		assertThat(bp.requiredStatusChecks().checks()).extracting(
 				BranchProtectionResponse.RequiredStatusChecks.StatusCheck::context
 		)
@@ -942,7 +945,7 @@ class GitHubClientTest {
 		assertThat(pages.url()).isEqualTo(
 				"https://api.github.com/repos/github/developer.github.com/pages"
 		);
-		assertThat(pages.status()).isEqualTo("built");
+		assertThat(pages.status()).isEqualTo(PagesResponse.Status.BUILT);
 		assertThat(pages.cname()).isEqualTo("developer.github.com");
 		assertThat(pages.custom404()).isFalse();
 		assertThat(pages.htmlUrl()).isEqualTo("https://developer.github.com");
@@ -952,8 +955,10 @@ class GitHubClientTest {
 		assertThat(pages.isPublic()).isTrue();
 		assertThat(pages.pendingDomainUnverifiedAt())
 				.isEqualTo("2024-04-30T19:33:31Z");
-		assertThat(pages.protectedDomainState()).isEqualTo("verified");
-		assertThat(pages.httpsCertificate().state()).isEqualTo("approved");
+		assertThat(pages.protectedDomainState())
+				.isEqualTo(PagesResponse.ProtectedDomainState.VERIFIED);
+		assertThat(pages.httpsCertificate().state())
+				.isEqualTo(PagesResponse.HttpsCertificate.State.APPROVED);
 		assertThat(pages.httpsCertificate().domains())
 				.containsExactly("developer.github.com");
 		assertThat(pages.httpsEnforced()).isTrue();

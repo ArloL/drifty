@@ -40,7 +40,7 @@ public record RepositorySummaryResponse(
 		Boolean hasPages, // optional
 		Boolean hasDiscussions, // optional
 		Boolean hasPullRequests, // optional
-		String pullRequestCreationPolicy, // optional
+		PullRequestCreationPolicy pullRequestCreationPolicy, // optional
 		Boolean hasCommitComments, // optional
 		Boolean allowForking, // optional
 		Boolean webCommitSignoffRequired, // optional

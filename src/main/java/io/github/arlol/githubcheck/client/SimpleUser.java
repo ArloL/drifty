@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.client;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public record SimpleUser(
 		String login,
 		Long id,
@@ -8,10 +10,18 @@ public record SimpleUser(
 		String gravatarId, // nullable
 		String url,
 		String htmlUrl,
-		String type,
+		UserType type,
 		Boolean siteAdmin,
 		String name, // nullable, optional
 		String email, // nullable, optional
 		String userViewType // optional
 ) {
+
+	public enum UserType {
+		@JsonProperty("User")
+		USER, @JsonProperty("Organization")
+		ORGANIZATION, @JsonProperty("Bot")
+		BOT
+	}
+
 }
