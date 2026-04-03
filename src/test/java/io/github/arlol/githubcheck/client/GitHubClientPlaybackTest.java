@@ -126,7 +126,9 @@ class GitHubClientPlaybackTest {
 				() -> client.updateRepository(
 						"ArloL",
 						"terraform-github",
-						Map.of("default_branch", "main")
+						RepositoryUpdateRequest.builder()
+								.defaultBranch("main")
+								.build()
 				)
 		);
 	}

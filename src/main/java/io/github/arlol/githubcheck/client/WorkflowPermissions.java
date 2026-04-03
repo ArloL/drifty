@@ -1,8 +1,6 @@
 package io.github.arlol.githubcheck.client;
 
-import java.util.Locale;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record WorkflowPermissions(
 		DefaultWorkflowPermissions defaultWorkflowPermissions,
@@ -11,12 +9,11 @@ public record WorkflowPermissions(
 
 	public enum DefaultWorkflowPermissions {
 
-		READ, WRITE;
+		@JsonProperty("read")
+		READ,
 
-		@JsonCreator
-		public static DefaultWorkflowPermissions fromValue(String value) {
-			return valueOf(value.toUpperCase(Locale.ROOT));
-		}
+		@JsonProperty("write")
+		WRITE
 
 	}
 
