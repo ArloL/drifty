@@ -952,41 +952,6 @@ class OrgCheckerDiffTest {
 		assertThat(checker.computeDiffs(state, args)).isEmpty();
 	}
 
-	// ─── Topics drift
-	// ──────────────────────────────────────────────────────
-
-	@Test
-	void noDrift_topicsMatch() {
-		RepositoryArgs args = RepositoryArgs.create("owner", "repo")
-				.topics("java", "maven")
-				.build();
-		var state = new StateBuilder().noBranchProtection().detailsOverride("""
-				{"topics": ["java", "maven"]}
-				""").build();
-		assertThat(checker.computeDiffs(state, args)).isEmpty();
-	}
-
-	@Test
-	void drift_topicsMissing() {
-		RepositoryArgs args = RepositoryArgs.create("owner", "repo")
-				.topics("java", "maven")
-				.build();
-		var state = new StateBuilder().detailsOverride("""
-				{"topics": ["java"]}
-				""").build();
-		assertThat(checker.computeDiffs(state, args))
-				.contains("topics missing: [maven]");
-	}
-
-	@Test
-	void drift_topicsExtra() {
-		var state = new StateBuilder().detailsOverride("""
-				{"topics": ["stale-topic"]}
-				""").build();
-		assertThat(checker.computeDiffs(state, defaultArgs()))
-				.contains("topics extra: [stale-topic]");
-	}
-
 	// ─── Pages
 	// ──────────────────────────────────────────────────────────
 

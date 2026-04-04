@@ -56,6 +56,9 @@ import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulePatternArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
+import io.github.arlol.githubcheck.drift.DriftGroup;
+import io.github.arlol.githubcheck.drift.DriftItem;
+import io.github.arlol.githubcheck.drift.TopicsDriftGroup;
 
 public class OrgChecker {
 
@@ -159,9 +162,22 @@ public class OrgChecker {
 		}
 		try {
 			RepositoryState state = fetchState(summary);
+
+			Map<DriftGroup, List<DriftItem>> groupDrifts = computeGroupDrifts(
+					state,
+					desired
+			);
+
 			List<String> diffs = computeDiffs(state, desired);
+			groupDrifts.values()
+					.stream()
+					.flatMap(List::stream)
+					.map(DriftItem::message)
+					.forEach(diffs::add);
+
 			if (fix) {
 				diffs = applyFixes(name, state, desired, diffs);
+				diffs = applyFixes(name, diffs, groupDrifts);
 			}
 			return diffs.isEmpty() ? CheckResult.RepoCheckResult.ok(name)
 					: CheckResult.RepoCheckResult.drift(name, diffs);
@@ -257,6 +273,42 @@ public class OrgChecker {
 		);
 	}
 
+	// ─── Drift groups
+	// ──────────────────────────────────────────────────────────────
+
+	Map<DriftGroup, List<DriftItem>> computeGroupDrifts(
+			RepositoryState actual,
+			RepositoryArgs desired
+	) {
+		Map<DriftGroup, List<DriftItem>> groupDrifts = new LinkedHashMap<>();
+		for (var group : createDriftGroups(actual, desired)) {
+			var items = group.detect();
+			if (!items.isEmpty()) {
+				groupDrifts.put(group, items);
+			}
+		}
+		return groupDrifts;
+	}
+
+	List<DriftGroup> createDriftGroups(
+			RepositoryState actual,
+			RepositoryArgs desired
+	) {
+		var groups = new ArrayList<DriftGroup>();
+		groups.add(
+				new TopicsDriftGroup(
+						desired.topics(),
+						actual.details().topics() != null
+								? actual.details().topics()
+								: List.of(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		return groups;
+	}
+
 	// ─── Diff
 	// ──────────────────────────────────────────────────────────────
 
@@ -272,7 +324,6 @@ public class OrgChecker {
 		}
 
 		checkRepoSettings(diffs, actual, desired);
-		checkTopics(diffs, actual, desired);
 		check(
 				diffs,
 				"default_branch",
@@ -407,23 +458,6 @@ public class OrgChecker {
 				"default_branch",
 				desired.defaultBranch(),
 				details.defaultBranch()
-		);
-	}
-
-	private void checkTopics(
-			List<String> diffs,
-			RepositoryState actual,
-			RepositoryArgs desired
-	) {
-		List<String> topics = actual.details().topics();
-		if (topics == null) {
-			topics = List.of();
-		}
-		checkSets(
-				diffs,
-				"topics",
-				new HashSet<>(desired.topics()),
-				new HashSet<>(topics)
 		);
 	}
 
@@ -1224,15 +1258,6 @@ public class OrgChecker {
 			}
 		}
 
-		// Topics group (fixable)
-		List<String> topicsDiffs = new ArrayList<>();
-		checkTopics(topicsDiffs, actual, desired);
-		if (!topicsDiffs.isEmpty()) {
-			client.replaceTopics(org, name, desired.topics());
-			remaining.removeAll(topicsDiffs);
-			System.out.printf("[FIXED]   %s: topics updated%n", name);
-		}
-
 		// Security settings group (fixable)
 		List<String> securityDiffs = new ArrayList<>();
 		checkSecuritySettings(securityDiffs, actual, desired);
@@ -1684,6 +1709,28 @@ public class OrgChecker {
 			}
 		}
 
+		return remaining;
+	}
+
+	List<String> applyFixes(
+			String name,
+			List<String> diffs,
+			Map<DriftGroup, List<DriftItem>> groupDrifts
+	) {
+		List<String> remaining = new ArrayList<>(diffs);
+		for (var entry : groupDrifts.entrySet()) {
+			var msgs = entry.getValue()
+					.stream()
+					.map(DriftItem::message)
+					.toList();
+			entry.getKey().fix();
+			remaining.removeAll(msgs);
+			System.out.printf(
+					"[FIXED]   %s: %s updated%n",
+					name,
+					entry.getKey().name()
+			);
+		}
 		return remaining;
 	}
 

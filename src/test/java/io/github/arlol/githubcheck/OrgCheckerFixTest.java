@@ -18,6 +18,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,6 +51,8 @@ import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
+import io.github.arlol.githubcheck.drift.DriftGroup;
+import io.github.arlol.githubcheck.drift.DriftItem;
 
 @WireMockTest
 class OrgCheckerFixTest {
@@ -425,9 +428,17 @@ class OrgCheckerFixTest {
 
 		var state = goodPublicState(); // topics = []
 
-		List<String> diffs = checker.computeDiffs(state, desired);
-		List<String> remaining = checker
-				.applyFixes("repo", state, desired, diffs);
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+
+		var diffs = new ArrayList<>(checker.computeDiffs(state, desired));
+		groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.forEach(diffs::add);
+
+		var remaining = checker.applyFixes("repo", state, desired, diffs);
+		remaining = checker.applyFixes("repo", remaining, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1624,9 +1635,17 @@ class OrgCheckerFixTest {
 				{"description": "wrong"}
 				""");
 
-		List<String> diffs = checker.computeDiffs(state, desired);
-		List<String> remaining = checker
-				.applyFixes("repo", state, desired, diffs);
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+
+		var diffs = new ArrayList<>(checker.computeDiffs(state, desired));
+		groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.forEach(diffs::add);
+
+		var remaining = checker.applyFixes("repo", state, desired, diffs);
+		remaining = checker.applyFixes("repo", remaining, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
