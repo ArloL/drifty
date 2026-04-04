@@ -33,6 +33,7 @@ import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
+import io.github.arlol.githubcheck.drift.DriftItem;
 
 class OrgCheckerDiffTest {
 
@@ -795,7 +796,8 @@ class OrgCheckerDiffTest {
 		);
 	}
 
-	// ─── Workflow permissions drift
+	// ─── Workflow permissions drift (tested via groupDrifts in
+	// OrgCheckerDiffTest)
 	// ──────────────────────────────────────────
 
 	@Test
@@ -806,8 +808,13 @@ class OrgCheckerDiffTest {
 					"can_approve_pull_request_reviews": true
 				}
 				""").build();
-		assertThat(checker.computeDiffs(state, defaultArgs()))
-				.contains("workflow_permissions.default: want=WRITE got=READ");
+		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var groupDriftMessages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(groupDriftMessages).contains("default: want=WRITE got=READ");
 	}
 
 	@Test
@@ -818,9 +825,14 @@ class OrgCheckerDiffTest {
 					"can_approve_pull_request_reviews": false
 				}
 				""").build();
-		assertThat(checker.computeDiffs(state, defaultArgs())).contains(
-				"workflow_permissions.can_approve_prs: want=true got=false"
-		);
+		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var groupDriftMessages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(groupDriftMessages)
+				.contains("can_approve_prs: want=true got=false");
 	}
 
 	// ─── No-drift (matching) tests

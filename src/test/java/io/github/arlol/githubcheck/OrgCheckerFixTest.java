@@ -1221,9 +1221,17 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		List<String> diffs = checker.computeDiffs(state, desired);
-		List<String> remaining = checker
-				.applyFixes("repo", state, desired, diffs);
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+
+		var diffs = new ArrayList<>(checker.computeDiffs(state, desired));
+		groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.forEach(diffs::add);
+
+		var remaining = checker.applyFixes("repo", state, desired, diffs);
+		remaining = checker.applyFixes("repo", remaining, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1245,9 +1253,17 @@ class OrgCheckerFixTest {
 		RepositoryArgs desired = RepositoryArgs.create("owner", "repo").build();
 		var state = goodPublicState();
 
-		List<String> diffs = checker.computeDiffs(state, desired);
-		List<String> remaining = checker
-				.applyFixes("repo", state, desired, diffs);
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+
+		var diffs = new ArrayList<>(checker.computeDiffs(state, desired));
+		groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.forEach(diffs::add);
+
+		var remaining = checker.applyFixes("repo", state, desired, diffs);
+		remaining = checker.applyFixes("repo", remaining, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
