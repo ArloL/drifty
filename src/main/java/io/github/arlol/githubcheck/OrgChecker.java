@@ -58,6 +58,7 @@ import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
+import io.github.arlol.githubcheck.drift.PagesDriftGroup;
 import io.github.arlol.githubcheck.drift.RepoSettingsDriftGroup;
 import io.github.arlol.githubcheck.drift.TopicsDriftGroup;
 import io.github.arlol.githubcheck.drift.WorkflowPermissionsDriftGroup;
@@ -326,6 +327,15 @@ public class OrgChecker {
 						actual.summary().name()
 				)
 		);
+		groups.add(
+				new PagesDriftGroup(
+						desired,
+						actual.pages(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
 		return groups;
 	}
 
@@ -346,7 +356,6 @@ public class OrgChecker {
 		checkSecuritySettings(diffs, actual, desired);
 		checkBranchProtection(diffs, actual, desired);
 		checkRulesets(diffs, actual, desired);
-		checkPages(diffs, actual, desired);
 		checkSecrets(diffs, actual, desired);
 		checkEnvironmentConfig(diffs, actual, desired);
 
@@ -1025,50 +1034,6 @@ public class OrgChecker {
 		}
 	}
 
-	private void checkPages(
-			List<String> diffs,
-			RepositoryState actual,
-			RepositoryArgs desired
-	) {
-		if (!desired.pages()) {
-			return;
-		}
-
-		Optional<PagesResponse> actualPages = actual.pages();
-		if (actualPages.isEmpty()) {
-			diffs.add("pages: missing");
-			return;
-		}
-		PagesResponse p = actualPages.orElseThrow();
-		PagesArgs want = desired.pagesArgs();
-
-		check(
-				diffs,
-				"pages.build_type",
-				want.buildType().name().toLowerCase(Locale.ROOT),
-				p.buildType() != null
-						? p.buildType().name().toLowerCase(Locale.ROOT)
-						: null
-		);
-
-		if (want.buildType() == PagesBuildType.LEGACY && p.source() != null) {
-			check(
-					diffs,
-					"pages.source.branch",
-					want.sourceBranch(),
-					p.source().branch()
-			);
-			check(
-					diffs,
-					"pages.source.path",
-					want.sourcePath(),
-					p.source().path()
-			);
-		}
-
-		check(diffs, "pages.https_enforced", true, p.httpsEnforced());
-	}
-
 	// ─── Fix
 	// ──────────────────────────────────────────────────────────────
 
@@ -1375,28 +1340,6 @@ public class OrgChecker {
 			remaining.removeAll(rulesetDiffs);
 		}
 
-		// Pages (fixable)
-		List<String> pagesDiffs = new ArrayList<>();
-		checkPages(pagesDiffs, actual, desired);
-		if (!pagesDiffs.isEmpty()) {
-			if (actual.pages().isEmpty()) {
-				client.createPages(
-						org,
-						name,
-						buildPagesCreateRequest(desired.pagesArgs())
-				);
-				System.out.printf("[FIXED]   %s: pages created%n", name);
-			} else {
-				client.updatePages(
-						org,
-						name,
-						buildPagesUpdateRequest(desired.pagesArgs())
-				);
-				System.out.printf("[FIXED]   %s: pages updated%n", name);
-			}
-			remaining.removeAll(pagesDiffs);
-		}
-
 		// Environment config (wait_timer, deployment_branch_policy, reviewers)
 		// — fixable
 		List<String> envConfigDiffs = new ArrayList<>();
@@ -1547,28 +1490,6 @@ public class OrgChecker {
 			);
 		}
 		return remaining;
-	}
-
-	private static PagesCreateRequest buildPagesCreateRequest(PagesArgs args) {
-		PagesCreateRequest.Source source = null;
-		if (args.buildType() == PagesBuildType.LEGACY) {
-			source = new PagesCreateRequest.Source(
-					args.sourceBranch(),
-					args.sourcePath()
-			);
-		}
-		return new PagesCreateRequest(args.buildType(), source);
-	}
-
-	private static PagesUpdateRequest buildPagesUpdateRequest(PagesArgs args) {
-		PagesUpdateRequest.Source source = null;
-		if (args.buildType() == PagesBuildType.LEGACY) {
-			source = new PagesUpdateRequest.Source(
-					args.sourceBranch(),
-					args.sourcePath()
-			);
-		}
-		return new PagesUpdateRequest(args.buildType(), source, true);
 	}
 
 	private static EnvironmentUpdateRequest buildEnvironmentUpdateRequest(

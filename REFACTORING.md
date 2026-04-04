@@ -248,13 +248,13 @@ Incremental migration, one category at a time. Each step:
 |------|----------|-----------|--------|
 | 1 | Topics | Trivial | ✓ done |
 | 2 | Repo Settings | Low | ✓ done |
-| 3 | Workflow Permissions | Low | 2-3 fields. |
-| 4 | Pages | Low | Small group with create-or-update fix logic. |
-| 5 | Security micro-groups | Medium | 8 small groups. Proves the micro-group pattern. |
-| 6 | Environment Config | Medium | Per-environment groups with reviewer sets. |
-| 7 | Secrets | Medium | Two sub-types (action/environment), presence-only vs always-update. |
-| 8 | Branch Protection | High | Complex nested structure: PR reviews, restrictions, status checks. |
-| 9 | Rulesets | High | Most complex: pattern rules, bypass actors, code scanning tools. |
+| 3 | Workflow Permissions | Low | ✓ done |
+| 4 | Pages | Low | ✓ done |
+| 5 | Security micro-groups | Medium | pending (8 small groups) |
+| 6 | Environment Config | Medium | pending |
+| 7 | Secrets | Medium | pending |
+| 8 | Branch Protection | High | pending |
+| 9 | Rulesets | High | pending |
 
 ### During Migration
 
