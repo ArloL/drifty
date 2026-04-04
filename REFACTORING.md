@@ -38,6 +38,10 @@ public sealed interface DriftItem {
     }
 
     record SetDrift(String path, Set<?> missing, Set<?> extra) implements DriftItem {
+        public SetDrift {
+            missing = Set.copyOf(missing);
+            extra = Set.copyOf(extra);
+        }
         public String message() {
             var parts = new ArrayList<String>();
             if (!missing.isEmpty()) parts.add("missing: " + sorted(missing));
@@ -79,25 +83,28 @@ public abstract class DriftGroup {
 
     // ─── Protected helpers for subclasses ───
 
-    protected static void compare(List<DriftItem> items, String path, Object wanted, Object got) {
+    protected static List<DriftItem> compare(String path, Object wanted, Object got) {
         if (wanted != null && !Objects.equals(wanted, got)) {
-            items.add(new DriftItem.FieldMismatch(path, wanted, got));
+            return List.of(new DriftItem.FieldMismatch(path, wanted, got));
         }
+        return List.of();
     }
 
-    protected static <T> void compareSets(List<DriftItem> items, String path, Set<T> wanted, Set<T> got) {
+    protected static <T> List<DriftItem> compareSets(String path, Set<T> wanted, Set<T> got) {
         Set<T> missing = new HashSet<>(wanted);
         missing.removeAll(got);
         Set<T> extra = new HashSet<>(got);
         extra.removeAll(wanted);
         if (!missing.isEmpty() || !extra.isEmpty()) {
-            items.add(new DriftItem.SetDrift(path, missing, extra));
+            return List.of(new DriftItem.SetDrift(path, missing, extra));
         }
+        return List.of();
     }
 }
 ```
 
-- Groups extend this base class and use the protected helpers.
+- Helpers return `List<DriftItem>` — they do not mutate a passed-in list.
+  `detect()` implementations collect results with `items.addAll(compare(...))`.
 - Groups are constructed with all context (desired state, actual state,
   GitHubClient, owner, repo) — `detect()` and `fix()` are parameterless.
 - Groups are disposable one-shot objects.
@@ -173,9 +180,9 @@ deletes the entity.
 
 ```
 src/main/java/io/github/arlol/githubcheck/drift/
-├── DriftItem.java                          # sealed interface + 4 record variants
-├── DriftGroup.java                         # abstract base class with helpers
-├── TopicsDriftGroup.java
+├── DriftItem.java                          # sealed interface + 4 record variants ✓
+├── DriftGroup.java                         # abstract base class with helpers ✓
+├── TopicsDriftGroup.java                   # ✓ migrated
 ├── RepoSettingsDriftGroup.java
 ├── WorkflowPermissionsDriftGroup.java
 ├── PagesDriftGroup.java
@@ -199,41 +206,32 @@ collect drift items, report, and optionally fix.
 
 ## Orchestrator Flow (OrgChecker)
 
+During migration, `OrgChecker` runs both the legacy path and the group path
+in parallel. The current wiring in `checkOne`:
+
 ```java
 // 1. Fetch actual state (unchanged)
-RepositoryState actual = fetchState(repo);
+RepositoryState state = fetchState(summary);
 
-// 2. Create all drift groups
-List<DriftGroup> groups = createDriftGroups(desired, actual, client);
+// 2. Detect group drift (once — used for both reporting and fixing)
+Map<DriftGroup, List<DriftItem>> groupDrifts = computeGroupDrifts(state, desired);
 
-// 3. Detect drift
-Map<DriftGroup, List<DriftItem>> drifts = new LinkedHashMap<>();
-for (DriftGroup group : groups) {
-    List<DriftItem> items = group.detect();
-    if (!items.isEmpty()) {
-        drifts.put(group, items);
-    }
-}
+// 3. Legacy detection (unmigrated categories)
+List<String> diffs = computeDiffs(state, desired);
 
-// 4. Report
-for (var entry : drifts.entrySet()) {
-    for (DriftItem item : entry.getValue()) {
-        log(item.message());
-    }
-}
+// 4. Merge group messages into the legacy diffs list
+groupDrifts.values().stream().flatMap(List::stream)
+    .map(DriftItem::message).forEach(diffs::add);
 
-// 5. Fix (if --fix)
-if (fix && !drifts.isEmpty()) {
-    // Handle archive ordering
-    handleUnarchiveFirst(drifts);
-    for (DriftGroup group : drifts.keySet()) {
-        if (!isArchiveGroup(group)) {
-            group.fix();
-        }
-    }
-    handleArchiveLast(drifts);
+// 5. Fix (if --fix) — two separate methods, called in sequence
+if (fix) {
+    diffs = applyFixes(name, state, desired, diffs);   // legacy
+    diffs = applyFixes(name, diffs, groupDrifts);      // group-based
 }
 ```
+
+The target end state (once all categories are migrated) eliminates the legacy
+`computeDiffs`/`applyFixes` methods entirely.
 
 ## Migration Plan
 
@@ -246,9 +244,9 @@ Incremental migration, one category at a time. Each step:
 
 ### Migration Order
 
-| Step | Category | Complexity | Notes |
-|------|----------|-----------|-------|
-| 1 | Topics | Trivial | Single set comparison. Proves the pattern. |
+| Step | Category | Complexity | Status |
+|------|----------|-----------|--------|
+| 1 | Topics | Trivial | ✓ done |
 | 2 | Repo Settings | Low | 27 flat field comparisons. Stress-tests compare() helper at scale. |
 | 3 | Workflow Permissions | Low | 2-3 fields. |
 | 4 | Pages | Low | Small group with create-or-update fix logic. |
@@ -264,6 +262,12 @@ Incremental migration, one category at a time. Each step:
 for unmigrated categories, new `DriftGroup` for migrated ones). This is
 acceptable — each migration step is self-contained.
 
+The `OrgCheckerDiffTest` topics tests were removed after step 1 since
+`TopicsDriftGroupTest` provides equivalent coverage. Follow this pattern for
+each subsequent step: remove the corresponding `OrgCheckerDiffTest` cases and
+update `OrgCheckerFixTest` cases to use `computeGroupDrifts` + the group
+`applyFixes` overload.
+
 ## Testing
 
 Unit tests are added with each migration step. Each test:
@@ -277,22 +281,23 @@ Unit tests are added with each migration step. Each test:
 @Test
 void detectsMissingTopics() {
     var group = new TopicsDriftGroup(
-        Set.of("java", "cli"),   // desired
-        Set.of("java"),          // actual
-        client, owner, repo
+        List.of("java", "cli"),   // desired
+        List.of("java"),          // actual
+        null, "owner", "repo"     // client not needed for detect()
     );
     var items = group.detect();
     assertThat(items).hasSize(1);
-    assertThat(items.get(0)).isInstanceOf(DriftItem.SetDrift.class);
-    var drift = (DriftItem.SetDrift) items.get(0);
-    assertThat(drift.missing()).containsExactly("cli");
-    assertThat(drift.extra()).isEmpty();
+    assertThat(items.getFirst()).isInstanceOf(DriftItem.SetDrift.class);
+    var drift = (DriftItem.SetDrift) items.getFirst();
+    assertThat(drift.missing()).hasSize(1);
+    assertThat(drift.message()).isEqualTo("topics missing: [cli]");
 }
 ```
 
 ## Key Files
 
 - `src/main/java/io/github/arlol/githubcheck/OrgChecker.java` — orchestrator (to be slimmed)
+- `src/main/java/io/github/arlol/githubcheck/drift/` — drift group implementations
 - `src/main/java/io/github/arlol/githubcheck/RepositoryState.java` — actual state record
 - `src/main/java/io/github/arlol/githubcheck/config/RepositoryArgs.java` — desired state
-- `src/main/java/io/github/arlol/githubcheck/client/GitHubClient.java` — API client
+- `src/main/java/io/github/arlol/githubcheck/client/GitHubClient.java` — API client (`@Immutable`)
