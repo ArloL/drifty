@@ -15,6 +15,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import net.jcip.annotations.Immutable;
+
+@Immutable
 public class GitHubClient {
 
 	// ─── Client
