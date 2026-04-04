@@ -58,6 +58,7 @@ import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
+import io.github.arlol.githubcheck.drift.RepoSettingsDriftGroup;
 import io.github.arlol.githubcheck.drift.TopicsDriftGroup;
 
 public class OrgChecker {
@@ -296,6 +297,15 @@ public class OrgChecker {
 	) {
 		var groups = new ArrayList<DriftGroup>();
 		groups.add(
+				new RepoSettingsDriftGroup(
+						desired,
+						actual.details(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
 				new TopicsDriftGroup(
 						desired.topics(),
 						actual.details().topics() != null
@@ -323,13 +333,6 @@ public class OrgChecker {
 			}
 		}
 
-		checkRepoSettings(diffs, actual, desired);
-		check(
-				diffs,
-				"default_branch",
-				desired.defaultBranch(),
-				actual.details().defaultBranch()
-		);
 		checkSecuritySettings(diffs, actual, desired);
 		checkWorkflowPermissions(diffs, actual, desired);
 		checkBranchProtection(diffs, actual, desired);
@@ -339,126 +342,6 @@ public class OrgChecker {
 		checkEnvironmentConfig(diffs, actual, desired);
 
 		return diffs;
-	}
-
-	private void checkRepoSettings(
-			List<String> diffs,
-			RepositoryState actual,
-			RepositoryArgs desired
-	) {
-		var details = actual.details();
-		check(
-				diffs,
-				"archived",
-				desired.archived(),
-				actual.summary().archived()
-		);
-		check(
-				diffs,
-				"description",
-				desired.description(),
-				Objects.toString(details.description(), "")
-		);
-		check(
-				diffs,
-				"homepage_url",
-				desired.homepageUrl(),
-				Objects.toString(details.homepage(), "")
-		);
-		check(diffs, "has_issues", desired.hasIssues(), details.hasIssues());
-		check(
-				diffs,
-				"has_projects",
-				desired.hasProjects(),
-				details.hasProjects()
-		);
-		check(diffs, "has_wiki", desired.hasWiki(), details.hasWiki());
-		check(
-				diffs,
-				"has_discussions",
-				desired.hasDiscussions(),
-				details.hasDiscussions()
-		);
-		check(diffs, "is_template", desired.isTemplate(), details.isTemplate());
-		check(
-				diffs,
-				"allow_forking",
-				desired.allowForking(),
-				details.allowForking()
-		);
-		check(
-				diffs,
-				"web_commit_signoff_required",
-				desired.webCommitSignoffRequired(),
-				details.webCommitSignoffRequired()
-		);
-		check(
-				diffs,
-				"allow_merge_commit",
-				desired.allowMergeCommit(),
-				details.allowMergeCommit()
-		);
-		check(
-				diffs,
-				"allow_squash_merge",
-				desired.allowSquashMerge(),
-				details.allowSquashMerge()
-		);
-		check(
-				diffs,
-				"allow_rebase_merge",
-				desired.allowRebaseMerge(),
-				details.allowRebaseMerge()
-		);
-		check(
-				diffs,
-				"allow_auto_merge",
-				desired.allowAutoMerge(),
-				details.allowAutoMerge()
-		);
-		check(
-				diffs,
-				"allow_update_branch",
-				desired.allowUpdateBranch(),
-				details.allowUpdateBranch()
-		);
-		check(
-				diffs,
-				"delete_branch_on_merge",
-				desired.deleteBranchOnMerge(),
-				details.deleteBranchOnMerge()
-		);
-		check(
-				diffs,
-				"squash_merge_commit_title",
-				desired.squashMergeCommitTitle(),
-				details.squashMergeCommitTitle()
-		);
-		check(
-				diffs,
-				"squash_merge_commit_message",
-				desired.squashMergeCommitMessage(),
-				details.squashMergeCommitMessage()
-		);
-		check(
-				diffs,
-				"merge_commit_title",
-				desired.mergeCommitTitle(),
-				details.mergeCommitTitle()
-		);
-		check(
-				diffs,
-				"merge_commit_message",
-				desired.mergeCommitMessage(),
-				details.mergeCommitMessage()
-		);
-		check(diffs, "visibility", desired.visibility(), details.visibility());
-		check(
-				diffs,
-				"default_branch",
-				desired.defaultBranch(),
-				details.defaultBranch()
-		);
 	}
 
 	private void checkSecuritySettings(
@@ -1207,7 +1090,6 @@ public class OrgChecker {
 	) throws IOException, InterruptedException {
 		List<String> remaining = new ArrayList<>(diffs);
 
-		// Special case: archive the repo
 		if (desired.archived()) {
 			if (remaining.remove("archived")) {
 				client.updateRepository(
@@ -1218,44 +1100,6 @@ public class OrgChecker {
 				System.out.printf("[FIXED]   %s: archived%n", name);
 			}
 			return remaining;
-		}
-
-		// Repo settings group (fixable)
-		List<String> repoSettingsDiffs = new ArrayList<>();
-		checkRepoSettings(repoSettingsDiffs, actual, desired);
-		if (!repoSettingsDiffs.isEmpty()) {
-			var request = RepositoryUpdateRequest.builder()
-					.archived(desired.archived())
-					.description(desired.description())
-					.homepage(desired.homepageUrl())
-					.hasIssues(desired.hasIssues())
-					.hasProjects(desired.hasProjects())
-					.hasWiki(desired.hasWiki())
-					.hasDiscussions(desired.hasDiscussions())
-					.isTemplate(desired.isTemplate())
-					.allowForking(desired.allowForking())
-					.webCommitSignoffRequired(
-							desired.webCommitSignoffRequired()
-					)
-					.allowMergeCommit(desired.allowMergeCommit())
-					.allowSquashMerge(desired.allowSquashMerge())
-					.allowRebaseMerge(desired.allowRebaseMerge())
-					.allowUpdateBranch(desired.allowUpdateBranch())
-					.allowAutoMerge(desired.allowAutoMerge())
-					.deleteBranchOnMerge(desired.deleteBranchOnMerge())
-					.squashMergeCommitTitle(desired.squashMergeCommitTitle())
-					.squashMergeCommitMessage(
-							desired.squashMergeCommitMessage()
-					)
-					.mergeCommitTitle(desired.mergeCommitTitle())
-					.mergeCommitMessage(desired.mergeCommitMessage())
-					.defaultBranch(desired.defaultBranch())
-					.build();
-			client.updateRepository(org, name, request);
-			remaining.removeAll(repoSettingsDiffs);
-			for (String diff : repoSettingsDiffs) {
-				System.out.printf("[FIXED]   %s: %s updated%n", name, diff);
-			}
 		}
 
 		// Security settings group (fixable)
