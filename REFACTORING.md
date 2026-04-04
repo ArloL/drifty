@@ -268,6 +268,12 @@ each subsequent step: remove the corresponding `OrgCheckerDiffTest` cases and
 update `OrgCheckerFixTest` cases to use `computeGroupDrifts` + the group
 `applyFixes` overload.
 
+**Important**: When migrating a category, preserve the `OrgCheckerFixTest`
+tests rather than removing them. Update them to use the new group-based logic:
+call both `applyFixes(..., diffs)` (legacy) and `applyFixes(..., groupDrifts)`
+(the group-based overload) in sequence. This ensures the fix path remains
+tested even after migration.
+
 ## Testing
 
 Unit tests are added with each migration step. Each test:

@@ -60,6 +60,7 @@ import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
 import io.github.arlol.githubcheck.drift.RepoSettingsDriftGroup;
 import io.github.arlol.githubcheck.drift.TopicsDriftGroup;
+import io.github.arlol.githubcheck.drift.WorkflowPermissionsDriftGroup;
 
 public class OrgChecker {
 
@@ -316,6 +317,15 @@ public class OrgChecker {
 						actual.summary().name()
 				)
 		);
+		groups.add(
+				new WorkflowPermissionsDriftGroup(
+						desired,
+						actual.workflowPermissions(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
 		return groups;
 	}
 
@@ -334,7 +344,6 @@ public class OrgChecker {
 		}
 
 		checkSecuritySettings(diffs, actual, desired);
-		checkWorkflowPermissions(diffs, actual, desired);
 		checkBranchProtection(diffs, actual, desired);
 		checkRulesets(diffs, actual, desired);
 		checkPages(diffs, actual, desired);
@@ -421,25 +430,6 @@ public class OrgChecker {
 				"code_scanning_default_setup",
 				desired.codeScanningDefaultSetup(),
 				actual.codeScanningDefaultSetup()
-		);
-	}
-
-	private void checkWorkflowPermissions(
-			List<String> diffs,
-			RepositoryState actual,
-			RepositoryArgs desired
-	) {
-		check(
-				diffs,
-				"workflow_permissions.default",
-				desired.defaultWorkflowPermissions(),
-				actual.workflowPermissions().defaultWorkflowPermissions()
-		);
-		check(
-				diffs,
-				"workflow_permissions.can_approve_prs",
-				desired.canApprovePullRequestReviews(),
-				actual.workflowPermissions().canApprovePullRequestReviews()
 		);
 	}
 
@@ -1250,25 +1240,6 @@ public class OrgChecker {
 				}
 			}
 			remaining.removeAll(securityDiffs);
-		}
-
-		// Workflow permissions (fixable)
-		List<String> workflowDiffs = new ArrayList<>();
-		checkWorkflowPermissions(workflowDiffs, actual, desired);
-		if (!workflowDiffs.isEmpty()) {
-			client.updateWorkflowPermissions(
-					org,
-					name,
-					new WorkflowPermissions(
-							desired.defaultWorkflowPermissions(),
-							desired.canApprovePullRequestReviews()
-					)
-			);
-			remaining.removeAll(workflowDiffs);
-			System.out.printf(
-					"[FIXED]   %s: workflow_permissions updated%n",
-					name
-			);
 		}
 
 		// Branch protection (fixable for public repos)
