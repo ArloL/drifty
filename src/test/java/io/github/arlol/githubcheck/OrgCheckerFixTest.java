@@ -259,6 +259,38 @@ class OrgCheckerFixTest {
 	}
 
 	@Test
+	void topicsDrift_putsTopics() throws Exception {
+		stubFor(
+				put(urlEqualTo("/repos/owner/repo/topics"))
+						.willReturn(okJson("{\"names\":[\"java\"]}"))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
+				.topics("java")
+				.build();
+
+		var state = goodPublicState(); // topics = []
+
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+
+		var diffs = new ArrayList<>(checker.computeDiffs(state, desired));
+		groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.forEach(diffs::add);
+
+		var remaining = checker.applyFixes("repo", state, desired, diffs);
+		remaining = checker.applyFixes("repo", remaining, groupDrifts);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				putRequestedFor(urlEqualTo("/repos/owner/repo/topics"))
+						.withRequestBody(equalToJson("{\"names\":[\"java\"]}"))
+		);
+	}
+
+	@Test
 	void descriptionDrift_patchesFullDesiredState() throws Exception {
 		stubFor(
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
@@ -272,9 +304,17 @@ class OrgCheckerFixTest {
 				{"description": "wrong"}
 				""");
 
-		List<String> diffs = checker.computeDiffs(state, desired);
-		List<String> remaining = checker
-				.applyFixes("repo", state, desired, diffs);
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+
+		var diffs = new ArrayList<>(checker.computeDiffs(state, desired));
+		groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.forEach(diffs::add);
+
+		var remaining = checker.applyFixes("repo", state, desired, diffs);
+		remaining = checker.applyFixes("repo", remaining, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -322,9 +362,17 @@ class OrgCheckerFixTest {
 				{"allow_rebase_merge": true}
 				""");
 
-		List<String> diffs = checker.computeDiffs(state, desired);
-		List<String> remaining = checker
-				.applyFixes("repo", state, desired, diffs);
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+
+		var diffs = new ArrayList<>(checker.computeDiffs(state, desired));
+		groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.forEach(diffs::add);
+
+		var remaining = checker.applyFixes("repo", state, desired, diffs);
+		remaining = checker.applyFixes("repo", remaining, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -378,9 +426,17 @@ class OrgCheckerFixTest {
 				}
 				""");
 
-		List<String> diffs = checker.computeDiffs(state, desired);
-		List<String> remaining = checker
-				.applyFixes("repo", state, desired, diffs);
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+
+		var diffs = new ArrayList<>(checker.computeDiffs(state, desired));
+		groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.forEach(diffs::add);
+
+		var remaining = checker.applyFixes("repo", state, desired, diffs);
+		remaining = checker.applyFixes("repo", remaining, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -412,38 +468,6 @@ class OrgCheckerFixTest {
 							"default_branch": "main"
 						}
 						"""))
-		);
-	}
-
-	@Test
-	void topicsDrift_putsTopics() throws Exception {
-		stubFor(
-				put(urlEqualTo("/repos/owner/repo/topics"))
-						.willReturn(okJson("{\"names\":[\"java\"]}"))
-		);
-
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.topics("java")
-				.build();
-
-		var state = goodPublicState(); // topics = []
-
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
-
-		var diffs = new ArrayList<>(checker.computeDiffs(state, desired));
-		groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.map(DriftItem::message)
-				.forEach(diffs::add);
-
-		var remaining = checker.applyFixes("repo", state, desired, diffs);
-		remaining = checker.applyFixes("repo", remaining, groupDrifts);
-
-		assertThat(remaining).isEmpty();
-		verify(
-				putRequestedFor(urlEqualTo("/repos/owner/repo/topics"))
-						.withRequestBody(equalToJson("{\"names\":[\"java\"]}"))
 		);
 	}
 
@@ -486,9 +510,20 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		List<String> diffs = checker.computeDiffs(stateWithBadVuln, desired);
-		List<String> remaining = checker
+		var groupDrifts = checker.computeGroupDrifts(stateWithBadVuln, desired);
+
+		var diffs = new ArrayList<>(
+				checker.computeDiffs(stateWithBadVuln, desired)
+		);
+		groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.forEach(diffs::add);
+
+		var remaining = checker
 				.applyFixes("repo", stateWithBadVuln, desired, diffs);
+		remaining = checker.applyFixes("repo", remaining, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(

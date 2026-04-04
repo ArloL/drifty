@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -19,364 +18,65 @@ import io.github.arlol.githubcheck.client.SquashMergeCommitMessage;
 import io.github.arlol.githubcheck.client.SquashMergeCommitTitle;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 
-public final class RepositoryArgs {
+public record RepositoryArgs(
+		String owner,
+		String name,
+		boolean archived,
+		PagesArgs pagesArgs,
+		String description,
+		String homepageUrl,
+		RepositoryVisibility visibility,
+		List<String> topics,
+		List<String> actionsSecrets,
+		Map<String, EnvironmentArgs> environments,
+		List<RulesetArgs> rulesets,
+		boolean immutableReleases,
+		boolean allowRebaseMerge,
+		boolean allowUpdateBranch,
+		String defaultBranch,
+		Map<String, BranchProtectionArgs> branchProtections,
+		boolean vulnerabilityAlerts,
+		boolean automatedSecurityFixes,
+		boolean secretScanning,
+		boolean secretScanningPushProtection,
+		boolean secretScanningValidityChecks,
+		boolean secretScanningNonProviderPatterns,
+		boolean privateVulnerabilityReporting,
+		boolean codeScanningDefaultSetup,
+		boolean hasIssues,
+		boolean hasProjects,
+		boolean hasWiki,
+		boolean hasDiscussions,
+		boolean isTemplate,
+		boolean allowForking,
+		boolean webCommitSignoffRequired,
+		boolean allowMergeCommit,
+		boolean allowSquashMerge,
+		boolean allowAutoMerge,
+		boolean deleteBranchOnMerge,
+		SquashMergeCommitTitle squashMergeCommitTitle,
+		SquashMergeCommitMessage squashMergeCommitMessage,
+		MergeCommitTitle mergeCommitTitle,
+		MergeCommitMessage mergeCommitMessage,
+		WorkflowPermissions.DefaultWorkflowPermissions defaultWorkflowPermissions,
+		boolean canApprovePullRequestReviews
+) {
 
-	private final String owner;
-	private final String name;
-	private final boolean archived;
-	private final PagesArgs pagesArgs;
-	private final String description;
-	private final String homepageUrl;
-	private final RepositoryVisibility visibility;
-	private final List<String> topics;
-	private final List<String> actionsSecrets;
-	private final Map<String, EnvironmentArgs> environments;
-	private final List<RulesetArgs> rulesets;
-	private final boolean immutableReleases;
-	private final boolean allowRebaseMerge;
-	private final boolean allowUpdateBranch;
-	private final String defaultBranch;
-	private final Map<String, BranchProtectionArgs> branchProtections;
-	private final boolean vulnerabilityAlerts;
-	private final boolean automatedSecurityFixes;
-	private final boolean secretScanning;
-	private final boolean secretScanningPushProtection;
-	private final boolean secretScanningValidityChecks;
-	private final boolean secretScanningNonProviderPatterns;
-	private final boolean privateVulnerabilityReporting;
-	private final boolean codeScanningDefaultSetup;
-	private final boolean hasIssues;
-	private final boolean hasProjects;
-	private final boolean hasWiki;
-	private final boolean hasDiscussions;
-	private final boolean isTemplate;
-	private final boolean allowForking;
-	private final boolean webCommitSignoffRequired;
-	private final boolean allowMergeCommit;
-	private final boolean allowSquashMerge;
-	private final boolean allowAutoMerge;
-	private final boolean deleteBranchOnMerge;
-	private final SquashMergeCommitTitle squashMergeCommitTitle;
-	private final SquashMergeCommitMessage squashMergeCommitMessage;
-	private final MergeCommitTitle mergeCommitTitle;
-	private final MergeCommitMessage mergeCommitMessage;
-	private final WorkflowPermissions.DefaultWorkflowPermissions defaultWorkflowPermissions;
-	private final boolean canApprovePullRequestReviews;
-
-	private RepositoryArgs(Builder builder) {
-		this.owner = builder.owner;
-		this.name = builder.name;
-		this.archived = builder.archived;
-		this.pagesArgs = builder.pagesArgs;
-		this.description = builder.description;
-		this.homepageUrl = builder.homepageUrl;
-		this.visibility = builder.visibility;
-		this.topics = List.copyOf(builder.topics);
-		this.actionsSecrets = List.copyOf(builder.actionsSecrets);
-		this.environments = Collections
-				.unmodifiableMap(new LinkedHashMap<>(builder.environments));
-		this.rulesets = List.copyOf(builder.rulesets);
-		this.immutableReleases = builder.immutableReleases;
-		this.allowRebaseMerge = builder.allowRebaseMerge;
-		this.allowUpdateBranch = builder.allowUpdateBranch;
-		this.defaultBranch = builder.defaultBranch;
-		this.branchProtections = Map.copyOf(builder.branchProtections);
-		this.vulnerabilityAlerts = builder.vulnerabilityAlerts;
-		this.automatedSecurityFixes = builder.automatedSecurityFixes;
-		this.secretScanning = builder.secretScanning;
-		this.secretScanningPushProtection = builder.secretScanningPushProtection;
-		this.secretScanningValidityChecks = builder.secretScanningValidityChecks;
-		this.secretScanningNonProviderPatterns = builder.secretScanningNonProviderPatterns;
-		this.privateVulnerabilityReporting = builder.privateVulnerabilityReporting;
-		this.codeScanningDefaultSetup = builder.codeScanningDefaultSetup;
-		this.hasIssues = builder.hasIssues;
-		this.hasProjects = builder.hasProjects;
-		this.hasWiki = builder.hasWiki;
-		this.hasDiscussions = builder.hasDiscussions;
-		this.isTemplate = builder.isTemplate;
-		this.allowForking = builder.allowForking;
-		this.webCommitSignoffRequired = builder.webCommitSignoffRequired;
-		this.allowMergeCommit = builder.allowMergeCommit;
-		this.allowSquashMerge = builder.allowSquashMerge;
-		this.allowAutoMerge = builder.allowAutoMerge;
-		this.deleteBranchOnMerge = builder.deleteBranchOnMerge;
-		this.squashMergeCommitTitle = builder.squashMergeCommitTitle;
-		this.squashMergeCommitMessage = builder.squashMergeCommitMessage;
-		this.mergeCommitTitle = builder.mergeCommitTitle;
-		this.mergeCommitMessage = builder.mergeCommitMessage;
-		this.defaultWorkflowPermissions = builder.defaultWorkflowPermissions;
-		this.canApprovePullRequestReviews = builder.canApprovePullRequestReviews;
-	}
-
-	public String owner() {
-		return owner;
-	}
-
-	public String name() {
-		return name;
-	}
-
-	public boolean archived() {
-		return archived;
+	public RepositoryArgs {
+		topics = List.copyOf(topics);
+		actionsSecrets = List.copyOf(actionsSecrets);
+		environments = Collections
+				.unmodifiableMap(new LinkedHashMap<>(environments));
+		rulesets = List.copyOf(rulesets);
+		branchProtections = Map.copyOf(branchProtections);
 	}
 
 	public boolean pages() {
 		return pagesArgs != null;
 	}
 
-	public PagesArgs pagesArgs() {
-		return pagesArgs;
-	}
-
-	public String description() {
-		return description;
-	}
-
-	public String homepageUrl() {
-		return homepageUrl;
-	}
-
-	public RepositoryVisibility visibility() {
-		return visibility;
-	}
-
-	public List<String> topics() {
-		return topics;
-	}
-
-	public List<String> actionsSecrets() {
-		return actionsSecrets;
-	}
-
-	public Map<String, EnvironmentArgs> environments() {
-		return environments;
-	}
-
-	public List<RulesetArgs> rulesets() {
-		return rulesets;
-	}
-
-	public boolean immutableReleases() {
-		return immutableReleases;
-	}
-
-	public boolean allowRebaseMerge() {
-		return allowRebaseMerge;
-	}
-
-	public boolean allowUpdateBranch() {
-		return allowUpdateBranch;
-	}
-
-	public String defaultBranch() {
-		return defaultBranch;
-	}
-
-	public Map<String, BranchProtectionArgs> branchProtections() {
-		return branchProtections;
-	}
-
-	public boolean vulnerabilityAlerts() {
-		return vulnerabilityAlerts;
-	}
-
-	public boolean automatedSecurityFixes() {
-		return automatedSecurityFixes;
-	}
-
-	public boolean secretScanning() {
-		return secretScanning;
-	}
-
-	public boolean secretScanningPushProtection() {
-		return secretScanningPushProtection;
-	}
-
-	public boolean secretScanningValidityChecks() {
-		return secretScanningValidityChecks;
-	}
-
-	public boolean secretScanningNonProviderPatterns() {
-		return secretScanningNonProviderPatterns;
-	}
-
-	public boolean privateVulnerabilityReporting() {
-		return privateVulnerabilityReporting;
-	}
-
-	public boolean codeScanningDefaultSetup() {
-		return codeScanningDefaultSetup;
-	}
-
-	public boolean hasIssues() {
-		return hasIssues;
-	}
-
-	public boolean hasProjects() {
-		return hasProjects;
-	}
-
-	public boolean hasWiki() {
-		return hasWiki;
-	}
-
-	public boolean hasDiscussions() {
-		return hasDiscussions;
-	}
-
-	public boolean isTemplate() {
-		return isTemplate;
-	}
-
-	public boolean allowForking() {
-		return allowForking;
-	}
-
-	public boolean webCommitSignoffRequired() {
-		return webCommitSignoffRequired;
-	}
-
-	public boolean allowMergeCommit() {
-		return allowMergeCommit;
-	}
-
-	public boolean allowSquashMerge() {
-		return allowSquashMerge;
-	}
-
-	public boolean allowAutoMerge() {
-		return allowAutoMerge;
-	}
-
-	public boolean deleteBranchOnMerge() {
-		return deleteBranchOnMerge;
-	}
-
-	public SquashMergeCommitTitle squashMergeCommitTitle() {
-		return squashMergeCommitTitle;
-	}
-
-	public SquashMergeCommitMessage squashMergeCommitMessage() {
-		return squashMergeCommitMessage;
-	}
-
-	public MergeCommitTitle mergeCommitTitle() {
-		return mergeCommitTitle;
-	}
-
-	public MergeCommitMessage mergeCommitMessage() {
-		return mergeCommitMessage;
-	}
-
-	public WorkflowPermissions.DefaultWorkflowPermissions defaultWorkflowPermissions() {
-		return defaultWorkflowPermissions;
-	}
-
-	public boolean canApprovePullRequestReviews() {
-		return canApprovePullRequestReviews;
-	}
-
 	public Builder toBuilder() {
 		return new Builder(this);
-	}
-
-	@Override
-	public boolean equals(Object o) {
-		if (o == null || getClass() != o.getClass())
-			return false;
-		RepositoryArgs that = (RepositoryArgs) o;
-		return archived == that.archived
-				&& immutableReleases == that.immutableReleases
-				&& allowRebaseMerge == that.allowRebaseMerge
-				&& allowUpdateBranch == that.allowUpdateBranch
-				&& vulnerabilityAlerts == that.vulnerabilityAlerts
-				&& automatedSecurityFixes == that.automatedSecurityFixes
-				&& secretScanning == that.secretScanning
-				&& secretScanningPushProtection == that.secretScanningPushProtection
-				&& secretScanningValidityChecks == that.secretScanningValidityChecks
-				&& secretScanningNonProviderPatterns == that.secretScanningNonProviderPatterns
-				&& privateVulnerabilityReporting == that.privateVulnerabilityReporting
-				&& codeScanningDefaultSetup == that.codeScanningDefaultSetup
-				&& hasIssues == that.hasIssues
-				&& hasProjects == that.hasProjects && hasWiki == that.hasWiki
-				&& hasDiscussions == that.hasDiscussions
-				&& isTemplate == that.isTemplate
-				&& allowForking == that.allowForking
-				&& webCommitSignoffRequired == that.webCommitSignoffRequired
-				&& allowMergeCommit == that.allowMergeCommit
-				&& allowSquashMerge == that.allowSquashMerge
-				&& allowAutoMerge == that.allowAutoMerge
-				&& deleteBranchOnMerge == that.deleteBranchOnMerge
-				&& canApprovePullRequestReviews == that.canApprovePullRequestReviews
-				&& defaultWorkflowPermissions == that.defaultWorkflowPermissions
-				&& Objects.equals(owner, that.owner)
-				&& Objects.equals(name, that.name)
-				&& Objects.equals(pagesArgs, that.pagesArgs)
-				&& Objects.equals(description, that.description)
-				&& Objects.equals(homepageUrl, that.homepageUrl)
-				&& Objects.equals(visibility, that.visibility)
-				&& Objects.equals(topics, that.topics)
-				&& Objects.equals(actionsSecrets, that.actionsSecrets)
-				&& Objects.equals(environments, that.environments)
-				&& Objects.equals(rulesets, that.rulesets)
-				&& Objects.equals(defaultBranch, that.defaultBranch)
-				&& Objects.equals(branchProtections, that.branchProtections)
-				&& Objects.equals(
-						squashMergeCommitTitle,
-						that.squashMergeCommitTitle
-				)
-				&& Objects.equals(
-						squashMergeCommitMessage,
-						that.squashMergeCommitMessage
-				) && Objects.equals(mergeCommitTitle, that.mergeCommitTitle)
-				&& Objects.equals(mergeCommitMessage, that.mergeCommitMessage);
-	}
-
-	@Override
-	public int hashCode() {
-		return Objects.hash(
-				owner,
-				name,
-				archived,
-				pagesArgs,
-				description,
-				homepageUrl,
-				visibility,
-				topics,
-				actionsSecrets,
-				environments,
-				rulesets,
-				immutableReleases,
-				allowRebaseMerge,
-				allowUpdateBranch,
-				defaultBranch,
-				branchProtections,
-				vulnerabilityAlerts,
-				automatedSecurityFixes,
-				secretScanning,
-				secretScanningPushProtection,
-				secretScanningValidityChecks,
-				secretScanningNonProviderPatterns,
-				privateVulnerabilityReporting,
-				codeScanningDefaultSetup,
-				hasIssues,
-				hasProjects,
-				hasWiki,
-				hasDiscussions,
-				isTemplate,
-				allowForking,
-				webCommitSignoffRequired,
-				allowMergeCommit,
-				allowSquashMerge,
-				allowAutoMerge,
-				deleteBranchOnMerge,
-				squashMergeCommitTitle,
-				squashMergeCommitMessage,
-				mergeCommitTitle,
-				mergeCommitMessage,
-				defaultWorkflowPermissions,
-				canApprovePullRequestReviews
-		);
 	}
 
 	public static Builder create(String owner, String name) {
@@ -488,6 +188,11 @@ public final class RepositoryArgs {
 
 		public Builder archived() {
 			this.archived = true;
+			return this;
+		}
+
+		public Builder archived(boolean archived) {
+			this.archived = archived;
 			return this;
 		}
 
@@ -750,7 +455,49 @@ public final class RepositoryArgs {
 		}
 
 		public RepositoryArgs build() {
-			return new RepositoryArgs(this);
+			return new RepositoryArgs(
+					owner,
+					name,
+					archived,
+					pagesArgs,
+					description,
+					homepageUrl,
+					visibility,
+					topics,
+					actionsSecrets,
+					environments,
+					rulesets,
+					immutableReleases,
+					allowRebaseMerge,
+					allowUpdateBranch,
+					defaultBranch,
+					branchProtections,
+					vulnerabilityAlerts,
+					automatedSecurityFixes,
+					secretScanning,
+					secretScanningPushProtection,
+					secretScanningValidityChecks,
+					secretScanningNonProviderPatterns,
+					privateVulnerabilityReporting,
+					codeScanningDefaultSetup,
+					hasIssues,
+					hasProjects,
+					hasWiki,
+					hasDiscussions,
+					isTemplate,
+					allowForking,
+					webCommitSignoffRequired,
+					allowMergeCommit,
+					allowSquashMerge,
+					allowAutoMerge,
+					deleteBranchOnMerge,
+					squashMergeCommitTitle,
+					squashMergeCommitMessage,
+					mergeCommitTitle,
+					mergeCommitMessage,
+					defaultWorkflowPermissions,
+					canApprovePullRequestReviews
+			);
 		}
 
 	}

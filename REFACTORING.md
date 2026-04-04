@@ -247,7 +247,7 @@ Incremental migration, one category at a time. Each step:
 | Step | Category | Complexity | Status |
 |------|----------|-----------|--------|
 | 1 | Topics | Trivial | ✓ done |
-| 2 | Repo Settings | Low | 27 flat field comparisons. Stress-tests compare() helper at scale. |
+| 2 | Repo Settings | Low | ✓ done |
 | 3 | Workflow Permissions | Low | 2-3 fields. |
 | 4 | Pages | Low | Small group with create-or-update fix logic. |
 | 5 | Security micro-groups | Medium | 8 small groups. Proves the micro-group pattern. |
