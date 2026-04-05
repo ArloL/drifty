@@ -2406,8 +2406,16 @@ class OrgCheckerFixTest {
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		diffs = new ArrayList<>(diffs);
+		groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.forEach(diffs::add);
 		List<String> remaining = checker
 				.applyFixes("repo", state, desired, diffs);
+		remaining = checker.applyFixes("repo", remaining, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -2470,8 +2478,16 @@ class OrgCheckerFixTest {
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		diffs = new ArrayList<>(diffs);
+		groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.forEach(diffs::add);
 		List<String> remaining = checker
 				.applyFixes("repo", state, desired, diffs);
+		remaining = checker.applyFixes("repo", remaining, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -2533,8 +2549,16 @@ class OrgCheckerFixTest {
 		);
 
 		List<String> diffs = checker.computeDiffs(state, desired);
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		diffs = new ArrayList<>(diffs);
+		groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.forEach(diffs::add);
 		List<String> remaining = checker
 				.applyFixes("repo", state, desired, diffs);
+		remaining = checker.applyFixes("repo", remaining, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
