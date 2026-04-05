@@ -513,76 +513,6 @@ class OrgCheckerDiffTest {
 		);
 	}
 
-	// ─── Secrets / environments drift
-	// ──────────────────────────────────────────
-
-	@Test
-	void drift_missingActionSecret() {
-		var args = defaultArgs().toBuilder().actionsSecrets("PAT").build();
-		var state = goodPublicState();
-		assertThat(checker.computeDiffs(state, args)).anyMatch(
-				d -> d.contains("action_secrets") && d.contains("missing")
-						&& d.contains("PAT")
-		);
-	}
-
-	@Test
-	void drift_extraUnexpectedActionSecret() {
-		var state = new StateBuilder().actionSecretNames("UNEXPECTED_SECRET")
-				.build();
-		assertThat(checker.computeDiffs(state, defaultArgs())).anyMatch(
-				d -> d.contains("action_secrets") && d.contains("extra")
-						&& d.contains("UNEXPECTED_SECRET")
-		);
-	}
-
-	@Test
-	void drift_missingEnvironment() {
-		var args = defaultArgs().toBuilder()
-				.environment("production", env -> env.secrets("TF_TOKEN"))
-				.build();
-		var state = goodPublicState();
-		assertThat(checker.computeDiffs(state, args)).anyMatch(
-				d -> d.contains("environments") && d.contains("missing")
-						&& d.contains("production")
-		);
-	}
-
-	@Test
-	void drift_missingEnvironmentSecret() {
-		var args = defaultArgs().toBuilder()
-				.environment(
-						"production",
-						env -> env.secrets("TF_GITHUB_TOKEN")
-				)
-				.build();
-		var state = new StateBuilder()
-				.environmentSecretNames(Map.of("production", List.of()))
-				.build();
-		assertThat(checker.computeDiffs(state, args)).anyMatch(
-				d -> d.contains("environment.production.secrets")
-						&& d.contains("missing")
-						&& d.contains("TF_GITHUB_TOKEN")
-		);
-	}
-
-	@Test
-	void drift_extraEnvironmentSecret() {
-		var args = defaultArgs().toBuilder()
-				.environment(
-						"production",
-						env -> env.secrets("TF_GITHUB_TOKEN")
-				)
-				.build();
-		var state = new StateBuilder().environmentSecretNames(
-				Map.of("production", List.of("TF_GITHUB_TOKEN", "EXTRA_SECRET"))
-		).build();
-		assertThat(checker.computeDiffs(state, args)).anyMatch(
-				d -> d.contains("environment.production.secrets")
-						&& d.contains("extra") && d.contains("EXTRA_SECRET")
-		);
-	}
-
 	// ─── Workflow permissions drift (tested via groupDrifts in
 	// OrgCheckerDiffTest)
 	// ──────────────────────────────────────────
@@ -650,13 +580,6 @@ class OrgCheckerDiffTest {
 
 	// ─── Pages
 	// ──────────────────────────────────────────────────────────
-
-	@Test
-	void pages_expectsGithubPagesEnvironment() {
-		var args = defaultArgs().toBuilder().pages().build();
-		List<String> diffs = checker.computeDiffs(goodPublicState(), args);
-		assertThat(diffs).contains("environments missing: [github-pages]");
-	}
 
 	@Test
 	void pages_noDrift_whenEnvironmentAndPagesPresent() {

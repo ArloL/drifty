@@ -252,7 +252,7 @@ Incremental migration, one category at a time. Each step:
 | 4 | Pages | Low | ✓ done |
 | 5 | Security micro-groups | Medium | ✓ done |
 | 6 | Environment Config | Medium | ✓ done |
-| 7 | Secrets | Medium | pending |
+| 7 | Secrets | Medium | ✓ done |
 | 8 | Branch Protection | High | pending |
 | 9 | Rulesets | High | pending |
 

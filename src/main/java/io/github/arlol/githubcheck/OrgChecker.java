@@ -57,10 +57,12 @@ import io.github.arlol.githubcheck.config.RulePatternArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
 import io.github.arlol.githubcheck.drift.AutomatedSecurityFixesDriftGroup;
+import io.github.arlol.githubcheck.drift.ActionSecretsDriftGroup;
 import io.github.arlol.githubcheck.drift.CodeScanningDefaultSetupDriftGroup;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
 import io.github.arlol.githubcheck.drift.EnvironmentConfigDriftGroup;
+import io.github.arlol.githubcheck.drift.EnvironmentSecretsDriftGroup;
 import io.github.arlol.githubcheck.drift.ImmutableReleasesDriftGroup;
 import io.github.arlol.githubcheck.drift.PagesDriftGroup;
 import io.github.arlol.githubcheck.drift.PrivateVulnerabilityReportingDriftGroup;
@@ -388,6 +390,28 @@ public class OrgChecker {
 				)
 		);
 
+		// Secrets
+		groups.add(
+				new ActionSecretsDriftGroup(
+						desired,
+						new HashSet<>(actual.actionSecretNames()),
+						githubSecrets,
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
+				new EnvironmentSecretsDriftGroup(
+						desired,
+						actual.environmentSecretNames(),
+						githubSecrets,
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+
 		// Security micro-groups
 		groups.add(
 				new VulnerabilityAlertsDriftGroup(
@@ -510,7 +534,6 @@ public class OrgChecker {
 
 		checkBranchProtection(diffs, actual, desired);
 		checkRulesets(diffs, actual, desired);
-		checkSecrets(diffs, actual, desired);
 
 		return diffs;
 	}
@@ -1013,43 +1036,6 @@ public class OrgChecker {
 		}
 	}
 
-	private void checkSecrets(
-			List<String> diffs,
-			RepositoryState actual,
-			RepositoryArgs desired
-	) {
-		checkSets(
-				diffs,
-				"action_secrets",
-				new HashSet<>(desired.actionsSecrets()),
-				new HashSet<>(actual.actionSecretNames())
-		);
-
-		// Environments: check names
-		Set<String> wantEnvs = new LinkedHashSet<>(
-				desired.environments().keySet()
-		);
-		if (desired.pages()) {
-			wantEnvs.add("github-pages");
-		}
-		Set<String> gotEnvs = actual.environmentSecretNames().keySet();
-		checkSets(diffs, "environments", wantEnvs, gotEnvs);
-
-		// Environment secrets: for each desired env that exists, check secrets
-		for (var entry : desired.environments().entrySet()) {
-			String envName = entry.getKey();
-			List<String> wantSecrets = entry.getValue().secrets();
-			List<String> gotSecrets = actual.environmentSecretNames()
-					.getOrDefault(envName, List.of());
-			checkSets(
-					diffs,
-					"environment." + envName + ".secrets",
-					new HashSet<>(wantSecrets),
-					new HashSet<>(gotSecrets)
-			);
-		}
-	}
-
 	// ─── Fix
 	// ──────────────────────────────────────────────────────────────
 
@@ -1206,107 +1192,6 @@ public class OrgChecker {
 			remaining.removeAll(rulesetDiffs);
 		}
 
-		// Action secrets and environment secrets — fix missing ones if values
-		// are available in the githubSecrets map
-		List<String> secretDiffs = new ArrayList<>();
-		checkSecrets(secretDiffs, actual, desired);
-		if (!secretDiffs.isEmpty()) {
-			// --- Action secrets ---
-			Set<String> missingActionSecrets = new HashSet<>(
-					desired.actionsSecrets()
-			);
-			missingActionSecrets
-					.removeAll(new HashSet<>(actual.actionSecretNames()));
-			if (!missingActionSecrets.isEmpty()) {
-				boolean allFixed = true;
-				SecretPublicKeyResponse publicKey = null;
-				for (String secretName : missingActionSecrets) {
-					String mapKey = name + "-" + secretName;
-					String value = githubSecrets.get(mapKey);
-					if (value == null) {
-						allFixed = false;
-						continue;
-					}
-					if (publicKey == null) {
-						publicKey = client.getActionSecretPublicKey(org, name);
-					}
-					String encrypted = encryptSecret(publicKey.key(), value);
-					client.createOrUpdateActionSecret(
-							org,
-							name,
-							secretName,
-							new SecretRequest(encrypted, publicKey.keyId())
-					);
-					System.out.printf(
-							"[FIXED]   %s: action secret %s created%n",
-							name,
-							secretName
-					);
-				}
-				if (allFixed) {
-					secretDiffs.stream()
-							.filter(
-									d -> d.startsWith("action_secrets missing:")
-							)
-							.forEach(remaining::remove);
-				}
-			}
-
-			// --- Environment secrets ---
-			for (var entry : desired.environments().entrySet()) {
-				String envName = entry.getKey();
-				List<String> wantSecrets = entry.getValue().secrets();
-				Set<String> missingEnvSecrets = new HashSet<>(wantSecrets);
-				missingEnvSecrets.removeAll(
-						new HashSet<>(
-								actual.environmentSecretNames()
-										.getOrDefault(envName, List.of())
-						)
-				);
-				if (missingEnvSecrets.isEmpty()) {
-					continue;
-				}
-				boolean allFixed = true;
-				SecretPublicKeyResponse publicKey = null;
-				for (String secretName : missingEnvSecrets) {
-					String mapKey = name + "-" + envName + "-" + secretName;
-					String value = githubSecrets.get(mapKey);
-					if (value == null) {
-						allFixed = false;
-						continue;
-					}
-					if (publicKey == null) {
-						publicKey = client.getEnvironmentSecretPublicKey(
-								org,
-								name,
-								envName
-						);
-					}
-					String encrypted = encryptSecret(publicKey.key(), value);
-					client.createOrUpdateEnvironmentSecret(
-							org,
-							name,
-							envName,
-							secretName,
-							new SecretRequest(encrypted, publicKey.keyId())
-					);
-					System.out.printf(
-							"[FIXED]   %s: environment.%s secret %s created%n",
-							name,
-							envName,
-							secretName
-					);
-				}
-				if (allFixed) {
-					String prefix = "environment." + envName
-							+ ".secrets missing:";
-					secretDiffs.stream()
-							.filter(d -> d.startsWith(prefix))
-							.forEach(remaining::remove);
-				}
-			}
-		}
-
 		return remaining;
 	}
 
@@ -1317,17 +1202,14 @@ public class OrgChecker {
 	) {
 		List<String> remaining = new ArrayList<>(diffs);
 		for (var entry : groupDrifts.entrySet()) {
-			var msgs = entry.getValue()
-					.stream()
-					.map(DriftItem::message)
-					.toList();
-			entry.getKey().fix();
+			var group = entry.getKey();
+			var items = entry.getValue();
+			if (items.isEmpty()) {
+				continue;
+			}
+			var msgs = items.stream().map(DriftItem::message).toList();
+			group.fix();
 			remaining.removeAll(msgs);
-			System.out.printf(
-					"[FIXED]   %s: %s updated%n",
-					name,
-					entry.getKey().name()
-			);
 		}
 		return remaining;
 	}
