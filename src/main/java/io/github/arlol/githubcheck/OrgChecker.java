@@ -56,11 +56,20 @@ import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulePatternArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
+import io.github.arlol.githubcheck.drift.AutomatedSecurityFixesDriftGroup;
+import io.github.arlol.githubcheck.drift.CodeScanningDefaultSetupDriftGroup;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
+import io.github.arlol.githubcheck.drift.ImmutableReleasesDriftGroup;
 import io.github.arlol.githubcheck.drift.PagesDriftGroup;
+import io.github.arlol.githubcheck.drift.PrivateVulnerabilityReportingDriftGroup;
 import io.github.arlol.githubcheck.drift.RepoSettingsDriftGroup;
+import io.github.arlol.githubcheck.drift.SecretScanningDriftGroup;
+import io.github.arlol.githubcheck.drift.SecretScanningNonProviderPatternsDriftGroup;
+import io.github.arlol.githubcheck.drift.SecretScanningPushProtectionDriftGroup;
+import io.github.arlol.githubcheck.drift.SecretScanningValidityChecksDriftGroup;
 import io.github.arlol.githubcheck.drift.TopicsDriftGroup;
+import io.github.arlol.githubcheck.drift.VulnerabilityAlertsDriftGroup;
 import io.github.arlol.githubcheck.drift.WorkflowPermissionsDriftGroup;
 
 public class OrgChecker {
@@ -204,6 +213,10 @@ public class OrgChecker {
 		boolean immutableReleases = false;
 		boolean privateVulnerabilityReporting = false;
 		boolean codeScanningDefaultSetup = false;
+		boolean secretScanning = false;
+		boolean secretScanningPushProtection = false;
+		boolean secretScanningNonProviderPatterns = false;
+		boolean secretScanningValidityChecks = false;
 		if (!archived) {
 			vulnAlerts = client.getVulnerabilityAlerts(org, name);
 			automatedSecurityFixes = client
@@ -216,6 +229,28 @@ public class OrgChecker {
 					.getPrivateVulnerabilityReporting(org, name);
 			codeScanningDefaultSetup = client
 					.getCodeScanningDefaultSetup(org, name);
+			var sa = details.securityAndAnalysis();
+			if (sa != null) {
+				if (sa.secretScanning() != null && sa.secretScanning()
+						.status() == SecurityAndAnalysis.StatusObject.Status.ENABLED) {
+					secretScanning = true;
+				}
+				if (sa.secretScanningPushProtection() != null && sa
+						.secretScanningPushProtection()
+						.status() == SecurityAndAnalysis.StatusObject.Status.ENABLED) {
+					secretScanningPushProtection = true;
+				}
+				if (sa.secretScanningNonProviderPatterns() != null && sa
+						.secretScanningNonProviderPatterns()
+						.status() == SecurityAndAnalysis.StatusObject.Status.ENABLED) {
+					secretScanningNonProviderPatterns = true;
+				}
+				if (sa.secretScanningValidityChecks() != null && sa
+						.secretScanningValidityChecks()
+						.status() == SecurityAndAnalysis.StatusObject.Status.ENABLED) {
+					secretScanningValidityChecks = true;
+				}
+			}
 		}
 
 		Map<String, BranchProtectionResponse> branchProtections = new HashMap<>();
@@ -272,7 +307,11 @@ public class OrgChecker {
 				envDetails,
 				immutableReleases,
 				privateVulnerabilityReporting,
-				codeScanningDefaultSetup
+				codeScanningDefaultSetup,
+				secretScanning,
+				secretScanningPushProtection,
+				secretScanningNonProviderPatterns,
+				secretScanningValidityChecks
 		);
 	}
 
@@ -336,6 +375,110 @@ public class OrgChecker {
 						actual.summary().name()
 				)
 		);
+
+		// Security micro-groups
+		groups.add(
+				new VulnerabilityAlertsDriftGroup(
+						desired,
+						actual.vulnerabilityAlerts(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
+				new AutomatedSecurityFixesDriftGroup(
+						desired,
+						actual.automatedSecurityFixes(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
+				new ImmutableReleasesDriftGroup(
+						desired,
+						actual.immutableReleases(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
+				new SecretScanningDriftGroup(
+						desired,
+						actual.details().securityAndAnalysis() != null
+								&& actual.details()
+										.securityAndAnalysis()
+										.secretScanning() != null
+								&& SecurityAndAnalysis.StatusObject.Status.ENABLED
+										.equals(
+												actual.details()
+														.securityAndAnalysis()
+														.secretScanning()
+														.status()
+										),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
+				new SecretScanningPushProtectionDriftGroup(
+						desired,
+						actual.details().securityAndAnalysis() != null
+								&& actual.details()
+										.securityAndAnalysis()
+										.secretScanningPushProtection() != null
+								&& SecurityAndAnalysis.StatusObject.Status.ENABLED
+										.equals(
+												actual.details()
+														.securityAndAnalysis()
+														.secretScanningPushProtection()
+														.status()
+										),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
+				new PrivateVulnerabilityReportingDriftGroup(
+						desired,
+						actual.privateVulnerabilityReporting(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
+				new CodeScanningDefaultSetupDriftGroup(
+						desired,
+						actual.codeScanningDefaultSetup(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
+				new SecretScanningNonProviderPatternsDriftGroup(
+						desired,
+						actual.secretScanningNonProviderPatterns(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
+				new SecretScanningValidityChecksDriftGroup(
+						desired,
+						actual.secretScanningValidityChecks(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+
 		return groups;
 	}
 
@@ -353,93 +496,12 @@ public class OrgChecker {
 			}
 		}
 
-		checkSecuritySettings(diffs, actual, desired);
 		checkBranchProtection(diffs, actual, desired);
 		checkRulesets(diffs, actual, desired);
 		checkSecrets(diffs, actual, desired);
 		checkEnvironmentConfig(diffs, actual, desired);
 
 		return diffs;
-	}
-
-	private void checkSecuritySettings(
-			List<String> diffs,
-			RepositoryState actual,
-			RepositoryArgs desired
-	) {
-		check(
-				diffs,
-				"vulnerability_alerts",
-				desired.vulnerabilityAlerts(),
-				actual.vulnerabilityAlerts()
-		);
-		check(
-				diffs,
-				"automated_security_fixes",
-				desired.automatedSecurityFixes(),
-				actual.automatedSecurityFixes()
-		);
-		check(
-				diffs,
-				"immutable_releases",
-				desired.immutableReleases(),
-				actual.immutableReleases()
-		);
-		var sa = actual.details().securityAndAnalysis();
-		if (sa != null) {
-			boolean secretScanning = sa.secretScanning() != null
-					&& SecurityAndAnalysis.StatusObject.Status.ENABLED
-							.equals(sa.secretScanning().status());
-			boolean secretScanningPush = sa
-					.secretScanningPushProtection() != null
-					&& SecurityAndAnalysis.StatusObject.Status.ENABLED
-							.equals(sa.secretScanningPushProtection().status());
-			check(
-					diffs,
-					"secret_scanning",
-					desired.secretScanning(),
-					secretScanning
-			);
-			check(
-					diffs,
-					"secret_scanning_push_protection",
-					desired.secretScanningPushProtection(),
-					secretScanningPush
-			);
-			boolean secretScanningValidityChecks = sa
-					.secretScanningValidityChecks() != null
-					&& SecurityAndAnalysis.StatusObject.Status.ENABLED
-							.equals(sa.secretScanningValidityChecks().status());
-			boolean secretScanningNonProviderPatterns = sa
-					.secretScanningNonProviderPatterns() != null
-					&& SecurityAndAnalysis.StatusObject.Status.ENABLED.equals(
-							sa.secretScanningNonProviderPatterns().status()
-					);
-			check(
-					diffs,
-					"secret_scanning_validity_checks",
-					desired.secretScanningValidityChecks(),
-					secretScanningValidityChecks
-			);
-			check(
-					diffs,
-					"secret_scanning_non_provider_patterns",
-					desired.secretScanningNonProviderPatterns(),
-					secretScanningNonProviderPatterns
-			);
-		}
-		check(
-				diffs,
-				"private_vulnerability_reporting",
-				desired.privateVulnerabilityReporting(),
-				actual.privateVulnerabilityReporting()
-		);
-		check(
-				diffs,
-				"code_scanning_default_setup",
-				desired.codeScanningDefaultSetup(),
-				actual.codeScanningDefaultSetup()
-		);
 	}
 
 	private void checkBranchProtection(
@@ -1055,156 +1117,6 @@ public class OrgChecker {
 				System.out.printf("[FIXED]   %s: archived%n", name);
 			}
 			return remaining;
-		}
-
-		// Security settings group (fixable)
-		List<String> securityDiffs = new ArrayList<>();
-		checkSecuritySettings(securityDiffs, actual, desired);
-		if (!securityDiffs.isEmpty()) {
-			if (securityDiffs.stream()
-					.anyMatch(d -> d.startsWith("vulnerability_alerts"))) {
-				if (desired.vulnerabilityAlerts()) {
-					client.enableVulnerabilityAlerts(org, name);
-					System.out.printf(
-							"[FIXED]   %s: vulnerability_alerts enabled%n",
-							name
-					);
-				} else {
-					client.disableVulnerabilityAlerts(org, name);
-					System.out.printf(
-							"[FIXED]   %s: vulnerability_alerts disabled%n",
-							name
-					);
-				}
-			}
-			if (securityDiffs.stream()
-					.anyMatch(d -> d.startsWith("automated_security_fixes"))) {
-				if (desired.automatedSecurityFixes()) {
-					client.enableAutomatedSecurityFixes(org, name);
-					System.out.printf(
-							"[FIXED]   %s: automated_security_fixes enabled%n",
-							name
-					);
-				} else {
-					client.disableAutomatedSecurityFixes(org, name);
-					System.out.printf(
-							"[FIXED]   %s: automated_security_fixes disabled%n",
-							name
-					);
-				}
-			}
-			if (securityDiffs.stream()
-					.anyMatch(
-							d -> d.contains("immutable_releases")
-									&& d.contains("want=true")
-					)) {
-				client.enableImmutableReleases(org, name);
-				System.out.printf(
-						"[FIXED]   %s: immutable_releases enabled%n",
-						name
-				);
-			}
-			if (securityDiffs.stream()
-					.anyMatch(
-							d -> d.contains("immutable_releases")
-									&& d.contains("want=false")
-					)) {
-				client.disableImmutableReleases(org, name);
-				System.out.printf(
-						"[FIXED]   %s: immutable_releases disabled%n",
-						name
-				);
-			}
-			boolean ssDrifted = securityDiffs.stream()
-					.anyMatch(d -> d.startsWith("secret_scanning:"));
-			boolean sspDrifted = securityDiffs.stream()
-					.anyMatch(
-							d -> d.startsWith(
-									"secret_scanning_push_protection:"
-							)
-					);
-			boolean ssvDrifted = securityDiffs.stream()
-					.anyMatch(
-							d -> d.startsWith(
-									"secret_scanning_validity_checks:"
-							)
-					);
-			boolean ssnpDrifted = securityDiffs.stream()
-					.anyMatch(
-							d -> d.startsWith(
-									"secret_scanning_non_provider_patterns:"
-							)
-					);
-			if (ssDrifted || sspDrifted || ssvDrifted || ssnpDrifted) {
-				var saBuilder = SecurityAndAnalysis.builder();
-				if (ssDrifted) {
-					saBuilder.secretScanning(desired.secretScanning());
-				}
-				if (sspDrifted) {
-					saBuilder.secretScanningPushProtection(
-							desired.secretScanningPushProtection()
-					);
-				}
-				if (ssvDrifted) {
-					saBuilder.secretScanningValidityChecks(
-							desired.secretScanningValidityChecks()
-					);
-				}
-				if (ssnpDrifted) {
-					saBuilder.secretScanningNonProviderPatterns(
-							desired.secretScanningNonProviderPatterns()
-					);
-				}
-				var sa = saBuilder.build();
-				client.updateRepository(
-						org,
-						name,
-						RepositoryUpdateRequest.builder()
-								.securityAndAnalysis(sa)
-								.build()
-				);
-				System.out.printf(
-						"[FIXED]   %s: secret_scanning settings updated%n",
-						name
-				);
-			}
-			if (securityDiffs.stream()
-					.anyMatch(
-							d -> d.startsWith("private_vulnerability_reporting")
-					)) {
-				if (desired.privateVulnerabilityReporting()) {
-					client.enablePrivateVulnerabilityReporting(org, name);
-					System.out.printf(
-							"[FIXED]   %s: private_vulnerability_reporting enabled%n",
-							name
-					);
-				} else {
-					client.disablePrivateVulnerabilityReporting(org, name);
-					System.out.printf(
-							"[FIXED]   %s: private_vulnerability_reporting disabled%n",
-							name
-					);
-				}
-			}
-			if (securityDiffs.stream()
-					.anyMatch(
-							d -> d.startsWith("code_scanning_default_setup")
-					)) {
-				if (desired.codeScanningDefaultSetup()) {
-					client.enableCodeScanningDefaultSetup(org, name);
-					System.out.printf(
-							"[FIXED]   %s: code_scanning_default_setup enabled%n",
-							name
-					);
-				} else {
-					client.disableCodeScanningDefaultSetup(org, name);
-					System.out.printf(
-							"[FIXED]   %s: code_scanning_default_setup disabled%n",
-							name
-					);
-				}
-			}
-			remaining.removeAll(securityDiffs);
 		}
 
 		// Branch protection (fixable for public repos)

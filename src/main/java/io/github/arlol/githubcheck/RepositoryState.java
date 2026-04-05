@@ -27,7 +27,11 @@ public record RepositoryState(
 		Map<String, EnvironmentDetailsResponse> environmentDetails,
 		boolean immutableReleases,
 		boolean privateVulnerabilityReporting,
-		boolean codeScanningDefaultSetup
+		boolean codeScanningDefaultSetup,
+		boolean secretScanning,
+		boolean secretScanningPushProtection,
+		boolean secretScanningNonProviderPatterns,
+		boolean secretScanningValidityChecks
 ) {
 
 	public RepositoryState {
@@ -36,6 +40,46 @@ public record RepositoryState(
 		environmentSecretNames = Map.copyOf(environmentSecretNames);
 		rulesets = List.copyOf(rulesets);
 		environmentDetails = Map.copyOf(environmentDetails);
+	}
+
+	public RepositoryState(
+			String name,
+			RepositorySummaryResponse summary,
+			RepositoryDetailsResponse details,
+			boolean vulnerabilityAlerts,
+			boolean automatedSecurityFixes,
+			Map<String, BranchProtectionResponse> branchProtections,
+			List<String> actionSecretNames,
+			Map<String, List<String>> environmentSecretNames,
+			WorkflowPermissions workflowPermissions,
+			List<RulesetDetailsResponse> rulesets,
+			Optional<PagesResponse> pages,
+			Map<String, EnvironmentDetailsResponse> environmentDetails,
+			boolean immutableReleases,
+			boolean privateVulnerabilityReporting,
+			boolean codeScanningDefaultSetup
+	) {
+		this(
+				name,
+				summary,
+				details,
+				vulnerabilityAlerts,
+				automatedSecurityFixes,
+				branchProtections,
+				actionSecretNames,
+				environmentSecretNames,
+				workflowPermissions,
+				rulesets,
+				pages,
+				environmentDetails,
+				immutableReleases,
+				privateVulnerabilityReporting,
+				codeScanningDefaultSetup,
+				false,
+				false,
+				false,
+				false
+		);
 	}
 
 }

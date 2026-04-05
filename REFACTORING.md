@@ -250,7 +250,7 @@ Incremental migration, one category at a time. Each step:
 | 2 | Repo Settings | Low | ✓ done |
 | 3 | Workflow Permissions | Low | ✓ done |
 | 4 | Pages | Low | ✓ done |
-| 5 | Security micro-groups | Medium | pending (8 small groups) |
+| 5 | Security micro-groups | Medium | ✓ done |
 | 6 | Environment Config | Medium | pending |
 | 7 | Secrets | Medium | pending |
 | 8 | Branch Protection | High | pending |
