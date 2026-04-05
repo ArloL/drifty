@@ -60,6 +60,7 @@ import io.github.arlol.githubcheck.drift.AutomatedSecurityFixesDriftGroup;
 import io.github.arlol.githubcheck.drift.CodeScanningDefaultSetupDriftGroup;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
+import io.github.arlol.githubcheck.drift.EnvironmentConfigDriftGroup;
 import io.github.arlol.githubcheck.drift.ImmutableReleasesDriftGroup;
 import io.github.arlol.githubcheck.drift.PagesDriftGroup;
 import io.github.arlol.githubcheck.drift.PrivateVulnerabilityReportingDriftGroup;
@@ -376,6 +377,17 @@ public class OrgChecker {
 				)
 		);
 
+		// Environment config
+		groups.add(
+				new EnvironmentConfigDriftGroup(
+						desired,
+						actual.environmentDetails(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+
 		// Security micro-groups
 		groups.add(
 				new VulnerabilityAlertsDriftGroup(
@@ -499,7 +511,6 @@ public class OrgChecker {
 		checkBranchProtection(diffs, actual, desired);
 		checkRulesets(diffs, actual, desired);
 		checkSecrets(diffs, actual, desired);
-		checkEnvironmentConfig(diffs, actual, desired);
 
 		return diffs;
 	}
@@ -1039,63 +1050,6 @@ public class OrgChecker {
 		}
 	}
 
-	private void checkEnvironmentConfig(
-			List<String> diffs,
-			RepositoryState actual,
-			RepositoryArgs desired
-	) {
-		for (var entry : desired.environments().entrySet()) {
-			String envName = entry.getKey();
-			EnvironmentArgs wantEnv = entry.getValue();
-			EnvironmentDetailsResponse actualEnv = actual.environmentDetails()
-					.get(envName);
-			if (actualEnv == null) {
-				continue; // already flagged as missing by checkSecrets
-			}
-
-			if (wantEnv.waitTimer() != null) {
-				check(
-						diffs,
-						"environment." + envName + ".wait_timer",
-						wantEnv.waitTimer(),
-						actualEnv.getWaitTimer()
-				);
-			}
-			if (wantEnv.deploymentBranchPolicy() != null) {
-				var want = wantEnv.deploymentBranchPolicy();
-				var got = actualEnv.deploymentBranchPolicy();
-				boolean gotProtected = got != null && got.protectedBranches();
-				boolean gotCustom = got != null && got.customBranchPolicies();
-				check(
-						diffs,
-						"environment." + envName
-								+ ".deployment_branch_policy.protected_branches",
-						want.protectedBranches(),
-						gotProtected
-				);
-				check(
-						diffs,
-						"environment." + envName
-								+ ".deployment_branch_policy.custom_branch_policies",
-						want.customBranchPolicies(),
-						gotCustom
-				);
-			}
-			if (!wantEnv.reviewers().isEmpty()) {
-				Set<String> want = wantEnv.reviewers()
-						.stream()
-						.map(r -> r.type().name() + ":" + r.id())
-						.collect(Collectors.toSet());
-				checkSets(
-						diffs,
-						"environment." + envName + ".reviewers",
-						want,
-						actualEnv.getReviewerIds()
-				);
-			}
-		}
-	}
-
 	// ─── Fix
 	// ──────────────────────────────────────────────────────────────
 
@@ -1252,32 +1206,6 @@ public class OrgChecker {
 			remaining.removeAll(rulesetDiffs);
 		}
 
-		// Environment config (wait_timer, deployment_branch_policy, reviewers)
-		// — fixable
-		List<String> envConfigDiffs = new ArrayList<>();
-		checkEnvironmentConfig(envConfigDiffs, actual, desired);
-		if (!envConfigDiffs.isEmpty()) {
-			for (var entry : desired.environments().entrySet()) {
-				String envName = entry.getKey();
-				String prefix = "environment." + envName + ".";
-				boolean hasDrift = envConfigDiffs.stream()
-						.anyMatch(d -> d.startsWith(prefix));
-				if (!hasDrift) {
-					continue;
-				}
-				EnvironmentUpdateRequest payload = buildEnvironmentUpdateRequest(
-						entry.getValue()
-				);
-				client.updateEnvironment(org, name, envName, payload);
-				System.out.printf(
-						"[FIXED]   %s: environment.%s updated%n",
-						name,
-						envName
-				);
-			}
-			remaining.removeAll(envConfigDiffs);
-		}
-
 		// Action secrets and environment secrets — fix missing ones if values
 		// are available in the githubSecrets map
 		List<String> secretDiffs = new ArrayList<>();
@@ -1402,32 +1330,6 @@ public class OrgChecker {
 			);
 		}
 		return remaining;
-	}
-
-	private static EnvironmentUpdateRequest buildEnvironmentUpdateRequest(
-			EnvironmentArgs args
-	) {
-		List<EnvironmentUpdateRequest.Reviewer> reviewers = args.reviewers()
-				.stream()
-				.map(
-						r -> new EnvironmentUpdateRequest.Reviewer(
-								r.type(),
-								r.id()
-						)
-				)
-				.toList();
-		EnvironmentUpdateRequest.DeploymentBranchPolicy dbp = null;
-		if (args.deploymentBranchPolicy() != null) {
-			dbp = new EnvironmentUpdateRequest.DeploymentBranchPolicy(
-					args.deploymentBranchPolicy().protectedBranches(),
-					args.deploymentBranchPolicy().customBranchPolicies()
-			);
-		}
-		return new EnvironmentUpdateRequest(
-				args.waitTimer(),
-				reviewers.isEmpty() ? null : reviewers,
-				dbp
-		);
 	}
 
 	private static RulesetRequest buildRulesetRequest(RulesetArgs args) {
