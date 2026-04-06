@@ -66,7 +66,7 @@ drifty --fix    # Apply all fixable changes
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DRIFTY_GITHUB_TOKEN` | Yes | GitHub personal access token with repo, admin:org, workflow scopes |
-| `GITHUB_SECRETS` | No | JSON map of secret values (required for secret creation via `--fix`) |
+| `DRIFTY_GITHUB_SECRETS` | No | JSON map of secret values (required for secret creation via `--fix`) |
 
 ### Exit Codes
 
@@ -248,11 +248,11 @@ defaults.toBuilder().name("my-repo").secrets("PAT", "DOCKER_HUB_ACCESS_TOKEN").b
 
 **Check:** Verifies that the declared secret names exist on the repo.
 
-**Fix:** `--fix` always creates/updates secrets when `GITHUB_SECRETS` provides a value (no staleness detection). If the value is not provided, reports the drift as unfixable.
+**Fix:** `--fix` always creates/updates secrets when `DRIFTY_GITHUB_SECRETS` provides a value (no staleness detection). If the value is not provided, reports the drift as unfixable.
 
 #### Secret Value Mapping
 
-The `GITHUB_SECRETS` env var contains a JSON map. Keys are formed by concatenating repo name, optional environment name, and secret name with hyphens:
+The `DRIFTY_GITHUB_SECRETS` env var contains a JSON map. Keys are formed by concatenating repo name, optional environment name, and secret name with hyphens:
 
 ```json
 {
@@ -342,5 +342,5 @@ These are explicitly out of scope for the initial version but acknowledged as po
 - **Lightweight state file** — track secret `updated_at` timestamps to skip unchanged secrets on subsequent runs.
 - **Collaborator/team access management** — out of scope for now, may be added later.
 - **Custom properties** — manage GitHub custom property values per repo (org-level definitions assumed to exist).
-- **Webhooks** — full lifecycle management of repo webhooks (URL, events, content type, secrets via `GITHUB_SECRETS`).
+- **Webhooks** — full lifecycle management of repo webhooks (URL, events, content type, secrets via `DRIFTY_GITHUB_SECRETS`).
 - **Repository lifecycle** — create/delete/transfer repos is out of scope. drifty only manages settings of existing repos plus archival.

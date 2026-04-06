@@ -35,7 +35,7 @@ public class GitHubCheck {
 		boolean fix = List.of(args).contains("--fix");
 
 		Map<String, String> githubSecrets = Map.of();
-		String githubSecretsJson = System.getenv("GITHUB_SECRETS");
+		String githubSecretsJson = System.getenv("DRIFTY_GITHUB_SECRETS");
 		if (githubSecretsJson != null && !githubSecretsJson.isBlank()) {
 			githubSecrets = new ObjectMapper()
 					.configure(

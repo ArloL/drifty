@@ -34,7 +34,7 @@ Pages endpoint is queried and the github-pages environment is auto-created, but 
 
 ## ~~7. Secret Creation via `--fix`~~ DONE
 
-Implemented: `applyFixes()` now fixes missing action secrets and environment secrets. `GITHUB_SECRETS` env var is parsed as a JSON map in `GitHubCheck.java` and passed to `OrgChecker`. Key format: `<repo>-<secret>` for action secrets, `<repo>-<env>-<secret>` for environment secrets. `GitHubClient` has `getActionSecretPublicKey()`, `createOrUpdateActionSecret()`, `getEnvironmentSecretPublicKey()`, and `createOrUpdateEnvironmentSecret()`. Secrets are encrypted using libsodium sealed-box via `com.goterl:lazysodium-java` before upload. If a secret's value is missing from the map, it stays in the remaining diffs as unfixable. New records `SecretPublicKeyResponse` and `SecretRequest` model the API payloads.
+Implemented: `applyFixes()` now fixes missing action secrets and environment secrets. `DRIFTY_GITHUB_SECRETS` env var is parsed as a JSON map in `GitHubCheck.java` and passed to `OrgChecker`. Key format: `<repo>-<secret>` for action secrets, `<repo>-<env>-<secret>` for environment secrets. `GitHubClient` has `getActionSecretPublicKey()`, `createOrUpdateActionSecret()`, `getEnvironmentSecretPublicKey()`, and `createOrUpdateEnvironmentSecret()`. Secrets are encrypted using libsodium sealed-box via `com.goterl:lazysodium-java` before upload. If a secret's value is missing from the map, it stays in the remaining diffs as unfixable. New records `SecretPublicKeyResponse` and `SecretRequest` model the API payloads.
 
 ## ~~8. Environment Fixes (reviewers, wait timer, deployment branches)~~ DONE
 
