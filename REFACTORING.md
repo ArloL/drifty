@@ -180,9 +180,10 @@ deletes the entity.
 
 ```
 src/main/java/io/github/arlol/githubcheck/drift/
-├── DriftItem.java                          # sealed interface + 4 record variants ✓
-├── DriftGroup.java                         # abstract base class with helpers ✓
-├── TopicsDriftGroup.java                   # ✓ migrated
+├── DriftItem.java                          # sealed interface + 4 record variants
+├── DriftGroup.java                         # abstract base class with helpers
+├── ArchivedDriftGroup.java
+├── TopicsDriftGroup.java
 ├── RepoSettingsDriftGroup.java
 ├── WorkflowPermissionsDriftGroup.java
 ├── PagesDriftGroup.java
@@ -206,8 +207,7 @@ collect drift items, report, and optionally fix.
 
 ## Orchestrator Flow (OrgChecker)
 
-During migration, `OrgChecker` runs both the legacy path and the group path
-in parallel. The current wiring in `checkOne`:
+Migration is complete. `OrgChecker` uses only the group-based path:
 
 ```java
 // 1. Fetch actual state (unchanged)
@@ -216,22 +216,19 @@ RepositoryState state = fetchState(summary);
 // 2. Detect group drift (once — used for both reporting and fixing)
 Map<DriftGroup, List<DriftItem>> groupDrifts = computeGroupDrifts(state, desired);
 
-// 3. Legacy detection (unmigrated categories)
-List<String> diffs = computeDiffs(state, desired);
+// 3. Collect drift messages
+List<String> diffs = groupDrifts.values().stream()
+    .flatMap(List::stream).map(DriftItem::message)
+    .collect(Collectors.toCollection(ArrayList::new));
 
-// 4. Merge group messages into the legacy diffs list
-groupDrifts.values().stream().flatMap(List::stream)
-    .map(DriftItem::message).forEach(diffs::add);
-
-// 5. Fix (if --fix) — two separate methods, called in sequence
+// 4. Fix (if --fix)
 if (fix) {
-    diffs = applyFixes(name, state, desired, diffs);   // legacy
-    diffs = applyFixes(name, diffs, groupDrifts);      // group-based
+    diffs = applyFixes(name, diffs, groupDrifts);
 }
 ```
 
-The target end state (once all categories are migrated) eliminates the legacy
-`computeDiffs`/`applyFixes` methods entirely.
+The legacy `computeDiffs()`/`applyFixes(String, RepositoryState, RepositoryArgs, List)`
+methods have been removed.
 
 ## Migration Plan
 
@@ -253,26 +250,17 @@ Incremental migration, one category at a time. Each step:
 | 5 | Security micro-groups | Medium | ✓ done |
 | 6 | Environment Config | Medium | ✓ done |
 | 7 | Secrets | Medium | ✓ done |
-| 8 | Branch Protection | High | pending |
-| 9 | Rulesets | High | pending |
+| 8 | Branch Protection | High | ✓ done |
+| 9 | Rulesets | High | ✓ done |
 
-### During Migration
+**Migration complete** — all 9 categories migrated to DriftGroups.
 
-`OrgChecker` temporarily has two patterns coexisting (old `List<String> diffs`
-for unmigrated categories, new `DriftGroup` for migrated ones). This is
-acceptable — each migration step is self-contained.
+### Archived Repo Handling
 
-The `OrgCheckerDiffTest` topics tests were removed after step 1 since
-`TopicsDriftGroupTest` provides equivalent coverage. Follow this pattern for
-each subsequent step: remove the corresponding `OrgCheckerDiffTest` cases and
-update `OrgCheckerFixTest` cases to use `computeGroupDrifts` + the group
-`applyFixes` overload.
+`createDriftGroups()` branches on `desired.archived`:
 
-**Important**: When migrating a category, preserve the `OrgCheckerFixTest`
-tests rather than removing them. Update them to use the new group-based logic:
-call both `applyFixes(..., diffs)` (legacy) and `applyFixes(..., groupDrifts)`
-(the group-based overload) in sequence. This ensures the fix path remains
-tested even after migration.
+- **`desired.archived=true`**: returns only `[ArchivedDriftGroup(true, actual.archived)]` — all other groups are skipped since an archived repo cannot have settings changed.
+- **`desired.archived=false`**: `ArchivedDriftGroup(false, actual.archived)` is always first in the list. When `actual.archived=false` its `detect()` returns empty and it is silently skipped by `computeGroupDrifts`. When `actual.archived=true` it produces drift and its `fix()` unarchives the repo before any other group's `fix()` runs (ordering guaranteed by `LinkedHashMap` insertion order).
 
 ## Testing
 

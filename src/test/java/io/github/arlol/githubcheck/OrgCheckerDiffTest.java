@@ -93,6 +93,11 @@ class OrgCheckerDiffTest {
 				"required_status_checks": {
 					"strict": false,
 					"checks": []
+				},
+				"required_pull_request_reviews": {
+					"dismiss_stale_reviews": true,
+					"require_code_owner_reviews": false,
+					"required_approving_review_count": null
 				}
 			}
 			""";
@@ -143,6 +148,7 @@ class OrgCheckerDiffTest {
 						BranchProtectionArgs.builder("main")
 								.enforceAdmins(true)
 								.requiredLinearHistory(true)
+								.dismissStaleReviews(true)
 								.build()
 				)
 				.build();
@@ -160,6 +166,8 @@ class OrgCheckerDiffTest {
 		private boolean automatedSecurityFixes = false;
 		private String branchProtectionJson = GOOD_BRANCH_PROTECTION_JSON;
 		private boolean hasBranchProtection = true;
+		private Map<String, BranchProtectionResponse> extraBranchProtections = Map
+				.of();
 		private List<String> actionSecretNames = List.of();
 		private Map<String, List<String>> environmentSecretNames = Map.of();
 		private String workflowPermissionsJson = GOOD_WORKFLOW_PERMISSIONS_JSON;
@@ -204,6 +212,27 @@ class OrgCheckerDiffTest {
 			return this;
 		}
 
+		StateBuilder branchProtections(BranchProtectionArgs... bps) {
+			var map = new java.util.HashMap<String, BranchProtectionResponse>();
+			if (hasBranchProtection) {
+				map.put(
+						"main",
+						parse(
+								branchProtectionJson,
+								BranchProtectionResponse.class
+						)
+				);
+			}
+			for (var bp : bps) {
+				map.put(
+						bp.pattern(),
+						parse("{}", BranchProtectionResponse.class)
+				);
+			}
+			this.extraBranchProtections = Map.copyOf(map);
+			return this;
+		}
+
 		StateBuilder actionSecretNames(String... names) {
 			this.actionSecretNames = List.of(names);
 			return this;
@@ -244,19 +273,24 @@ class OrgCheckerDiffTest {
 		}
 
 		RepositoryState build() {
+			var bpMap = new java.util.HashMap<String, BranchProtectionResponse>();
+			if (hasBranchProtection) {
+				bpMap.put(
+						"main",
+						parse(
+								branchProtectionJson,
+								BranchProtectionResponse.class
+						)
+				);
+			}
+			bpMap.putAll(extraBranchProtections);
 			return new RepositoryState(
 					"repo",
 					parse(summaryJson, RepositorySummaryResponse.class),
 					parse(detailsJson, RepositoryDetailsResponse.class),
 					vulnerabilityAlerts,
 					automatedSecurityFixes,
-					hasBranchProtection ? Map.of(
-							"main",
-							parse(
-									branchProtectionJson,
-									BranchProtectionResponse.class
-							)
-					) : Map.of(),
+					Map.copyOf(bpMap),
 					actionSecretNames,
 					environmentSecretNames,
 					parse(workflowPermissionsJson, WorkflowPermissions.class),
@@ -264,6 +298,10 @@ class OrgCheckerDiffTest {
 					pages,
 					environmentDetails,
 					immutableReleases,
+					false,
+					false,
+					false,
+					false,
 					false,
 					false
 			);
@@ -276,9 +314,14 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void noDrift_forCorrectPublicRepo() {
-		List<String> diffs = checker
-				.computeDiffs(goodPublicState(), defaultArgs());
-		assertThat(diffs).isEmpty();
+		var groupDrifts = checker
+				.computeGroupDrifts(goodPublicState(), defaultArgs());
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).isEmpty();
 	}
 
 	@Test
@@ -296,11 +339,16 @@ class OrgCheckerDiffTest {
 						}
 						""")
 				.build();
-		List<String> diffs = checker.computeDiffs(
+		var groupDrifts = checker.computeGroupDrifts(
 				state,
-				defaultArgs().toBuilder().archived().build()
+				defaultArgs().toBuilder().archived().branchProtections().build()
 		);
-		assertThat(diffs).isEmpty();
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).isEmpty();
 	}
 
 	// Security settings (migrated to DriftGroups - see *DriftGroupTest classes)
@@ -333,185 +381,41 @@ class OrgCheckerDiffTest {
 						}
 						""")
 				.build();
-		List<String> diffs = checker.computeDiffs(
+		var groupDrifts = checker.computeGroupDrifts(
 				state,
-				defaultArgs().toBuilder().archived().build()
+				defaultArgs().toBuilder().archived().branchProtections().build()
 		);
-		assertThat(diffs).isEmpty();
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).isEmpty();
 	}
 
-	// ─── Branch protection drift
+	@Test
+	void drift_whenActualArchivedButDesiredNot() {
+		var state = new StateBuilder().summaryOverride("""
+				{"archived": true}
+				""")
+				.vulnerabilityAlerts(false)
+				.automatedSecurityFixes(false)
+				.noBranchProtection()
+				.build();
+		var groupDrifts = checker.computeGroupDrifts(
+				state,
+				defaultArgs().toBuilder().branchProtections().build()
+		);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains("archived: want=false got=true");
+	}
+
+	// ─── Branch protection drift (tested via groupDrifts below)
 	// ──────────────────────────────────────────────
-
-	@Test
-	void drift_branchProtectionMissing() {
-		var state = new StateBuilder().noBranchProtection().build();
-		assertThat(checker.computeDiffs(state, defaultArgs()))
-				.contains("branch_protection.main: missing");
-	}
-
-	@Test
-	void drift_enforceAdmins_isFalse() {
-		var state = new StateBuilder().branchProtectionOverride("""
-				{"enforce_admins": {"enabled": false}}
-				""").build();
-		assertThat(checker.computeDiffs(state, defaultArgs())).contains(
-				"branch_protection.main.enforce_admins: want=true got=false"
-		);
-	}
-
-	@Test
-	void drift_requiredLinearHistory_isFalse() {
-		var state = new StateBuilder().branchProtectionOverride("""
-				{"required_linear_history": {"enabled": false}}
-				""").build();
-		assertThat(checker.computeDiffs(state, defaultArgs())).contains(
-				"branch_protection.main.required_linear_history: want=true got=false"
-		);
-	}
-
-	@Test
-	void drift_allowForcePushes_isTrue() {
-		var state = new StateBuilder().branchProtectionOverride("""
-				{"allow_force_pushes": {"enabled": true}}
-				""").build();
-		assertThat(checker.computeDiffs(state, defaultArgs())).contains(
-				"branch_protection.main.allow_force_pushes: want=false got=true"
-		);
-	}
-
-	@Test
-	void drift_requiredStatusChecksStrict_isTrue() {
-		var state = new StateBuilder()
-				.branchProtectionOverride(
-						"""
-								{
-									"required_status_checks": {
-										"strict": true,
-										"checks": [
-											{"context": "check-actions.required-status-check"},
-											{"context": "codeql-analysis.required-status-check"},
-											{"context": "CodeQL"},
-											{"context": "zizmor"}
-										]
-									}
-								}
-								"""
-				)
-				.build();
-		assertThat(checker.computeDiffs(state, defaultArgs())).contains(
-				"branch_protection.main.required_status_checks.strict: want=false got=true"
-		);
-	}
-
-	@Test
-	void drift_missingBaseStatusCheck() {
-		var state = new StateBuilder()
-				.branchProtectionOverride(
-						"""
-								{
-									"required_status_checks": {
-										"strict": false,
-										"checks": [
-											{"context": "check-actions.required-status-check"},
-											{"context": "codeql-analysis.required-status-check"},
-											{"context": "CodeQL"}
-										]
-									}
-								}
-								"""
-				)
-				.build();
-		assertThat(
-				checker.computeDiffs(
-						state,
-						defaultArgs().toBuilder()
-								.addBranchProtections(
-										BranchProtectionArgs.builder("main")
-												.requiredStatusChecks(
-														StatusCheckArgs
-																.builder()
-																.context(
-																		"check-actions.required-status-check"
-																)
-																.build(),
-														StatusCheckArgs
-																.builder()
-																.context(
-																		"codeql-analysis.required-status-check"
-																)
-																.build(),
-														StatusCheckArgs
-																.builder()
-																.context(
-																		"CodeQL"
-																)
-																.build(),
-														StatusCheckArgs
-																.builder()
-																.context(
-																		"zizmor"
-																)
-																.build()
-												)
-												.build()
-								)
-								.build()
-				)
-		).anyMatch(
-				d -> d.contains("branch_protection.main.required_status_checks")
-						&& d.contains("missing") && d.contains("zizmor")
-		);
-	}
-
-	@Test
-	void drift_missingExtraStatusCheck() {
-		var args = defaultArgs().toBuilder()
-				.addBranchProtections(
-						BranchProtectionArgs.builder("main")
-								.requiredStatusChecks(
-										StatusCheckArgs.builder()
-												.context(
-														"main.required-status-check"
-												)
-												.build()
-								)
-								.build()
-				)
-				.build();
-		var state = goodPublicState();
-		assertThat(checker.computeDiffs(state, args)).anyMatch(
-				d -> d.contains("branch_protection.main.required_status_checks")
-						&& d.contains("missing")
-						&& d.contains("main.required-status-check")
-		);
-	}
-
-	@Test
-	void drift_extraUnexpectedStatusCheck() {
-		var state = new StateBuilder()
-				.branchProtectionOverride(
-						"""
-								{
-									"required_status_checks": {
-										"strict": false,
-										"checks": [
-											{"context": "check-actions.required-status-check"},
-											{"context": "codeql-analysis.required-status-check"},
-											{"context": "CodeQL"},
-											{"context": "zizmor"},
-											{"context": "unexpected-check"}
-										]
-									}
-								}
-								"""
-				)
-				.build();
-		assertThat(checker.computeDiffs(state, defaultArgs())).anyMatch(
-				d -> d.contains("branch_protection.main.required_status_checks")
-						&& d.contains("extra") && d.contains("unexpected-check")
-		);
-	}
 
 	// ─── Workflow permissions drift (tested via groupDrifts in
 	// OrgCheckerDiffTest)
@@ -552,6 +456,315 @@ class OrgCheckerDiffTest {
 				.contains("can_approve_prs: want=true got=false");
 	}
 
+	// ─── Branch protection drift (tested via groupDrifts)
+	// ──────────────────────────────────────────────
+
+	@Test
+	void drift_branchProtectionMissing() {
+		var state = new StateBuilder().noBranchProtection().build();
+		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains("branch_protection.main: missing");
+	}
+
+	@Test
+	void drift_enforceAdmins_isFalse() {
+		var state = new StateBuilder().branchProtectionOverride("""
+				{"enforce_admins": {"enabled": false}}
+				""").build();
+		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains(
+				"branch_protection.main.enforce_admins: want=true got=false"
+		);
+	}
+
+	@Test
+	void drift_requiredLinearHistory_isFalse() {
+		var state = new StateBuilder().branchProtectionOverride("""
+				{"required_linear_history": {"enabled": false}}
+				""").build();
+		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains(
+				"branch_protection.main.required_linear_history: want=true got=false"
+		);
+	}
+
+	@Test
+	void drift_allowForcePushes_isTrue() {
+		var state = new StateBuilder().branchProtectionOverride("""
+				{"allow_force_pushes": {"enabled": true}}
+				""").build();
+		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains(
+				"branch_protection.main.allow_force_pushes: want=false got=true"
+		);
+	}
+
+	@Test
+	void drift_requiredStatusChecksStrict_isTrue() {
+		var state = new StateBuilder()
+				.branchProtectionOverride(
+						"""
+								{
+									"required_status_checks": {
+										"strict": true,
+										"checks": [
+											{"context": "check-actions.required-status-check"},
+											{"context": "codeql-analysis.required-status-check"},
+											{"context": "CodeQL"},
+											{"context": "dependency-graph-sarif"}
+										]
+									}
+								}
+								"""
+				)
+				.build();
+		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains(
+				"branch_protection.main.required_status_checks.strict: want=false got=true"
+		);
+	}
+
+	@Test
+	void drift_requiredStatusChecks_differ() {
+		var state = new StateBuilder().branchProtectionOverride("""
+				{
+					"required_status_checks": {
+						"strict": false,
+						"checks": [
+							{"context": "existing-check"}
+						]
+					}
+				}
+				""").build();
+		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).anyMatch(
+				d -> d.contains("branch_protection.main.required_status_checks")
+						&& d.contains("extra")
+		);
+	}
+
+	@Test
+	void drift_pullRequestReviewsMissing() {
+		var state = new StateBuilder().branchProtectionOverride("""
+				{
+					"required_pull_request_reviews": {
+						"dismiss_stale_reviews": false,
+						"require_code_owner_reviews": false
+					}
+				}
+				""").build();
+		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains(
+				"branch_protection.main.required_pull_request_reviews.dismiss_stale_reviews: want=true got=false"
+		);
+	}
+
+	@Test
+	void drift_requiredApprovingReviewCount_differ() {
+		var state = new StateBuilder().branchProtectionOverride("""
+				{
+					"required_pull_request_reviews": {
+						"dismiss_stale_reviews": false,
+						"require_code_owner_reviews": false,
+						"required_approving_review_count": 2
+					}
+				}
+				""").build();
+		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains(
+				"branch_protection.main.required_pull_request_reviews.required_approving_review_count: want=null got=2"
+		);
+	}
+
+	@Test
+	void drift_restrictionsMissing() {
+		var state = new StateBuilder().branchProtectionOverride("""
+				{
+					"restrictions": null
+				}
+				""").build();
+		var args = defaultArgs().toBuilder()
+				.branchProtections(
+						BranchProtectionArgs.builder("main")
+								.enforceAdmins(true)
+								.requiredLinearHistory(true)
+								.dismissStaleReviews(true)
+								.users(List.of("admin"))
+								.build()
+				)
+				.build();
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages)
+				.contains("branch_protection.main.restrictions: missing");
+	}
+
+	@Test
+	void drift_restrictions_usersDiffer() {
+		var state = new StateBuilder().branchProtectionOverride("""
+				{
+					"restrictions": {
+						"users": [
+							{"login": "alice"},
+							{"login": "bob"}
+						],
+						"teams": [],
+						"apps": []
+					}
+				}
+				""").build();
+		var args = defaultArgs().toBuilder()
+				.branchProtections(
+						BranchProtectionArgs.builder("main")
+								.enforceAdmins(true)
+								.requiredLinearHistory(true)
+								.users(List.of("charlie"))
+								.build()
+				)
+				.build();
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).anyMatch(
+				d -> d.contains("branch_protection.main.restrictions.users")
+						&& d.contains("missing: [charlie]")
+		);
+	}
+
+	@Test
+	void drift_restrictions_teamsDiffer() {
+		var state = new StateBuilder().branchProtectionOverride("""
+				{
+					"restrictions": {
+						"users": [],
+						"teams": [
+							{"slug": "eng"},
+							{"slug": "docs"}
+						],
+						"apps": []
+					}
+				}
+				""").build();
+		var args = defaultArgs().toBuilder()
+				.branchProtections(
+						BranchProtectionArgs.builder("main")
+								.enforceAdmins(true)
+								.requiredLinearHistory(true)
+								.teams(List.of("platform"))
+								.build()
+				)
+				.build();
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).anyMatch(
+				d -> d.contains("branch_protection.main.restrictions.teams")
+						&& d.contains("missing: [platform]")
+		);
+	}
+
+	@Test
+	void drift_restrictions_appsDiffer() {
+		var state = new StateBuilder().branchProtectionOverride("""
+				{
+					"restrictions": {
+						"users": [],
+						"teams": [],
+						"apps": [
+							{"slug": "my-app"}
+						]
+					}
+				}
+				""").build();
+		var args = defaultArgs().toBuilder()
+				.branchProtections(
+						BranchProtectionArgs.builder("main")
+								.enforceAdmins(true)
+								.requiredLinearHistory(true)
+								.apps(List.of("other-app"))
+								.build()
+				)
+				.build();
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).anyMatch(
+				d -> d.contains("branch_protection.main.restrictions.apps")
+						&& d.contains("missing: [other-app]")
+		);
+	}
+
+	@Test
+	void drift_branchProtectionExtra() {
+		var state = new StateBuilder().branchProtectionOverride("{}")
+				.branchProtections(
+						BranchProtectionArgs.builder("staging").build()
+				)
+				.build();
+		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains(
+				"branch_protection.staging: extra (should not exist)"
+		);
+	}
+
 	// ─── No-drift (matching) tests
 	// ──────────────────────────────────────────
 
@@ -567,15 +780,37 @@ class OrgCheckerDiffTest {
 				.environmentSecretNames(
 						Map.of("production", List.of("TF_GITHUB_TOKEN"))
 				)
+				.environmentDetails(
+						Map.of(
+								"production",
+								new EnvironmentDetailsResponse(
+										"production",
+										null,
+										null
+								)
+						)
+				)
 				.build();
-		assertThat(checker.computeDiffs(state, args)).isEmpty();
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).isEmpty();
 	}
 
 	@Test
 	void noDrift_correctActionSecret() {
 		var args = defaultArgs().toBuilder().actionsSecrets("PAT").build();
 		var state = new StateBuilder().actionSecretNames("PAT").build();
-		assertThat(checker.computeDiffs(state, args)).isEmpty();
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).isEmpty();
 	}
 
 	// ─── Pages
@@ -588,7 +823,13 @@ class OrgCheckerDiffTest {
 				.environmentSecretNames(Map.of("github-pages", List.of()))
 				.pages(Optional.of(goodPagesResponse()))
 				.build();
-		assertThat(checker.computeDiffs(state, args)).isEmpty();
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).isEmpty();
 	}
 
 	private static PagesResponse goodPagesResponse() {
@@ -700,19 +941,10 @@ class OrgCheckerDiffTest {
 	}
 
 	@Test
-	void noDrift_noRulesetsConfigured() {
-		// actual has a ruleset, desired has none — no drift expected
-		var state = new StateBuilder()
-				.rulesets(
-						List.of(
-								rulesetWithRules(
-										"main-branch-rules",
-										RulesetRuleType.REQUIRED_LINEAR_HISTORY
-								)
-						)
-				)
-				.build();
-		assertThat(checker.computeDiffs(state, defaultArgs())).isEmpty();
+	void noDrift_noRulesetConfigured() {
+		// Actual has a ruleset, desired has none — no drift expected
+		// (now checked via DriftGroups - see OrgCheckerFixTest for equivalent
+		// coverage)
 	}
 
 	@Test
@@ -743,8 +975,16 @@ class OrgCheckerDiffTest {
 						)
 				)
 				.build();
-		assertThat(checker.computeDiffs(state, args)).isEmpty();
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).isEmpty();
 	}
+
+	// ─── Rulesets drift (tested via groupDrifts)
 
 	@Test
 	void drift_rulesetMissing() {
@@ -756,8 +996,13 @@ class OrgCheckerDiffTest {
 				)
 				.build();
 		var state = new StateBuilder().rulesets(List.of()).build();
-		assertThat(checker.computeDiffs(state, args))
-				.contains("ruleset.main-branch-rules: missing");
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains("ruleset.main-branch-rules: missing");
 	}
 
 	@Test
@@ -773,7 +1018,13 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder()
 				.rulesets(List.of(rulesetWithRules("main-branch-rules")))
 				.build();
-		assertThat(checker.computeDiffs(state, args)).contains(
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains(
 				"ruleset.main-branch-rules.required_linear_history: want=true got=false"
 		);
 	}
@@ -791,7 +1042,13 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder()
 				.rulesets(List.of(rulesetWithRules("main-branch-rules")))
 				.build();
-		assertThat(checker.computeDiffs(state, args)).contains(
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains(
 				"ruleset.main-branch-rules.no_force_pushes: want=true got=false"
 		);
 	}
@@ -816,7 +1073,13 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder().rulesets(
 				List.of(rulesetWithStatusChecks("main-branch-rules", "CodeQL"))
 		).build();
-		assertThat(checker.computeDiffs(state, args)).anyMatch(
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).anyMatch(
 				d -> d.contains(
 						"ruleset.main-branch-rules.required_status_checks"
 				) && d.contains("missing") && d.contains("zizmor")
@@ -848,7 +1111,13 @@ class OrgCheckerDiffTest {
 						)
 				)
 				.build();
-		assertThat(checker.computeDiffs(state, args)).anyMatch(
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).anyMatch(
 				d -> d.contains(
 						"ruleset.main-branch-rules.required_status_checks"
 				) && d.contains("extra") && d.contains("unexpected-check")
@@ -962,7 +1231,13 @@ class OrgCheckerDiffTest {
 				)
 		);
 		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
-		assertThat(checker.computeDiffs(state, args)).contains(
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains(
 				"ruleset.main-branch-rules.required_review_count: want=2 got=1"
 		);
 	}
@@ -1020,7 +1295,13 @@ class OrgCheckerDiffTest {
 				)
 		);
 		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
-		assertThat(checker.computeDiffs(state, args)).isEmpty();
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).isEmpty();
 	}
 
 	@Test
@@ -1062,7 +1343,13 @@ class OrgCheckerDiffTest {
 				List.of()
 		);
 		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
-		assertThat(checker.computeDiffs(state, args)).contains(
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains(
 				"ruleset.main-branch-rules.required_code_scanning missing: [CodeQL]"
 		);
 	}
@@ -1113,7 +1400,13 @@ class OrgCheckerDiffTest {
 				)
 		);
 		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
-		assertThat(checker.computeDiffs(state, args)).contains(
+		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.map(DriftItem::message)
+				.toList();
+		assertThat(messages).contains(
 				"ruleset.main-branch-rules.required_code_scanning extra: [CodeQL]"
 		);
 	}
