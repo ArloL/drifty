@@ -79,4 +79,15 @@ public sealed interface DriftItem {
 
 	}
 
+	record SecretUnverifiable(
+			String path
+	) implements DriftItem {
+
+		@Override
+		public String message() {
+			return path + ": unverifiable";
+		}
+
+	}
+
 }

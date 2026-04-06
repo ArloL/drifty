@@ -769,7 +769,7 @@ class OrgCheckerDiffTest {
 	// ──────────────────────────────────────────
 
 	@Test
-	void noDrift_correctEnvironmentWithSecret() {
+	void existingEnvironmentSecret_isAlwaysUnverifiable() {
 		var args = defaultArgs().toBuilder()
 				.environment(
 						"production",
@@ -797,11 +797,13 @@ class OrgCheckerDiffTest {
 				.flatMap(List::stream)
 				.map(DriftItem::message)
 				.toList();
-		assertThat(messages).isEmpty();
+		assertThat(messages).containsExactly(
+				"environment.production.secrets.TF_GITHUB_TOKEN: unverifiable"
+		);
 	}
 
 	@Test
-	void noDrift_correctActionSecret() {
+	void existingActionSecret_isAlwaysUnverifiable() {
 		var args = defaultArgs().toBuilder().actionsSecrets("PAT").build();
 		var state = new StateBuilder().actionSecretNames("PAT").build();
 		var groupDrifts = checker.computeGroupDrifts(state, args);
@@ -810,7 +812,8 @@ class OrgCheckerDiffTest {
 				.flatMap(List::stream)
 				.map(DriftItem::message)
 				.toList();
-		assertThat(messages).isEmpty();
+		assertThat(messages)
+				.containsExactly("action_secrets.PAT: unverifiable");
 	}
 
 	// ─── Pages

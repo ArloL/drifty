@@ -47,16 +47,24 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 		var items = new ArrayList<DriftItem>();
 
 		Set<String> wantSet = new HashSet<>(desired);
-		Set<String> gotSet = new HashSet<>(actual);
 
-		Set<String> missing = new HashSet<>(wantSet);
-		missing.removeAll(gotSet);
+		for (String secretName : desired) {
+			String path = "action_secrets." + secretName;
+			if (actual.contains(secretName)) {
+				items.add(new DriftItem.SecretUnverifiable(path));
+			} else {
+				items.add(new DriftItem.SectionMissing(path));
+			}
+		}
 
-		Set<String> extra = new HashSet<>(gotSet);
-		extra.removeAll(wantSet);
-
-		if (!missing.isEmpty() || !extra.isEmpty()) {
-			items.add(new DriftItem.SetDrift("action_secrets", missing, extra));
+		for (String secretName : actual) {
+			if (!wantSet.contains(secretName)) {
+				items.add(
+						new DriftItem.SectionExtra(
+								"action_secrets." + secretName
+						)
+				);
+			}
 		}
 
 		return items;
@@ -64,18 +72,20 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 
 	@Override
 	public FixResult fix() {
+		var unfixed = new ArrayList<DriftItem>();
+
 		Set<String> wantSet = new HashSet<>(desired);
-		Set<String> gotSet = new HashSet<>(actual);
 
-		Set<String> missing = new HashSet<>(wantSet);
-		missing.removeAll(gotSet);
-
-		Set<String> stillMissing = new HashSet<>();
-		for (String secretName : missing) {
+		for (String secretName : desired) {
+			String path = "action_secrets." + secretName;
 			String mapKey = repo + "-" + secretName;
 			String value = secretValues.get(mapKey);
 			if (value == null) {
-				stillMissing.add(secretName);
+				if (actual.contains(secretName)) {
+					unfixed.add(new DriftItem.SecretUnverifiable(path));
+				} else {
+					unfixed.add(new DriftItem.SectionMissing(path));
+				}
 				continue;
 			}
 
@@ -90,18 +100,17 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 			);
 		}
 
-		if (stillMissing.isEmpty()) {
-			return FixResult.success();
-		}
-		return new FixResult(
-				List.of(
-						new DriftItem.SetDrift(
-								"action_secrets",
-								stillMissing,
-								Set.of()
+		for (String secretName : actual) {
+			if (!wantSet.contains(secretName)) {
+				unfixed.add(
+						new DriftItem.SectionExtra(
+								"action_secrets." + secretName
 						)
-				)
-		);
+				);
+			}
+		}
+
+		return new FixResult(unfixed);
 	}
 
 }

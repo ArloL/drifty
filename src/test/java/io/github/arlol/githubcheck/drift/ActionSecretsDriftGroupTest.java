@@ -35,9 +35,16 @@ class ActionSecretsDriftGroupTest {
 	}
 
 	@Test
-	void noDrift_whenSecretsMatch() {
-		assertThat(group(List.of("DEPLOY_KEY"), Set.of("DEPLOY_KEY")).detect())
-				.isEmpty();
+	void detectsUnverifiable_whenSecretExists() {
+		var items = group(List.of("DEPLOY_KEY"), Set.of("DEPLOY_KEY")).detect();
+
+		assertThat(items).hasSize(1);
+		assertThat(items.getFirst())
+				.isInstanceOf(DriftItem.SecretUnverifiable.class);
+		assertThat(items.getFirst().path())
+				.isEqualTo("action_secrets.DEPLOY_KEY");
+		assertThat(items.getFirst().message())
+				.isEqualTo("action_secrets.DEPLOY_KEY: unverifiable");
 	}
 
 	@Test
@@ -45,12 +52,12 @@ class ActionSecretsDriftGroupTest {
 		var items = group(List.of("DEPLOY_KEY"), Set.of()).detect();
 
 		assertThat(items).hasSize(1);
-		assertThat(items.getFirst()).isInstanceOf(DriftItem.SetDrift.class);
-		var drift = (DriftItem.SetDrift) items.getFirst();
-		assertThat(drift.missing()).hasSize(1);
-		assertThat(drift.extra()).isEmpty();
-		assertThat(drift.message())
-				.isEqualTo("action_secrets missing: [DEPLOY_KEY]");
+		assertThat(items.getFirst())
+				.isInstanceOf(DriftItem.SectionMissing.class);
+		assertThat(items.getFirst().path())
+				.isEqualTo("action_secrets.DEPLOY_KEY");
+		assertThat(items.getFirst().message())
+				.isEqualTo("action_secrets.DEPLOY_KEY: missing");
 	}
 
 	@Test
@@ -58,22 +65,27 @@ class ActionSecretsDriftGroupTest {
 		var items = group(List.of(), Set.of("STALE_KEY")).detect();
 
 		assertThat(items).hasSize(1);
-		assertThat(items.getFirst()).isInstanceOf(DriftItem.SetDrift.class);
-		var drift = (DriftItem.SetDrift) items.getFirst();
-		assertThat(drift.missing()).isEmpty();
-		assertThat(drift.extra()).hasSize(1);
-		assertThat(drift.message())
-				.isEqualTo("action_secrets extra: [STALE_KEY]");
+		assertThat(items.getFirst()).isInstanceOf(DriftItem.SectionExtra.class);
+		assertThat(items.getFirst().path())
+				.isEqualTo("action_secrets.STALE_KEY");
+		assertThat(items.getFirst().message()).isEqualTo(
+				"action_secrets.STALE_KEY: extra (should not exist)"
+		);
 	}
 
 	@Test
-	void detectsMissingAndExtraSecrets() {
+	void detectsPerItem_whenMissingAndExtra() {
 		var items = group(List.of("NEW_KEY"), Set.of("OLD_KEY")).detect();
 
-		assertThat(items).hasSize(1);
-		var drift = (DriftItem.SetDrift) items.getFirst();
-		assertThat(drift.missing()).hasSize(1);
-		assertThat(drift.extra()).hasSize(1);
+		assertThat(items).hasSize(2);
+		assertThat(items).anyMatch(
+				i -> i instanceof DriftItem.SectionMissing
+						&& i.path().equals("action_secrets.NEW_KEY")
+		);
+		assertThat(items).anyMatch(
+				i -> i instanceof DriftItem.SectionExtra
+						&& i.path().equals("action_secrets.OLD_KEY")
+		);
 	}
 
 }

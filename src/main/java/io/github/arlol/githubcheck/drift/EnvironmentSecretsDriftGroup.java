@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.SecretPublicKeyResponse;
 import io.github.arlol.githubcheck.client.SecretRequest;
@@ -56,25 +55,30 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 				continue;
 			}
 
-			Set<String> wantSecrets = new HashSet<>(wantEnv.secrets());
-			Set<String> gotSecrets = new HashSet<>(
+			Set<String> wantSet = new HashSet<>(wantEnv.secrets());
+			Set<String> gotSet = new HashSet<>(
 					actualSecretNames.getOrDefault(envName, List.of())
 			);
 
-			Set<String> missing = new HashSet<>(wantSecrets);
-			missing.removeAll(gotSecrets);
+			for (String secretName : wantEnv.secrets()) {
+				String path = "environment." + envName + ".secrets."
+						+ secretName;
+				if (gotSet.contains(secretName)) {
+					items.add(new DriftItem.SecretUnverifiable(path));
+				} else {
+					items.add(new DriftItem.SectionMissing(path));
+				}
+			}
 
-			Set<String> extra = new HashSet<>(gotSecrets);
-			extra.removeAll(wantSecrets);
-
-			if (!missing.isEmpty() || !extra.isEmpty()) {
-				items.add(
-						new DriftItem.SetDrift(
-								"environment." + envName + ".secrets",
-								missing,
-								extra
-						)
-				);
+			for (String secretName : gotSet) {
+				if (!wantSet.contains(secretName)) {
+					items.add(
+							new DriftItem.SectionExtra(
+									"environment." + envName + ".secrets."
+											+ secretName
+							)
+					);
+				}
 			}
 		}
 
@@ -84,24 +88,27 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 	@Override
 	public FixResult fix() {
 		var unfixed = new ArrayList<DriftItem>();
+
 		for (var entry : desired.entrySet()) {
 			String envName = entry.getKey();
 			EnvironmentArgs wantEnv = entry.getValue();
 
-			Set<String> wantSecrets = new HashSet<>(wantEnv.secrets());
-			Set<String> gotSecrets = new HashSet<>(
+			Set<String> wantSet = new HashSet<>(wantEnv.secrets());
+			Set<String> gotSet = new HashSet<>(
 					actualSecretNames.getOrDefault(envName, List.of())
 			);
 
-			Set<String> missing = new HashSet<>(wantSecrets);
-			missing.removeAll(gotSecrets);
-
-			Set<String> stillMissing = new HashSet<>();
-			for (String secretName : missing) {
+			for (String secretName : wantEnv.secrets()) {
+				String path = "environment." + envName + ".secrets."
+						+ secretName;
 				String mapKey = repo + "-" + envName + "-" + secretName;
 				String value = secretValues.get(mapKey);
 				if (value == null) {
-					stillMissing.add(secretName);
+					if (gotSet.contains(secretName)) {
+						unfixed.add(new DriftItem.SecretUnverifiable(path));
+					} else {
+						unfixed.add(new DriftItem.SectionMissing(path));
+					}
 					continue;
 				}
 
@@ -118,16 +125,18 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 				);
 			}
 
-			if (!stillMissing.isEmpty()) {
-				unfixed.add(
-						new DriftItem.SetDrift(
-								"environment." + envName + ".secrets",
-								stillMissing,
-								Set.of()
-						)
-				);
+			for (String secretName : gotSet) {
+				if (!wantSet.contains(secretName)) {
+					unfixed.add(
+							new DriftItem.SectionExtra(
+									"environment." + envName + ".secrets."
+											+ secretName
+							)
+					);
+				}
 			}
 		}
+
 		return new FixResult(unfixed);
 	}
 
