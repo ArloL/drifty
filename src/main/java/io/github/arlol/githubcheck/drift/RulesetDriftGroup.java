@@ -422,7 +422,7 @@ public class RulesetDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		Map<String, RulesetDetailsResponse> actualByName = actual.stream()
 				.collect(
 						Collectors.toMap(
@@ -450,6 +450,7 @@ public class RulesetDriftGroup extends DriftGroup {
 				client.deleteRuleset(owner, repo, extra.id());
 			}
 		}
+		return FixResult.success();
 	}
 
 	private static RulesetRequest buildRulesetRequest(RulesetArgs args) {
@@ -515,13 +516,8 @@ public class RulesetDriftGroup extends DriftGroup {
 					.map(
 							cst -> new Rule.CodeScanningTool(
 									cst.tool(),
-									cst.alertsThreshold() != null
-											? cst.alertsThreshold().name()
-											: null,
-									cst.securityAlertsThreshold() != null
-											? cst.securityAlertsThreshold()
-													.name()
-											: null
+									cst.alertsThreshold(),
+									cst.securityAlertsThreshold()
 							)
 					)
 					.toList();

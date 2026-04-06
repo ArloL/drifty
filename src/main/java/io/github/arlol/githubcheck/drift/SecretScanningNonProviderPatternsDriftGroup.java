@@ -42,7 +42,7 @@ public class SecretScanningNonProviderPatternsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		var sa = SecurityAndAnalysis.builder()
 				.secretScanningNonProviderPatterns(desired)
 				.build();
@@ -54,6 +54,7 @@ public class SecretScanningNonProviderPatternsDriftGroup extends DriftGroup {
 						.securityAndAnalysis(sa)
 						.build()
 		);
+		return FixResult.success();
 	}
 
 }

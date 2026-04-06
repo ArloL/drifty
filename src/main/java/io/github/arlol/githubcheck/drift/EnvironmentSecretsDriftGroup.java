@@ -82,7 +82,8 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
+		var unfixed = new ArrayList<DriftItem>();
 		for (var entry : desired.entrySet()) {
 			String envName = entry.getKey();
 			EnvironmentArgs wantEnv = entry.getValue();
@@ -95,10 +96,12 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 			Set<String> missing = new HashSet<>(wantSecrets);
 			missing.removeAll(gotSecrets);
 
+			Set<String> stillMissing = new HashSet<>();
 			for (String secretName : missing) {
 				String mapKey = repo + "-" + envName + "-" + secretName;
 				String value = secretValues.get(mapKey);
 				if (value == null) {
+					stillMissing.add(secretName);
 					continue;
 				}
 
@@ -114,7 +117,18 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 						new SecretRequest(encrypted, publicKey.keyId())
 				);
 			}
+
+			if (!stillMissing.isEmpty()) {
+				unfixed.add(
+						new DriftItem.SetDrift(
+								"environment." + envName + ".secrets",
+								stillMissing,
+								Set.of()
+						)
+				);
+			}
 		}
+		return new FixResult(unfixed);
 	}
 
 }

@@ -11,7 +11,7 @@ public abstract class DriftGroup {
 
 	public abstract List<DriftItem> detect();
 
-	public abstract void fix();
+	public abstract FixResult fix();
 
 	protected static List<DriftItem> compare(
 			String path,

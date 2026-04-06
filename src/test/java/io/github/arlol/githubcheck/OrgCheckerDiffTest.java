@@ -62,7 +62,7 @@ class OrgCheckerDiffTest {
 				"has_wiki": true,
 				"has_discussions": false,
 				"is_template": false,
-				"allow_forking": false,
+				"allow_forking": true,
 				"web_commit_signoff_required": false,
 				"default_branch": "main",
 				"topics": [],
@@ -1286,8 +1286,8 @@ class OrgCheckerDiffTest {
 										List.of(
 												new Rule.CodeScanningTool(
 														"CodeQL",
-														"none",
-														"none"
+														Rule.AlertsThreshold.NONE,
+														Rule.SecurityAlertsThreshold.NONE
 												)
 										)
 								)
@@ -1391,8 +1391,8 @@ class OrgCheckerDiffTest {
 										List.of(
 												new Rule.CodeScanningTool(
 														"CodeQL",
-														"none",
-														"none"
+														Rule.AlertsThreshold.NONE,
+														Rule.SecurityAlertsThreshold.NONE
 												)
 										)
 								)

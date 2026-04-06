@@ -41,12 +41,13 @@ public class ImmutableReleasesDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		if (desired) {
 			client.enableImmutableReleases(owner, repo);
 		} else {
 			client.disableImmutableReleases(owner, repo);
 		}
+		return FixResult.success();
 	}
 
 }

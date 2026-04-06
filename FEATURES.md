@@ -148,7 +148,7 @@ Updated `OrgChecker.checkRepoSettings()` to read desired values from `Repository
 Implemented: Eight new settings added to `RepositoryArgs` (with GitHub-matching defaults) and wired into `checkRepoSettings()` and the PATCH payload in `applyFixes()`:
 - `hasDiscussions` (default: `false`) — discussions tab
 - `isTemplate` (default: `false`) — make repo available as a template
-- `allowForking` (default: `false`) — allow forking of private repos
+- `allowForking` (default: `true`) — allow forking of private repos
 - `webCommitSignoffRequired` (default: `false`) — require sign-off on web-UI commits
 - `squashMergeCommitTitle` (default: `"COMMIT_OR_PR_TITLE"`) — default title for squash merges
 - `squashMergeCommitMessage` (default: `"COMMIT_MESSAGES"`) — default message for squash merges

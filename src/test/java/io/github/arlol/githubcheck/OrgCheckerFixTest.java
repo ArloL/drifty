@@ -76,6 +76,7 @@ class OrgCheckerFixTest {
 
 	private static final String GOOD_DETAILS_JSON = """
 			{
+				"owner": {"login": "owner", "type": "Organization"},
 				"description": "",
 				"homepage": "",
 				"has_issues": true,
@@ -83,7 +84,7 @@ class OrgCheckerFixTest {
 				"has_wiki": true,
 				"has_discussions": false,
 				"is_template": false,
-				"allow_forking": false,
+				"allow_forking": true,
 				"web_commit_signoff_required": false,
 				"default_branch": "main",
 				"topics": [],
@@ -325,7 +326,7 @@ class OrgCheckerFixTest {
 							"has_wiki": true,
 							"has_discussions": false,
 							"is_template": false,
-							"allow_forking": false,
+							"allow_forking": true,
 							"web_commit_signoff_required": false,
 							"allow_merge_commit": true,
 							"allow_squash_merge": true,
@@ -380,7 +381,7 @@ class OrgCheckerFixTest {
 							"has_wiki": true,
 							"has_discussions": false,
 							"is_template": false,
-							"allow_forking": false,
+							"allow_forking": true,
 							"web_commit_signoff_required": false,
 							"allow_merge_commit": true,
 							"allow_squash_merge": true,
@@ -442,7 +443,7 @@ class OrgCheckerFixTest {
 							"has_wiki": true,
 							"has_discussions": false,
 							"is_template": false,
-							"allow_forking": false,
+							"allow_forking": true,
 							"web_commit_signoff_required": false,
 							"allow_merge_commit": true,
 							"allow_squash_merge": true,
@@ -1824,7 +1825,7 @@ class OrgCheckerFixTest {
 							"has_wiki": true,
 							"has_discussions": false,
 							"is_template": false,
-							"allow_forking": false,
+							"allow_forking": true,
 							"web_commit_signoff_required": false,
 							"allow_merge_commit": true,
 							"allow_squash_merge": true,
@@ -2638,9 +2639,6 @@ class OrgCheckerFixTest {
 		);
 	}
 
-	@Disabled(
-		"Incompatible with drift group model - cannot express unfixable secrets"
-	)
 	@Test
 	void missingActionSecret_withoutValueInMap_remainsUnfixed(
 			WireMockRuntimeInfo wm

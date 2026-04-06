@@ -587,8 +587,15 @@ public class OrgChecker {
 				continue;
 			}
 			var msgs = items.stream().map(DriftItem::message).toList();
-			group.fix();
-			remaining.removeAll(msgs);
+			var fixResult = group.fix();
+			var unfixedMsgs = fixResult.unfixedItems()
+					.stream()
+					.map(DriftItem::message)
+					.collect(Collectors.toSet());
+			var fixedMsgs = msgs.stream()
+					.filter(m -> !unfixedMsgs.contains(m))
+					.toList();
+			remaining.removeAll(fixedMsgs);
 		}
 		return remaining;
 	}

@@ -44,7 +44,7 @@ class RepoSettingsDriftGroupTest {
 				"has_wiki": true,
 				"has_discussions": false,
 				"is_template": false,
-				"allow_forking": false,
+				"allow_forking": true,
 				"web_commit_signoff_required": false,
 				"default_branch": "main",
 				"topics": [],
@@ -73,7 +73,7 @@ class RepoSettingsDriftGroupTest {
 				.hasWiki(true)
 				.hasDiscussions(false)
 				.isTemplate(false)
-				.allowForking(false)
+				.allowForking(true)
 				.webCommitSignoffRequired(false)
 				.allowMergeCommit(true)
 				.allowSquashMerge(true)
@@ -166,7 +166,7 @@ class RepoSettingsDriftGroupTest {
 					"has_wiki": true,
 					"has_discussions": false,
 					"is_template": false,
-					"allow_forking": false,
+					"allow_forking": true,
 					"web_commit_signoff_required": false,
 					"default_branch": "main",
 					"topics": [],
@@ -208,7 +208,7 @@ class RepoSettingsDriftGroupTest {
 					"has_wiki": true,
 					"has_discussions": false,
 					"is_template": false,
-					"allow_forking": false,
+					"allow_forking": true,
 					"web_commit_signoff_required": false,
 					"default_branch": "main",
 					"topics": [],
@@ -246,6 +246,80 @@ class RepoSettingsDriftGroupTest {
 		assertThat(items).hasSize(1);
 		var mismatch = (DriftItem.FieldMismatch) items.getFirst();
 		assertThat(mismatch.path()).isEqualTo("has_issues");
+	}
+
+	@Test
+	void allowForkingIgnoredForUserOwnedRepo() {
+		var json = """
+				{
+					"owner": {"login": "user1", "type": "User"},
+					"description": "A great project",
+					"homepage": "",
+					"has_issues": true,
+					"has_projects": true,
+					"has_wiki": true,
+					"has_discussions": false,
+					"is_template": false,
+					"allow_forking": false,
+					"web_commit_signoff_required": false,
+					"default_branch": "main",
+					"topics": [],
+					"allow_merge_commit": true,
+					"allow_squash_merge": true,
+					"allow_rebase_merge": true,
+					"allow_update_branch": false,
+					"allow_auto_merge": false,
+					"delete_branch_on_merge": false,
+					"squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+					"squash_merge_commit_message": "COMMIT_MESSAGES",
+					"merge_commit_title": "MERGE_MESSAGE",
+					"merge_commit_message": "PR_TITLE",
+					"visibility": "public",
+					"archived": false
+				}
+				""";
+		// desired has allowForking=true but actual has false; no drift expected
+		// for user-owned repos
+		var items = group(desiredFull(), parseDetails(json)).detect();
+		assertThat(items).isEmpty();
+	}
+
+	@Test
+	void allowForkingCheckedForOrgOwnedRepo() {
+		var json = """
+				{
+					"owner": {"login": "myorg", "type": "Organization"},
+					"description": "A great project",
+					"homepage": "",
+					"has_issues": true,
+					"has_projects": true,
+					"has_wiki": true,
+					"has_discussions": false,
+					"is_template": false,
+					"allow_forking": false,
+					"web_commit_signoff_required": false,
+					"default_branch": "main",
+					"topics": [],
+					"allow_merge_commit": true,
+					"allow_squash_merge": true,
+					"allow_rebase_merge": true,
+					"allow_update_branch": false,
+					"allow_auto_merge": false,
+					"delete_branch_on_merge": false,
+					"squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+					"squash_merge_commit_message": "COMMIT_MESSAGES",
+					"merge_commit_title": "MERGE_MESSAGE",
+					"merge_commit_message": "PR_TITLE",
+					"visibility": "public",
+					"archived": false
+				}
+				""";
+		// desired has allowForking=true but actual has false; drift expected
+		// for org-owned repos
+		var items = group(desiredFull(), parseDetails(json)).detect();
+		assertThat(items).hasSize(1);
+		var mismatch = (DriftItem.FieldMismatch) items.getFirst();
+		assertThat(mismatch.path()).isEqualTo("allow_forking");
 	}
 
 	@Test

@@ -47,8 +47,9 @@ public class TopicsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		client.replaceTopics(owner, repo, desired);
+		return FixResult.success();
 	}
 
 }
