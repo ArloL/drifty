@@ -1,6 +1,7 @@
 package io.github.arlol.githubcheck;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +51,37 @@ public class GitHubCheck {
 							new TypeReference<Map<String, String>>() {
 							}
 					);
+		}
+
+		if (fix) {
+			var missingSecrets = new ArrayList<String>();
+			for (RepositoryArgs repo : repositories()) {
+				for (String secretName : repo.actionsSecrets()) {
+					String key = repo.name() + "-" + secretName;
+					if (!githubSecrets.containsKey(key)) {
+						missingSecrets.add(key);
+					}
+				}
+				for (var entry : repo.environments().entrySet()) {
+					String envName = entry.getKey();
+					for (String secretName : entry.getValue().secrets()) {
+						String key = repo.name() + "-" + envName + "-"
+								+ secretName;
+						if (!githubSecrets.containsKey(key)) {
+							missingSecrets.add(key);
+						}
+					}
+				}
+			}
+			if (!missingSecrets.isEmpty()) {
+				System.err.println(
+						"ERROR: Missing secret values in DRIFTY_GITHUB_SECRETS for fix mode:"
+				);
+				for (String key : missingSecrets) {
+					System.err.println("  " + key);
+				}
+				System.exit(1);
+			}
 		}
 
 		long startTime = System.currentTimeMillis();
