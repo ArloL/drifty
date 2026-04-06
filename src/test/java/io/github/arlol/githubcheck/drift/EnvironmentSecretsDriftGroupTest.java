@@ -30,7 +30,7 @@ class EnvironmentSecretsDriftGroupTest {
 	}
 
 	@Test
-	void noDrift_whenSecretsMatch() {
+	void detectsUnverifiable_whenSecretExists() {
 		var desired = RepositoryArgs.create("owner", "repo")
 				.environment("production", env -> env.secrets("DB_PASS"))
 				.build();
@@ -43,7 +43,16 @@ class EnvironmentSecretsDriftGroupTest {
 				"repo"
 		);
 
-		assertThat(group.detect()).isEmpty();
+		var items = group.detect();
+
+		assertThat(items).hasSize(1);
+		assertThat(items.getFirst())
+				.isInstanceOf(DriftItem.SecretUnverifiable.class);
+		assertThat(items.getFirst().path())
+				.isEqualTo("environment.production.secrets.DB_PASS");
+		assertThat(items.getFirst().message()).isEqualTo(
+				"environment.production.secrets.DB_PASS: unverifiable"
+		);
 	}
 
 	@Test
@@ -63,12 +72,12 @@ class EnvironmentSecretsDriftGroupTest {
 		var items = group.detect();
 
 		assertThat(items).hasSize(1);
-		assertThat(items.getFirst()).isInstanceOf(DriftItem.SetDrift.class);
-		var drift = (DriftItem.SetDrift) items.getFirst();
-		assertThat(drift.path()).isEqualTo("environment.production.secrets");
-		assertThat(drift.missing()).hasSize(1);
-		assertThat(drift.extra()).isEmpty();
-		assertThat(drift.message()).contains("DB_PASS");
+		assertThat(items.getFirst())
+				.isInstanceOf(DriftItem.SectionMissing.class);
+		assertThat(items.getFirst().path())
+				.isEqualTo("environment.production.secrets.DB_PASS");
+		assertThat(items.getFirst().message())
+				.isEqualTo("environment.production.secrets.DB_PASS: missing");
 	}
 
 	@Test
@@ -87,15 +96,19 @@ class EnvironmentSecretsDriftGroupTest {
 
 		var items = group.detect();
 
-		assertThat(items).hasSize(1);
-		var drift = (DriftItem.SetDrift) items.getFirst();
-		assertThat(drift.extra()).hasSize(1);
-		assertThat(drift.missing()).isEmpty();
-		assertThat(drift.message()).contains("STALE_KEY");
+		assertThat(items).hasSize(2);
+		assertThat(items).anyMatch(
+				i -> i instanceof DriftItem.SecretUnverifiable && i.path()
+						.equals("environment.production.secrets.DB_PASS")
+		);
+		assertThat(items).anyMatch(
+				i -> i instanceof DriftItem.SectionExtra && i.path()
+						.equals("environment.production.secrets.STALE_KEY")
+		);
 	}
 
 	@Test
-	void detectsDrift_acrossMultipleEnvironments() {
+	void detectsPerItem_acrossMultipleEnvironments() {
 		var desired = RepositoryArgs.create("owner", "repo")
 				.environment("staging", env -> env.secrets("STAGING_KEY"))
 				.environment("production", env -> env.secrets("PROD_KEY"))
@@ -112,14 +125,13 @@ class EnvironmentSecretsDriftGroupTest {
 		var items = group.detect();
 
 		assertThat(items).hasSize(2);
-		assertThat(items).allMatch(i -> i instanceof DriftItem.SetDrift);
 		assertThat(items).anyMatch(
-				i -> ((DriftItem.SetDrift) i).path()
-						.equals("environment.staging.secrets")
+				i -> i instanceof DriftItem.SectionMissing && i.path()
+						.equals("environment.staging.secrets.STAGING_KEY")
 		);
 		assertThat(items).anyMatch(
-				i -> ((DriftItem.SetDrift) i).path()
-						.equals("environment.production.secrets")
+				i -> i instanceof DriftItem.SectionMissing && i.path()
+						.equals("environment.production.secrets.PROD_KEY")
 		);
 	}
 
