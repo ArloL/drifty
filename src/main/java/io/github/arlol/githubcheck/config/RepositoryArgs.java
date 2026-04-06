@@ -114,7 +114,7 @@ public record RepositoryArgs(
 		private boolean hasWiki = true;
 		private boolean hasDiscussions = false;
 		private boolean isTemplate = false;
-		private boolean allowForking = false;
+		private boolean allowForking = true;
 		private boolean webCommitSignoffRequired = false;
 		private boolean allowMergeCommit = true;
 		private boolean allowSquashMerge = true;
