@@ -32,6 +32,14 @@ public class StatusCheckArgs {
 	}
 
 	@Override
+	public String toString() {
+		if (appId != null) {
+			return context + ":" + appId;
+		}
+		return context;
+	}
+
+	@Override
 	public boolean equals(Object o) {
 		if (o == null || getClass() != o.getClass())
 			return false;

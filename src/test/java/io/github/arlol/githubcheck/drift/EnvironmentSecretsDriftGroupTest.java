@@ -1,0 +1,126 @@
+package io.github.arlol.githubcheck.drift;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+
+import io.github.arlol.githubcheck.config.RepositoryArgs;
+
+class EnvironmentSecretsDriftGroupTest {
+
+	@Test
+	void noDrift_whenNoDesiredSecrets() {
+		var desired = RepositoryArgs.create("owner", "repo")
+				.environment("production", env -> {
+				})
+				.build();
+		var group = new EnvironmentSecretsDriftGroup(
+				desired,
+				Map.of("production", List.of("EXTRA_SECRET")),
+				Map.of(),
+				null,
+				"owner",
+				"repo"
+		);
+
+		assertThat(group.detect()).isEmpty();
+	}
+
+	@Test
+	void noDrift_whenSecretsMatch() {
+		var desired = RepositoryArgs.create("owner", "repo")
+				.environment("production", env -> env.secrets("DB_PASS"))
+				.build();
+		var group = new EnvironmentSecretsDriftGroup(
+				desired,
+				Map.of("production", List.of("DB_PASS")),
+				Map.of(),
+				null,
+				"owner",
+				"repo"
+		);
+
+		assertThat(group.detect()).isEmpty();
+	}
+
+	@Test
+	void detectsMissingSecret() {
+		var desired = RepositoryArgs.create("owner", "repo")
+				.environment("production", env -> env.secrets("DB_PASS"))
+				.build();
+		var group = new EnvironmentSecretsDriftGroup(
+				desired,
+				Map.of("production", List.of()),
+				Map.of(),
+				null,
+				"owner",
+				"repo"
+		);
+
+		var items = group.detect();
+
+		assertThat(items).hasSize(1);
+		assertThat(items.getFirst()).isInstanceOf(DriftItem.SetDrift.class);
+		var drift = (DriftItem.SetDrift) items.getFirst();
+		assertThat(drift.path()).isEqualTo("environment.production.secrets");
+		assertThat(drift.missing()).hasSize(1);
+		assertThat(drift.extra()).isEmpty();
+		assertThat(drift.message()).contains("DB_PASS");
+	}
+
+	@Test
+	void detectsExtraSecret() {
+		var desired = RepositoryArgs.create("owner", "repo")
+				.environment("production", env -> env.secrets("DB_PASS"))
+				.build();
+		var group = new EnvironmentSecretsDriftGroup(
+				desired,
+				Map.of("production", List.of("DB_PASS", "STALE_KEY")),
+				Map.of(),
+				null,
+				"owner",
+				"repo"
+		);
+
+		var items = group.detect();
+
+		assertThat(items).hasSize(1);
+		var drift = (DriftItem.SetDrift) items.getFirst();
+		assertThat(drift.extra()).hasSize(1);
+		assertThat(drift.missing()).isEmpty();
+		assertThat(drift.message()).contains("STALE_KEY");
+	}
+
+	@Test
+	void detectsDrift_acrossMultipleEnvironments() {
+		var desired = RepositoryArgs.create("owner", "repo")
+				.environment("staging", env -> env.secrets("STAGING_KEY"))
+				.environment("production", env -> env.secrets("PROD_KEY"))
+				.build();
+		var group = new EnvironmentSecretsDriftGroup(
+				desired,
+				Map.of("staging", List.of(), "production", List.of()),
+				Map.of(),
+				null,
+				"owner",
+				"repo"
+		);
+
+		var items = group.detect();
+
+		assertThat(items).hasSize(2);
+		assertThat(items).allMatch(i -> i instanceof DriftItem.SetDrift);
+		assertThat(items).anyMatch(
+				i -> ((DriftItem.SetDrift) i).path()
+						.equals("environment.staging.secrets")
+		);
+		assertThat(items).anyMatch(
+				i -> ((DriftItem.SetDrift) i).path()
+						.equals("environment.production.secrets")
+		);
+	}
+
+}

@@ -178,7 +178,6 @@ public class RepoSettingsDriftGroup extends DriftGroup {
 	@Override
 	public void fix() {
 		var request = RepositoryUpdateRequest.builder()
-				.archived(desired.archived())
 				.description(desired.description())
 				.homepage(desired.homepageUrl())
 				.hasIssues(desired.hasIssues())

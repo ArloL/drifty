@@ -35,7 +35,6 @@ import io.github.arlol.githubcheck.client.PagesCreateRequest;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.PagesUpdateRequest;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
-import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
@@ -56,8 +55,10 @@ import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulePatternArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
+import io.github.arlol.githubcheck.drift.ArchivedDriftGroup;
 import io.github.arlol.githubcheck.drift.AutomatedSecurityFixesDriftGroup;
 import io.github.arlol.githubcheck.drift.ActionSecretsDriftGroup;
+import io.github.arlol.githubcheck.drift.BranchProtectionDriftGroup;
 import io.github.arlol.githubcheck.drift.CodeScanningDefaultSetupDriftGroup;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
@@ -67,6 +68,7 @@ import io.github.arlol.githubcheck.drift.ImmutableReleasesDriftGroup;
 import io.github.arlol.githubcheck.drift.PagesDriftGroup;
 import io.github.arlol.githubcheck.drift.PrivateVulnerabilityReportingDriftGroup;
 import io.github.arlol.githubcheck.drift.RepoSettingsDriftGroup;
+import io.github.arlol.githubcheck.drift.RulesetDriftGroup;
 import io.github.arlol.githubcheck.drift.SecretScanningDriftGroup;
 import io.github.arlol.githubcheck.drift.SecretScanningNonProviderPatternsDriftGroup;
 import io.github.arlol.githubcheck.drift.SecretScanningPushProtectionDriftGroup;
@@ -183,15 +185,13 @@ public class OrgChecker {
 					desired
 			);
 
-			List<String> diffs = computeDiffs(state, desired);
-			groupDrifts.values()
+			List<String> diffs = groupDrifts.values()
 					.stream()
 					.flatMap(List::stream)
 					.map(DriftItem::message)
-					.forEach(diffs::add);
+					.collect(Collectors.toCollection(ArrayList::new));
 
 			if (fix) {
-				diffs = applyFixes(name, state, desired, diffs);
 				diffs = applyFixes(name, diffs, groupDrifts);
 			}
 			return diffs.isEmpty() ? CheckResult.RepoCheckResult.ok(name)
@@ -339,7 +339,38 @@ public class OrgChecker {
 			RepositoryState actual,
 			RepositoryArgs desired
 	) {
+		if (desired.archived()) {
+			// When archiving (or already archived): only check archived state,
+			// skip all other groups since settings don't matter for archived
+			// repos.
+			return List.of(
+					new ArchivedDriftGroup(
+							true,
+							actual.summary().archived(),
+							client,
+							org,
+							actual.summary().name()
+					)
+			);
+		}
+
 		var groups = new ArrayList<DriftGroup>();
+
+		// Always first: when actual.archived=true, unarchive must run before
+		// any
+		// other fix (other fixes fail on archived repos). When
+		// actual.archived=false,
+		// detect() returns empty and computeGroupDrifts skips it.
+		groups.add(
+				new ArchivedDriftGroup(
+						false,
+						actual.summary().archived(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+
 		groups.add(
 				new RepoSettingsDriftGroup(
 						desired,
@@ -515,685 +546,33 @@ public class OrgChecker {
 				)
 		);
 
+		// Branch protection
+		groups.add(
+				new BranchProtectionDriftGroup(
+						desired,
+						actual.branchProtections(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+
+		// Rulesets
+		groups.add(
+				new RulesetDriftGroup(
+						desired,
+						actual.rulesets(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+
 		return groups;
-	}
-
-	// ─── Diff
-	// ──────────────────────────────────────────────────────────────
-
-	List<String> computeDiffs(RepositoryState actual, RepositoryArgs desired) {
-		List<String> diffs = new ArrayList<>();
-
-		if (desired.archived()) {
-			if (actual.summary().archived()) {
-				return List.of();
-			} else {
-				return List.of("archived");
-			}
-		}
-
-		checkBranchProtection(diffs, actual, desired);
-		checkRulesets(diffs, actual, desired);
-
-		return diffs;
-	}
-
-	private void checkBranchProtection(
-			List<String> diffs,
-			RepositoryState actual,
-			RepositoryArgs desired
-	) {
-		var wantedBps = desired.branchProtections().values();
-		var actualBps = new HashMap<>(actual.branchProtections());
-
-		if (actualBps.isEmpty()) {
-			for (BranchProtectionArgs wanted : wantedBps) {
-				diffs.add(
-						"branch_protection." + wanted.pattern() + ": missing"
-				);
-			}
-			return;
-		}
-
-		for (BranchProtectionArgs wanted : wantedBps) {
-			String prefix = "branch_protection." + wanted.pattern();
-
-			var actualBp = actualBps.remove(wanted.pattern());
-			if (actualBp == null) {
-				diffs.add(prefix + ": missing");
-				continue;
-			}
-
-			check(
-					diffs,
-					prefix + ".enforce_admins",
-					wanted.enforceAdmins(),
-					actualBp.enforceAdmins().enabled()
-			);
-			check(
-					diffs,
-					prefix + ".required_linear_history",
-					wanted.requiredLinearHistory(),
-					actualBp.requiredLinearHistory().enabled()
-			);
-			check(
-					diffs,
-					prefix + ".allow_force_pushes",
-					wanted.allowForcePushes(),
-					actualBp.allowForcePushes().enabled()
-			);
-			check(
-					diffs,
-					prefix + ".require_conversation_resolution",
-					wanted.requireConversationResolution(),
-					actualBp.requiredConversationResolution() != null
-							&& actualBp.requiredConversationResolution()
-									.enabled()
-			);
-
-			var rsc = actualBp.requiredStatusChecks();
-			boolean strict = rsc != null && rsc.strict();
-			Set<StatusCheckArgs> wantedChecks = wanted.requiredStatusChecks();
-			check(
-					diffs,
-					prefix + ".required_status_checks.strict",
-					false,
-					strict
-			);
-
-			List<StatusCheckArgs> statusChecks = List.of();
-			if (rsc != null) {
-				var checks = rsc.checks();
-				if (checks != null && !checks.isEmpty()) {
-					statusChecks = checks.stream()
-							.map(
-									c -> StatusCheckArgs.builder()
-											.context(c.context())
-											.appId(c.appId())
-											.build()
-							)
-							.toList();
-				} else {
-					var contexts = rsc.contexts();
-					if (contexts != null) {
-						statusChecks = contexts.stream()
-								.map(
-										c -> StatusCheckArgs.builder()
-												.context(c)
-												.build()
-								)
-								.toList();
-					}
-				}
-			}
-
-			checkStatusCheckSets(
-					diffs,
-					prefix + ".required_status_checks",
-					new HashSet<>(wantedChecks),
-					new HashSet<>(statusChecks)
-			);
-
-			var rpr = actualBp.requiredPullRequestReviews();
-			if (rpr == null) {
-				if (wanted.dismissStaleReviews()
-						|| wanted.requireCodeOwnerReviews()
-						|| wanted.requiredApprovingReviewCount() != null
-						|| wanted.requireLastPushApproval() != null) {
-					diffs.add(
-							prefix + ".required_pull_request_reviews: missing"
-					);
-				}
-			} else {
-				check(
-						diffs,
-						prefix + ".required_pull_request_reviews.dismiss_stale_reviews",
-						wanted.dismissStaleReviews(),
-						rpr.dismissStaleReviews()
-				);
-				check(
-						diffs,
-						prefix + ".required_pull_request_reviews.require_code_owner_reviews",
-						wanted.requireCodeOwnerReviews(),
-						rpr.requireCodeOwnerReviews()
-				);
-				Integer wantCount = wanted.requiredApprovingReviewCount();
-				Integer actualCount = rpr.requiredApprovingReviewCount();
-				if (wantCount == null && actualCount != null) {
-					diffs.add(
-							prefix + ".required_pull_request_reviews.required_approving_review_count: drifted"
-					);
-				} else if (wantCount != null
-						&& !wantCount.equals(actualCount)) {
-					diffs.add(
-							prefix + ".required_pull_request_reviews.required_approving_review_count: drifted"
-					);
-				}
-				Boolean wantLastPush = wanted.requireLastPushApproval();
-				Boolean actualLastPush = rpr.requireLastPushApproval();
-				if (wantLastPush == null && actualLastPush != null
-						&& actualLastPush) {
-					diffs.add(
-							prefix + ".required_pull_request_reviews.require_last_push_approval: drifted"
-					);
-				} else if (wantLastPush != null
-						&& !wantLastPush.equals(actualLastPush)) {
-					diffs.add(
-							prefix + ".required_pull_request_reviews.require_last_push_approval: drifted"
-					);
-				}
-			}
-
-			var restrictions = actualBp.restrictions();
-			if (restrictions == null) {
-				if (!wanted.users().isEmpty() || !wanted.teams().isEmpty()
-						|| !wanted.apps().isEmpty()) {
-					diffs.add(prefix + ".restrictions: missing");
-				}
-			} else {
-				Set<String> wantUsers = new HashSet<>(wanted.users());
-				Set<String> actualUsers = restrictions.users()
-						.stream()
-						.map(SimpleUser::login)
-						.collect(Collectors.toSet());
-				checkSets(
-						diffs,
-						prefix + ".restrictions.users",
-						wantUsers,
-						actualUsers
-				);
-
-				Set<String> wantTeams = new HashSet<>(wanted.teams());
-				Set<String> actualTeams = restrictions.teams()
-						.stream()
-						.map(BranchProtectionResponse.Restrictions.Team::slug)
-						.collect(Collectors.toSet());
-				checkSets(
-						diffs,
-						prefix + ".restrictions.teams",
-						wantTeams,
-						actualTeams
-				);
-
-				Set<String> wantApps = new HashSet<>(wanted.apps());
-				Set<String> actualApps = restrictions.apps()
-						.stream()
-						.map(BranchProtectionResponse.Restrictions.App::slug)
-						.collect(Collectors.toSet());
-				checkSets(
-						diffs,
-						prefix + ".restrictions.apps",
-						wantApps,
-						actualApps
-				);
-			}
-		}
-
-		for (var actualBpName : actualBps.keySet()) {
-			diffs.add("branch_protection." + actualBpName + ": extra");
-		}
-	}
-
-	private void checkRulesets(
-			List<String> diffs,
-			RepositoryState actual,
-			RepositoryArgs desired
-	) {
-		if (desired.rulesets().isEmpty()) {
-			return;
-		}
-
-		Map<String, RulesetDetailsResponse> actualByName = actual.rulesets()
-				.stream()
-				.collect(
-						Collectors.toMap(
-								RulesetDetailsResponse::name,
-								r -> r,
-								(a, b) -> a
-						)
-				);
-
-		for (RulesetArgs wantedRuleset : desired.rulesets()) {
-			String rName = wantedRuleset.name();
-			RulesetDetailsResponse actualRuleset = actualByName.get(rName);
-			if (actualRuleset == null) {
-				diffs.add("ruleset." + rName + ": missing");
-				continue;
-			}
-
-			// Check include patterns
-			Set<String> wantIncludes = new HashSet<>(
-					wantedRuleset.includePatterns()
-			);
-			Set<String> gotIncludes = Set.of();
-			if (actualRuleset.conditions() != null
-					&& actualRuleset.conditions().refName() != null
-					&& actualRuleset.conditions().refName().include() != null) {
-				gotIncludes = new HashSet<>(
-						actualRuleset.conditions().refName().include()
-				);
-			}
-			checkSets(
-					diffs,
-					"ruleset." + rName + ".include_patterns",
-					wantIncludes,
-					gotIncludes
-			);
-
-			// Build a map of actual rules by type
-			Map<RulesetRuleType, Rule> actualRulesByType = Map.of();
-			if (actualRuleset.rules() != null) {
-				actualRulesByType = actualRuleset.rules()
-						.stream()
-						.filter(r -> r.type() != null)
-						.collect(
-								Collectors
-										.toMap(Rule::type, r -> r, (a, b) -> a)
-						);
-			}
-
-			// Check required_linear_history
-			boolean hasLinearHistory = actualRulesByType
-					.containsKey(RulesetRuleType.REQUIRED_LINEAR_HISTORY);
-			check(
-					diffs,
-					"ruleset." + rName + ".required_linear_history",
-					wantedRuleset.requiredLinearHistory(),
-					hasLinearHistory
-			);
-
-			// Check non_fast_forward (no force pushes)
-			boolean hasNonFastForward = actualRulesByType
-					.containsKey(RulesetRuleType.NON_FAST_FORWARD);
-			check(
-					diffs,
-					"ruleset." + rName + ".no_force_pushes",
-					wantedRuleset.noForcePushes(),
-					hasNonFastForward
-			);
-
-			// Check required_status_checks
-			Set<StatusCheckArgs> wantChecks = new HashSet<>(
-					wantedRuleset.requiredStatusChecks()
-			);
-			Set<StatusCheckArgs> gotChecks = new HashSet<>();
-			if (actualRulesByType.get(
-					RulesetRuleType.REQUIRED_STATUS_CHECKS
-			) instanceof Rule.RequiredStatusChecks rsc
-					&& rsc.parameters() != null
-					&& rsc.parameters().requiredStatusChecks() != null) {
-				for (var sc : rsc.parameters().requiredStatusChecks()) {
-					gotChecks.add(
-							StatusCheckArgs.builder()
-									.context(sc.context())
-									.appId(sc.integrationId())
-									.build()
-					);
-				}
-			}
-			if (!wantChecks.isEmpty() || !gotChecks.isEmpty()) {
-				checkStatusCheckSets(
-						diffs,
-						"ruleset." + rName + ".required_status_checks",
-						wantChecks,
-						gotChecks
-				);
-			}
-
-			// Check required reviews
-			if (wantedRuleset.requiredReviewCount() != null) {
-				Integer gotCount = null;
-				if (actualRulesByType.get(
-						RulesetRuleType.PULL_REQUEST
-				) instanceof Rule.PullRequest pr && pr.parameters() != null) {
-					gotCount = pr.parameters().requiredApprovingReviewCount();
-				}
-				check(
-						diffs,
-						"ruleset." + rName + ".required_review_count",
-						wantedRuleset.requiredReviewCount(),
-						gotCount
-				);
-			}
-
-			// Check required code scanning
-			Rule.CodeScanning csRule = actualRulesByType.get(
-					RulesetRuleType.CODE_SCANNING
-			) instanceof Rule.CodeScanning cs ? cs : null;
-			List<Rule.CodeScanningTool> actualTools = csRule != null
-					&& csRule.parameters() != null
-					&& csRule.parameters().codeScanningTools() != null
-							? csRule.parameters().codeScanningTools()
-							: List.of();
-			if (!wantedRuleset.requiredCodeScanning().isEmpty()
-					|| !actualTools.isEmpty()) {
-				Set<String> wantTools = wantedRuleset.requiredCodeScanning()
-						.stream()
-						.map(cst -> cst.tool())
-						.collect(Collectors.toSet());
-				Set<String> gotTools = new HashSet<>();
-				for (var tool : actualTools) {
-					gotTools.add(tool.tool());
-				}
-				checkSets(
-						diffs,
-						"ruleset." + rName + ".required_code_scanning",
-						wantTools,
-						gotTools
-				);
-			}
-
-			// Check creation
-			check(
-					diffs,
-					"ruleset." + rName + ".creation",
-					wantedRuleset.creation(),
-					actualRulesByType.containsKey(RulesetRuleType.CREATION)
-			);
-
-			// Check deletion
-			check(
-					diffs,
-					"ruleset." + rName + ".deletion",
-					wantedRuleset.deletion(),
-					actualRulesByType.containsKey(RulesetRuleType.DELETION)
-			);
-
-			// Check required_signatures
-			check(
-					diffs,
-					"ruleset." + rName + ".required_signatures",
-					wantedRuleset.requiredSignatures(),
-					actualRulesByType
-							.containsKey(RulesetRuleType.REQUIRED_SIGNATURES)
-			);
-
-			// Check update
-			check(
-					diffs,
-					"ruleset." + rName + ".update",
-					wantedRuleset.update(),
-					actualRulesByType.containsKey(RulesetRuleType.UPDATE)
-			);
-			if (wantedRuleset.update() && actualRulesByType.get(
-					RulesetRuleType.UPDATE
-			) instanceof Rule.Update updateRule) {
-				Boolean gotAllowsFetch = updateRule.parameters() != null
-						? updateRule.parameters().updateAllowsFetchAndMerge()
-						: null;
-				check(
-						diffs,
-						"ruleset." + rName + ".update_allows_fetch_and_merge",
-						wantedRuleset.updateAllowsFetchAndMerge(),
-						Boolean.TRUE.equals(gotAllowsFetch)
-				);
-			}
-
-			// Check pattern rules
-			checkPatternRule(
-					diffs,
-					"ruleset." + rName + ".commit_message_pattern",
-					wantedRuleset.commitMessagePattern(),
-					actualRulesByType.get(
-							RulesetRuleType.COMMIT_MESSAGE_PATTERN
-					) instanceof Rule.CommitMessagePattern r ? r.parameters()
-							: null
-			);
-			checkPatternRule(
-					diffs,
-					"ruleset." + rName + ".commit_author_email_pattern",
-					wantedRuleset.commitAuthorEmailPattern(),
-					actualRulesByType.get(
-							RulesetRuleType.COMMIT_AUTHOR_EMAIL_PATTERN
-					) instanceof Rule.CommitAuthorEmailPattern r
-							? r.parameters()
-							: null
-			);
-			checkPatternRule(
-					diffs,
-					"ruleset." + rName + ".committer_email_pattern",
-					wantedRuleset.committerEmailPattern(),
-					actualRulesByType.get(
-							RulesetRuleType.COMMITTER_EMAIL_PATTERN
-					) instanceof Rule.CommitterEmailPattern r ? r.parameters()
-							: null
-			);
-			checkPatternRule(
-					diffs,
-					"ruleset." + rName + ".branch_name_pattern",
-					wantedRuleset.branchNamePattern(),
-					actualRulesByType.get(
-							RulesetRuleType.BRANCH_NAME_PATTERN
-					) instanceof Rule.BranchNamePattern r ? r.parameters()
-							: null
-			);
-			checkPatternRule(
-					diffs,
-					"ruleset." + rName + ".tag_name_pattern",
-					wantedRuleset.tagNamePattern(),
-					actualRulesByType.get(
-							RulesetRuleType.TAG_NAME_PATTERN
-					) instanceof Rule.TagNamePattern r ? r.parameters() : null
-			);
-
-			// Check required_deployments
-			Set<String> wantDeployments = wantedRuleset.requiredDeployments();
-			Set<String> gotDeployments = new HashSet<>();
-			if (actualRulesByType.get(
-					RulesetRuleType.REQUIRED_DEPLOYMENTS
-			) instanceof Rule.RequiredDeployments rd && rd.parameters() != null
-					&& rd.parameters()
-							.requiredDeploymentEnvironments() != null) {
-				gotDeployments.addAll(
-						rd.parameters().requiredDeploymentEnvironments()
-				);
-			}
-			if (!wantDeployments.isEmpty() || !gotDeployments.isEmpty()) {
-				checkSets(
-						diffs,
-						"ruleset." + rName + ".required_deployments",
-						wantDeployments,
-						gotDeployments
-				);
-			}
-
-			// Check bypass actors (Feature 23)
-			List<BypassActorArgs> wantBypass = wantedRuleset.bypassActors();
-			if (!wantBypass.isEmpty()) {
-				List<RulesetDetailsResponse.BypassActor> gotBypass = actualRuleset
-						.bypassActors() != null ? actualRuleset.bypassActors()
-								: List.of();
-				Set<String> wantSet = wantBypass.stream()
-						.map(
-								a -> a.actorType() + ":" + a.actorId() + ":"
-										+ a.bypassMode()
-						)
-						.collect(Collectors.toSet());
-				Set<String> gotSet = gotBypass.stream()
-						.map(
-								a -> a.actorType() + ":" + a.actorId() + ":"
-										+ a.bypassMode()
-						)
-						.collect(Collectors.toSet());
-				checkSets(
-						diffs,
-						"ruleset." + rName + ".bypass_actors",
-						wantSet,
-						gotSet
-				);
-			}
-		}
-
-		// Check for extra rulesets (Feature 24)
-		Set<String> desiredNames = desired.rulesets()
-				.stream()
-				.map(RulesetArgs::name)
-				.collect(Collectors.toSet());
-		for (RulesetDetailsResponse extra : actual.rulesets()) {
-			if (!desiredNames.contains(extra.name())) {
-				diffs.add("ruleset." + extra.name() + ": extra");
-			}
-		}
 	}
 
 	// ─── Fix
 	// ──────────────────────────────────────────────────────────────
-
-	List<String> applyFixes(
-			String name,
-			RepositoryState actual,
-			RepositoryArgs desired,
-			List<String> diffs
-	) throws IOException, InterruptedException {
-		List<String> remaining = new ArrayList<>(diffs);
-
-		if (desired.archived()) {
-			if (remaining.remove("archived")) {
-				client.updateRepository(
-						org,
-						name,
-						RepositoryUpdateRequest.builder().archived(true).build()
-				);
-				System.out.printf("[FIXED]   %s: archived%n", name);
-			}
-			return remaining;
-		}
-
-		// Branch protection (fixable for public repos)
-		List<String> branchProtectionDiffs = new ArrayList<>();
-		checkBranchProtection(branchProtectionDiffs, actual, desired);
-		if (!branchProtectionDiffs.isEmpty()) {
-			for (BranchProtectionArgs wantedBp : desired.branchProtections()
-					.values()) {
-				boolean hasBpDrift = branchProtectionDiffs.stream()
-						.anyMatch(d -> d.contains("." + wantedBp.pattern()));
-				if (!hasBpDrift) {
-					continue;
-				}
-
-				Set<StatusCheckArgs> wantedStatusChecks = wantedBp
-						.requiredStatusChecks();
-				List<BranchProtectionRequest.RequiredStatusChecks.StatusCheck> checks = wantedStatusChecks
-						.stream()
-						.map(
-								sc -> new BranchProtectionRequest.RequiredStatusChecks.StatusCheck(
-										sc.getContext(),
-										sc.getAppId()
-								)
-						)
-						.toList();
-
-				BranchProtectionRequest.RequiredPullRequestReviews rpr = null;
-				BranchProtectionRequest.Restrictions restrictions = null;
-
-				boolean hasPrReviews = wantedBp.dismissStaleReviews()
-						|| wantedBp.requireCodeOwnerReviews()
-						|| wantedBp.requiredApprovingReviewCount() != null
-						|| wantedBp.requireLastPushApproval() != null;
-				if (hasPrReviews) {
-					rpr = new BranchProtectionRequest.RequiredPullRequestReviews(
-							wantedBp.dismissStaleReviews(),
-							wantedBp.requireCodeOwnerReviews(),
-							wantedBp.requiredApprovingReviewCount(),
-							wantedBp.requireLastPushApproval()
-					);
-				}
-
-				if (!wantedBp.users().isEmpty() || !wantedBp.teams().isEmpty()
-						|| !wantedBp.apps().isEmpty()) {
-					restrictions = new BranchProtectionRequest.Restrictions(
-							wantedBp.users(),
-							wantedBp.teams(),
-							wantedBp.apps()
-					);
-				}
-
-				var payload = new BranchProtectionRequest(
-						new BranchProtectionRequest.RequiredStatusChecks(
-								false,
-								checks
-						),
-						wantedBp.enforceAdmins(),
-						rpr,
-						restrictions,
-						wantedBp.requiredLinearHistory(),
-						wantedBp.allowForcePushes()
-				);
-				client.updateBranchProtection(
-						org,
-						name,
-						wantedBp.pattern(),
-						payload
-				);
-				System.out.printf(
-						"[FIXED]   %s: branch_protection:%s updated%n",
-						name,
-						wantedBp.pattern()
-				);
-			}
-			remaining.removeAll(branchProtectionDiffs);
-		}
-
-		// Rulesets (fixable)
-		List<String> rulesetDiffs = new ArrayList<>();
-		checkRulesets(rulesetDiffs, actual, desired);
-		if (!rulesetDiffs.isEmpty()) {
-			Map<String, RulesetDetailsResponse> actualByName = actual.rulesets()
-					.stream()
-					.collect(
-							Collectors.toMap(
-									RulesetDetailsResponse::name,
-									r -> r,
-									(a, b) -> a
-							)
-					);
-			for (RulesetArgs wantedRuleset : desired.rulesets()) {
-				String prefix = "ruleset." + wantedRuleset.name();
-				boolean hasDrift = rulesetDiffs.stream()
-						.anyMatch(d -> d.startsWith(prefix));
-				if (!hasDrift) {
-					continue;
-				}
-				RulesetRequest payload = buildRulesetRequest(wantedRuleset);
-				RulesetDetailsResponse existing = actualByName
-						.get(wantedRuleset.name());
-				if (existing == null) {
-					client.createRuleset(org, name, payload);
-					System.out.printf(
-							"[FIXED]   %s: ruleset.%s created%n",
-							name,
-							wantedRuleset.name()
-					);
-				} else {
-					client.updateRuleset(org, name, existing.id(), payload);
-					System.out.printf(
-							"[FIXED]   %s: ruleset.%s updated%n",
-							name,
-							wantedRuleset.name()
-					);
-				}
-			}
-			// Delete extra rulesets (Feature 24)
-			Set<String> desiredNames = desired.rulesets()
-					.stream()
-					.map(RulesetArgs::name)
-					.collect(Collectors.toSet());
-			for (RulesetDetailsResponse extra : actual.rulesets()) {
-				if (!desiredNames.contains(extra.name()) && rulesetDiffs
-						.contains("ruleset." + extra.name() + ": extra")) {
-					client.deleteRuleset(org, name, extra.id());
-					System.out.printf(
-							"[FIXED]   %s: ruleset.%s deleted%n",
-							name,
-							extra.name()
-					);
-				}
-			}
-			remaining.removeAll(rulesetDiffs);
-		}
-
-		return remaining;
-	}
 
 	List<String> applyFixes(
 			String name,
@@ -1212,170 +591,6 @@ public class OrgChecker {
 			remaining.removeAll(msgs);
 		}
 		return remaining;
-	}
-
-	private static RulesetRequest buildRulesetRequest(RulesetArgs args) {
-		List<Rule> rules = new ArrayList<>();
-		if (args.creation()) {
-			rules.add(new Rule.Creation());
-		}
-		if (args.deletion()) {
-			rules.add(new Rule.Deletion());
-		}
-		if (args.requiredSignatures()) {
-			rules.add(new Rule.RequiredSignatures());
-		}
-		if (args.requiredLinearHistory()) {
-			rules.add(new Rule.RequiredLinearHistory());
-		}
-		if (args.noForcePushes()) {
-			rules.add(new Rule.NonFastForward());
-		}
-		if (args.update()) {
-			rules.add(
-					new Rule.Update(
-							new Rule.Update.Parameters(
-									args.updateAllowsFetchAndMerge()
-							)
-					)
-			);
-		}
-		if (!args.requiredStatusChecks().isEmpty()) {
-			List<Rule.StatusCheck> checks = args.requiredStatusChecks()
-					.stream()
-					.map(
-							statusCheckArgs -> new Rule.StatusCheck(
-									statusCheckArgs.getContext(),
-									statusCheckArgs.getAppId()
-							)
-					)
-					.toList();
-			rules.add(
-					new Rule.RequiredStatusChecks(
-							new Rule.RequiredStatusChecks.Parameters(
-									checks,
-									false
-							)
-					)
-			);
-		}
-		if (args.requiredReviewCount() != null) {
-			rules.add(
-					new Rule.PullRequest(
-							new Rule.PullRequest.Parameters(
-									args.requiredReviewCount(),
-									false,
-									false,
-									false
-							)
-					)
-			);
-		}
-		if (!args.requiredCodeScanning().isEmpty()) {
-			List<Rule.CodeScanningTool> tools = args.requiredCodeScanning()
-					.stream()
-					.map(
-							csTool -> new Rule.CodeScanningTool(
-									csTool.tool(),
-									csTool.alertsThreshold()
-											.name()
-											.toLowerCase(Locale.ROOT),
-									csTool.securityAlertsThreshold()
-											.name()
-											.toLowerCase(Locale.ROOT)
-							)
-					)
-					.toList();
-			rules.add(
-					new Rule.CodeScanning(
-							new Rule.CodeScanning.Parameters(tools)
-					)
-			);
-		}
-		if (args.commitMessagePattern() != null) {
-			rules.add(
-					new Rule.CommitMessagePattern(
-							toPatternParameters(args.commitMessagePattern())
-					)
-			);
-		}
-		if (args.commitAuthorEmailPattern() != null) {
-			rules.add(
-					new Rule.CommitAuthorEmailPattern(
-							toPatternParameters(args.commitAuthorEmailPattern())
-					)
-			);
-		}
-		if (args.committerEmailPattern() != null) {
-			rules.add(
-					new Rule.CommitterEmailPattern(
-							toPatternParameters(args.committerEmailPattern())
-					)
-			);
-		}
-		if (args.branchNamePattern() != null) {
-			rules.add(
-					new Rule.BranchNamePattern(
-							toPatternParameters(args.branchNamePattern())
-					)
-			);
-		}
-		if (args.tagNamePattern() != null) {
-			rules.add(
-					new Rule.TagNamePattern(
-							toPatternParameters(args.tagNamePattern())
-					)
-			);
-		}
-		if (!args.requiredDeployments().isEmpty()) {
-			rules.add(
-					new Rule.RequiredDeployments(
-							new Rule.RequiredDeployments.Parameters(
-									List.copyOf(args.requiredDeployments())
-							)
-					)
-			);
-		}
-		List<RulesetRequest.BypassActorRequest> bypassActors = args
-				.bypassActors()
-				.stream()
-				.map(
-						a -> new RulesetRequest.BypassActorRequest(
-								a.actorId(),
-								a.actorType(),
-								a.bypassMode()
-						)
-				)
-				.toList();
-		var refName = new RulesetRequest.Conditions.RefName(
-				args.includePatterns(),
-				List.of()
-		);
-		var conditions = new RulesetRequest.Conditions(
-				refName,
-				null,
-				null,
-				null
-		);
-		return new RulesetRequest(
-				args.name(),
-				RulesetTarget.BRANCH,
-				RulesetEnforcement.ACTIVE,
-				bypassActors,
-				conditions,
-				rules
-		);
-	}
-
-	private static Rule.PatternParameters toPatternParameters(
-			RulePatternArgs args
-	) {
-		return new Rule.PatternParameters(
-				args.name(),
-				args.negate(),
-				args.operator(),
-				args.pattern()
-		);
 	}
 
 	// ─── Report
@@ -1425,95 +640,6 @@ public class OrgChecker {
 		byte[] cipherText = new byte[msgBytes.length + Box.SEALBYTES];
 		sodium.cryptoBoxSeal(cipherText, msgBytes, msgBytes.length, decodedKey);
 		return Base64.getEncoder().encodeToString(cipherText);
-	}
-
-	// ─── Helpers
-	// ──────────────────────────────────────────────────────────────
-
-	private static void check(
-			List<String> diffs,
-			String field,
-			Object want,
-			Object got
-	) {
-		if (!Objects.equals(want, got)) {
-			diffs.add(field + ": want=" + want + " got=" + got);
-		}
-	}
-
-	private static void checkPatternRule(
-			List<String> diffs,
-			String field,
-			RulePatternArgs want,
-			Rule.PatternParameters got
-	) {
-		if (want == null) {
-			return;
-		}
-		if (got == null) {
-			diffs.add(field + ": missing");
-			return;
-		}
-		check(
-				diffs,
-				field + ".negate",
-				want.negate(),
-				Boolean.TRUE.equals(got.negate())
-		);
-		check(diffs, field + ".operator", want.operator(), got.operator());
-		check(diffs, field + ".pattern", want.pattern(), got.pattern());
-	}
-
-	private static void checkStatusCheckSets(
-			List<String> diffs,
-			String field,
-			Set<StatusCheckArgs> want,
-			Set<StatusCheckArgs> got
-	) {
-		Set<StatusCheckArgs> missing = new HashSet<>(want);
-		missing.removeAll(got);
-		Set<StatusCheckArgs> extra = new HashSet<>(got);
-		extra.removeAll(want);
-		if (!missing.isEmpty()) {
-			diffs.add(field + " missing: " + sortedStatusCheckArgs(missing));
-		}
-		if (!extra.isEmpty()) {
-			diffs.add(field + " extra: " + sortedStatusCheckArgs(extra));
-		}
-	}
-
-	private static String sortedStatusCheckArgs(Set<StatusCheckArgs> s) {
-		List<String> list = new ArrayList<>(s.stream().map(sc -> {
-			Integer appId = sc.getAppId();
-			return appId != null ? sc.getContext() + " (appId=" + appId + ")"
-					: sc.getContext();
-		}).toList());
-		Collections.sort(list);
-		return list.toString();
-	}
-
-	private static void checkSets(
-			List<String> diffs,
-			String field,
-			Set<String> want,
-			Set<String> got
-	) {
-		Set<String> missing = new HashSet<>(want);
-		missing.removeAll(got);
-		Set<String> extra = new HashSet<>(got);
-		extra.removeAll(want);
-		if (!missing.isEmpty()) {
-			diffs.add(field + " missing: " + sorted(missing));
-		}
-		if (!extra.isEmpty()) {
-			diffs.add(field + " extra: " + sorted(extra));
-		}
-	}
-
-	private static List<String> sorted(Set<String> s) {
-		List<String> list = new ArrayList<>(s);
-		Collections.sort(list);
-		return list;
 	}
 
 }
