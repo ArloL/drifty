@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.BranchProtectionArgs;
 import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
@@ -124,20 +125,16 @@ public class GitHubCheck {
 				.requiredCodeScanning(
 						CodeScanningToolArgs.builder()
 								.tool("CodeQL")
-								.alertsThreshold(
-										CodeScanningToolArgs.AlertsThreshold.ERRORS
-								)
+								.alertsThreshold(Rule.AlertsThreshold.ERRORS)
 								.securityAlertsThreshold(
-										CodeScanningToolArgs.SecurityAlertsThreshold.HIGH_OR_HIGHER
+										Rule.SecurityAlertsThreshold.HIGH_OR_HIGHER
 								)
 								.build(),
 						CodeScanningToolArgs.builder()
 								.tool("zizmor")
-								.alertsThreshold(
-										CodeScanningToolArgs.AlertsThreshold.ERRORS
-								)
+								.alertsThreshold(Rule.AlertsThreshold.ERRORS)
 								.securityAlertsThreshold(
-										CodeScanningToolArgs.SecurityAlertsThreshold.HIGH_OR_HIGHER
+										Rule.SecurityAlertsThreshold.HIGH_OR_HIGHER
 								)
 								.build()
 				)

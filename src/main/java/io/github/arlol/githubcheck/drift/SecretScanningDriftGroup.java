@@ -42,7 +42,7 @@ public class SecretScanningDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		var sa = SecurityAndAnalysis.builder().secretScanning(desired).build();
 		client.updateRepository(
 				owner,
@@ -52,6 +52,7 @@ public class SecretScanningDriftGroup extends DriftGroup {
 						.securityAndAnalysis(sa)
 						.build()
 		);
+		return FixResult.success();
 	}
 
 }

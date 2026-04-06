@@ -41,12 +41,13 @@ public class AutomatedSecurityFixesDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		if (desired) {
 			client.enableAutomatedSecurityFixes(owner, repo);
 		} else {
 			client.disableAutomatedSecurityFixes(owner, repo);
 		}
+		return FixResult.success();
 	}
 
 }

@@ -89,12 +89,13 @@ public class PagesDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		if (actual.isEmpty()) {
 			client.createPages(owner, repo, buildPagesCreateRequest(desired));
 		} else {
 			client.updatePages(owner, repo, buildPagesUpdateRequest(desired));
 		}
+		return FixResult.success();
 	}
 
 	private static io.github.arlol.githubcheck.client.PagesCreateRequest buildPagesCreateRequest(

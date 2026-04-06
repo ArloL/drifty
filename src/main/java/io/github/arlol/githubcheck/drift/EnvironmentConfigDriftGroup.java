@@ -107,7 +107,7 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		for (var entry : desired.entrySet()) {
 			String envName = entry.getKey();
 			EnvironmentArgs wantEnv = entry.getValue();
@@ -115,6 +115,7 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 			var payload = buildEnvironmentUpdateRequest(wantEnv);
 			client.updateEnvironment(owner, repo, envName, payload);
 		}
+		return FixResult.success();
 	}
 
 	private static EnvironmentUpdateRequest buildEnvironmentUpdateRequest(

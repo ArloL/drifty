@@ -55,7 +55,7 @@ public class WorkflowPermissionsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		client.updateWorkflowPermissions(
 				owner,
 				repo,
@@ -64,6 +64,7 @@ public class WorkflowPermissionsDriftGroup extends DriftGroup {
 						desired.canApprovePullRequestReviews()
 				)
 		);
+		return FixResult.success();
 	}
 
 }

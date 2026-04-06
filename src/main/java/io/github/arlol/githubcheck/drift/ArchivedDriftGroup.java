@@ -38,7 +38,7 @@ public class ArchivedDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		client.updateRepository(
 				owner,
 				repo,
@@ -46,6 +46,7 @@ public class ArchivedDriftGroup extends DriftGroup {
 						.archived(desiredArchived)
 						.build()
 		);
+		return FixResult.success();
 	}
 
 }

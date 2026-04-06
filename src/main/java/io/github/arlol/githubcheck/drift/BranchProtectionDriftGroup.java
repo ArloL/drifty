@@ -297,7 +297,7 @@ public class BranchProtectionDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		for (var entry : desired.entrySet()) {
 			String pattern = entry.getKey();
 			BranchProtectionArgs wanted = entry.getValue();
@@ -305,6 +305,7 @@ public class BranchProtectionDriftGroup extends DriftGroup {
 			var payload = buildBranchProtectionRequest(wanted);
 			client.updateBranchProtection(owner, repo, pattern, payload);
 		}
+		return FixResult.success();
 	}
 
 	private static BranchProtectionRequest buildBranchProtectionRequest(

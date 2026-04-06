@@ -63,17 +63,19 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		Set<String> wantSet = new HashSet<>(desired);
 		Set<String> gotSet = new HashSet<>(actual);
 
 		Set<String> missing = new HashSet<>(wantSet);
 		missing.removeAll(gotSet);
 
+		Set<String> stillMissing = new HashSet<>();
 		for (String secretName : missing) {
 			String mapKey = repo + "-" + secretName;
 			String value = secretValues.get(mapKey);
 			if (value == null) {
+				stillMissing.add(secretName);
 				continue;
 			}
 
@@ -87,6 +89,19 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 					new SecretRequest(encrypted, publicKey.keyId())
 			);
 		}
+
+		if (stillMissing.isEmpty()) {
+			return FixResult.success();
+		}
+		return new FixResult(
+				List.of(
+						new DriftItem.SetDrift(
+								"action_secrets",
+								stillMissing,
+								Set.of()
+						)
+				)
+		);
 	}
 
 }

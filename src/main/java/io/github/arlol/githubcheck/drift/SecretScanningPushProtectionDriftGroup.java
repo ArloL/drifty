@@ -42,7 +42,7 @@ public class SecretScanningPushProtectionDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		var sa = SecurityAndAnalysis.builder()
 				.secretScanningPushProtection(desired)
 				.build();
@@ -54,6 +54,7 @@ public class SecretScanningPushProtectionDriftGroup extends DriftGroup {
 						.securityAndAnalysis(sa)
 						.build()
 		);
+		return FixResult.success();
 	}
 
 }

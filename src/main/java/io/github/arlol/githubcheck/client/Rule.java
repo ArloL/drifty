@@ -273,9 +273,26 @@ public sealed interface Rule
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	record CodeScanningTool(
 			String tool,
-			String alertsThreshold,
-			String securityAlertsThreshold
+			AlertsThreshold alertsThreshold,
+			SecurityAlertsThreshold securityAlertsThreshold
 	) {
+	}
+
+	enum AlertsThreshold {
+		@JsonProperty("none")
+		NONE, @JsonProperty("errors")
+		ERRORS, @JsonProperty("errors_and_warnings")
+		ERRORS_AND_WARNINGS, @JsonProperty("all")
+		ALL
+	}
+
+	enum SecurityAlertsThreshold {
+		@JsonProperty("none")
+		NONE, @JsonProperty("critical")
+		CRITICAL, @JsonProperty("high_or_higher")
+		HIGH_OR_HIGHER, @JsonProperty("medium_or_higher")
+		MEDIUM_OR_HIGHER, @JsonProperty("all")
+		ALL
 	}
 
 }

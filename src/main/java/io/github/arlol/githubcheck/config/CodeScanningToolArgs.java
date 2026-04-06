@@ -2,13 +2,13 @@ package io.github.arlol.githubcheck.config;
 
 import java.util.Objects;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import io.github.arlol.githubcheck.client.Rule;
 
 public final class CodeScanningToolArgs {
 
 	private final String tool;
-	private final AlertsThreshold alertsThreshold;
-	private final SecurityAlertsThreshold securityAlertsThreshold;
+	private final Rule.AlertsThreshold alertsThreshold;
+	private final Rule.SecurityAlertsThreshold securityAlertsThreshold;
 
 	private CodeScanningToolArgs(Builder builder) {
 		this.tool = builder.tool;
@@ -20,11 +20,11 @@ public final class CodeScanningToolArgs {
 		return tool;
 	}
 
-	public AlertsThreshold alertsThreshold() {
+	public Rule.AlertsThreshold alertsThreshold() {
 		return alertsThreshold;
 	}
 
-	public SecurityAlertsThreshold securityAlertsThreshold() {
+	public Rule.SecurityAlertsThreshold securityAlertsThreshold() {
 		return securityAlertsThreshold;
 	}
 
@@ -51,28 +51,11 @@ public final class CodeScanningToolArgs {
 		return new Builder();
 	}
 
-	public enum AlertsThreshold {
-		@JsonProperty("none")
-		NONE, @JsonProperty("errors")
-		ERRORS, @JsonProperty("errors_and_warnings")
-		ERRORS_AND_WARNINGS, @JsonProperty("all")
-		ALL
-	}
-
-	public enum SecurityAlertsThreshold {
-		@JsonProperty("none")
-		NONE, @JsonProperty("critical")
-		CRITICAL, @JsonProperty("high_or_higher")
-		HIGH_OR_HIGHER, @JsonProperty("medium_or_higher")
-		MEDIUM_OR_HIGHER, @JsonProperty("all")
-		ALL
-	}
-
 	public static final class Builder {
 
 		private String tool;
-		private AlertsThreshold alertsThreshold = AlertsThreshold.NONE;
-		private SecurityAlertsThreshold securityAlertsThreshold = SecurityAlertsThreshold.NONE;
+		private Rule.AlertsThreshold alertsThreshold = Rule.AlertsThreshold.NONE;
+		private Rule.SecurityAlertsThreshold securityAlertsThreshold = Rule.SecurityAlertsThreshold.NONE;
 
 		public Builder() {
 		}
@@ -88,13 +71,13 @@ public final class CodeScanningToolArgs {
 			return this;
 		}
 
-		public Builder alertsThreshold(AlertsThreshold alertsThreshold) {
+		public Builder alertsThreshold(Rule.AlertsThreshold alertsThreshold) {
 			this.alertsThreshold = alertsThreshold;
 			return this;
 		}
 
 		public Builder securityAlertsThreshold(
-				SecurityAlertsThreshold securityAlertsThreshold
+				Rule.SecurityAlertsThreshold securityAlertsThreshold
 		) {
 			this.securityAlertsThreshold = securityAlertsThreshold;
 			return this;

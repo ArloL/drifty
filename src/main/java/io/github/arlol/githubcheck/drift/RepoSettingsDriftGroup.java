@@ -7,6 +7,7 @@ import java.util.Objects;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
+import io.github.arlol.githubcheck.client.SimpleUser;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 
 public class RepoSettingsDriftGroup extends DriftGroup {
@@ -88,13 +89,15 @@ public class RepoSettingsDriftGroup extends DriftGroup {
 						actual.isTemplate()
 				)
 		);
-		items.addAll(
-				compare(
-						"allow_forking",
-						desired.allowForking(),
-						actual.allowForking()
-				)
-		);
+		if (isOrgOwned()) {
+			items.addAll(
+					compare(
+							"allow_forking",
+							desired.allowForking(),
+							actual.allowForking()
+					)
+			);
+		}
 		items.addAll(
 				compare(
 						"web_commit_signoff_required",
@@ -175,9 +178,14 @@ public class RepoSettingsDriftGroup extends DriftGroup {
 		return items;
 	}
 
+	private boolean isOrgOwned() {
+		return actual.owner() != null
+				&& actual.owner().type() == SimpleUser.UserType.ORGANIZATION;
+	}
+
 	@Override
-	public void fix() {
-		var request = RepositoryUpdateRequest.builder()
+	public FixResult fix() {
+		var builder = RepositoryUpdateRequest.builder()
 				.description(desired.description())
 				.homepage(desired.homepageUrl())
 				.hasIssues(desired.hasIssues())
@@ -185,9 +193,11 @@ public class RepoSettingsDriftGroup extends DriftGroup {
 				.hasWiki(desired.hasWiki())
 				.hasDiscussions(desired.hasDiscussions())
 				.isTemplate(desired.isTemplate())
-				.allowForking(desired.allowForking())
-				.webCommitSignoffRequired(desired.webCommitSignoffRequired())
-				.allowMergeCommit(desired.allowMergeCommit())
+				.webCommitSignoffRequired(desired.webCommitSignoffRequired());
+		if (isOrgOwned()) {
+			builder.allowForking(desired.allowForking());
+		}
+		var request = builder.allowMergeCommit(desired.allowMergeCommit())
 				.allowSquashMerge(desired.allowSquashMerge())
 				.allowRebaseMerge(desired.allowRebaseMerge())
 				.allowUpdateBranch(desired.allowUpdateBranch())
@@ -200,6 +210,7 @@ public class RepoSettingsDriftGroup extends DriftGroup {
 				.defaultBranch(desired.defaultBranch())
 				.build();
 		client.updateRepository(org, name, request);
+		return FixResult.success();
 	}
 
 }

@@ -41,12 +41,13 @@ public class CodeScanningDefaultSetupDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public void fix() {
+	public FixResult fix() {
 		if (desired) {
 			client.enableCodeScanningDefaultSetup(owner, repo);
 		} else {
 			client.disableCodeScanningDefaultSetup(owner, repo);
 		}
+		return FixResult.success();
 	}
 
 }
