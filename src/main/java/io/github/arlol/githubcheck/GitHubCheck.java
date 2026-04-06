@@ -240,6 +240,15 @@ public class GitHubCheck {
 						)
 						.build(),
 				pagesSite.toBuilder()
+						.name(
+								"demo-html5up-future-imperfect-scroll-padding-top"
+						)
+						.description("A quick demo of scroll-padding-top")
+						.homepageUrl(
+								"https://arlol.github.io/demo-html5up-future-imperfect-scroll-padding-top/"
+						)
+						.build(),
+				pagesSite.toBuilder()
 						.name("eclipse-projects")
 						.description(
 								"Arlo's project catalog for the Eclipse Installer"
