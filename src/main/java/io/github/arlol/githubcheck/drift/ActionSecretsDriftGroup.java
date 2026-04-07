@@ -1,20 +1,16 @@
 package io.github.arlol.githubcheck.drift;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
-import io.github.arlol.githubcheck.client.SecretPublicKeyResponse;
-import io.github.arlol.githubcheck.client.SecretRequest;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
-import io.github.arlol.githubcheck.OrgChecker;
 
 public class ActionSecretsDriftGroup extends DriftGroup {
 
-	private final List<String> desired;
+	private final Set<String> desired;
 	private final Set<String> actual;
 	private final Map<String, String> secretValues;
 	private final GitHubClient client;
@@ -29,7 +25,7 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 			String owner,
 			String repo
 	) {
-		this.desired = List.copyOf(desired.actionsSecrets());
+		this.desired = Set.copyOf(desired.actionsSecrets());
 		this.actual = Set.copyOf(actual);
 		this.secretValues = Map.copyOf(secretValues);
 		this.client = client;
@@ -43,74 +39,41 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftItem> detect() {
-		var items = new ArrayList<DriftItem>();
-
-		Set<String> wantSet = new HashSet<>(desired);
+	public List<DriftFix> detect() {
+		var fixes = new ArrayList<DriftFix>();
 
 		for (String secretName : desired) {
-			String path = "action_secrets." + secretName;
-			if (actual.contains(secretName)) {
-				items.add(new DriftItem.SecretUnverifiable(path));
-			} else {
-				items.add(new DriftItem.SectionMissing(path));
-			}
+			fixes.add(secretDriftFix(secretName));
 		}
 
 		for (String secretName : actual) {
-			if (!wantSet.contains(secretName)) {
-				items.add(
-						new DriftItem.SectionExtra(
-								"action_secrets." + secretName
-						)
+			if (!desired.contains(secretName)) {
+				var item = new DriftItem.SectionExtra(
+						"action_secrets." + secretName
 				);
+				fixes.add(new DriftFix(item, () -> new FixResult(item)));
 			}
 		}
 
-		return items;
+		return fixes;
 	}
 
-	@Override
-	public FixResult fix() {
-		var unfixed = new ArrayList<DriftItem>();
-
-		Set<String> wantSet = new HashSet<>(desired);
-
-		for (String secretName : desired) {
-			String path = "action_secrets." + secretName;
-			String mapKey = repo + "-" + secretName;
-			String value = secretValues.get(mapKey);
+	private DriftFix secretDriftFix(String secretName) {
+		var path = "action_secrets." + secretName;
+		DriftItem driftItem;
+		if (actual.contains(secretName)) {
+			driftItem = new DriftItem.SecretUnverifiable(path);
+		} else {
+			driftItem = new DriftItem.SectionMissing(path);
+		}
+		return new DriftFix(driftItem, () -> {
+			var value = secretValues.get(repo + "-" + secretName);
 			if (value == null) {
-				if (actual.contains(secretName)) {
-					unfixed.add(new DriftItem.SecretUnverifiable(path));
-				} else {
-					unfixed.add(new DriftItem.SectionMissing(path));
-				}
-				continue;
+				return new FixResult(driftItem);
 			}
-
-			SecretPublicKeyResponse publicKey = client
-					.getActionSecretPublicKey(owner, repo);
-			String encrypted = OrgChecker.encryptSecret(publicKey.key(), value);
-			client.createOrUpdateActionSecret(
-					owner,
-					repo,
-					secretName,
-					new SecretRequest(encrypted, publicKey.keyId())
-			);
-		}
-
-		for (String secretName : actual) {
-			if (!wantSet.contains(secretName)) {
-				unfixed.add(
-						new DriftItem.SectionExtra(
-								"action_secrets." + secretName
-						)
-				);
-			}
-		}
-
-		return new FixResult(unfixed);
+			client.createOrUpdateActionSecret(owner, repo, secretName, value);
+			return FixResult.success();
+		});
 	}
 
 }

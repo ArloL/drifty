@@ -319,6 +319,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).isEmpty();
@@ -346,6 +347,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).isEmpty();
@@ -388,6 +390,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).isEmpty();
@@ -409,6 +412,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains("archived: want=false got=true");
@@ -433,6 +437,7 @@ class OrgCheckerDiffTest {
 		var groupDriftMessages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(groupDriftMessages).contains("default: want=WRITE got=READ");
@@ -450,6 +455,7 @@ class OrgCheckerDiffTest {
 		var groupDriftMessages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(groupDriftMessages)
@@ -466,6 +472,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains("branch_protection.main: missing");
@@ -480,6 +487,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
@@ -496,6 +504,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
@@ -512,6 +521,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
@@ -542,6 +552,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
@@ -565,6 +576,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).anyMatch(
@@ -587,6 +599,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
@@ -609,6 +622,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
@@ -637,6 +651,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages)
@@ -670,6 +685,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).anyMatch(
@@ -705,6 +721,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).anyMatch(
@@ -739,6 +756,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).anyMatch(
@@ -758,6 +776,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
@@ -795,6 +814,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).containsExactly(
@@ -810,6 +830,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages)
@@ -830,6 +851,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).isEmpty();
@@ -982,6 +1004,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).isEmpty();
@@ -1003,6 +1026,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains("ruleset.main-branch-rules: missing");
@@ -1025,6 +1049,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
@@ -1049,6 +1074,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
@@ -1080,6 +1106,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).anyMatch(
@@ -1118,6 +1145,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).anyMatch(
@@ -1238,6 +1266,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
@@ -1302,6 +1331,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).isEmpty();
@@ -1350,6 +1380,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
@@ -1407,6 +1438,7 @@ class OrgCheckerDiffTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(

@@ -21,7 +21,9 @@ class AutomatedSecurityFixesDriftGroupTest {
 				"repo"
 		);
 
-		assertThat(group.detect()).isEmpty();
+		var fixes = group.detect();
+		assertThat(fixes).hasSize(1);
+		assertThat(fixes.getFirst().items()).isEmpty();
 	}
 
 	@Test
@@ -37,7 +39,10 @@ class AutomatedSecurityFixesDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())

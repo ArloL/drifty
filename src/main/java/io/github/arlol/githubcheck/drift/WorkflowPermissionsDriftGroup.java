@@ -1,6 +1,5 @@
 package io.github.arlol.githubcheck.drift;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -35,36 +34,30 @@ public class WorkflowPermissionsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftItem> detect() {
-		var items = new ArrayList<DriftItem>();
-		items.addAll(
+	public List<DriftFix> detect() {
+		var items = combine(
 				compare(
 						"default",
 						desired.defaultWorkflowPermissions(),
 						actual.defaultWorkflowPermissions()
-				)
-		);
-		items.addAll(
+				),
 				compare(
 						"can_approve_prs",
 						desired.canApprovePullRequestReviews(),
 						actual.canApprovePullRequestReviews()
 				)
 		);
-		return items;
-	}
-
-	@Override
-	public FixResult fix() {
-		client.updateWorkflowPermissions(
-				owner,
-				repo,
-				new WorkflowPermissions(
-						desired.defaultWorkflowPermissions(),
-						desired.canApprovePullRequestReviews()
-				)
-		);
-		return FixResult.success();
+		return List.of(new DriftFix(items, () -> {
+			client.updateWorkflowPermissions(
+					owner,
+					repo,
+					new WorkflowPermissions(
+							desired.defaultWorkflowPermissions(),
+							desired.canApprovePullRequestReviews()
+					)
+			);
+			return FixResult.success();
+		}));
 	}
 
 }

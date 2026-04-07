@@ -1,6 +1,5 @@
 package io.github.arlol.githubcheck.drift;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -38,59 +37,105 @@ public class RepoSettingsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftItem> detect() {
-		var items = new ArrayList<DriftItem>();
-		items.addAll(
+	public List<DriftFix> detect() {
+		var items = combine(
 				compare(
 						"description",
 						desired.description(),
 						Objects.toString(actual.description(), "")
-				)
-		);
-		items.addAll(
+				),
 				compare(
 						"homepage_url",
 						desired.homepageUrl(),
 						Objects.toString(actual.homepage(), "")
-				)
-		);
-		items.addAll(
-				compare("visibility", desired.visibility(), actual.visibility())
-		);
-		items.addAll(
+				),
+				compare(
+						"visibility",
+						desired.visibility(),
+						actual.visibility()
+				),
 				compare(
 						"default_branch",
 						desired.defaultBranch(),
 						actual.defaultBranch()
-				)
-		);
-		items.addAll(
-				compare("has_issues", desired.hasIssues(), actual.hasIssues())
-		);
-		items.addAll(
+				),
+				compare("has_issues", desired.hasIssues(), actual.hasIssues()),
 				compare(
 						"has_projects",
 						desired.hasProjects(),
 						actual.hasProjects()
-				)
-		);
-		items.addAll(compare("has_wiki", desired.hasWiki(), actual.hasWiki()));
-		items.addAll(
+				),
+				compare("has_wiki", desired.hasWiki(), actual.hasWiki()),
 				compare(
 						"has_discussions",
 						desired.hasDiscussions(),
 						actual.hasDiscussions()
-				)
-		);
-		items.addAll(
+				),
 				compare(
 						"is_template",
 						desired.isTemplate(),
 						actual.isTemplate()
+				),
+				compare(
+						"web_commit_signoff_required",
+						desired.webCommitSignoffRequired(),
+						actual.webCommitSignoffRequired()
+				),
+				compare(
+						"allow_merge_commit",
+						desired.allowMergeCommit(),
+						actual.allowMergeCommit()
+				),
+				compare(
+						"allow_squash_merge",
+						desired.allowSquashMerge(),
+						actual.allowSquashMerge()
+				),
+				compare(
+						"allow_rebase_merge",
+						desired.allowRebaseMerge(),
+						actual.allowRebaseMerge()
+				),
+				compare(
+						"allow_auto_merge",
+						desired.allowAutoMerge(),
+						actual.allowAutoMerge()
+				),
+				compare(
+						"allow_update_branch",
+						desired.allowUpdateBranch(),
+						actual.allowUpdateBranch()
+				),
+				compare(
+						"delete_branch_on_merge",
+						desired.deleteBranchOnMerge(),
+						actual.deleteBranchOnMerge()
+				),
+				compare(
+						"squash_merge_commit_title",
+						desired.squashMergeCommitTitle(),
+						actual.squashMergeCommitTitle()
+				),
+				compare(
+						"squash_merge_commit_message",
+						desired.squashMergeCommitMessage(),
+						actual.squashMergeCommitMessage()
+				),
+				compare(
+						"merge_commit_title",
+						desired.mergeCommitTitle(),
+						actual.mergeCommitTitle()
+				),
+				compare(
+						"merge_commit_message",
+						desired.mergeCommitMessage(),
+						actual.mergeCommitMessage()
 				)
 		);
+
 		if (isOrgOwned()) {
-			items.addAll(
+			items = combine(
+					items,
 					compare(
 							"allow_forking",
 							desired.allowForking(),
@@ -98,119 +143,43 @@ public class RepoSettingsDriftGroup extends DriftGroup {
 					)
 			);
 		}
-		items.addAll(
-				compare(
-						"web_commit_signoff_required",
-						desired.webCommitSignoffRequired(),
-						actual.webCommitSignoffRequired()
-				)
-		);
-		items.addAll(
-				compare(
-						"allow_merge_commit",
-						desired.allowMergeCommit(),
-						actual.allowMergeCommit()
-				)
-		);
-		items.addAll(
-				compare(
-						"allow_squash_merge",
-						desired.allowSquashMerge(),
-						actual.allowSquashMerge()
-				)
-		);
-		items.addAll(
-				compare(
-						"allow_rebase_merge",
-						desired.allowRebaseMerge(),
-						actual.allowRebaseMerge()
-				)
-		);
-		items.addAll(
-				compare(
-						"allow_auto_merge",
-						desired.allowAutoMerge(),
-						actual.allowAutoMerge()
-				)
-		);
-		items.addAll(
-				compare(
-						"allow_update_branch",
-						desired.allowUpdateBranch(),
-						actual.allowUpdateBranch()
-				)
-		);
-		items.addAll(
-				compare(
-						"delete_branch_on_merge",
-						desired.deleteBranchOnMerge(),
-						actual.deleteBranchOnMerge()
-				)
-		);
-		items.addAll(
-				compare(
-						"squash_merge_commit_title",
-						desired.squashMergeCommitTitle(),
-						actual.squashMergeCommitTitle()
-				)
-		);
-		items.addAll(
-				compare(
-						"squash_merge_commit_message",
-						desired.squashMergeCommitMessage(),
-						actual.squashMergeCommitMessage()
-				)
-		);
-		items.addAll(
-				compare(
-						"merge_commit_title",
-						desired.mergeCommitTitle(),
-						actual.mergeCommitTitle()
-				)
-		);
-		items.addAll(
-				compare(
-						"merge_commit_message",
-						desired.mergeCommitMessage(),
-						actual.mergeCommitMessage()
-				)
-		);
-		return items;
+
+		return List.of(new DriftFix(items, () -> {
+			var requestBuilder = RepositoryUpdateRequest.builder()
+					.description(desired.description())
+					.homepage(desired.homepageUrl())
+					.hasIssues(desired.hasIssues())
+					.hasProjects(desired.hasProjects())
+					.hasWiki(desired.hasWiki())
+					.hasDiscussions(desired.hasDiscussions())
+					.isTemplate(desired.isTemplate())
+					.webCommitSignoffRequired(
+							desired.webCommitSignoffRequired()
+					)
+					.allowMergeCommit(desired.allowMergeCommit())
+					.allowSquashMerge(desired.allowSquashMerge())
+					.allowRebaseMerge(desired.allowRebaseMerge())
+					.allowUpdateBranch(desired.allowUpdateBranch())
+					.allowAutoMerge(desired.allowAutoMerge())
+					.deleteBranchOnMerge(desired.deleteBranchOnMerge())
+					.squashMergeCommitTitle(desired.squashMergeCommitTitle())
+					.squashMergeCommitMessage(
+							desired.squashMergeCommitMessage()
+					)
+					.mergeCommitTitle(desired.mergeCommitTitle())
+					.mergeCommitMessage(desired.mergeCommitMessage())
+					.defaultBranch(desired.defaultBranch());
+			if (isOrgOwned()) {
+				requestBuilder.allowForking(desired.allowForking());
+			}
+			client.updateRepository(org, name, requestBuilder.build());
+			return FixResult.success();
+		}));
 	}
 
 	private boolean isOrgOwned() {
 		return actual.owner() != null
 				&& actual.owner().type() == SimpleUser.UserType.ORGANIZATION;
-	}
-
-	@Override
-	public FixResult fix() {
-		var builder = RepositoryUpdateRequest.builder()
-				.description(desired.description())
-				.homepage(desired.homepageUrl())
-				.hasIssues(desired.hasIssues())
-				.hasProjects(desired.hasProjects())
-				.hasWiki(desired.hasWiki())
-				.hasDiscussions(desired.hasDiscussions())
-				.isTemplate(desired.isTemplate())
-				.webCommitSignoffRequired(desired.webCommitSignoffRequired());
-		if (isOrgOwned()) {
-			builder.allowForking(desired.allowForking());
-		}
-		var request = builder.allowMergeCommit(desired.allowMergeCommit())
-				.allowSquashMerge(desired.allowSquashMerge())
-				.allowRebaseMerge(desired.allowRebaseMerge())
-				.allowUpdateBranch(desired.allowUpdateBranch())
-				.allowAutoMerge(desired.allowAutoMerge())
-				.deleteBranchOnMerge(desired.deleteBranchOnMerge())
-				.squashMergeCommitTitle(desired.squashMergeCommitTitle())
-				.squashMergeCommitMessage(desired.squashMergeCommitMessage())
-				.mergeCommitTitle(desired.mergeCommitTitle())
-				.mergeCommitMessage(desired.mergeCommitMessage())
-				.defaultBranch(desired.defaultBranch())
-				.build();
-		client.updateRepository(org, name, request);
-		return FixResult.success();
 	}
 
 }

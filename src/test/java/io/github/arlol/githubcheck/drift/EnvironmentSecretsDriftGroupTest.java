@@ -12,7 +12,7 @@ import io.github.arlol.githubcheck.config.RepositoryArgs;
 class EnvironmentSecretsDriftGroupTest {
 
 	@Test
-	void noDrift_whenNoDesiredSecrets() {
+	void detectsExtraSecret_whenNoDesiredSecrets() {
 		var desired = RepositoryArgs.create("owner", "repo")
 				.environment("production", env -> {
 				})
@@ -26,7 +26,15 @@ class EnvironmentSecretsDriftGroupTest {
 				"repo"
 		);
 
-		assertThat(group.detect()).isEmpty();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
+
+		assertThat(items).hasSize(1);
+		assertThat(items.getFirst()).isInstanceOf(DriftItem.SectionExtra.class);
+		assertThat(items.getFirst().path())
+				.isEqualTo("environment.production.secrets.EXTRA_SECRET");
 	}
 
 	@Test
@@ -43,7 +51,10 @@ class EnvironmentSecretsDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
@@ -69,7 +80,10 @@ class EnvironmentSecretsDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
@@ -94,7 +108,10 @@ class EnvironmentSecretsDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(2);
 		assertThat(items).anyMatch(
@@ -122,7 +139,10 @@ class EnvironmentSecretsDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(2);
 		assertThat(items).anyMatch(

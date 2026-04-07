@@ -318,6 +318,24 @@ public class GitHubClient {
 	public void createOrUpdateActionSecret(
 			String owner,
 			String repo,
+			String secretName,
+			String secretValue
+	) {
+		var publicKey = getActionSecretPublicKey(owner, repo);
+		createOrUpdateActionSecret(
+				owner,
+				repo,
+				secretName,
+				new SecretRequest(
+						Secrets.encryptSecret(publicKey.key(), secretValue),
+						publicKey.keyId()
+				)
+		);
+	}
+
+	public void createOrUpdateActionSecret(
+			String owner,
+			String repo,
 			String name,
 			SecretRequest request
 	) {
@@ -351,6 +369,30 @@ public class GitHubClient {
 			);
 		}
 		return readValue(resp.body(), SecretPublicKeyResponse.class);
+	}
+
+	public void createOrUpdateEnvironmentSecret(
+			String owner,
+			String repo,
+			String environmentName,
+			String secretName,
+			String secretValue
+	) {
+		var publicKey = getEnvironmentSecretPublicKey(
+				owner,
+				repo,
+				environmentName
+		);
+		createOrUpdateEnvironmentSecret(
+				owner,
+				repo,
+				environmentName,
+				secretName,
+				new SecretRequest(
+						Secrets.encryptSecret(publicKey.key(), secretValue),
+						publicKey.keyId()
+				)
+		);
 	}
 
 	public void createOrUpdateEnvironmentSecret(
@@ -432,6 +474,23 @@ public class GitHubClient {
 			);
 		}
 		return readValue(resp.body(), BranchProtectionResponse.class);
+	}
+
+	public void deleteBranchProtection(
+			String owner,
+			String repo,
+			String branch
+	) {
+		HttpResponse<String> resp = delete(
+				repoUrl(owner, repo) + "/branches/" + branch + "/protection"
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " deleting branch protection on " + owner + "/"
+							+ repo + "/" + branch + ": " + resp.body()
+			);
+		}
 	}
 
 	public void updateRepository(

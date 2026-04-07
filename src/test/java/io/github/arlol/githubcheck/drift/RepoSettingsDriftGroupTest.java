@@ -112,7 +112,10 @@ class RepoSettingsDriftGroupTest {
 	@Test
 	void noDrift_allSettingsMatch() {
 		var items = group(desiredFull(), parseDetails(BASE_DETAILS_JSON))
-				.detect();
+				.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 		assertThat(items).isEmpty();
 	}
 
@@ -121,7 +124,7 @@ class RepoSettingsDriftGroupTest {
 		var items = group(
 				desired("Desired description"),
 				parseDetails(BASE_DETAILS_JSON)
-		).detect();
+		).detect().stream().flatMap(f -> f.items().stream()).toList();
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
@@ -136,7 +139,10 @@ class RepoSettingsDriftGroupTest {
 		var desired = desiredFull().toBuilder()
 				.visibility(RepositoryVisibility.PRIVATE)
 				.build();
-		var items = group(desired, parseDetails(BASE_DETAILS_JSON)).detect();
+		var items = group(desired, parseDetails(BASE_DETAILS_JSON)).detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
@@ -149,7 +155,10 @@ class RepoSettingsDriftGroupTest {
 		var desired = desiredFull().toBuilder()
 				.defaultBranch("develop")
 				.build();
-		var items = group(desired, parseDetails(BASE_DETAILS_JSON)).detect();
+		var items = group(desired, parseDetails(BASE_DETAILS_JSON)).detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 		assertThat(items).hasSize(1);
 		var mismatch = (DriftItem.FieldMismatch) items.getFirst();
 		assertThat(mismatch.path()).isEqualTo("default_branch");
@@ -193,7 +202,7 @@ class RepoSettingsDriftGroupTest {
 				null,
 				"owner",
 				"repo"
-		).detect();
+		).detect().stream().flatMap(f -> f.items().stream()).toList();
 		assertThat(items).isEmpty();
 	}
 
@@ -235,14 +244,17 @@ class RepoSettingsDriftGroupTest {
 				null,
 				"owner",
 				"repo"
-		).detect();
+		).detect().stream().flatMap(f -> f.items().stream()).toList();
 		assertThat(items).isEmpty();
 	}
 
 	@Test
 	void detectsHasIssuesMismatch() {
 		var desired = desiredFull().toBuilder().hasIssues(false).build();
-		var items = group(desired, parseDetails(BASE_DETAILS_JSON)).detect();
+		var items = group(desired, parseDetails(BASE_DETAILS_JSON)).detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 		assertThat(items).hasSize(1);
 		var mismatch = (DriftItem.FieldMismatch) items.getFirst();
 		assertThat(mismatch.path()).isEqualTo("has_issues");
@@ -280,7 +292,10 @@ class RepoSettingsDriftGroupTest {
 				""";
 		// desired has allowForking=true but actual has false; no drift expected
 		// for user-owned repos
-		var items = group(desiredFull(), parseDetails(json)).detect();
+		var items = group(desiredFull(), parseDetails(json)).detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 		assertThat(items).isEmpty();
 	}
 
@@ -316,7 +331,10 @@ class RepoSettingsDriftGroupTest {
 				""";
 		// desired has allowForking=true but actual has false; drift expected
 		// for org-owned repos
-		var items = group(desiredFull(), parseDetails(json)).detect();
+		var items = group(desiredFull(), parseDetails(json)).detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 		assertThat(items).hasSize(1);
 		var mismatch = (DriftItem.FieldMismatch) items.getFirst();
 		assertThat(mismatch.path()).isEqualTo("allow_forking");
@@ -329,7 +347,10 @@ class RepoSettingsDriftGroupTest {
 				.hasIssues(false)
 				.hasProjects(false)
 				.build();
-		var items = group(desired, parseDetails(BASE_DETAILS_JSON)).detect();
+		var items = group(desired, parseDetails(BASE_DETAILS_JSON)).detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 		assertThat(items).hasSize(3);
 		assertThat(items).allMatch(i -> i instanceof DriftItem.FieldMismatch);
 		assertThat(items.stream().map(DriftItem::path))

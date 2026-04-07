@@ -35,7 +35,10 @@ class PagesDriftGroupTest {
 		);
 		var group = new PagesDriftGroup(desired, actual, null, "owner", "repo");
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).isEmpty();
 	}
@@ -46,7 +49,10 @@ class PagesDriftGroupTest {
 		Optional<PagesResponse> actual = Optional.empty();
 		var group = new PagesDriftGroup(desired, actual, null, "owner", "repo");
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
@@ -76,7 +82,10 @@ class PagesDriftGroupTest {
 		);
 		var group = new PagesDriftGroup(desired, actual, null, "owner", "repo");
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
@@ -108,7 +117,10 @@ class PagesDriftGroupTest {
 		);
 		var group = new PagesDriftGroup(desired, actual, null, "owner", "repo");
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
@@ -142,7 +154,10 @@ class PagesDriftGroupTest {
 		);
 		var group = new PagesDriftGroup(desired, actual, null, "owner", "repo");
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(2);
 	}
@@ -170,7 +185,10 @@ class PagesDriftGroupTest {
 		);
 		var group = new PagesDriftGroup(desired, actual, null, "owner", "repo");
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).isEmpty();
 	}
