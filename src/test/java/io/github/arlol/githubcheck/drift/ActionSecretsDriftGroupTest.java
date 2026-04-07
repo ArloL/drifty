@@ -36,7 +36,10 @@ class ActionSecretsDriftGroupTest {
 
 	@Test
 	void detectsUnverifiable_whenSecretExists() {
-		var items = group(List.of("DEPLOY_KEY"), Set.of("DEPLOY_KEY")).detect();
+		var items = group(List.of("DEPLOY_KEY"), Set.of("DEPLOY_KEY")).detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
@@ -49,7 +52,10 @@ class ActionSecretsDriftGroupTest {
 
 	@Test
 	void detectsMissingSecret() {
-		var items = group(List.of("DEPLOY_KEY"), Set.of()).detect();
+		var items = group(List.of("DEPLOY_KEY"), Set.of()).detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
@@ -62,7 +68,10 @@ class ActionSecretsDriftGroupTest {
 
 	@Test
 	void detectsExtraSecret() {
-		var items = group(List.of(), Set.of("STALE_KEY")).detect();
+		var items = group(List.of(), Set.of("STALE_KEY")).detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst()).isInstanceOf(DriftItem.SectionExtra.class);
@@ -75,7 +84,10 @@ class ActionSecretsDriftGroupTest {
 
 	@Test
 	void detectsPerItem_whenMissingAndExtra() {
-		var items = group(List.of("NEW_KEY"), Set.of("OLD_KEY")).detect();
+		var items = group(List.of("NEW_KEY"), Set.of("OLD_KEY")).detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(2);
 		assertThat(items).anyMatch(

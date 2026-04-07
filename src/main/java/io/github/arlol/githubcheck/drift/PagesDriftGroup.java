@@ -1,13 +1,14 @@
 package io.github.arlol.githubcheck.drift;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesBuildType;
+import io.github.arlol.githubcheck.client.PagesCreateRequest;
 import io.github.arlol.githubcheck.client.PagesResponse;
+import io.github.arlol.githubcheck.client.PagesUpdateRequest;
 import io.github.arlol.githubcheck.config.PagesArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 
@@ -41,94 +42,77 @@ public class PagesDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftItem> detect() {
-		var items = new ArrayList<DriftItem>();
-
+	public List<DriftFix> detect() {
 		if (!desiredEnabled) {
-			return items;
+			return List.of();
 		}
 
 		if (actual.isEmpty()) {
-			items.add(new DriftItem.SectionMissing("pages"));
-			return items;
+			return List.of(
+					new DriftFix(new DriftItem.SectionMissing("pages"), () -> {
+						client.createPages(
+								owner,
+								repo,
+								buildPagesCreateRequest(desired)
+						);
+						return FixResult.success();
+					})
+			);
 		}
 
 		PagesResponse p = actual.orElseThrow();
 
-		items.addAll(
+		var items = combine(
 				compare(
 						"build_type",
 						desired.buildType().name().toLowerCase(Locale.ROOT),
 						p.buildType() != null
 								? p.buildType().name().toLowerCase(Locale.ROOT)
 								: null
-				)
+				),
+				desired.buildType() == PagesBuildType.LEGACY
+						&& p.source() != null
+								? combine(
+										compare(
+												"source.branch",
+												desired.sourceBranch(),
+												p.source().branch()
+										),
+										compare(
+												"source.path",
+												desired.sourcePath(),
+												p.source().path()
+										)
+								)
+								: List.of(),
+				compare("https_enforced", true, p.httpsEnforced())
 		);
-
-		if (desired.buildType() == PagesBuildType.LEGACY
-				&& p.source() != null) {
-			items.addAll(
-					compare(
-							"source.branch",
-							desired.sourceBranch(),
-							p.source().branch()
-					)
-			);
-			items.addAll(
-					compare(
-							"source.path",
-							desired.sourcePath(),
-							p.source().path()
-					)
-			);
-		}
-
-		items.addAll(compare("https_enforced", true, p.httpsEnforced()));
-
-		return items;
-	}
-
-	@Override
-	public FixResult fix() {
-		if (actual.isEmpty()) {
-			client.createPages(owner, repo, buildPagesCreateRequest(desired));
-		} else {
+		return List.of(new DriftFix(items, () -> {
 			client.updatePages(owner, repo, buildPagesUpdateRequest(desired));
-		}
-		return FixResult.success();
+			return FixResult.success();
+		}));
 	}
 
-	private static io.github.arlol.githubcheck.client.PagesCreateRequest buildPagesCreateRequest(
-			PagesArgs args
-	) {
-		io.github.arlol.githubcheck.client.PagesCreateRequest.Source source = null;
+	private static PagesCreateRequest buildPagesCreateRequest(PagesArgs args) {
+		PagesCreateRequest.Source source = null;
 		if (args.buildType() == PagesBuildType.LEGACY) {
-			source = new io.github.arlol.githubcheck.client.PagesCreateRequest.Source(
+			source = new PagesCreateRequest.Source(
 					args.sourceBranch(),
 					args.sourcePath()
 			);
 		}
-		return new io.github.arlol.githubcheck.client.PagesCreateRequest(
-				args.buildType(),
-				source
-		);
+		return new PagesCreateRequest(args.buildType(), source);
 	}
 
-	private static io.github.arlol.githubcheck.client.PagesUpdateRequest buildPagesUpdateRequest(
-			PagesArgs args
-	) {
-		io.github.arlol.githubcheck.client.PagesUpdateRequest.Source source = null;
+	private static PagesUpdateRequest buildPagesUpdateRequest(PagesArgs args) {
+		PagesUpdateRequest.Source source = null;
 		if (args.buildType() == PagesBuildType.LEGACY) {
-			source = new io.github.arlol.githubcheck.client.PagesUpdateRequest.Source(
+			source = new PagesUpdateRequest.Source(
 					args.sourceBranch(),
 					args.sourcePath()
 			);
 		}
-		return new io.github.arlol.githubcheck.client.PagesUpdateRequest(
-				args.buildType(),
-				source,
-				true
-		);
+		return new PagesUpdateRequest(args.buildType(), source, true);
 	}
 
 }

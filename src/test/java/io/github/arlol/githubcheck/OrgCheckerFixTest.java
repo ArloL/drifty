@@ -187,13 +187,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -220,13 +214,7 @@ class OrgCheckerFixTest {
 				parse(mergedDetails, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -277,6 +265,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -308,6 +297,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -363,6 +353,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -424,6 +415,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -505,6 +497,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -572,6 +565,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 		var remaining = checker.applyFixes("repo", messages, groupDrifts);
@@ -630,13 +624,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				false,
 				true,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -656,6 +644,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -693,13 +682,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -719,6 +702,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -755,13 +739,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				true,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -781,6 +759,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -818,6 +797,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -868,6 +848,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -917,6 +898,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -966,6 +948,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1009,13 +992,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -1035,6 +1012,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1079,13 +1057,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -1105,6 +1077,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1148,13 +1121,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -1174,6 +1141,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1210,13 +1178,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -1236,6 +1198,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1272,13 +1235,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse("""
@@ -1300,6 +1257,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1330,6 +1288,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1392,6 +1351,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1435,6 +1395,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1464,13 +1425,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -1490,6 +1445,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1564,6 +1520,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1644,6 +1601,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1730,6 +1688,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1769,6 +1728,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1778,6 +1738,61 @@ class OrgCheckerFixTest {
 		verify(
 				0,
 				putRequestedFor(
+						urlEqualTo("/repos/owner/repo/branches/main/protection")
+				)
+		);
+	}
+
+	@Test
+	void extraBranchProtection_deletesProtection() throws Exception {
+		stubFor(
+				delete(urlEqualTo("/repos/owner/repo/branches/main/protection"))
+						.willReturn(WireMock.noContent())
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo").build();
+
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				true,
+				false,
+				Map.of(
+						"main",
+						parse(
+								GOOD_BRANCH_PROTECTION_JSON,
+								BranchProtectionResponse.class
+						)
+				),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(),
+				false,
+				false,
+				false
+		);
+
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
+				.map(DriftItem::message)
+				.toList();
+
+		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				deleteRequestedFor(
 						urlEqualTo("/repos/owner/repo/branches/main/protection")
 				)
 		);
@@ -1807,6 +1822,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1883,6 +1899,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -1976,13 +1993,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -2002,6 +2013,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -2072,13 +2084,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -2098,6 +2104,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -2153,13 +2160,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -2179,6 +2180,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -2219,13 +2221,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of("github-pages", List.of()),
 				parse(
@@ -2245,6 +2241,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -2288,13 +2285,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of("github-pages", List.of()),
 				parse(
@@ -2314,6 +2305,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -2342,6 +2334,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -2383,13 +2376,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of("production", List.of()),
 				parse(
@@ -2409,6 +2396,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -2453,13 +2441,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of("production", List.of()),
 				parse(
@@ -2479,6 +2461,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -2522,13 +2505,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of("production", List.of()),
 				parse(
@@ -2548,6 +2525,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -2596,13 +2574,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -2625,6 +2597,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -2650,13 +2623,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of(),
 				parse(
@@ -2679,6 +2646,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -2727,13 +2695,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of(
-						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
-						)
-				),
+				Map.of(),
 				List.of(),
 				Map.of("production", List.of()),
 				parse(
@@ -2762,6 +2724,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -2795,6 +2758,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 
@@ -2845,6 +2809,7 @@ class OrgCheckerFixTest {
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
 

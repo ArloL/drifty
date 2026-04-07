@@ -1,7 +1,6 @@
 package io.github.arlol.githubcheck.drift;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -49,20 +48,11 @@ public class RulesetDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftItem> detect() {
-		var items = new ArrayList<DriftItem>();
+	public List<DriftFix> detect() {
+		var fixes = new ArrayList<DriftFix>();
 
 		if (desired.isEmpty() && actual.isEmpty()) {
-			return items;
-		}
-
-		if (desired.isEmpty()) {
-			for (var extra : actual) {
-				items.add(
-						new DriftItem.SectionExtra("ruleset." + extra.name())
-				);
-			}
-			return items;
+			return fixes;
 		}
 
 		Map<String, RulesetDetailsResponse> actualByName = actual.stream()
@@ -74,12 +64,35 @@ public class RulesetDriftGroup extends DriftGroup {
 						)
 				);
 
+		if (desired.isEmpty()) {
+			for (var extra : actual) {
+				var item = new DriftItem.SectionExtra(
+						"ruleset." + extra.name()
+				);
+				fixes.add(new DriftFix(List.of(item), () -> {
+					client.deleteRuleset(owner, repo, extra.id());
+					return FixResult.success();
+				}));
+			}
+			return fixes;
+		}
+
 		for (var wanted : desired) {
 			String rName = wanted.name();
 			RulesetDetailsResponse got = actualByName.get(rName);
 
+			var items = new ArrayList<DriftItem>();
+
 			if (got == null) {
 				items.add(new DriftItem.SectionMissing("ruleset." + rName));
+				fixes.add(new DriftFix(items, () -> {
+					client.createRuleset(
+							owner,
+							repo,
+							buildRulesetRequest(wanted)
+					);
+					return FixResult.success();
+				}));
 				continue;
 			}
 
@@ -92,7 +105,7 @@ public class RulesetDriftGroup extends DriftGroup {
 				);
 			}
 			items.addAll(
-					compareSets(
+					compare(
 							"ruleset." + rName + ".include_patterns",
 							wantIncludes,
 							gotIncludes
@@ -131,7 +144,7 @@ public class RulesetDriftGroup extends DriftGroup {
 			);
 			if (!wantChecks.isEmpty() || !gotChecks.isEmpty()) {
 				items.addAll(
-						compareSets(
+						compare(
 								"ruleset." + rName + ".required_status_checks",
 								wantChecks,
 								gotChecks
@@ -163,7 +176,7 @@ public class RulesetDriftGroup extends DriftGroup {
 			Set<String> gotTools = extractCodeScanningTools(actualRulesByType);
 			if (!wantTools.isEmpty() || !gotTools.isEmpty()) {
 				items.addAll(
-						compareSets(
+						compare(
 								"ruleset." + rName + ".required_code_scanning",
 								wantTools,
 								gotTools
@@ -268,7 +281,7 @@ public class RulesetDriftGroup extends DriftGroup {
 			);
 			if (!wantDeployments.isEmpty() || !gotDeployments.isEmpty()) {
 				items.addAll(
-						compareSets(
+						compare(
 								"ruleset." + rName + ".required_deployments",
 								wantDeployments,
 								gotDeployments
@@ -294,12 +307,25 @@ public class RulesetDriftGroup extends DriftGroup {
 								.collect(Collectors.toSet())
 						: Set.of();
 				items.addAll(
-						compareSets(
+						compare(
 								"ruleset." + rName + ".bypass_actors",
 								wantBypass,
 								gotBypass
 						)
 				);
+			}
+
+			if (!items.isEmpty()) {
+				final var gotId = got.id();
+				fixes.add(new DriftFix(items, () -> {
+					client.updateRuleset(
+							owner,
+							repo,
+							gotId,
+							buildRulesetRequest(wanted)
+					);
+					return FixResult.success();
+				}));
 			}
 		}
 
@@ -308,13 +334,17 @@ public class RulesetDriftGroup extends DriftGroup {
 				.collect(Collectors.toSet());
 		for (var extra : actual) {
 			if (!desiredNames.contains(extra.name())) {
-				items.add(
-						new DriftItem.SectionExtra("ruleset." + extra.name())
+				var item = new DriftItem.SectionExtra(
+						"ruleset." + extra.name()
 				);
+				fixes.add(new DriftFix(List.of(item), () -> {
+					client.deleteRuleset(owner, repo, extra.id());
+					return FixResult.success();
+				}));
 			}
 		}
 
-		return items;
+		return fixes;
 	}
 
 	private Map<RulesetRuleType, Rule> buildRulesByType(
@@ -419,38 +449,6 @@ public class RulesetDriftGroup extends DriftGroup {
 		if (want != null || got != null) {
 			items.addAll(compare(path, want, got));
 		}
-	}
-
-	@Override
-	public FixResult fix() {
-		Map<String, RulesetDetailsResponse> actualByName = actual.stream()
-				.collect(
-						Collectors.toMap(
-								RulesetDetailsResponse::name,
-								r -> r,
-								(a, b) -> a
-						)
-				);
-
-		for (var wanted : desired) {
-			var payload = buildRulesetRequest(wanted);
-			var existing = actualByName.get(wanted.name());
-			if (existing == null) {
-				client.createRuleset(owner, repo, payload);
-			} else {
-				client.updateRuleset(owner, repo, existing.id(), payload);
-			}
-		}
-
-		Set<String> desiredNames = desired.stream()
-				.map(RulesetArgs::name)
-				.collect(Collectors.toSet());
-		for (var extra : actual) {
-			if (!desiredNames.contains(extra.name())) {
-				client.deleteRuleset(owner, repo, extra.id());
-			}
-		}
-		return FixResult.success();
 	}
 
 	private static RulesetRequest buildRulesetRequest(RulesetArgs args) {

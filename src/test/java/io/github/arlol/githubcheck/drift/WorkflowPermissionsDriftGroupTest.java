@@ -30,7 +30,10 @@ class WorkflowPermissionsDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).isEmpty();
 	}
@@ -54,7 +57,10 @@ class WorkflowPermissionsDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
@@ -89,7 +95,10 @@ class WorkflowPermissionsDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
@@ -118,7 +127,10 @@ class WorkflowPermissionsDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(2);
 	}

@@ -1,7 +1,5 @@
 package io.github.arlol.githubcheck.drift;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -34,22 +32,12 @@ public class TopicsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftItem> detect() {
-		var items = new ArrayList<DriftItem>();
-		items.addAll(
-				compareSets(
-						"topics",
-						new HashSet<>(desired),
-						new HashSet<>(actual)
-				)
-		);
-		return items;
-	}
-
-	@Override
-	public FixResult fix() {
-		client.replaceTopics(owner, repo, desired);
-		return FixResult.success();
+	public List<DriftFix> detect() {
+		var items = compare("topics", desired, actual);
+		return List.of(new DriftFix(items, () -> {
+			client.replaceTopics(owner, repo, desired);
+			return FixResult.success();
+		}));
 	}
 
 }

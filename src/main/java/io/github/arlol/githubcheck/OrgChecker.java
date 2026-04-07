@@ -1,18 +1,13 @@
 package io.github.arlol.githubcheck;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -21,49 +16,27 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import com.goterl.lazysodium.LazySodiumJava;
-import com.goterl.lazysodium.SodiumJava;
-import com.goterl.lazysodium.interfaces.Box;
-
-import io.github.arlol.githubcheck.client.BranchProtectionRequest;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
-import io.github.arlol.githubcheck.client.EnvironmentUpdateRequest;
 import io.github.arlol.githubcheck.client.GitHubClient;
-import io.github.arlol.githubcheck.client.PagesBuildType;
-import io.github.arlol.githubcheck.client.PagesCreateRequest;
 import io.github.arlol.githubcheck.client.PagesResponse;
-import io.github.arlol.githubcheck.client.PagesUpdateRequest;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
-import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
-import io.github.arlol.githubcheck.client.RulesetEnforcement;
-import io.github.arlol.githubcheck.client.RulesetRequest;
-import io.github.arlol.githubcheck.client.RulesetRuleType;
-import io.github.arlol.githubcheck.client.RulesetTarget;
-import io.github.arlol.githubcheck.client.SecretPublicKeyResponse;
-import io.github.arlol.githubcheck.client.SecretRequest;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
-import io.github.arlol.githubcheck.client.SimpleUser;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
-import io.github.arlol.githubcheck.config.BranchProtectionArgs;
-import io.github.arlol.githubcheck.config.BypassActorArgs;
-import io.github.arlol.githubcheck.config.EnvironmentArgs;
-import io.github.arlol.githubcheck.config.PagesArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
-import io.github.arlol.githubcheck.config.RulePatternArgs;
-import io.github.arlol.githubcheck.config.RulesetArgs;
-import io.github.arlol.githubcheck.config.StatusCheckArgs;
+import io.github.arlol.githubcheck.drift.ActionSecretsDriftGroup;
 import io.github.arlol.githubcheck.drift.ArchivedDriftGroup;
 import io.github.arlol.githubcheck.drift.AutomatedSecurityFixesDriftGroup;
-import io.github.arlol.githubcheck.drift.ActionSecretsDriftGroup;
 import io.github.arlol.githubcheck.drift.BranchProtectionDriftGroup;
 import io.github.arlol.githubcheck.drift.CodeScanningDefaultSetupDriftGroup;
+import io.github.arlol.githubcheck.drift.DriftFix;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
 import io.github.arlol.githubcheck.drift.EnvironmentConfigDriftGroup;
 import io.github.arlol.githubcheck.drift.EnvironmentSecretsDriftGroup;
+import io.github.arlol.githubcheck.drift.FixResult;
 import io.github.arlol.githubcheck.drift.ImmutableReleasesDriftGroup;
 import io.github.arlol.githubcheck.drift.PagesDriftGroup;
 import io.github.arlol.githubcheck.drift.PrivateVulnerabilityReportingDriftGroup;
@@ -180,7 +153,7 @@ public class OrgChecker {
 		try {
 			RepositoryState state = fetchState(summary);
 
-			Map<DriftGroup, List<DriftItem>> groupDrifts = computeGroupDrifts(
+			Map<DriftGroup, List<DriftFix>> groupDrifts = computeGroupDrifts(
 					state,
 					desired
 			);
@@ -188,6 +161,7 @@ public class OrgChecker {
 			List<String> diffs = groupDrifts.values()
 					.stream()
 					.flatMap(List::stream)
+					.flatMap(driftFix -> driftFix.items().stream())
 					.map(DriftItem::message)
 					.collect(Collectors.toCollection(ArrayList::new));
 
@@ -321,15 +295,15 @@ public class OrgChecker {
 	// ─── Drift groups
 	// ──────────────────────────────────────────────────────────────
 
-	Map<DriftGroup, List<DriftItem>> computeGroupDrifts(
+	Map<DriftGroup, List<DriftFix>> computeGroupDrifts(
 			RepositoryState actual,
 			RepositoryArgs desired
 	) {
-		Map<DriftGroup, List<DriftItem>> groupDrifts = new LinkedHashMap<>();
+		Map<DriftGroup, List<DriftFix>> groupDrifts = new LinkedHashMap<>();
 		for (var group : createDriftGroups(actual, desired)) {
-			var items = group.detect();
-			if (!items.isEmpty()) {
-				groupDrifts.put(group, items);
+			var fixes = group.detect();
+			if (!fixes.isEmpty()) {
+				groupDrifts.put(group, fixes);
 			}
 		}
 		return groupDrifts;
@@ -577,25 +551,33 @@ public class OrgChecker {
 	List<String> applyFixes(
 			String name,
 			List<String> diffs,
-			Map<DriftGroup, List<DriftItem>> groupDrifts
+			Map<DriftGroup, List<DriftFix>> groupDrifts
 	) {
 		List<String> remaining = new ArrayList<>(diffs);
-		for (var entry : groupDrifts.entrySet()) {
-			var group = entry.getKey();
-			var items = entry.getValue();
-			if (items.isEmpty()) {
-				continue;
+		for (var fixes : groupDrifts.values()) {
+			for (var driftFix : fixes) {
+				var msgs = driftFix.items()
+						.stream()
+						.map(DriftItem::message)
+						.toList();
+				if (msgs.isEmpty()) {
+					continue;
+				}
+				FixResult fixResult;
+				try {
+					fixResult = driftFix.fix().execute();
+				} catch (RuntimeException e) {
+					continue;
+				}
+				var unfixedMsgs = fixResult.unfixedItems()
+						.stream()
+						.map(DriftItem::message)
+						.collect(Collectors.toSet());
+				var fixedMsgs = msgs.stream()
+						.filter(m -> !unfixedMsgs.contains(m))
+						.toList();
+				remaining.removeAll(fixedMsgs);
 			}
-			var msgs = items.stream().map(DriftItem::message).toList();
-			var fixResult = group.fix();
-			var unfixedMsgs = fixResult.unfixedItems()
-					.stream()
-					.map(DriftItem::message)
-					.collect(Collectors.toSet());
-			var fixedMsgs = msgs.stream()
-					.filter(m -> !unfixedMsgs.contains(m))
-					.toList();
-			remaining.removeAll(fixedMsgs);
 		}
 		return remaining;
 	}
@@ -635,18 +617,6 @@ public class OrgChecker {
 		System.out.printf("Drifted:        %d%n", result.driftCount());
 		System.out.printf("Errored:        %d%n", result.errorCount());
 		System.out.printf("Unknown:        %d%n", result.unknownCount());
-	}
-
-	public static String encryptSecret(
-			String base64PublicKey,
-			String plaintext
-	) {
-		var sodium = new LazySodiumJava(new SodiumJava());
-		byte[] decodedKey = Base64.getDecoder().decode(base64PublicKey);
-		byte[] msgBytes = plaintext.getBytes(StandardCharsets.UTF_8);
-		byte[] cipherText = new byte[msgBytes.length + Box.SEALBYTES];
-		sodium.cryptoBoxSeal(cipherText, msgBytes, msgBytes.length, decodedKey);
-		return Base64.getEncoder().encodeToString(cipherText);
 	}
 
 }

@@ -28,7 +28,10 @@ class EnvironmentConfigDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).isEmpty();
 	}
@@ -60,7 +63,10 @@ class EnvironmentConfigDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).isEmpty();
 	}
@@ -92,7 +98,10 @@ class EnvironmentConfigDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
@@ -130,7 +139,10 @@ class EnvironmentConfigDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(2);
 		assertThat(items).anyMatch(
@@ -164,7 +176,10 @@ class EnvironmentConfigDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())

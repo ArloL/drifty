@@ -33,20 +33,18 @@ public class ArchivedDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftItem> detect() {
-		return compare("archived", desiredArchived, actualArchived);
-	}
-
-	@Override
-	public FixResult fix() {
-		client.updateRepository(
-				owner,
-				repo,
-				RepositoryUpdateRequest.builder()
-						.archived(desiredArchived)
-						.build()
-		);
-		return FixResult.success();
+	public List<DriftFix> detect() {
+		var items = compare("archived", desiredArchived, actualArchived);
+		return List.of(new DriftFix(items, () -> {
+			client.updateRepository(
+					owner,
+					repo,
+					RepositoryUpdateRequest.builder()
+							.archived(desiredArchived)
+							.build()
+			);
+			return FixResult.success();
+		}));
 	}
 
 }

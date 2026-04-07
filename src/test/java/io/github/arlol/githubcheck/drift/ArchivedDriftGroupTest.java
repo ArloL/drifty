@@ -9,19 +9,26 @@ class ArchivedDriftGroupTest {
 	@Test
 	void noDrift_whenBothNotArchived() {
 		var group = new ArchivedDriftGroup(false, false, null, "owner", "repo");
-		assertThat(group.detect()).isEmpty();
+		var fixes = group.detect();
+		assertThat(fixes).hasSize(1);
+		assertThat(fixes.getFirst().items()).isEmpty();
 	}
 
 	@Test
 	void noDrift_whenBothArchived() {
 		var group = new ArchivedDriftGroup(true, true, null, "owner", "repo");
-		assertThat(group.detect()).isEmpty();
+		var fixes = group.detect();
+		assertThat(fixes).hasSize(1);
+		assertThat(fixes.getFirst().items()).isEmpty();
 	}
 
 	@Test
 	void detectsDrift_whenDesiredArchivedActualNot() {
 		var group = new ArchivedDriftGroup(true, false, null, "owner", "repo");
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
@@ -32,7 +39,10 @@ class ArchivedDriftGroupTest {
 	@Test
 	void detectsDrift_whenActualArchivedDesiredNot() {
 		var group = new ArchivedDriftGroup(false, true, null, "owner", "repo");
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);

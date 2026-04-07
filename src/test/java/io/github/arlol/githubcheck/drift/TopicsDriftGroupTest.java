@@ -17,14 +17,18 @@ class TopicsDriftGroupTest {
 
 	@Test
 	void noDrift_topicsMatch() {
-		var items = group(List.of("java", "maven"), List.of("java", "maven"))
+		var fixes = group(List.of("java", "maven"), List.of("java", "maven"))
 				.detect();
-		assertThat(items).isEmpty();
+		assertThat(fixes).hasSize(1);
+		assertThat(fixes.getFirst().items()).isEmpty();
 	}
 
 	@Test
 	void detectsMissingTopics() {
-		var items = group(List.of("java", "maven"), List.of("java")).detect();
+		var items = group(List.of("java", "maven"), List.of("java")).detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst()).isInstanceOf(DriftItem.SetDrift.class);
 		var drift = (DriftItem.SetDrift) items.getFirst();
@@ -35,7 +39,10 @@ class TopicsDriftGroupTest {
 
 	@Test
 	void detectsExtraTopics() {
-		var items = group(List.of(), List.of("stale-topic")).detect();
+		var items = group(List.of(), List.of("stale-topic")).detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst()).isInstanceOf(DriftItem.SetDrift.class);
 		var drift = (DriftItem.SetDrift) items.getFirst();

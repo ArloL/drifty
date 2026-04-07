@@ -14,4 +14,8 @@ public record FixResult(
 		unfixedItems = List.copyOf(unfixedItems);
 	}
 
+	public FixResult(DriftItem unfixedItem) {
+		this(List.of(unfixedItem));
+	}
+
 }

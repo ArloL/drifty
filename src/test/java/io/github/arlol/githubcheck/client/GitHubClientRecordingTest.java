@@ -19,8 +19,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 
-import io.github.arlol.githubcheck.OrgChecker;
-
 class GitHubClientRecordingTest {
 
 	static final Path MAPPINGS_DIR = Path
@@ -179,7 +177,7 @@ class GitHubClientRecordingTest {
 					repo,
 					"ACTION_SECRET",
 					new SecretRequest(
-							OrgChecker.encryptSecret(
+							Secrets.encryptSecret(
 									actionKey.key(),
 									"test-secret-value"
 							),
@@ -213,7 +211,7 @@ class GitHubClientRecordingTest {
 					envName,
 					"ENV_SECRET",
 					new SecretRequest(
-							OrgChecker.encryptSecret(
+							Secrets.encryptSecret(
 									envKey.key(),
 									"test-secret-value"
 							),

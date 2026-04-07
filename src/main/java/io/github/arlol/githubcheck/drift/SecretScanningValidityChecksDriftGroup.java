@@ -1,9 +1,9 @@
 package io.github.arlol.githubcheck.drift;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 
@@ -35,26 +35,21 @@ public class SecretScanningValidityChecksDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftItem> detect() {
-		var items = new ArrayList<DriftItem>();
-		items.addAll(compare("enabled", desired, actual));
-		return items;
-	}
-
-	@Override
-	public FixResult fix() {
-		var sa = SecurityAndAnalysis.builder()
-				.secretScanningValidityChecks(desired)
-				.build();
-		client.updateRepository(
-				owner,
-				repo,
-				io.github.arlol.githubcheck.client.RepositoryUpdateRequest
-						.builder()
-						.securityAndAnalysis(sa)
-						.build()
-		);
-		return FixResult.success();
+	public List<DriftFix> detect() {
+		var items = compare("enabled", desired, actual);
+		return List.of(new DriftFix(items, () -> {
+			var sa = SecurityAndAnalysis.builder()
+					.secretScanningValidityChecks(desired)
+					.build();
+			client.updateRepository(
+					owner,
+					repo,
+					RepositoryUpdateRequest.builder()
+							.securityAndAnalysis(sa)
+							.build()
+			);
+			return FixResult.success();
+		}));
 	}
 
 }

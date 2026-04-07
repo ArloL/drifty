@@ -1,6 +1,5 @@
 package io.github.arlol.githubcheck.drift;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -34,20 +33,16 @@ public class ImmutableReleasesDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftItem> detect() {
-		var items = new ArrayList<DriftItem>();
-		items.addAll(compare("enabled", desired, actual));
-		return items;
-	}
-
-	@Override
-	public FixResult fix() {
-		if (desired) {
-			client.enableImmutableReleases(owner, repo);
-		} else {
-			client.disableImmutableReleases(owner, repo);
-		}
-		return FixResult.success();
+	public List<DriftFix> detect() {
+		var items = compare("enabled", desired, actual);
+		return List.of(new DriftFix(items, () -> {
+			if (desired) {
+				client.enableImmutableReleases(owner, repo);
+			} else {
+				client.disableImmutableReleases(owner, repo);
+			}
+			return FixResult.success();
+		}));
 	}
 
 }

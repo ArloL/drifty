@@ -69,7 +69,10 @@ class BranchProtectionDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
@@ -89,7 +92,10 @@ class BranchProtectionDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst()).isInstanceOf(DriftItem.SectionExtra.class);
@@ -130,7 +136,10 @@ class BranchProtectionDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
@@ -158,7 +167,10 @@ class BranchProtectionDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst()).isInstanceOf(DriftItem.SetDrift.class);
@@ -186,7 +198,10 @@ class BranchProtectionDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
@@ -209,7 +224,10 @@ class BranchProtectionDriftGroupTest {
 				"repo"
 		);
 
-		var items = group.detect();
+		var items = group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
 
 		assertThat(items).hasSize(2);
 		assertThat(items).anyMatch(i -> i instanceof DriftItem.SectionMissing);

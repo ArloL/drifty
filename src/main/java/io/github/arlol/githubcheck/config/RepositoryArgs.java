@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -27,7 +28,7 @@ public record RepositoryArgs(
 		String homepageUrl,
 		RepositoryVisibility visibility,
 		List<String> topics,
-		List<String> actionsSecrets,
+		Set<String> actionsSecrets,
 		Map<String, EnvironmentArgs> environments,
 		List<RulesetArgs> rulesets,
 		boolean immutableReleases,
@@ -64,7 +65,7 @@ public record RepositoryArgs(
 
 	public RepositoryArgs {
 		topics = List.copyOf(topics);
-		actionsSecrets = List.copyOf(actionsSecrets);
+		actionsSecrets = Set.copyOf(actionsSecrets);
 		environments = Collections
 				.unmodifiableMap(new LinkedHashMap<>(environments));
 		rulesets = List.copyOf(rulesets);
@@ -93,7 +94,7 @@ public record RepositoryArgs(
 		private String homepageUrl = "";
 		private RepositoryVisibility visibility = RepositoryVisibility.PUBLIC;
 		private List<String> topics = List.of();
-		private List<String> actionsSecrets = List.of();
+		private Set<String> actionsSecrets = Set.of();
 		private final Map<String, EnvironmentArgs> environments = new LinkedHashMap<>();
 		private List<RulesetArgs> rulesets = List.of();
 		private boolean immutableReleases = false;
@@ -227,7 +228,7 @@ public record RepositoryArgs(
 		}
 
 		public Builder actionsSecrets(String... secrets) {
-			this.actionsSecrets = List.of(secrets);
+			this.actionsSecrets = Set.of(secrets);
 			return this;
 		}
 

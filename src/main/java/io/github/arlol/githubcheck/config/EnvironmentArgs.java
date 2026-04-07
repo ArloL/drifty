@@ -2,20 +2,22 @@ package io.github.arlol.githubcheck.config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import io.github.arlol.githubcheck.client.EnvironmentReviewerType;
+import io.github.arlol.githubcheck.client.EnvironmentUpdateRequest;
 
 public final class EnvironmentArgs {
 
 	private final String name;
-	private final List<String> secrets;
+	private final Set<String> secrets;
 	private final Integer waitTimer;
 	private final DeploymentBranchPolicy deploymentBranchPolicy;
-	private final List<Reviewer> reviewers;
+	private final List<EnvironmentUpdateRequest.Reviewer> reviewers;
 
 	private EnvironmentArgs(Builder builder) {
 		this.name = builder.name;
-		this.secrets = List.copyOf(builder.secrets);
+		this.secrets = Set.copyOf(builder.secrets);
 		this.waitTimer = builder.waitTimer;
 		this.deploymentBranchPolicy = builder.deploymentBranchPolicy;
 		this.reviewers = List.copyOf(builder.reviewers);
@@ -25,7 +27,7 @@ public final class EnvironmentArgs {
 		return this.name;
 	}
 
-	public List<String> secrets() {
+	public Set<String> secrets() {
 		return this.secrets;
 	}
 
@@ -37,19 +39,13 @@ public final class EnvironmentArgs {
 		return this.deploymentBranchPolicy;
 	}
 
-	public List<Reviewer> reviewers() {
+	public List<EnvironmentUpdateRequest.Reviewer> reviewers() {
 		return this.reviewers;
 	}
 
 	public record DeploymentBranchPolicy(
 			boolean protectedBranches,
 			boolean customBranchPolicies
-	) {
-	}
-
-	public record Reviewer(
-			EnvironmentReviewerType type,
-			long id
 	) {
 	}
 
@@ -60,17 +56,17 @@ public final class EnvironmentArgs {
 	public static final class Builder {
 
 		private final String name;
-		private List<String> secrets = List.of();
+		private Set<String> secrets = Set.of();
 		private Integer waitTimer = null;
 		private DeploymentBranchPolicy deploymentBranchPolicy = null;
-		private List<Reviewer> reviewers = new ArrayList<>();
+		private final List<EnvironmentUpdateRequest.Reviewer> reviewers = new ArrayList<>();
 
 		public Builder(String name) {
 			this.name = name;
 		}
 
 		public Builder secrets(String... secrets) {
-			this.secrets = List.of(secrets);
+			this.secrets = Set.of(secrets);
 			return this;
 		}
 
@@ -91,7 +87,7 @@ public final class EnvironmentArgs {
 		}
 
 		public Builder reviewer(EnvironmentReviewerType type, long id) {
-			this.reviewers.add(new Reviewer(type, id));
+			this.reviewers.add(new EnvironmentUpdateRequest.Reviewer(type, id));
 			return this;
 		}
 
