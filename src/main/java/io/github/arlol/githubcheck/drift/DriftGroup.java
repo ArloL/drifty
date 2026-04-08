@@ -19,10 +19,7 @@ public abstract class DriftGroup {
 			Object wanted,
 			Object got
 	) {
-		if (!Objects.equals(wanted, got)) {
-			return List.of(new DriftItem.FieldMismatch(path, wanted, got));
-		}
-		return List.of();
+		return ocompare(path, wanted, got).map(List::of).orElse(List.of());
 	}
 
 	protected static Optional<DriftItem> ocompare(
@@ -41,14 +38,7 @@ public abstract class DriftGroup {
 			Collection<T> wanted,
 			Collection<T> got
 	) {
-		Set<T> missing = new HashSet<>(wanted);
-		missing.removeAll(got);
-		Set<T> extra = new HashSet<>(got);
-		extra.removeAll(wanted);
-		if (!missing.isEmpty() || !extra.isEmpty()) {
-			return List.of(new DriftItem.SetDrift(path, missing, extra));
-		}
-		return List.of();
+		return ocompare(path, wanted, got).map(List::of).orElse(List.of());
 	}
 
 	protected static <T> Optional<DriftItem> ocompare(
