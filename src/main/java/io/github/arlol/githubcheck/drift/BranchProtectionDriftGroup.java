@@ -80,33 +80,27 @@ public class BranchProtectionDriftGroup extends DriftGroup {
 			BranchProtectionArgs wanted = entry.getValue();
 			BranchProtectionResponse got = remainingActual.remove(pattern);
 
-			List<DriftItem> items = new ArrayList<>();
-
-			DriftFix driftFix = new DriftFix(items, () -> {
-				client.updateBranchProtection(
-						owner,
-						repo,
-						pattern,
-						buildBranchProtectionRequest(wanted)
-				);
-				return FixResult.success();
-			});
-
 			if (got == null) {
-				items.add(
-						new DriftItem.SectionMissing(
-								"branch_protection." + pattern
+				fixes.add(
+						new DriftFix(
+								new DriftItem.SectionMissing(
+										"branch_protection." + pattern
+								),
+								() -> {
+									client.updateBranchProtection(
+											owner,
+											repo,
+											pattern,
+											buildBranchProtectionRequest(wanted)
+									);
+									return FixResult.success();
+								}
 						)
 				);
-				fixes.add(driftFix);
 				continue;
 			}
 
-			ocompare(
-					"branch_protection." + pattern + ".enforce_admins",
-					wanted.enforceAdmins(),
-					got.enforceAdmins().enabled()
-			).ifPresent(items::add);
+			List<DriftItem> items = new ArrayList<>();
 
 			ocompare(
 					"branch_protection." + pattern + ".enforce_admins",
@@ -251,7 +245,17 @@ public class BranchProtectionDriftGroup extends DriftGroup {
 				).ifPresent(items::add);
 			}
 
-			fixes.add(driftFix);
+			if (!items.isEmpty()) {
+				fixes.add(new DriftFix(items, () -> {
+					client.updateBranchProtection(
+							owner,
+							repo,
+							pattern,
+							buildBranchProtectionRequest(wanted)
+					);
+					return FixResult.success();
+				}));
+			}
 		}
 
 		for (var actualName : remainingActual.keySet()) {

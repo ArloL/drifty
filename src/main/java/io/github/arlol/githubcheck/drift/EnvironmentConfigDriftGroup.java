@@ -133,7 +133,7 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 
 		return new EnvironmentUpdateRequest(
 				args.waitTimer(),
-				args.reviewers(),
+				args.reviewers().isEmpty() ? null : args.reviewers(),
 				dbp
 		);
 	}

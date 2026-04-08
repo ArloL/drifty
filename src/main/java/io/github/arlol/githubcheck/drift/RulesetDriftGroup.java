@@ -104,13 +104,11 @@ public class RulesetDriftGroup extends DriftGroup {
 						got.conditions().refName().include()
 				);
 			}
-			items.addAll(
-					compare(
-							"ruleset." + rName + ".include_patterns",
-							wantIncludes,
-							gotIncludes
-					)
-			);
+			ocompare(
+					"ruleset." + rName + ".include_patterns",
+					wantIncludes,
+					gotIncludes
+			).ifPresent(items::add);
 
 			Map<RulesetRuleType, Rule> actualRulesByType = buildRulesByType(
 					got
@@ -118,23 +116,19 @@ public class RulesetDriftGroup extends DriftGroup {
 
 			boolean hasLinearHistory = actualRulesByType
 					.containsKey(RulesetRuleType.REQUIRED_LINEAR_HISTORY);
-			items.addAll(
-					compare(
-							"ruleset." + rName + ".required_linear_history",
-							wanted.requiredLinearHistory(),
-							hasLinearHistory
-					)
-			);
+			ocompare(
+					"ruleset." + rName + ".required_linear_history",
+					wanted.requiredLinearHistory(),
+					hasLinearHistory
+			).ifPresent(items::add);
 
 			boolean hasNonFastForward = actualRulesByType
 					.containsKey(RulesetRuleType.NON_FAST_FORWARD);
-			items.addAll(
-					compare(
-							"ruleset." + rName + ".no_force_pushes",
-							wanted.noForcePushes(),
-							hasNonFastForward
-					)
-			);
+			ocompare(
+					"ruleset." + rName + ".no_force_pushes",
+					wanted.noForcePushes(),
+					hasNonFastForward
+			).ifPresent(items::add);
 
 			Set<StatusCheckArgs> wantChecks = new HashSet<>(
 					wanted.requiredStatusChecks()
@@ -143,13 +137,11 @@ public class RulesetDriftGroup extends DriftGroup {
 					actualRulesByType
 			);
 			if (!wantChecks.isEmpty() || !gotChecks.isEmpty()) {
-				items.addAll(
-						compare(
-								"ruleset." + rName + ".required_status_checks",
-								wantChecks,
-								gotChecks
-						)
-				);
+				ocompare(
+						"ruleset." + rName + ".required_status_checks",
+						wantChecks,
+						gotChecks
+				).ifPresent(items::add);
 			}
 
 			if (wanted.requiredReviewCount() != null) {
@@ -175,51 +167,37 @@ public class RulesetDriftGroup extends DriftGroup {
 					.collect(Collectors.toSet());
 			Set<String> gotTools = extractCodeScanningTools(actualRulesByType);
 			if (!wantTools.isEmpty() || !gotTools.isEmpty()) {
-				items.addAll(
-						compare(
-								"ruleset." + rName + ".required_code_scanning",
-								wantTools,
-								gotTools
-						)
-				);
+				ocompare(
+						"ruleset." + rName + ".required_code_scanning",
+						wantTools,
+						gotTools
+				).ifPresent(items::add);
 			}
 
-			items.addAll(
-					compare(
-							"ruleset." + rName + ".creation",
-							wanted.creation(),
-							actualRulesByType
-									.containsKey(RulesetRuleType.CREATION)
-					)
-			);
+			ocompare(
+					"ruleset." + rName + ".creation",
+					wanted.creation(),
+					actualRulesByType.containsKey(RulesetRuleType.CREATION)
+			).ifPresent(items::add);
 
-			items.addAll(
-					compare(
-							"ruleset." + rName + ".deletion",
-							wanted.deletion(),
-							actualRulesByType
-									.containsKey(RulesetRuleType.DELETION)
-					)
-			);
+			ocompare(
+					"ruleset." + rName + ".deletion",
+					wanted.deletion(),
+					actualRulesByType.containsKey(RulesetRuleType.DELETION)
+			).ifPresent(items::add);
 
-			items.addAll(
-					compare(
-							"ruleset." + rName + ".required_signatures",
-							wanted.requiredSignatures(),
-							actualRulesByType.containsKey(
-									RulesetRuleType.REQUIRED_SIGNATURES
-							)
-					)
-			);
+			ocompare(
+					"ruleset." + rName + ".required_signatures",
+					wanted.requiredSignatures(),
+					actualRulesByType
+							.containsKey(RulesetRuleType.REQUIRED_SIGNATURES)
+			).ifPresent(items::add);
 
-			items.addAll(
-					compare(
-							"ruleset." + rName + ".update",
-							wanted.update(),
-							actualRulesByType
-									.containsKey(RulesetRuleType.UPDATE)
-					)
-			);
+			ocompare(
+					"ruleset." + rName + ".update",
+					wanted.update(),
+					actualRulesByType.containsKey(RulesetRuleType.UPDATE)
+			).ifPresent(items::add);
 
 			if (wanted.update() && actualRulesByType.get(
 					RulesetRuleType.UPDATE
@@ -227,14 +205,11 @@ public class RulesetDriftGroup extends DriftGroup {
 				Boolean gotAllowsFetch = updateRule.parameters() != null
 						? updateRule.parameters().updateAllowsFetchAndMerge()
 						: null;
-				items.addAll(
-						compare(
-								"ruleset." + rName
-										+ ".update_allows_fetch_and_merge",
-								wanted.updateAllowsFetchAndMerge(),
-								Boolean.TRUE.equals(gotAllowsFetch)
-						)
-				);
+				ocompare(
+						"ruleset." + rName + ".update_allows_fetch_and_merge",
+						wanted.updateAllowsFetchAndMerge(),
+						Boolean.TRUE.equals(gotAllowsFetch)
+				).ifPresent(items::add);
 			}
 
 			checkPatternRule(
@@ -280,13 +255,11 @@ public class RulesetDriftGroup extends DriftGroup {
 					actualRulesByType
 			);
 			if (!wantDeployments.isEmpty() || !gotDeployments.isEmpty()) {
-				items.addAll(
-						compare(
-								"ruleset." + rName + ".required_deployments",
-								wantDeployments,
-								gotDeployments
-						)
-				);
+				ocompare(
+						"ruleset." + rName + ".required_deployments",
+						wantDeployments,
+						gotDeployments
+				).ifPresent(items::add);
 			}
 
 			if (!wanted.bypassActors().isEmpty()) {
@@ -306,13 +279,11 @@ public class RulesetDriftGroup extends DriftGroup {
 								)
 								.collect(Collectors.toSet())
 						: Set.of();
-				items.addAll(
-						compare(
-								"ruleset." + rName + ".bypass_actors",
-								wantBypass,
-								gotBypass
-						)
-				);
+				ocompare(
+						"ruleset." + rName + ".bypass_actors",
+						wantBypass,
+						gotBypass
+				).ifPresent(items::add);
 			}
 
 			if (!items.isEmpty()) {
@@ -447,7 +418,7 @@ public class RulesetDriftGroup extends DriftGroup {
 
 		String want = wanted != null ? wanted.pattern() : null;
 		if (want != null || got != null) {
-			items.addAll(compare(path, want, got));
+			ocompare(path, want, got).ifPresent(items::add);
 		}
 	}
 
