@@ -744,6 +744,128 @@ pub const GitHubClient = struct {
             else => GitHubApiError.UnexpectedStatus,
         };
     }
+
+    // ── Secret management (used in --fix mode) ────────────────────────────
+
+    pub const SecretPublicKey = struct {
+        key_id: []const u8,
+        /// Base64-encoded X25519 public key.
+        key: []const u8,
+    };
+
+    pub fn getActionSecretPublicKey(
+        self: *GitHubClient,
+        org: []const u8,
+        repo: []const u8,
+        out_alloc: Allocator,
+    ) !SecretPublicKey {
+        var url_buf: [512]u8 = undefined;
+        const url = try std.fmt.bufPrint(
+            &url_buf,
+            "{s}/repos/{s}/{s}/actions/secrets/public-key",
+            .{ self.base_url, org, repo },
+        );
+        const resp = try self.get(url);
+        defer resp.deinit();
+        if (resp.status != .ok) return GitHubApiError.UnexpectedStatus;
+
+        // Response: { "key_id": "...", "key": "<base64>" }
+        const Payload = struct { key_id: []const u8, key: []const u8 };
+        const parsed = try std.json.parseFromSlice(
+            Payload,
+            out_alloc,
+            resp.body,
+            .{ .ignore_unknown_fields = true },
+        );
+        return .{ .key_id = parsed.value.key_id, .key = parsed.value.key };
+    }
+
+    pub fn getEnvironmentSecretPublicKey(
+        self: *GitHubClient,
+        org: []const u8,
+        repo: []const u8,
+        env_name: []const u8,
+        out_alloc: Allocator,
+    ) !SecretPublicKey {
+        var url_buf: [512]u8 = undefined;
+        const url = try std.fmt.bufPrint(
+            &url_buf,
+            "{s}/repos/{s}/{s}/environments/{s}/secrets/public-key",
+            .{ self.base_url, org, repo, env_name },
+        );
+        const resp = try self.get(url);
+        defer resp.deinit();
+        if (resp.status != .ok) return GitHubApiError.UnexpectedStatus;
+
+        const Payload = struct { key_id: []const u8, key: []const u8 };
+        const parsed = try std.json.parseFromSlice(
+            Payload,
+            out_alloc,
+            resp.body,
+            .{ .ignore_unknown_fields = true },
+        );
+        return .{ .key_id = parsed.value.key_id, .key = parsed.value.key };
+    }
+
+    /// Create or update a repository action secret.
+    /// `encrypted_value` must be the base64-encoded ciphertext from crypto.encryptSecret().
+    pub fn createOrUpdateActionSecret(
+        self: *GitHubClient,
+        org: []const u8,
+        repo: []const u8,
+        secret_name: []const u8,
+        encrypted_value: []const u8,
+        key_id: []const u8,
+    ) !void {
+        var url_buf: [512]u8 = undefined;
+        const url = try std.fmt.bufPrint(
+            &url_buf,
+            "{s}/repos/{s}/{s}/actions/secrets/{s}",
+            .{ self.base_url, org, repo, secret_name },
+        );
+        // Body: { "encrypted_value": "...", "key_id": "..." }
+        const body = try std.fmt.allocPrint(
+            self.alloc,
+            "{{\"encrypted_value\":\"{s}\",\"key_id\":\"{s}\"}}",
+            .{ encrypted_value, key_id },
+        );
+        defer self.alloc.free(body);
+
+        const resp = try self.put(url, body);
+        defer resp.deinit();
+        // GitHub returns 201 Created or 204 No Content.
+        if (resp.status != .created and resp.status != .no_content)
+            return GitHubApiError.UnexpectedStatus;
+    }
+
+    /// Create or update an environment secret.
+    pub fn createOrUpdateEnvironmentSecret(
+        self: *GitHubClient,
+        org: []const u8,
+        repo: []const u8,
+        env_name: []const u8,
+        secret_name: []const u8,
+        encrypted_value: []const u8,
+        key_id: []const u8,
+    ) !void {
+        var url_buf: [512]u8 = undefined;
+        const url = try std.fmt.bufPrint(
+            &url_buf,
+            "{s}/repos/{s}/{s}/environments/{s}/secrets/{s}",
+            .{ self.base_url, org, repo, env_name, secret_name },
+        );
+        const body = try std.fmt.allocPrint(
+            self.alloc,
+            "{{\"encrypted_value\":\"{s}\",\"key_id\":\"{s}\"}}",
+            .{ encrypted_value, key_id },
+        );
+        defer self.alloc.free(body);
+
+        const resp = try self.put(url, body);
+        defer resp.deinit();
+        if (resp.status != .created and resp.status != .no_content)
+            return GitHubApiError.UnexpectedStatus;
+    }
 };
 
 // ── Ruleset deserialization helper ────────────────────────────────────────

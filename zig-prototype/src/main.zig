@@ -44,13 +44,50 @@ pub fn main() !void {
         try gpa.dupe(u8, "ArloL");
     defer gpa.free(org);
 
+    // ── GitHub secrets (for --fix mode) ──────────────────────────────────
+    // GITHUB_SECRETS is a JSON object mapping secret keys to plaintext values.
+    // Key format: "<repo>-<secret>" for action secrets,
+    //             "<repo>-<env>-<secret>" for environment secrets.
+    // Mirrors Java's Map<String, String> githubSecrets.
+    //
+    // Example:
+    //   GITHUB_SECRETS='{"drifty-PAT":"ghp_xxx","terraform-github-production-TF_GITHUB_TOKEN":"xxx"}'
+    var github_secrets = std.StringHashMap([]const u8).init(gpa);
+    defer github_secrets.deinit();
+
+    if (std.process.getEnvVarOwned(gpa, "GITHUB_SECRETS")) |secrets_json| {
+        defer gpa.free(secrets_json);
+        const parsed = std.json.parseFromSlice(
+            std.json.Value,
+            gpa,
+            secrets_json,
+            .{},
+        ) catch |err| {
+            std.debug.print("ERROR: GITHUB_SECRETS is not valid JSON: {}\n", .{err});
+            std.process.exit(1);
+        };
+        defer parsed.deinit();
+
+        if (parsed.value == .object) {
+            var it = parsed.value.object.iterator();
+            while (it.next()) |entry| {
+                // Dupe into gpa so values outlive the parsed arena.
+                const k = try gpa.dupe(u8, entry.key_ptr.*);
+                const v = try gpa.dupe(u8, entry.value_ptr.*.string);
+                try github_secrets.put(k, v);
+            }
+        }
+    } else |_| {
+        // Env var not set — fix mode will skip secrets it has no value for.
+    }
+
     // ── Run ───────────────────────────────────────────────────────────────
     const start_ms = std.time.milliTimestamp();
 
     var client = GitHubClient.init(gpa, token);
     defer client.deinit();
 
-    var checker = OrgChecker.init(gpa, &client, org, do_fix);
+    var checker = OrgChecker.init(gpa, &client, org, do_fix, github_secrets);
     const result = try checker.check(&repositories);
 
     OrgChecker.printReport(result);

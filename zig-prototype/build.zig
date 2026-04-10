@@ -4,14 +4,6 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // Optional: link system libsodium for secret encryption in --fix mode.
-    // Requires libsodium-dev (apt) or libsodium (brew) to be installed.
-    // Without this flag the binary compiles fine; the encrypt function is
-    // compiled out and --fix will skip secret updates.
-    const use_sodium = b.option(bool, "sodium", "Enable libsodium crypto support") orelse false;
-    const build_opts = b.addOptions();
-    build_opts.addOption(bool, "use_sodium", use_sodium);
-
     const exe = b.addExecutable(.{
         .name = "drifty",
         .root_source_file = b.path("src/main.zig"),
@@ -19,12 +11,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    exe.root_module.addOptions("build_options", build_opts);
-
-    if (use_sodium) {
-        exe.linkSystemLibrary("sodium");
-        exe.linkLibC();
-    }
+    // libsodium is required: used for crypto_box_seal when encrypting GitHub
+    // Action secrets and environment secrets in --fix mode.
+    // Install: apt install libsodium-dev  /  brew install libsodium
+    exe.linkSystemLibrary("sodium");
+    exe.linkLibC();
 
     b.installArtifact(exe);
 

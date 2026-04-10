@@ -12,20 +12,32 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const models = @import("models.zig");
 const GitHubClient = @import("github_client.zig").GitHubClient;
+const crypto = @import("crypto.zig");
 
 pub const OrgChecker = struct {
     gpa: Allocator,
     client: *GitHubClient,
     org: []const u8,
     fix: bool,
+    /// Secret plaintext values keyed as "<repo>-<secret>" for action secrets
+    /// and "<repo>-<env>-<secret>" for environment secrets.
+    /// Mirrors Java OrgChecker.githubSecrets (Map<String, String>).
+    github_secrets: std.StringHashMap([]const u8),
 
     pub fn init(
         gpa: Allocator,
         client: *GitHubClient,
         org: []const u8,
         fix: bool,
+        github_secrets: std.StringHashMap([]const u8),
     ) OrgChecker {
-        return .{ .gpa = gpa, .client = client, .org = org, .fix = fix };
+        return .{
+            .gpa = gpa,
+            .client = client,
+            .org = org,
+            .fix = fix,
+            .github_secrets = github_secrets,
+        };
     }
 
     // ── Entry point ───────────────────────────────────────────────────────
@@ -115,6 +127,10 @@ pub const OrgChecker = struct {
 
         var diffs = std.ArrayList([]const u8).init(alloc);
         try self.computeDiffs(&diffs, &state, desired);
+
+        if (self.fix and diffs.items.len > 0) {
+            try self.applyFixes(alloc, summary.name, &state, desired, &diffs);
+        }
 
         if (diffs.items.len == 0) {
             return .{ .name = summary.name, .status = .ok, .diffs = &.{}, .err = null };
@@ -565,6 +581,117 @@ pub const OrgChecker = struct {
         }
     }
 
+    // ── Fix application ───────────────────────────────────────────────────
+    //
+    // Mirrors Java OrgChecker.applyFixes(). Iterates `diffs`, applies fixes
+    // for each diff it knows how to handle, and removes successfully fixed
+    // items from the list. Remaining entries represent unfixable drift.
+    //
+    // Currently implements: action secrets, environment secrets.
+    // (Repo settings, branch protection, rulesets, pages follow the same
+    // pattern — each calls the appropriate PUT/PATCH/POST endpoint.)
+
+    fn applyFixes(
+        self: *OrgChecker,
+        alloc: Allocator,
+        repo_name: []const u8,
+        actual: *const models.RepositoryState,
+        desired: models.RepositoryArgs,
+        diffs: *std.ArrayList([]const u8),
+    ) !void {
+        // ── Action secrets ────────────────────────────────────────────────
+        // Identify which desired secrets are missing from actual.
+        var missing_action_secrets = std.ArrayList([]const u8).init(alloc);
+        for (desired.actions_secrets) |want| {
+            if (!containsStr(actual.action_secret_names, want))
+                try missing_action_secrets.append(want);
+        }
+
+        if (missing_action_secrets.items.len > 0) {
+            // Fetch the public key once, lazily.
+            var pub_key: ?GitHubClient.SecretPublicKey = null;
+
+            for (missing_action_secrets.items) |secret_name| {
+                // Key format mirrors Java: "<repo>-<secret>"
+                const map_key = try std.fmt.allocPrint(alloc, "{s}-{s}", .{ repo_name, secret_name });
+                const plaintext = self.github_secrets.get(map_key) orelse {
+                    std.debug.print(
+                        "  [SKIP]  {s}: action secret {s} — no value in GITHUB_SECRETS\n",
+                        .{ repo_name, secret_name },
+                    );
+                    continue;
+                };
+
+                if (pub_key == null) {
+                    pub_key = try self.client.getActionSecretPublicKey(self.org, repo_name, alloc);
+                }
+                const pk = pub_key.?;
+
+                const encrypted = try crypto.encryptSecret(alloc, pk.key, plaintext);
+                defer alloc.free(encrypted);
+
+                try self.client.createOrUpdateActionSecret(
+                    self.org, repo_name, secret_name, encrypted, pk.key_id,
+                );
+                std.debug.print(
+                    "  [FIXED] {s}: action secret {s} created\n",
+                    .{ repo_name, secret_name },
+                );
+
+                // Remove from diffs.
+                removeDiff(diffs, "action_secret missing: ", secret_name);
+            }
+        }
+
+        // ── Environment secrets ───────────────────────────────────────────
+        for (desired.environments) |env_args| {
+            const actual_secrets = actual.environment_secret_names.get(env_args.name) orelse &.{};
+            var missing_env_secrets = std.ArrayList([]const u8).init(alloc);
+            for (env_args.secrets) |want| {
+                if (!containsStr(actual_secrets, want))
+                    try missing_env_secrets.append(want);
+            }
+            if (missing_env_secrets.items.len == 0) continue;
+
+            var pub_key: ?GitHubClient.SecretPublicKey = null;
+
+            for (missing_env_secrets.items) |secret_name| {
+                // Key format: "<repo>-<env>-<secret>"
+                const map_key = try std.fmt.allocPrint(
+                    alloc, "{s}-{s}-{s}",
+                    .{ repo_name, env_args.name, secret_name },
+                );
+                const plaintext = self.github_secrets.get(map_key) orelse {
+                    std.debug.print(
+                        "  [SKIP]  {s}: environment.{s} secret {s} — no value in GITHUB_SECRETS\n",
+                        .{ repo_name, env_args.name, secret_name },
+                    );
+                    continue;
+                };
+
+                if (pub_key == null) {
+                    pub_key = try self.client.getEnvironmentSecretPublicKey(
+                        self.org, repo_name, env_args.name, alloc,
+                    );
+                }
+                const pk = pub_key.?;
+
+                const encrypted = try crypto.encryptSecret(alloc, pk.key, plaintext);
+                defer alloc.free(encrypted);
+
+                try self.client.createOrUpdateEnvironmentSecret(
+                    self.org, repo_name, env_args.name, secret_name, encrypted, pk.key_id,
+                );
+                std.debug.print(
+                    "  [FIXED] {s}: environment.{s} secret {s} created\n",
+                    .{ repo_name, env_args.name, secret_name },
+                );
+
+                removeDiff(diffs, "environment ", env_args.name);
+            }
+        }
+    }
+
     // ── Report ────────────────────────────────────────────────────────────
 
     pub fn printReport(result: models.CheckResult) void {
@@ -655,6 +782,25 @@ fn findRuleset(
 fn findRulesetArgs(args: []const models.RulesetArgs, name: []const u8) bool {
     for (args) |a| if (std.mem.eql(u8, a.name, name)) return true;
     return false;
+}
+
+/// Remove the first diff entry whose text starts with `prefix` and contains
+/// `key`. Used by applyFixes() to strike fixed items from the diff list.
+fn removeDiff(
+    diffs: *std.ArrayList([]const u8),
+    prefix: []const u8,
+    key: []const u8,
+) void {
+    var i: usize = 0;
+    while (i < diffs.items.len) {
+        const d = diffs.items[i];
+        if (std.mem.startsWith(u8, d, prefix) and std.mem.indexOf(u8, d, key) != null) {
+            _ = diffs.orderedRemove(i);
+        } else {
+            i += 1;
+        }
+    }
+}
 }
 
 fn hasRuleType(rules: []const models.Rule, tag: std.meta.Tag(models.Rule)) bool {
