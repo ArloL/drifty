@@ -24,10 +24,12 @@ source "${CLAUDE_ENV_FILE}"
 echo "Configuring Maven proxy..."
 python3 "${SCRIPTS_DIR}/configure-maven-proxy.py"
 
-echo "Installing Temurin JDK..."
-python3 "${SCRIPTS_DIR}/install-temurin.py"
+# echo "Installing Temurin JDK..."
+# python3 "${SCRIPTS_DIR}/install-temurin.py"
+#
+# echo "Installing Zig..."
+# python3 "${SCRIPTS_DIR}/install-zig.py"
 
-echo "Installing Zig..."
-python3 "${SCRIPTS_DIR}/install-zig.py"
+mise install
 
 "${SCRIPTS_DIR}/warmup-maven.sh"
