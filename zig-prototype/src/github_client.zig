@@ -143,67 +143,60 @@ pub const GitHubClient = struct {
             .{ .name = "Content-Type", .value = content_type },
         };
 
-        // 16 KiB covers all GitHub response headers comfortably.
-        // Must outlive the request (deinit() happens via defer below).
-        var server_header_buf: [16 * 1024]u8 = undefined;
-
-        // Lower-level open/send/wait gives us unambiguous access to the
-        // response status code and headers, which the high-level fetch()
-        // convenience wrapper does not expose directly.
-        //
-        // std.http.Client.open() in Zig 0.14.0:
-        //   client.open(method, uri, options) → !Request
-        //   request.send()   — sends headers (and optionally a body)
-        //   request.finish() — signals end of request body (even if empty)
-        //   request.wait()   — reads response headers; after this,
-        //                      request.response.status is valid
-        //   request.reader() — returns a Reader for the response body
+        // std.http.Client API in Zig 0.15.2:
+        //   client.request(method, uri, options) → !Request
+        //   request.sendBodiless()          — sends headers only (GET, DELETE)
+        //   request.sendBodyUnflushed(&.{}) — sends headers with body (POST, PUT, PATCH)
+        //     then: body_writer.writer.writeAll(payload), body_writer.end(), connection.flush()
+        //   request.receiveHead(redirect_buf) → Response
+        //     response.head.status          — HTTP status code
+        //     response.head.bytes           — raw header block (copy before calling reader())
+        //   response.reader(transfer_buf)   — *std.Io.Reader for the body
         const uri = try std.Uri.parse(url);
 
-        var req = try self.http.open(method, uri, .{
-            .server_header_buffer = &server_header_buf,
+        var req = try self.http.request(method, uri, .{
             .extra_headers = &extra_headers,
         });
         defer req.deinit();
 
-        // Set Content-Length for requests with a body.
         if (payload) |p| {
             req.transfer_encoding = .{ .content_length = p.len };
+            var body_writer = try req.sendBodyUnflushed(&.{});
+            try body_writer.writer.writeAll(p);
+            try body_writer.end();
+            try req.connection.?.flush();
+        } else {
+            try req.sendBodiless();
         }
 
-        try req.send();
-        if (payload) |p| try req.writeAll(p);
-        try req.finish();
-        try req.wait(); // response headers are now available
+        // receiveHead needs a redirect buffer; GitHub API doesn't redirect but
+        // we must supply one.
+        var redirect_buf: [512]u8 = undefined;
+        var response = try req.receiveHead(&redirect_buf);
 
-        const status = req.response.status;
+        const status = response.head.status;
 
-        // Rate-limit: log and surface as an error. A production implementation
-        // would parse X-RateLimit-Reset (Unix timestamp in the response headers)
-        // and sleep until that time, then retry by calling rawFetch recursively
-        // or via a loop at the call site. The open/send/wait pattern makes retry
-        // straightforward: deinit the request, sleep, then open a new one.
+        // Rate-limit: log and surface as an error.
         if (status == .too_many_requests) {
             std.debug.print("Rate limited (HTTP 429) — retry after sleep\n", .{});
             return GitHubApiError.RateLimited;
         }
 
-        // Read the response body (limit 32 MiB — generous for GitHub API).
-        var body_list = std.ArrayList(u8).init(self.alloc);
-        errdefer body_list.deinit();
-        try req.reader().readAllArrayList(&body_list, 32 * 1024 * 1024);
-
-        // Copy the raw header block so the RawResponse can outlive the stack
-        // buffer. server_header_buf holds the raw HTTP/1.1 header bytes
-        // (null-terminated string).
-        const header_end = std.mem.indexOfScalar(u8, &server_header_buf, 0) orelse
-            server_header_buf.len;
-        const header_copy = try self.alloc.dupe(u8, server_header_buf[0..header_end]);
+        // Copy the raw header block before calling response.reader(), which
+        // calls invalidateStrings() on response.head and zeroes head.bytes.
+        const header_copy = try self.alloc.dupe(u8, response.head.bytes);
         errdefer self.alloc.free(header_copy);
+
+        // Read the response body. allocRemaining returns a heap-allocated slice
+        // owned by self.alloc; the transfer_buf is just an internal I/O buffer.
+        var transfer_buf: [4096]u8 = undefined;
+        const body_reader = response.reader(&transfer_buf);
+        const body = try body_reader.allocRemaining(self.alloc, .unlimited);
+        errdefer self.alloc.free(body);
 
         return .{
             .status = status,
-            .body = try body_list.toOwnedSlice(),
+            .body = body,
             .header_bytes = header_copy,
             .alloc = self.alloc,
         };
@@ -247,7 +240,7 @@ pub const GitHubClient = struct {
         first_url: []const u8,
         array_key: ?[]const u8,
         out_alloc: Allocator,
-        out: *std.ArrayList(std.json.Value),
+        out: *std.array_list.Managed(std.json.Value),
     ) !void {
         var page_arena = std.heap.ArenaAllocator.init(self.alloc);
         defer page_arena.deinit();
@@ -331,7 +324,7 @@ pub const GitHubClient = struct {
             return GitHubApiError.UnexpectedStatus;
         }
 
-        var items = std.ArrayList(std.json.Value).init(self.alloc);
+        var items = std.array_list.Managed(std.json.Value).init(self.alloc);
         defer items.deinit();
         try self.fetchAllPages(url, null, self.alloc, &items);
 
@@ -341,7 +334,7 @@ pub const GitHubClient = struct {
         // be more efficient, but this is clear for a prototype.
         const result = try out_alloc.alloc(models.RepositoryMinimal, items.items.len);
         for (items.items, 0..) |item, i| {
-            const json_str = try std.json.stringifyAlloc(self.alloc, item, .{});
+            const json_str = try std.json.Stringify.valueAlloc(self.alloc, item, .{});
             defer self.alloc.free(json_str);
             const parsed = try std.json.parseFromSlice(
                 models.RepositoryMinimal,
@@ -585,7 +578,7 @@ pub const GitHubClient = struct {
             .{ self.base_url, org, repo },
         );
 
-        var summaries = std.ArrayList(std.json.Value).init(self.alloc);
+        var summaries = std.array_list.Managed(std.json.Value).init(self.alloc);
         defer summaries.deinit();
         try self.fetchAllPages(list_url, null, self.alloc, &summaries);
 
@@ -624,7 +617,7 @@ pub const GitHubClient = struct {
             .{ self.base_url, org, repo },
         );
 
-        var items = std.ArrayList(std.json.Value).init(self.alloc);
+        var items = std.array_list.Managed(std.json.Value).init(self.alloc);
         defer items.deinit();
         try self.fetchAllPages(url, "secrets", self.alloc, &items);
 
@@ -678,7 +671,7 @@ pub const GitHubClient = struct {
             .{ self.base_url, org, repo, env_name },
         );
 
-        var items = std.ArrayList(std.json.Value).init(self.alloc);
+        var items = std.array_list.Managed(std.json.Value).init(self.alloc);
         defer items.deinit();
         try self.fetchAllPages(url, "secrets", self.alloc, &items);
 
@@ -703,7 +696,7 @@ pub const GitHubClient = struct {
             .{ self.base_url, org, repo },
         );
 
-        var items = std.ArrayList(std.json.Value).init(self.alloc);
+        var items = std.array_list.Managed(std.json.Value).init(self.alloc);
         defer items.deinit();
         try self.fetchAllPages(url, null, self.alloc, &items);
 

@@ -68,7 +68,7 @@ pub const OrgChecker = struct {
         // Sequential check loop — appropriate for I/O-bound, rate-limited work.
         // Each repo gets its own arena that is freed before the next iteration,
         // keeping peak memory to one repo's worth of API data at a time.
-        var results = std.ArrayList(models.RepoCheckResult).init(ra);
+        var results = std.array_list.Managed(models.RepoCheckResult).init(ra);
 
         for (summaries) |summary| {
             var repo_arena = std.heap.ArenaAllocator.init(self.gpa);
@@ -125,7 +125,7 @@ pub const OrgChecker = struct {
 
         const state = try self.fetchState(alloc, summary);
 
-        var diffs = std.ArrayList([]const u8).init(alloc);
+        var diffs = std.array_list.Managed([]const u8).init(alloc);
         try self.computeDiffs(&diffs, &state, desired);
 
         if (self.fix and diffs.items.len > 0) {
@@ -159,7 +159,7 @@ pub const OrgChecker = struct {
         const is_public = if (summary.visibility) |v|
             std.mem.eql(u8, v, "public")
         else
-            !summary.@"private";
+            !summary.private;
 
         const details = try self.client.getRepo(self.org, name, alloc);
 
@@ -197,7 +197,10 @@ pub const OrgChecker = struct {
         for (environments) |env| {
             try env_details.put(env.name, env);
             const names = try self.client.getEnvironmentSecretNames(
-                self.org, name, env.name, alloc,
+                self.org,
+                name,
+                env.name,
+                alloc,
             );
             try env_secrets.put(env.name, names);
         }
@@ -235,7 +238,7 @@ pub const OrgChecker = struct {
 
     fn computeDiffs(
         self: *OrgChecker,
-        diffs: *std.ArrayList([]const u8),
+        diffs: *std.array_list.Managed([]const u8),
         actual: *const models.RepositoryState,
         desired: models.RepositoryArgs,
     ) !void {
@@ -368,7 +371,7 @@ pub const OrgChecker = struct {
     // ── Branch protection diff ────────────────────────────────────────────
 
     fn checkBranchProtection(
-        diffs: *std.ArrayList([]const u8),
+        diffs: *std.array_list.Managed([]const u8),
         desired: models.BranchProtectionArgs,
         actual: models.BranchProtectionResponse,
     ) !void {
@@ -422,7 +425,7 @@ pub const OrgChecker = struct {
     // ── Ruleset diff ──────────────────────────────────────────────────────
 
     fn checkRuleset(
-        diffs: *std.ArrayList([]const u8),
+        diffs: *std.array_list.Managed([]const u8),
         desired: models.RulesetArgs,
         actual: models.RulesetDetailsResponse,
     ) !void {
@@ -549,10 +552,7 @@ pub const OrgChecker = struct {
                     }
                 },
                 // Variants not currently in RepositoryArgs config — log if unexpected.
-                .creation, .deletion, .required_signatures, .update,
-                .pull_request, .commit_message_pattern, .commit_author_email_pattern,
-                .committer_email_pattern, .branch_name_pattern, .tag_name_pattern,
-                .required_deployments => {},
+                .creation, .deletion, .required_signatures, .update, .pull_request, .commit_message_pattern, .commit_author_email_pattern, .committer_email_pattern, .branch_name_pattern, .tag_name_pattern, .required_deployments => {},
                 .unknown => |type_str| {
                     std.debug.print(
                         "  ruleset/{s}: unknown rule type={s} (ignored)\n",
@@ -597,11 +597,11 @@ pub const OrgChecker = struct {
         repo_name: []const u8,
         actual: *const models.RepositoryState,
         desired: models.RepositoryArgs,
-        diffs: *std.ArrayList([]const u8),
+        diffs: *std.array_list.Managed([]const u8),
     ) !void {
         // ── Action secrets ────────────────────────────────────────────────
         // Identify which desired secrets are missing from actual.
-        var missing_action_secrets = std.ArrayList([]const u8).init(alloc);
+        var missing_action_secrets = std.array_list.Managed([]const u8).init(alloc);
         for (desired.actions_secrets) |want| {
             if (!containsStr(actual.action_secret_names, want))
                 try missing_action_secrets.append(want);
@@ -631,7 +631,11 @@ pub const OrgChecker = struct {
                 defer alloc.free(encrypted);
 
                 try self.client.createOrUpdateActionSecret(
-                    self.org, repo_name, secret_name, encrypted, pk.key_id,
+                    self.org,
+                    repo_name,
+                    secret_name,
+                    encrypted,
+                    pk.key_id,
                 );
                 std.debug.print(
                     "  [FIXED] {s}: action secret {s} created\n",
@@ -646,7 +650,7 @@ pub const OrgChecker = struct {
         // ── Environment secrets ───────────────────────────────────────────
         for (desired.environments) |env_args| {
             const actual_secrets = actual.environment_secret_names.get(env_args.name) orelse &.{};
-            var missing_env_secrets = std.ArrayList([]const u8).init(alloc);
+            var missing_env_secrets = std.array_list.Managed([]const u8).init(alloc);
             for (env_args.secrets) |want| {
                 if (!containsStr(actual_secrets, want))
                     try missing_env_secrets.append(want);
@@ -658,7 +662,8 @@ pub const OrgChecker = struct {
             for (missing_env_secrets.items) |secret_name| {
                 // Key format: "<repo>-<env>-<secret>"
                 const map_key = try std.fmt.allocPrint(
-                    alloc, "{s}-{s}-{s}",
+                    alloc,
+                    "{s}-{s}-{s}",
                     .{ repo_name, env_args.name, secret_name },
                 );
                 const plaintext = self.github_secrets.get(map_key) orelse {
@@ -671,7 +676,10 @@ pub const OrgChecker = struct {
 
                 if (pub_key == null) {
                     pub_key = try self.client.getEnvironmentSecretPublicKey(
-                        self.org, repo_name, env_args.name, alloc,
+                        self.org,
+                        repo_name,
+                        env_args.name,
+                        alloc,
                     );
                 }
                 const pk = pub_key.?;
@@ -680,7 +688,12 @@ pub const OrgChecker = struct {
                 defer alloc.free(encrypted);
 
                 try self.client.createOrUpdateEnvironmentSecret(
-                    self.org, repo_name, env_args.name, secret_name, encrypted, pk.key_id,
+                    self.org,
+                    repo_name,
+                    env_args.name,
+                    secret_name,
+                    encrypted,
+                    pk.key_id,
                 );
                 std.debug.print(
                     "  [FIXED] {s}: environment.{s} secret {s} created\n",
@@ -695,7 +708,7 @@ pub const OrgChecker = struct {
     // ── Report ────────────────────────────────────────────────────────────
 
     pub fn printReport(result: models.CheckResult) void {
-        const stdout = std.io.getStdOut().writer();
+        const stdout = std.fs.File.stdout().deprecatedWriter();
 
         stdout.print("\n=== Drift Report ===\n", .{}) catch {};
         for (result.repos) |repo| {
@@ -735,7 +748,7 @@ pub const OrgChecker = struct {
 // std.mem.eql, boolean comparison uses ==.
 
 fn checkStr(
-    diffs: *std.ArrayList([]const u8),
+    diffs: *std.array_list.Managed([]const u8),
     field: []const u8,
     want: []const u8,
     got: []const u8,
@@ -751,7 +764,7 @@ fn checkStr(
 }
 
 fn checkBool(
-    diffs: *std.ArrayList([]const u8),
+    diffs: *std.array_list.Managed([]const u8),
     field: []const u8,
     want: bool,
     got: bool,
@@ -787,7 +800,7 @@ fn findRulesetArgs(args: []const models.RulesetArgs, name: []const u8) bool {
 /// Remove the first diff entry whose text starts with `prefix` and contains
 /// `key`. Used by applyFixes() to strike fixed items from the diff list.
 fn removeDiff(
-    diffs: *std.ArrayList([]const u8),
+    diffs: *std.array_list.Managed([]const u8),
     prefix: []const u8,
     key: []const u8,
 ) void {
@@ -800,7 +813,6 @@ fn removeDiff(
             i += 1;
         }
     }
-}
 }
 
 fn hasRuleType(rules: []const models.Rule, tag: std.meta.Tag(models.Rule)) bool {

@@ -88,7 +88,7 @@ pub fn main() !void {
     defer client.deinit();
 
     var checker = OrgChecker.init(gpa, &client, org, do_fix, github_secrets);
-    const result = try checker.check(&repositories);
+    const result = try checker.check(repositories);
 
     OrgChecker.printReport(result);
 
@@ -205,7 +205,7 @@ const pr_ci_branch_protection = models.BranchProtectionArgs{
 
 // Base config applied to all non-archived repos.
 const default_repo = models.RepositoryArgs{
-    .name = "",   // overridden per-repo
+    .name = "", // overridden per-repo
     .automated_security_fixes = true,
     .allow_merge_commit = false,
     .allow_squash_merge = false,
@@ -237,7 +237,7 @@ fn mergeArgs(
 // This mirrors GitHubCheck.repositories() in the Java source.
 // The `comptime` block ensures the entire list is resolved at compile time.
 
-const repositories: []const models.RepositoryArgs = comptime blk: {
+const repositories: []const models.RepositoryArgs = blk: {
     // ── Pages sites ───────────────────────────────────────────────────────
     const pages_site = mergeArgs(default_repo, .{ .pages = true });
 
@@ -362,7 +362,7 @@ const repositories: []const models.RepositoryArgs = comptime blk: {
         mergeArgs(default_repo, .{
             .name = "terraform-github",
             .description = "A project to manage github settings with terraform",
-            .environments = &.{.{ .name = "production", .secrets = &.{"TF_GITHUB_TOKEN"} }},
+            .environments = &[_]models.EnvironmentArgs{.{ .name = "production", .secrets = &[_][]const u8{"TF_GITHUB_TOKEN"} }},
         }),
         mergeArgs(default_repo, .{
             .name = "tsaf-parser",
