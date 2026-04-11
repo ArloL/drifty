@@ -390,6 +390,36 @@ public class GitHubCheck {
 						.rulesets(defaultRuleset)
 						.build(),
 				defaultRepository.toBuilder()
+						.name("claude-code-web-environment-setup")
+						.description("Setup scripts for Claude Code on the web")
+						.updateBranchProtection("main", builder -> {
+							builder.addRequiredStatusChecks(
+									StatusCheckArgs.builder()
+											.context(
+													"pr-check.required-status-check"
+											)
+											.appId(
+													StatusCheckArgs.APP_ID_GITHUB_ACTIONS
+											)
+											.build()
+							);
+						})
+						.rulesets(
+								defaultRuleset.toBuilder()
+										.addRequiredStatusChecks(
+												StatusCheckArgs.builder()
+														.context(
+																"pr-check.required-status-check"
+														)
+														.appId(
+																StatusCheckArgs.APP_ID_GITHUB_ACTIONS
+														)
+														.build()
+										)
+										.build()
+						)
+						.build(),
+				defaultRepository.toBuilder()
 						.name("corporate-python")
 						.description(
 								"A container for executing python in corporate environments"
