@@ -1,0 +1,289 @@
+/// ArloL GitHub organization desired state.
+amends "drifty.pkl"
+
+// ── Shared status checks ──────────────────────────────────────────────────
+
+local checkActions = new StatusCheck {
+  context = "check-actions.required-status-check"
+  appId = module.githubActionsAppId
+}
+local codeqlAnalysis = new StatusCheck {
+  context = "codeql-analysis.required-status-check"
+  appId = module.githubActionsAppId
+}
+local codeqlCheck = new StatusCheck {
+  context = "CodeQL"
+  appId = module.githubAdvancedSecurityAppId
+}
+local mainCiCheck = new StatusCheck {
+  context = "main.required-status-check"
+  appId = module.githubActionsAppId
+}
+local testCiCheck = new StatusCheck {
+  context = "test.required-status-check"
+  appId = module.githubActionsAppId
+}
+local prCheck = new StatusCheck {
+  context = "pr-check.required-status-check"
+  appId = module.githubActionsAppId
+}
+
+// ── Shared rulesets ───────────────────────────────────────────────────────
+
+local baseRuleset: Ruleset = new {
+  includePatterns { "refs/heads/main" }
+  requiredLinearHistory = true
+  noForcePushes = true
+  requiredStatusChecks { checkActions; codeqlAnalysis; codeqlCheck }
+  requiredCodeScanning {
+    new CodeScanningTool { tool = "CodeQL" }
+    new CodeScanningTool { tool = "zizmor" }
+  }
+}
+
+// Each variant amends baseRuleset, appending one more required status check.
+local mainCiRuleset: Ruleset = (baseRuleset) {
+  requiredStatusChecks { mainCiCheck }
+}
+
+local testCiRuleset: Ruleset = (baseRuleset) {
+  requiredStatusChecks { testCiCheck }
+}
+
+local prCheckRuleset: Ruleset = (baseRuleset) {
+  requiredStatusChecks { prCheck }
+}
+
+// ── Shared branch protections ─────────────────────────────────────────────
+
+local mainBranchProtection: BranchProtection = new {
+  enforceAdmins = true
+  requiredLinearHistory = true
+  requiredStatusChecks { checkActions; codeqlAnalysis; codeqlCheck }
+}
+
+local mainCiBranchProtection: BranchProtection = (mainBranchProtection) {
+  requiredStatusChecks { mainCiCheck }
+}
+
+local testCiBranchProtection: BranchProtection = (mainBranchProtection) {
+  requiredStatusChecks { testCiCheck }
+}
+
+local prCheckBranchProtection: BranchProtection = (mainBranchProtection) {
+  requiredStatusChecks { prCheck }
+}
+
+// ── Repo templates ────────────────────────────────────────────────────────
+
+local defaultRepo: Repository = new {
+  owner = "ArloL"
+  automatedSecurityFixes = true
+  allowMergeCommit = false
+  allowSquashMerge = false
+  allowAutoMerge = true
+  deleteBranchOnMerge = true
+  defaultWorkflowPermissions = "read"
+  branchProtections { ["main"] = mainBranchProtection }
+  rulesets { ["main-branch-rules"] = baseRuleset }
+}
+
+local pagesSiteTemplate: Repository = (defaultRepo) {
+  pages = new {}
+}
+
+// Overrides the "main" mapping key in both branchProtections and rulesets.
+local mainCiRepoTemplate: Repository = (defaultRepo) {
+  branchProtections { ["main"] = mainCiBranchProtection }
+  rulesets { ["main-branch-rules"] = mainCiRuleset }
+}
+
+local archivedRepo: Repository = new { owner = "ArloL"; archived = true }
+
+// ── Repositories ──────────────────────────────────────────────────────────
+
+repositories {
+  // Pages sites
+  (pagesSiteTemplate) {
+    name = "abenteuer-irland"
+    description = "Mum's website for Abenteuer Irland"
+    homepageUrl = "https://arlol.github.io/abenteuer-irland/"
+  }
+  (pagesSiteTemplate) {
+    name = "angular-playground"
+    description = "A playground for the Angular framework"
+    homepageUrl = "https://arlol.github.io/angular-playground/"
+    branchProtections { ["main"] = prCheckBranchProtection }
+    rulesets { ["main-branch-rules"] = prCheckRuleset }
+  }
+  (pagesSiteTemplate) {
+    name = "arlol.github.io"
+    description = "This is the source of my GitHub page"
+    homepageUrl = "https://arlol.github.io/"
+  }
+  (pagesSiteTemplate) {
+    name = "bulma-playground"
+    description = "A playground for the Bulma CSS framework"
+    homepageUrl = "https://arlol.github.io/bulma-playground/"
+  }
+  (pagesSiteTemplate) {
+    name = "business-english"
+    description = "Mum's website for Business English"
+    homepageUrl = "https://arlol.github.io/business-english/"
+  }
+  (pagesSiteTemplate) {
+    name = "demo-html5up-future-imperfect-scroll-padding-top"
+    description = "A quick demo of scroll-padding-top"
+    homepageUrl = "https://arlol.github.io/demo-html5up-future-imperfect-scroll-padding-top/"
+  }
+  (pagesSiteTemplate) {
+    name = "eclipse-projects"
+    description = "Arlo's project catalog for the Eclipse Installer"
+    homepageUrl = "https://arlol.github.io/eclipse-projects/"
+  }
+
+  // Main CI repos
+  (mainCiRepoTemplate) {
+    name = "chorito"
+    description = "A tool that does some chores in your source code"
+    actionsSecrets { "PAT" }
+  }
+  (mainCiRepoTemplate) {
+    name = "drifty"
+    description = "Detect and fix drift of GitHub repository settings"
+  }
+  (mainCiRepoTemplate) {
+    name = "git-dora-lead-time-calculator"
+    description = "A project to calculate the DORA metric lead time with the info from a git repo"
+  }
+  (mainCiRepoTemplate) {
+    name = "mvnx"
+    description = "An experiment with Maven dependencies and dynamic classloading"
+  }
+  (mainCiRepoTemplate) {
+    name = "myprojects-cleaner"
+    description = "A java application that runs git clean in a bunch of directories"
+  }
+  (mainCiRepoTemplate) {
+    name = "newlinechecker"
+    description = "A sample project to play with GraalVM builds on GitHub Actions"
+    immutableReleases = true
+  }
+  (mainCiRepoTemplate) {
+    name = "rss-to-mail"
+    description = "Read from RSS feeds and send an email for every new item"
+  }
+  (mainCiRepoTemplate) {
+    name = "wait-for-ports"
+    description = "A command-line utility that waits until a port is open"
+  }
+  (mainCiRepoTemplate) {
+    name = "webapp-classloader-test"
+    description = "This is a test that can be used during integration testing to check for classloader leaks"
+  }
+  (mainCiRepoTemplate) {
+    name = "website-janitor"
+    description = "A set of tools that check websites for common misconfigurations or downtime"
+  }
+
+  // Individual repos
+  (defaultRepo) { name = "advent-of-code"; description = "My advent of code solutions" }
+  (defaultRepo) { name = "beatunes-keytocomment"; description = "A beatunes plugin that writes the key to the comment" }
+  (defaultRepo) {
+    name = "calver-tag-action"
+    description = "A GitHub Actions action that creates a new version using a CalVer-style derivative and pushes it"
+    immutableReleases = true
+  }
+  (defaultRepo) {
+    name = "corporate-python"
+    description = "A container for executing python in corporate environments"
+    actionsSecrets { "DOCKER_HUB_ACCESS_TOKEN"; "DOCKER_HUB_USERNAME" }
+  }
+  (defaultRepo) { name = "dependabot-dockerfile-test"; description = "A test to see whether dependabot updates dockerfiles with args" }
+  (defaultRepo) { name = "dotfiles"; description = "My collection of dotfiles used to configure my command line environments" }
+  (defaultRepo) { name = "effortful-retrieval-questions"; description = "A collection of effortful retrieval questions of a number of articles I've read" }
+  (defaultRepo) { name = "git-presentation-2018-10"; description = "Git Präsentation für Vorlesung Industrielle Softwareentwicklung" }
+  (defaultRepo) { name = "homebrew-tap"; description = "A homebrew tap for my own formulas and casks" }
+  (defaultRepo) { name = "kafka-debugger"; description = "A small jar utility to test kafka connections" }
+  (defaultRepo) { name = "menubar-scripts"; description = "A collection of scripts that can run in e.g. xbar, swiftbar, etc." }
+  (defaultRepo) {
+    name = "music-stuff"
+    description = "Some spotify and beatunes stuff"
+    branchProtections { ["main"] = testCiBranchProtection }
+    rulesets { ["main-branch-rules"] = testCiRuleset }
+  }
+  (defaultRepo) { name = "nope-amine"; description = "A firefox extension that slowly increases the time for things to load on reddit.com" }
+  (defaultRepo) { name = "open-webui-runner"; description = "A small repo to run open-webui locally and stop it after using it" }
+  (defaultRepo) { name = "postgres-sync-demo"; description = "A demo on how to use triggers, queues, etc. to sync the app's data somewhere else" }
+  (defaultRepo) { name = "python-nc"; description = "A test to see if I can implement nc's proxy functionality with python" }
+  (defaultRepo) { name = "sci-fi-movies"; description = "an app to import sci fi movies from rotten tomatoes into a database in order to run queries on them" }
+  (defaultRepo) {
+    name = "terraform-github"
+    description = "A project to manage github settings with terraform"
+    environments {
+      ["production"] = new Environment { secrets { "TF_GITHUB_TOKEN" } }
+    }
+  }
+  (defaultRepo) {
+    name = "tsaf-parser"
+    description = "Binary format exploration"
+    branchProtections { ["main"] = testCiBranchProtection }
+    rulesets { ["main-branch-rules"] = testCiRuleset }
+  }
+  (defaultRepo) { name = "vagrant-ssh-config"; description = "A vagrant plugin that automatically creates ssh configs for vms" }
+
+  // Archived repos
+  for (repoName in List(
+    "actions",
+    "actions-checkout-fetch-depth-demo",
+    "airmac",
+    "campuswoche-2018-webseiten-steuern",
+    "chop-kata",
+    "dotnet-http-client-reproduction",
+    "gitfx",
+    "graalfx",
+    "gwt-dragula-test",
+    "gwt-log-print-style-demo",
+    "gwt-refresh-demo",
+    "HalloJSX",
+    "HelloCocoaHTTPServer",
+    "HelloIntAirActServer",
+    "HelloRoutingServer",
+    "HelloServer",
+    "iebox",
+    "ilabwebworkshop",
+    "IntAirAct",
+    "IntAirAct-Performance",
+    "jBrowserDriver",
+    "jbrowserdriver-cucumber-integration-tests",
+    "jbrowserdriver-test",
+    "jdk-newinstance-leak-demo",
+    "jdk8u144-classloader-leak-demo-webapp",
+    "jhipster-app",
+    "json-smart-dependency-resolution-test",
+    "m2e-wro4j-bug-demo",
+    "m2e-wro4j-bug-demo2",
+    "maven-quickstart-j2objc",
+    "Mirror",
+    "modern-ie-vagrant",
+    "MWPhotoBrowser",
+    "npmrc-github-action",
+    "packer-templates",
+    "pico-playground",
+    "postgres-query-error-demo",
+    "quickstart-buck-bazel-maven",
+    "selenium-xp-ie6",
+    "self-hosted-gh-actions-runner",
+    "spring-cloud-context-classloader-leak-demo",
+    "spring-configuration-processor-metadata-bug-demo",
+    "spring-security-drupal-password-encoder",
+    "testcontainers-colima-github-actions",
+    "toado",
+    "vagrant-1",
+    "vitest-link-reproduction",
+    "vitest-mocking-reproduction",
+    "workflow-dispatch-input-defaults"
+  )) {
+    (archivedRepo) { name = repoName }
+  }
+}

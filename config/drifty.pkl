@@ -1,0 +1,147 @@
+/// Drifty configuration schema — desired state for GitHub repositories.
+module drifty
+
+/// GitHub App ID for GitHub Actions
+githubActionsAppId: Int = 15368713
+/// GitHub App ID for GitHub Advanced Security
+githubAdvancedSecurityAppId: Int = 57789
+
+typealias WorkflowPermissions = "read" | "write"
+typealias Visibility = "public" | "private" | "internal"
+typealias AlertsThreshold = "none" | "errors" | "errors_and_warnings" | "all"
+typealias SecurityAlertsThreshold = "none" | "critical" | "high_or_higher" | "medium_or_higher" | "all"
+typealias PatternOperator = "starts_with" | "ends_with" | "contains" | "regex"
+typealias ActorType = "Integration" | "OrganizationAdmin" | "RepositoryRole" | "Team"
+typealias BypassMode = "always" | "pull_request"
+
+class StatusCheck {
+  context: String
+  appId: Int
+}
+
+class CodeScanningTool {
+  tool: String
+  alertsThreshold: AlertsThreshold = "errors"
+  securityAlertsThreshold: SecurityAlertsThreshold = "high_or_higher"
+}
+
+class RulePattern {
+  name: String?
+  negate: Boolean = false
+  operator: PatternOperator
+  pattern: String
+}
+
+class BypassActor {
+  actorId: Int
+  actorType: ActorType
+  bypassMode: BypassMode
+}
+
+/// A repository ruleset. The ruleset name is the key in Repository.rulesets.
+class Ruleset {
+  includePatterns: Listing<String> = new {}
+  requiredLinearHistory: Boolean = false
+  noForcePushes: Boolean = false
+  requiredStatusChecks: Listing<StatusCheck> = new {}
+  requiredReviewCount: Int?
+  requiredCodeScanning: Listing<CodeScanningTool> = new {}
+  creation: Boolean = false
+  deletion: Boolean = false
+  requiredSignatures: Boolean = false
+  update: Boolean = false
+  updateAllowsFetchAndMerge: Boolean = false
+  commitMessagePattern: RulePattern?
+  commitAuthorEmailPattern: RulePattern?
+  committerEmailPattern: RulePattern?
+  branchNamePattern: RulePattern?
+  tagNamePattern: RulePattern?
+  requiredDeployments: Listing<String> = new {}
+  bypassActors: Listing<BypassActor> = new {}
+}
+
+/// Legacy branch protection rule. The branch pattern is the key in Repository.branchProtections.
+class BranchProtection {
+  enforceAdmins: Boolean = false
+  requiredLinearHistory: Boolean = false
+  allowForcePushes: Boolean = false
+  requireConversationResolution: Boolean = false
+  requiredStatusChecks: Listing<StatusCheck> = new {}
+  requiredApprovingReviewCount: Int?
+  dismissStaleReviews: Boolean = false
+  requireCodeOwnerReviews: Boolean = false
+  requireLastPushApproval: Boolean?
+  users: Listing<String> = new {}
+  teams: Listing<String> = new {}
+  apps: Listing<String> = new {}
+}
+
+class Pages {
+  buildType: "workflow" | "legacy" = "workflow"
+  /// Required when buildType = "legacy"
+  sourceBranch: String?
+  /// Required when buildType = "legacy"
+  sourcePath: String?
+}
+
+/// Deployment environment. The environment name is the key in Repository.environments.
+class Environment {
+  secrets: Listing<String> = new {}
+  waitTimer: Int = 0
+  protectedBranches: Boolean = false
+  customBranchPolicies: Boolean = false
+}
+
+/// Desired state for a single GitHub repository.
+/// Defaults match GitHub's defaults for newly-created repos.
+class Repository {
+  owner: String
+  name: String
+  archived: Boolean = false
+  description: String = ""
+  homepageUrl: String = ""
+  visibility: Visibility = "public"
+  topics: Listing<String> = new {}
+  defaultBranch: String = "main"
+
+  hasIssues: Boolean = true
+  hasProjects: Boolean = true
+  hasWiki: Boolean = true
+
+  allowMergeCommit: Boolean = true
+  allowSquashMerge: Boolean = true
+  allowRebaseMerge: Boolean = true
+  allowAutoMerge: Boolean = false
+  deleteBranchOnMerge: Boolean = false
+  allowUpdateBranch: Boolean = false
+
+  vulnerabilityAlerts: Boolean = true
+  automatedSecurityFixes: Boolean = false
+  secretScanning: Boolean = true
+  secretScanningPushProtection: Boolean = true
+  secretScanningValidityChecks: Boolean = false
+  secretScanningNonProviderPatterns: Boolean = false
+  privateVulnerabilityReporting: Boolean = false
+  codeScanningDefaultSetup: Boolean = false
+
+  defaultWorkflowPermissions: WorkflowPermissions = "write"
+  canApprovePullRequestReviews: Boolean = true
+
+  immutableReleases: Boolean = false
+  pages: Pages?
+  actionsSecrets: Listing<String> = new {}
+
+  /// Keyed by branch pattern (e.g. "main")
+  branchProtections: Mapping<String, BranchProtection> = new {}
+  /// Keyed by ruleset name
+  rulesets: Mapping<String, Ruleset> = new {}
+  /// Keyed by environment name
+  environments: Mapping<String, Environment> = new {}
+}
+
+/// All repositories to manage for this org/account.
+repositories: Listing<Repository> = new {}
+
+output {
+  value = new Dynamic { repositories = module.repositories }
+}
