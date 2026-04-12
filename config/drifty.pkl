@@ -2,7 +2,7 @@
 module drifty
 
 /// GitHub App ID for GitHub Actions
-githubActionsAppId: Int = 15368713
+githubActionsAppId: Int = 15368
 /// GitHub App ID for GitHub Advanced Security
 githubAdvancedSecurityAppId: Int = 57789
 

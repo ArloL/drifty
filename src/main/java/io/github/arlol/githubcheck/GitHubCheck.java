@@ -1,6 +1,7 @@
 package io.github.arlol.githubcheck;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +34,12 @@ public class GitHubCheck {
 			System.exit(1);
 		}
 
-		boolean fix = List.of(args).contains("--fix");
+		var argsList = List.of(args);
+		boolean fix = argsList.contains("--fix");
+		int pklIndex = argsList.indexOf("--pkl");
+		String pklPath = (pklIndex >= 0 && pklIndex + 1 < argsList.size())
+				? argsList.get(pklIndex + 1)
+				: null;
 
 		Map<String, String> githubSecrets = Map.of();
 		String githubSecretsJson = System.getenv("DRIFTY_GITHUB_SECRETS");
@@ -53,9 +59,13 @@ public class GitHubCheck {
 					);
 		}
 
+		List<RepositoryArgs> repos = pklPath != null
+				? PklConfigLoader.load(Path.of(pklPath).toAbsolutePath())
+				: repositories();
+
 		if (fix) {
 			var missingSecrets = new ArrayList<String>();
-			for (RepositoryArgs repo : repositories()) {
+			for (RepositoryArgs repo : repos) {
 				for (String secretName : repo.actionsSecrets()) {
 					String key = repo.name() + "-" + secretName;
 					if (!githubSecrets.containsKey(key)) {
@@ -87,7 +97,7 @@ public class GitHubCheck {
 		long startTime = System.currentTimeMillis();
 
 		var checker = new OrgChecker(token, "ArloL", fix, githubSecrets);
-		CheckResult result = checker.check(repositories());
+		CheckResult result = checker.check(repos);
 		checker.printReport(result);
 
 		double totalSeconds = (System.currentTimeMillis() - startTime) / 1000.0;
