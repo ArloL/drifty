@@ -1,12 +1,3 @@
-# ${PROJECT}
+# drifty
 
-Short description
-
-# Quickstart
-
-`./call-some-command --with-some-options`
-
-# Install
-
-`./install`
-
+A tool to detect and fix drift in GitHub repository settings
