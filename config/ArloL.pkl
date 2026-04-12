@@ -195,6 +195,12 @@ repositories {
     immutableReleases = true
   }
   (defaultRepo) {
+    name = "claude-code-web-environment-setup"
+    description = "Setup scripts for Claude Code on the web"
+    branchProtections { ["main"] = prCheckBranchProtection }
+    rulesets { ["main-branch-rules"] = prCheckRuleset }
+  }
+  (defaultRepo) {
     name = "corporate-python"
     description = "A container for executing python in corporate environments"
     actionsSecrets { "DOCKER_HUB_ACCESS_TOKEN"; "DOCKER_HUB_USERNAME" }
