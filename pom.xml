@@ -100,7 +100,6 @@
 		<dependency>
 			<groupId>org.awaitility</groupId>
 			<artifactId>awaitility</artifactId>
-			<version>4.3.0</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -110,7 +109,6 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>
-				<version>3.6.1</version>
 				<executions>
 					<execution>
 						<id>pkl-add-source</id>
