@@ -16,7 +16,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
-import io.github.arlol.githubcheck.client.EnvironmentReviewerType;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesBuildType;
 import io.github.arlol.githubcheck.client.PagesResponse;
@@ -1157,65 +1156,6 @@ class OrgCheckerDiffTest {
 
 	// ─── Environment config drift
 	// ──────────────────────────────────────────
-
-	private static EnvironmentDetailsResponse envWithWaitTimer(
-			String name,
-			int waitTimer
-	) {
-		return new EnvironmentDetailsResponse(
-				name,
-				List.of(
-						new EnvironmentDetailsResponse.ProtectionRule(
-								EnvironmentDetailsResponse.ProtectionRuleType.WAIT_TIMER,
-								waitTimer,
-								null
-						)
-				),
-				null
-		);
-	}
-
-	private static EnvironmentDetailsResponse envWithDeploymentBranchPolicy(
-			String name,
-			boolean protectedBranches,
-			boolean customBranchPolicies
-	) {
-		return new EnvironmentDetailsResponse(
-				name,
-				List.of(),
-				new EnvironmentDetailsResponse.DeploymentBranchPolicy(
-						protectedBranches,
-						customBranchPolicies
-				)
-		);
-	}
-
-	private static EnvironmentDetailsResponse envWithReviewer(
-			String name,
-			EnvironmentReviewerType type,
-			long id
-	) {
-		var reviewerEntity = new EnvironmentDetailsResponse.ReviewerEntity(
-				id,
-				null,
-				null
-		);
-		var reviewer = new EnvironmentDetailsResponse.Reviewer(
-				type,
-				reviewerEntity
-		);
-		return new EnvironmentDetailsResponse(
-				name,
-				List.of(
-						new EnvironmentDetailsResponse.ProtectionRule(
-								EnvironmentDetailsResponse.ProtectionRuleType.REQUIRED_REVIEWERS,
-								null,
-								List.of(reviewer)
-						)
-				),
-				null
-		);
-	}
 
 	@Test
 	void drift_rulesetRequiredReviewCountWrong() {

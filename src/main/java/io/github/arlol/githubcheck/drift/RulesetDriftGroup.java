@@ -60,7 +60,7 @@ public class RulesetDriftGroup extends DriftGroup {
 						Collectors.toMap(
 								RulesetDetailsResponse::name,
 								r -> r,
-								(a, b) -> a
+								(a, _) -> a
 						)
 				);
 
@@ -327,7 +327,7 @@ public class RulesetDriftGroup extends DriftGroup {
 		return ruleset.rules()
 				.stream()
 				.filter(r -> r.type() != null)
-				.collect(Collectors.toMap(Rule::type, r -> r, (a, b) -> a));
+				.collect(Collectors.toMap(Rule::type, r -> r, (a, _) -> a));
 	}
 
 	private Set<StatusCheckArgs> extractStatusChecks(

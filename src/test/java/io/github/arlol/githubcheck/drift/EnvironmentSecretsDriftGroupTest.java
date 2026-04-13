@@ -14,7 +14,7 @@ class EnvironmentSecretsDriftGroupTest {
 	@Test
 	void detectsExtraSecret_whenNoDesiredSecrets() {
 		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("production", env -> {
+				.environment("production", _ -> {
 				})
 				.build();
 		var group = new EnvironmentSecretsDriftGroup(
