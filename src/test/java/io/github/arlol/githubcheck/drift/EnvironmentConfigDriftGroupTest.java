@@ -8,7 +8,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
-import io.github.arlol.githubcheck.config.EnvironmentArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 
 class EnvironmentConfigDriftGroupTest {

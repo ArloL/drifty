@@ -18,13 +18,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -52,7 +50,6 @@ import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
-import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
 
 @WireMockTest
@@ -123,22 +120,6 @@ class OrgCheckerFixTest {
 			{
 				"default_workflow_permissions": "write",
 				"can_approve_pull_request_reviews": true
-			}
-			""";
-
-	private static final String FULL_DESIRED_REPO_SETTINGS = """
-			{
-				"description": "",
-				"homepage": "",
-				"has_issues": true,
-				"has_projects": true,
-				"has_wiki": true,
-				"allow_merge_commit": true,
-				"allow_squash_merge": true,
-				"allow_rebase_merge": true,
-				"allow_update_branch": false,
-				"allow_auto_merge": false,
-				"delete_branch_on_merge": false
 			}
 			""";
 
@@ -2132,15 +2113,6 @@ class OrgCheckerFixTest {
 								"""))
 		);
 
-		var conditions = new RulesetDetailsResponse.Conditions(
-				new RulesetDetailsResponse.Conditions.RefName(
-						List.of("~DEFAULT_BRANCH"),
-						List.of()
-				),
-				null,
-				null,
-				null
-		);
 		var desired = RepositoryArgs.create("owner", "repo")
 				.rulesets(
 						RulesetArgs.builder("main-branch-rules")
