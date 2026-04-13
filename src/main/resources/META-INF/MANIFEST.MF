@@ -1,0 +1,3 @@
+Description: This is a Manifest only for testing purposes
+Implementation-Title: drifty
+Implementation-Version: 0.0.1-SNAPSHOT

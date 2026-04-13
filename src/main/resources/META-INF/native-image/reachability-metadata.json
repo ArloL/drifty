@@ -1,0 +1,3231 @@
+{
+  "reflection": [
+    {
+      "type": "com.github.tomakehurst.wiremock.client.BasicCredentials"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.common.Errors",
+      "allDeclaredFields": true,
+      "allDeclaredMethods": true,
+      "allDeclaredConstructors": true
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.common.Errors$Error",
+      "allDeclaredFields": true,
+      "allDeclaredMethods": true,
+      "allDeclaredConstructors": true
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.common.Errors$Error$Source",
+      "allDeclaredFields": true,
+      "allDeclaredMethods": true,
+      "allDeclaredConstructors": true
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.common.Metadata"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.common.Prioritisable"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.common.ssl.WritableFileOrClasspathKeyStoreSource",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "char[]"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.extension.Parameters"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.extension.PostServeActionDefinitionListDeserializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.extension.ServeEventListener$RequestPhase"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.extension.ServeEventListenerDefinition"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.ChunkedDribbleDelay"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.DelayDistribution"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.Fault"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.HttpHeadersJsonDeserializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.HttpHeadersJsonSerializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.RequestMethodJsonDeserializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.ResponseDefinition",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "java.lang.String",
+            "java.lang.String",
+            "com.fasterxml.jackson.databind.JsonNode",
+            "java.lang.String",
+            "java.lang.String",
+            "com.github.tomakehurst.wiremock.http.HttpHeaders",
+            "com.github.tomakehurst.wiremock.http.HttpHeaders",
+            "java.util.List",
+            "java.lang.Integer",
+            "com.github.tomakehurst.wiremock.http.DelayDistribution",
+            "com.github.tomakehurst.wiremock.http.ChunkedDribbleDelay",
+            "java.lang.String",
+            "java.lang.String",
+            "com.github.tomakehurst.wiremock.http.Fault",
+            "java.util.List",
+            "com.github.tomakehurst.wiremock.extension.Parameters",
+            "java.lang.Boolean"
+          ]
+        },
+        {
+          "name": "getAdditionalProxyRequestHeaders",
+          "parameterTypes": []
+        },
+        {
+          "name": "getBase64Body",
+          "parameterTypes": []
+        },
+        {
+          "name": "getBody",
+          "parameterTypes": []
+        },
+        {
+          "name": "getBodyFileName",
+          "parameterTypes": []
+        },
+        {
+          "name": "getChunkedDribbleDelay",
+          "parameterTypes": []
+        },
+        {
+          "name": "getDelayDistribution",
+          "parameterTypes": []
+        },
+        {
+          "name": "getFault",
+          "parameterTypes": []
+        },
+        {
+          "name": "getFixedDelayMilliseconds",
+          "parameterTypes": []
+        },
+        {
+          "name": "getHeaders",
+          "parameterTypes": []
+        },
+        {
+          "name": "getJsonBody",
+          "parameterTypes": []
+        },
+        {
+          "name": "getProxyBaseUrl",
+          "parameterTypes": []
+        },
+        {
+          "name": "getProxyUrlPrefixToRemove",
+          "parameterTypes": []
+        },
+        {
+          "name": "getRemoveProxyRequestHeaders",
+          "parameterTypes": []
+        },
+        {
+          "name": "getStatus",
+          "parameterTypes": []
+        },
+        {
+          "name": "getStatusMessage",
+          "parameterTypes": []
+        },
+        {
+          "name": "getTransformerParameters",
+          "parameterTypes": []
+        },
+        {
+          "name": "getTransformers",
+          "parameterTypes": []
+        },
+        {
+          "name": "isFromConfiguredStub",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.client.apache5.ApacheHttpClientFactory"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.jetty.JettyHttpServerFactory"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.jetty.WireMockHandlerDispatchingServlet",
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.jetty.servlet.ContentTypeSettingFilter",
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.jetty.servlet.NotMatchedServlet",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.jetty.servlet.TrailingSlashFilter",
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.junit5.WireMockExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.junit5.WireMockTest"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.AnythingPattern",
+      "allDeclaredFields": true,
+      "allDeclaredMethods": true,
+      "allDeclaredConstructors": true
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.ContainsPattern"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.ContentPatternDeserialiser",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.CustomMatcherDefinition"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.EqualToJsonPattern"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.EqualToPattern",
+      "allDeclaredFields": true,
+      "allDeclaredMethods": true,
+      "allDeclaredConstructors": true
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.MultiValuePattern"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.MultiValuePatternDeserializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.MultipartValuePattern"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.MultipartValuePattern$MatchingType"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.NamedValueMatcher"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.RegexPattern"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.RequestPattern",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "com.github.tomakehurst.wiremock.matching.StringValuePattern",
+            "java.lang.Integer",
+            "java.lang.String",
+            "com.github.tomakehurst.wiremock.matching.StringValuePattern",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "com.github.tomakehurst.wiremock.http.RequestMethod",
+            "java.util.Map",
+            "java.util.Map",
+            "java.util.Map",
+            "java.util.Map",
+            "java.util.Map",
+            "com.github.tomakehurst.wiremock.client.BasicCredentials",
+            "java.util.List",
+            "com.github.tomakehurst.wiremock.matching.CustomMatcherDefinition",
+            "java.util.List"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.SingleMatchMultiValuePattern",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.github.tomakehurst.wiremock.matching.StringValuePattern"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.StringValuePattern",
+      "allDeclaredFields": true,
+      "allDeclaredMethods": true,
+      "allDeclaredConstructors": true
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.StringValuePatternJsonDeserializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.UrlPattern",
+      "allDeclaredFields": true,
+      "allDeclaredMethods": true,
+      "allDeclaredConstructors": true
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.ValueMatcher"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.stubbing.StubMapping",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.util.UUID",
+            "java.lang.String",
+            "java.lang.Boolean",
+            "com.github.tomakehurst.wiremock.matching.RequestPattern",
+            "com.github.tomakehurst.wiremock.http.ResponseDefinition",
+            "java.lang.Integer",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.util.List",
+            "java.util.List",
+            "com.github.tomakehurst.wiremock.common.Metadata",
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.stubbing.StubMappingOrMappings"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.stubbing.StubMappingOrMappingsJsonDeserializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.verification.diff.DiffEventData",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "getContentType",
+          "parameterTypes": []
+        },
+        {
+          "name": "getReport",
+          "parameterTypes": []
+        },
+        {
+          "name": "getStatus",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.goterl.lazysodium.Sodium",
+      "allDeclaredMethods": true,
+      "allDeclaredConstructors": true,
+      "jniAccessible": true
+    },
+    {
+      "type": "com.goterl.lazysodium.SodiumJava",
+      "allDeclaredMethods": true,
+      "allDeclaredConstructors": true,
+      "jniAccessible": true
+    },
+    {
+      "type": "com.sun.jna.Callback",
+      "jniAccessible": true
+    },
+    {
+      "type": "com.sun.jna.CallbackProxy"
+    },
+    {
+      "type": "com.sun.jna.CallbackReference",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getCallback",
+          "parameterTypes": [
+            "java.lang.Class",
+            "com.sun.jna.Pointer",
+            "boolean"
+          ]
+        },
+        {
+          "name": "getFunctionPointer",
+          "parameterTypes": [
+            "com.sun.jna.Callback",
+            "boolean"
+          ]
+        },
+        {
+          "name": "getNativeString",
+          "parameterTypes": [
+            "java.lang.Object",
+            "boolean"
+          ]
+        },
+        {
+          "name": "initializeThread",
+          "parameterTypes": [
+            "com.sun.jna.Callback",
+            "com.sun.jna.CallbackReference$AttachOptions"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.CallbackReference$AttachOptions",
+      "jniAccessible": true
+    },
+    {
+      "type": "com.sun.jna.FromNativeConverter",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "nativeType",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.IntegerType",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "value"
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.JNIEnv",
+      "jniAccessible": true
+    },
+    {
+      "type": "com.sun.jna.Native",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "dispose",
+          "parameterTypes": []
+        },
+        {
+          "name": "fromNative",
+          "parameterTypes": [
+            "com.sun.jna.FromNativeConverter",
+            "java.lang.Object",
+            "java.lang.reflect.Method"
+          ]
+        },
+        {
+          "name": "fromNative",
+          "parameterTypes": [
+            "java.lang.Class",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "fromNative",
+          "parameterTypes": [
+            "java.lang.reflect.Method",
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "nativeType",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "toNative",
+          "parameterTypes": [
+            "com.sun.jna.ToNativeConverter",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Native$ffi_callback",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "invoke",
+          "parameterTypes": [
+            "long",
+            "long",
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.NativeLong",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.NativeMapped",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "toNative",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Pointer",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "peer"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.PointerType",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "pointer"
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Structure",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "memory"
+        },
+        {
+          "name": "typeInfo"
+        }
+      ],
+      "methods": [
+        {
+          "name": "autoRead",
+          "parameterTypes": []
+        },
+        {
+          "name": "autoWrite",
+          "parameterTypes": []
+        },
+        {
+          "name": "getTypeInfo",
+          "parameterTypes": []
+        },
+        {
+          "name": "newInstance",
+          "parameterTypes": [
+            "java.lang.Class",
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Structure$ByValue",
+      "jniAccessible": true
+    },
+    {
+      "type": "com.sun.jna.Structure$FFIType",
+      "fields": [
+        {
+          "name": "alignment"
+        },
+        {
+          "name": "elements"
+        },
+        {
+          "name": "size"
+        },
+        {
+          "name": "type"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Structure$FFIType$FFITypes",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "ffi_type_double"
+        },
+        {
+          "name": "ffi_type_float"
+        },
+        {
+          "name": "ffi_type_longdouble"
+        },
+        {
+          "name": "ffi_type_pointer"
+        },
+        {
+          "name": "ffi_type_sint16"
+        },
+        {
+          "name": "ffi_type_sint32"
+        },
+        {
+          "name": "ffi_type_sint64"
+        },
+        {
+          "name": "ffi_type_sint8"
+        },
+        {
+          "name": "ffi_type_uint16"
+        },
+        {
+          "name": "ffi_type_uint32"
+        },
+        {
+          "name": "ffi_type_uint64"
+        },
+        {
+          "name": "ffi_type_uint8"
+        },
+        {
+          "name": "ffi_type_void"
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.Structure$FFIType$size_t",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.WString",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.jna.ptr.IntByReference",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.AutomatedSecurityFixesResponse",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionRequest",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "allowForcePushes",
+          "parameterTypes": []
+        },
+        {
+          "name": "enforceAdmins",
+          "parameterTypes": []
+        },
+        {
+          "name": "requiredLinearHistory",
+          "parameterTypes": []
+        },
+        {
+          "name": "requiredPullRequestReviews",
+          "parameterTypes": []
+        },
+        {
+          "name": "requiredStatusChecks",
+          "parameterTypes": []
+        },
+        {
+          "name": "restrictions",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionRequest$RequiredPullRequestReviews",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "dismissStaleReviews",
+          "parameterTypes": []
+        },
+        {
+          "name": "requireCodeOwnerReviews",
+          "parameterTypes": []
+        },
+        {
+          "name": "requireLastPushApproval",
+          "parameterTypes": []
+        },
+        {
+          "name": "requiredApprovingReviewCount",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionRequest$RequiredStatusChecks",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "checks",
+          "parameterTypes": []
+        },
+        {
+          "name": "strict",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionRequest$RequiredStatusChecks$StatusCheck",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionRequest$Restrictions",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "apps",
+          "parameterTypes": []
+        },
+        {
+          "name": "teams",
+          "parameterTypes": []
+        },
+        {
+          "name": "users",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.Boolean",
+            "io.github.arlol.githubcheck.client.BranchProtectionResponse$EnforceAdmins",
+            "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredLinearHistory",
+            "io.github.arlol.githubcheck.client.BranchProtectionResponse$AllowForcePushes",
+            "io.github.arlol.githubcheck.client.BranchProtectionResponse$AllowDeletions",
+            "io.github.arlol.githubcheck.client.BranchProtectionResponse$BlockCreations",
+            "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredConversationResolution",
+            "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredStatusChecks",
+            "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredPullRequestReviews",
+            "io.github.arlol.githubcheck.client.BranchProtectionResponse$Restrictions",
+            "java.lang.String",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredSignatures",
+            "io.github.arlol.githubcheck.client.BranchProtectionResponse$LockBranch",
+            "io.github.arlol.githubcheck.client.BranchProtectionResponse$AllowForkSyncing"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$AllowDeletions",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$AllowForcePushes",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$AllowForkSyncing",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$BlockCreations",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$EnforceAdmins",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$LockBranch",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredConversationResolution",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredLinearHistory",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredPullRequestReviews",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "boolean",
+            "boolean",
+            "java.lang.Integer",
+            "java.lang.Boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredSignatures",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredStatusChecks",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredStatusChecks$EnforcementLevel",
+            "boolean",
+            "java.util.List",
+            "java.util.List",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredStatusChecks$EnforcementLevel"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredStatusChecks$StatusCheck",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.Integer"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$Restrictions",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.util.List",
+            "java.util.List",
+            "java.util.List"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$Restrictions$App",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Long",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$Restrictions$Team",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Long",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.BranchResponse",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.CodeScanningDefaultSetupRequest",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "state",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.CodeScanningDefaultSetupResponse",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.client.CodeScanningDefaultSetupResponse$State"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.CodeScanningDefaultSetupResponse$State"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.util.List",
+            "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse$DeploymentBranchPolicy"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse$DeploymentBranchPolicy",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean",
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse$ProtectionRule",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse$ProtectionRuleType",
+            "java.lang.Integer",
+            "java.util.List"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse$ProtectionRuleType"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse$Reviewer",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse$ReviewerEntity",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.EnvironmentReviewerType"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.EnvironmentUpdateRequest",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "deploymentBranchPolicy",
+          "parameterTypes": []
+        },
+        {
+          "name": "reviewers",
+          "parameterTypes": []
+        },
+        {
+          "name": "waitTimer",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.EnvironmentUpdateRequest$DeploymentBranchPolicy",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "customBranchPolicies",
+          "parameterTypes": []
+        },
+        {
+          "name": "protectedBranches",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.EnvironmentUpdateRequest$Reviewer",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.GitHubApiException"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.GitHubClient"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.ImmutableReleasesResponse",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.License",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.MergeCommitMessage"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.MergeCommitTitle"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.PagesBuildType"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.PagesCreateRequest",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "buildType",
+          "parameterTypes": []
+        },
+        {
+          "name": "source",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.PagesCreateRequest$Source",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.PagesResponse",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.PagesResponse$Status",
+            "java.lang.String",
+            "boolean",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.PagesBuildType",
+            "io.github.arlol.githubcheck.client.PagesResponse$Source",
+            "boolean",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.PagesResponse$ProtectedDomainState",
+            "io.github.arlol.githubcheck.client.PagesResponse$HttpsCertificate",
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.PagesResponse$HttpsCertificate",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.client.PagesResponse$HttpsCertificate$State",
+            "java.lang.String",
+            "java.util.List",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.PagesResponse$HttpsCertificate$State"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.PagesResponse$ProtectedDomainState"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.PagesResponse$Source",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.PagesResponse$Status"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.PagesUpdateRequest",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "buildType",
+          "parameterTypes": []
+        },
+        {
+          "name": "httpsEnforced",
+          "parameterTypes": []
+        },
+        {
+          "name": "source",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.PagesUpdateRequest$Source",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.PrivateVulnerabilityReportingResponse",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.PullRequestCreationPolicy"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.ReplaceTopicsRequest",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "names",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RepositoryCreateRequest",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RepositoryCreateRequest$Builder"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RepositoryDetailsResponse",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.SimpleUser",
+            "boolean",
+            "java.lang.String",
+            "java.lang.String",
+            "boolean",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "boolean",
+            "boolean",
+            "boolean",
+            "io.github.arlol.githubcheck.client.RepositoryVisibility",
+            "java.lang.String",
+            "java.util.List",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "java.lang.Boolean",
+            "io.github.arlol.githubcheck.client.PullRequestCreationPolicy",
+            "java.lang.Boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "io.github.arlol.githubcheck.client.SquashMergeCommitTitle",
+            "io.github.arlol.githubcheck.client.SquashMergeCommitMessage",
+            "io.github.arlol.githubcheck.client.MergeCommitTitle",
+            "io.github.arlol.githubcheck.client.MergeCommitMessage",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.RepositoryPermissions",
+            "java.lang.String",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "io.github.arlol.githubcheck.client.License",
+            "io.github.arlol.githubcheck.client.SimpleUser",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "java.lang.Boolean",
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RepositoryPermissions",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RepositorySummaryResponse",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Long",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.SimpleUser",
+            "java.lang.Boolean",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.Boolean",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "boolean",
+            "java.lang.Boolean",
+            "io.github.arlol.githubcheck.client.RepositoryVisibility",
+            "java.lang.String",
+            "java.util.List",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "io.github.arlol.githubcheck.client.PullRequestCreationPolicy",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.RepositoryPermissions",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.Boolean",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "io.github.arlol.githubcheck.client.License",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "java.lang.Integer",
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RepositoryUpdateRequest",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "allowAutoMerge",
+          "parameterTypes": []
+        },
+        {
+          "name": "allowForking",
+          "parameterTypes": []
+        },
+        {
+          "name": "allowMergeCommit",
+          "parameterTypes": []
+        },
+        {
+          "name": "allowRebaseMerge",
+          "parameterTypes": []
+        },
+        {
+          "name": "allowSquashMerge",
+          "parameterTypes": []
+        },
+        {
+          "name": "allowUpdateBranch",
+          "parameterTypes": []
+        },
+        {
+          "name": "archived",
+          "parameterTypes": []
+        },
+        {
+          "name": "defaultBranch",
+          "parameterTypes": []
+        },
+        {
+          "name": "deleteBranchOnMerge",
+          "parameterTypes": []
+        },
+        {
+          "name": "description",
+          "parameterTypes": []
+        },
+        {
+          "name": "hasDiscussions",
+          "parameterTypes": []
+        },
+        {
+          "name": "hasIssues",
+          "parameterTypes": []
+        },
+        {
+          "name": "hasProjects",
+          "parameterTypes": []
+        },
+        {
+          "name": "hasWiki",
+          "parameterTypes": []
+        },
+        {
+          "name": "homepage",
+          "parameterTypes": []
+        },
+        {
+          "name": "isTemplate",
+          "parameterTypes": []
+        },
+        {
+          "name": "mergeCommitMessage",
+          "parameterTypes": []
+        },
+        {
+          "name": "mergeCommitTitle",
+          "parameterTypes": []
+        },
+        {
+          "name": "securityAndAnalysis",
+          "parameterTypes": []
+        },
+        {
+          "name": "squashMergeCommitMessage",
+          "parameterTypes": []
+        },
+        {
+          "name": "squashMergeCommitTitle",
+          "parameterTypes": []
+        },
+        {
+          "name": "webCommitSignoffRequired",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RepositoryUpdateRequest$Builder"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RepositoryVisibility"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$AlertsThreshold"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$BranchNamePattern",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$CodeScanning",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "parameters",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$CodeScanning$Parameters",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "codeScanningTools",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$CodeScanningTool",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "alertsThreshold",
+          "parameterTypes": []
+        },
+        {
+          "name": "securityAlertsThreshold",
+          "parameterTypes": []
+        },
+        {
+          "name": "tool",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$CommitAuthorEmailPattern",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$CommitMessagePattern",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$CommitterEmailPattern",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$Creation",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$Deletion",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$NonFastForward",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$PatternParameters",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$PullRequest",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$PullRequest$Parameters",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$RequiredDeployments",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$RequiredDeployments$Parameters",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$RequiredLinearHistory",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$RequiredSignatures",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$RequiredStatusChecks",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "parameters",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$RequiredStatusChecks$Parameters",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "requiredStatusChecks",
+          "parameterTypes": []
+        },
+        {
+          "name": "strictRequiredStatusChecksPolicy",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$SecurityAlertsThreshold"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$StatusCheck",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "context",
+          "parameterTypes": []
+        },
+        {
+          "name": "integrationId",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$TagNamePattern",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$Unknown",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$Update",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$Update$Parameters",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.RulesetTarget",
+            "io.github.arlol.githubcheck.client.RulesetEnforcement",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.RulesetSourceType",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.RulesetDetailsResponse$CurrentUserCanBypass",
+            "java.lang.String",
+            "java.lang.String",
+            "java.util.List",
+            "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions",
+            "java.util.List"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$BypassActor",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$BypassActor$ActorType"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$BypassActor$BypassMode"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions$RefName",
+            "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions$RepositoryName",
+            "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions$RepositoryId",
+            "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions$RepositoryProperty"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions$RefName",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.util.List",
+            "java.util.List"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions$RepositoryId",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions$RepositoryName",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions$RepositoryProperty",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions$RepositoryProperty$PropertyCondition",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$CurrentUserCanBypass"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetEnforcement"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetRequest",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "bypassActors",
+          "parameterTypes": []
+        },
+        {
+          "name": "conditions",
+          "parameterTypes": []
+        },
+        {
+          "name": "enforcement",
+          "parameterTypes": []
+        },
+        {
+          "name": "name",
+          "parameterTypes": []
+        },
+        {
+          "name": "rules",
+          "parameterTypes": []
+        },
+        {
+          "name": "target",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetRequest$BypassActorRequest",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetRequest$Conditions",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "refName",
+          "parameterTypes": []
+        },
+        {
+          "name": "repositoryId",
+          "parameterTypes": []
+        },
+        {
+          "name": "repositoryName",
+          "parameterTypes": []
+        },
+        {
+          "name": "repositoryProperty",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetRequest$Conditions$RefName",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "exclude",
+          "parameterTypes": []
+        },
+        {
+          "name": "include",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetRequest$Conditions$RepositoryId",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetRequest$Conditions$RepositoryName",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetRequest$Conditions$RepositoryProperty",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetRequest$Conditions$RepositoryProperty$PropertyCondition",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetRuleType"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetSourceType"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetSummaryResponse",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.RulesetEnforcement",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.RulesetSourceType",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.RulesetTarget"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Secret",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SecretPublicKeyResponse",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SecretRequest",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "encryptedValue",
+          "parameterTypes": []
+        },
+        {
+          "name": "keyId",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Secrets"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject"
+          ]
+        },
+        {
+          "name": "advancedSecurity",
+          "parameterTypes": []
+        },
+        {
+          "name": "codeSecurity",
+          "parameterTypes": []
+        },
+        {
+          "name": "dependabotSecurityUpdates",
+          "parameterTypes": []
+        },
+        {
+          "name": "secretScanning",
+          "parameterTypes": []
+        },
+        {
+          "name": "secretScanningAiDetection",
+          "parameterTypes": []
+        },
+        {
+          "name": "secretScanningDelegatedAlertDismissal",
+          "parameterTypes": []
+        },
+        {
+          "name": "secretScanningDelegatedBypass",
+          "parameterTypes": []
+        },
+        {
+          "name": "secretScanningNonProviderPatterns",
+          "parameterTypes": []
+        },
+        {
+          "name": "secretScanningPushProtection",
+          "parameterTypes": []
+        },
+        {
+          "name": "secretScanningValidityChecks",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$Builder"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject$Status"
+          ]
+        },
+        {
+          "name": "status",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject$Status"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SimpleUser",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.Long",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.SimpleUser$UserType",
+            "java.lang.Boolean",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SimpleUser$UserType"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SquashMergeCommitMessage"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SquashMergeCommitTitle"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.WorkflowPermissions",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.client.WorkflowPermissions$DefaultWorkflowPermissions",
+            "boolean"
+          ]
+        },
+        {
+          "name": "canApprovePullRequestReviews",
+          "parameterTypes": []
+        },
+        {
+          "name": "defaultWorkflowPermissions",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.WorkflowPermissions$DefaultWorkflowPermissions"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.config.BranchProtectionArgs",
+      "fields": [
+        {
+          "name": "allowForcePushes"
+        },
+        {
+          "name": "apps"
+        },
+        {
+          "name": "dismissStaleReviews"
+        },
+        {
+          "name": "enforceAdmins"
+        },
+        {
+          "name": "pattern"
+        },
+        {
+          "name": "requireCodeOwnerReviews"
+        },
+        {
+          "name": "requireConversationResolution"
+        },
+        {
+          "name": "requireLastPushApproval"
+        },
+        {
+          "name": "requiredApprovingReviewCount"
+        },
+        {
+          "name": "requiredLinearHistory"
+        },
+        {
+          "name": "requiredStatusChecks"
+        },
+        {
+          "name": "teams"
+        },
+        {
+          "name": "users"
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.config.CodeScanningToolArgs",
+      "fields": [
+        {
+          "name": "alertsThreshold"
+        },
+        {
+          "name": "securityAlertsThreshold"
+        },
+        {
+          "name": "tool"
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.config.EnvironmentArgs",
+      "fields": [
+        {
+          "name": "deploymentBranchPolicy"
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "reviewers"
+        },
+        {
+          "name": "secrets"
+        },
+        {
+          "name": "waitTimer"
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.config.PagesArgs",
+      "fields": [
+        {
+          "name": "buildType"
+        },
+        {
+          "name": "sourceBranch"
+        },
+        {
+          "name": "sourcePath"
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.config.RepositoryArgs",
+      "methods": [
+        {
+          "name": "actionsSecrets",
+          "parameterTypes": []
+        },
+        {
+          "name": "allowAutoMerge",
+          "parameterTypes": []
+        },
+        {
+          "name": "allowForking",
+          "parameterTypes": []
+        },
+        {
+          "name": "allowMergeCommit",
+          "parameterTypes": []
+        },
+        {
+          "name": "allowRebaseMerge",
+          "parameterTypes": []
+        },
+        {
+          "name": "allowSquashMerge",
+          "parameterTypes": []
+        },
+        {
+          "name": "allowUpdateBranch",
+          "parameterTypes": []
+        },
+        {
+          "name": "archived",
+          "parameterTypes": []
+        },
+        {
+          "name": "automatedSecurityFixes",
+          "parameterTypes": []
+        },
+        {
+          "name": "branchProtections",
+          "parameterTypes": []
+        },
+        {
+          "name": "canApprovePullRequestReviews",
+          "parameterTypes": []
+        },
+        {
+          "name": "codeScanningDefaultSetup",
+          "parameterTypes": []
+        },
+        {
+          "name": "defaultBranch",
+          "parameterTypes": []
+        },
+        {
+          "name": "defaultWorkflowPermissions",
+          "parameterTypes": []
+        },
+        {
+          "name": "deleteBranchOnMerge",
+          "parameterTypes": []
+        },
+        {
+          "name": "description",
+          "parameterTypes": []
+        },
+        {
+          "name": "environments",
+          "parameterTypes": []
+        },
+        {
+          "name": "hasDiscussions",
+          "parameterTypes": []
+        },
+        {
+          "name": "hasIssues",
+          "parameterTypes": []
+        },
+        {
+          "name": "hasProjects",
+          "parameterTypes": []
+        },
+        {
+          "name": "hasWiki",
+          "parameterTypes": []
+        },
+        {
+          "name": "homepageUrl",
+          "parameterTypes": []
+        },
+        {
+          "name": "immutableReleases",
+          "parameterTypes": []
+        },
+        {
+          "name": "isTemplate",
+          "parameterTypes": []
+        },
+        {
+          "name": "mergeCommitMessage",
+          "parameterTypes": []
+        },
+        {
+          "name": "mergeCommitTitle",
+          "parameterTypes": []
+        },
+        {
+          "name": "name",
+          "parameterTypes": []
+        },
+        {
+          "name": "owner",
+          "parameterTypes": []
+        },
+        {
+          "name": "pagesArgs",
+          "parameterTypes": []
+        },
+        {
+          "name": "privateVulnerabilityReporting",
+          "parameterTypes": []
+        },
+        {
+          "name": "rulesets",
+          "parameterTypes": []
+        },
+        {
+          "name": "secretScanning",
+          "parameterTypes": []
+        },
+        {
+          "name": "secretScanningNonProviderPatterns",
+          "parameterTypes": []
+        },
+        {
+          "name": "secretScanningPushProtection",
+          "parameterTypes": []
+        },
+        {
+          "name": "secretScanningValidityChecks",
+          "parameterTypes": []
+        },
+        {
+          "name": "squashMergeCommitMessage",
+          "parameterTypes": []
+        },
+        {
+          "name": "squashMergeCommitTitle",
+          "parameterTypes": []
+        },
+        {
+          "name": "topics",
+          "parameterTypes": []
+        },
+        {
+          "name": "visibility",
+          "parameterTypes": []
+        },
+        {
+          "name": "vulnerabilityAlerts",
+          "parameterTypes": []
+        },
+        {
+          "name": "webCommitSignoffRequired",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.config.RulesetArgs",
+      "fields": [
+        {
+          "name": "branchNamePattern"
+        },
+        {
+          "name": "bypassActors"
+        },
+        {
+          "name": "commitAuthorEmailPattern"
+        },
+        {
+          "name": "commitMessagePattern"
+        },
+        {
+          "name": "committerEmailPattern"
+        },
+        {
+          "name": "creation"
+        },
+        {
+          "name": "deletion"
+        },
+        {
+          "name": "includePatterns"
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "noForcePushes"
+        },
+        {
+          "name": "requiredCodeScanning"
+        },
+        {
+          "name": "requiredDeployments"
+        },
+        {
+          "name": "requiredLinearHistory"
+        },
+        {
+          "name": "requiredReviewCount"
+        },
+        {
+          "name": "requiredSignatures"
+        },
+        {
+          "name": "requiredStatusChecks"
+        },
+        {
+          "name": "tagNamePattern"
+        },
+        {
+          "name": "update"
+        },
+        {
+          "name": "updateAllowsFetchAndMerge"
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.config.StatusCheckArgs",
+      "methods": [
+        {
+          "name": "getAppId",
+          "parameterTypes": []
+        },
+        {
+          "name": "getContext",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$ActorType",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$AlertsThreshold",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$BranchProtection",
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "java.util.List",
+            "java.lang.Long",
+            "boolean",
+            "boolean",
+            "java.lang.Boolean",
+            "java.util.List",
+            "java.util.List",
+            "java.util.List"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$BypassActor",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$BypassMode",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$CodeScanningTool",
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "io.github.arlol.githubcheck.pkl.Drifty$AlertsThreshold",
+            "io.github.arlol.githubcheck.pkl.Drifty$SecurityAlertsThreshold"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$Environment",
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.util.List",
+            "long",
+            "boolean",
+            "boolean"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$Pages",
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$PatternOperator",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$Repository",
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "boolean",
+            "java.lang.String",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.pkl.Drifty$Visibility",
+            "java.util.List",
+            "java.lang.String",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "io.github.arlol.githubcheck.pkl.Drifty$WorkflowPermissions",
+            "boolean",
+            "boolean",
+            "io.github.arlol.githubcheck.pkl.Drifty$Pages",
+            "java.util.List",
+            "java.util.Map",
+            "java.util.Map",
+            "java.util.Map"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$RulePattern",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$Ruleset",
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.util.List",
+            "boolean",
+            "boolean",
+            "java.util.List",
+            "java.lang.Long",
+            "java.util.List",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "io.github.arlol.githubcheck.pkl.Drifty$RulePattern",
+            "io.github.arlol.githubcheck.pkl.Drifty$RulePattern",
+            "io.github.arlol.githubcheck.pkl.Drifty$RulePattern",
+            "io.github.arlol.githubcheck.pkl.Drifty$RulePattern",
+            "io.github.arlol.githubcheck.pkl.Drifty$RulePattern",
+            "java.util.List",
+            "java.util.List"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$SecurityAlertsThreshold",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$StatusCheck",
+      "allPublicConstructors": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$Visibility",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$WorkflowPermissions",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "java.lang.Boolean",
+      "allPublicConstructors": true,
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getBoolean",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Class",
+      "methods": [
+        {
+          "name": "getRecordComponents",
+          "parameterTypes": []
+        },
+        {
+          "name": "isRecord",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Record"
+    },
+    {
+      "type": "java.lang.reflect.RecordComponent",
+      "methods": [
+        {
+          "name": "getName",
+          "parameterTypes": []
+        },
+        {
+          "name": "getType",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.security.AlgorithmParametersSpi"
+    },
+    {
+      "type": "java.security.KeyStoreSpi"
+    },
+    {
+      "type": "java.security.interfaces.ECPrivateKey"
+    },
+    {
+      "type": "java.security.interfaces.ECPublicKey"
+    },
+    {
+      "type": "java.util.HashSet",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.ee11.servlet.DefaultServlet",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.ee11.servlets.CrossOriginFilter",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.http.Http10FieldPreEncoder"
+    },
+    {
+      "type": "org.eclipse.jetty.http.Http11FieldPreEncoder"
+    },
+    {
+      "type": "org.eclipse.jetty.http.pathmap.PathSpecSet",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.http2.hpack.HpackFieldPreEncoder"
+    },
+    {
+      "type": "org.eclipse.jetty.util.AsciiLowerCaseSet",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.util.TypeUtil",
+      "methods": [
+        {
+          "name": "getClassLoaderLocation",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "getCodeSourceLocation",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "getModuleLocation",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "getSystemClassLoaderLocation",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.util.Utf8StringBuilder",
+      "methods": [
+        {
+          "name": "errorActionIgnore",
+          "parameterTypes": []
+        },
+        {
+          "name": "errorActionReplace",
+          "parameterTypes": []
+        },
+        {
+          "name": "errorActionReport",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.websocket.core.internal.FragmentExtension"
+    },
+    {
+      "type": "org.eclipse.jetty.websocket.core.internal.FrameCaptureExtension"
+    },
+    {
+      "type": "org.eclipse.jetty.websocket.core.internal.IdentityExtension"
+    },
+    {
+      "type": "org.eclipse.jetty.websocket.core.internal.PerMessageDeflateExtension"
+    },
+    {
+      "type": "org.eclipse.jetty.websocket.core.internal.ValidationExtension"
+    }
+  ],
+  "resources": [
+    {
+      "glob": "**/libsodium.*"
+    },
+    {
+      "glob": "META-INF/MANIFEST.MF"
+    },
+    {
+      "glob": "META-INF/graalvm/org.graalvm.polyglot/version"
+    },
+    {
+      "glob": "META-INF/graalvm/org.graalvm.truffle/version"
+    },
+    {
+      "glob": "META-INF/org/pkl/config/java/mapper/classes/drifty.properties"
+    },
+    {
+      "glob": "META-INF/org/pkl/config/java/mapper/classes/pkl.base.properties"
+    },
+    {
+      "glob": "META-INF/resources/engine/libtruffleattach/darwin/aarch64/sha256"
+    },
+    {
+      "glob": "META-INF/services/com.github.tomakehurst.wiremock.extension.Extension"
+    },
+    {
+      "glob": "META-INF/services/com.oracle.truffle.api.TruffleRuntimeAccess"
+    },
+    {
+      "glob": "META-INF/services/com.oracle.truffle.api.impl.TruffleLocator"
+    },
+    {
+      "glob": "META-INF/services/com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider"
+    },
+    {
+      "glob": "META-INF/services/com.oracle.truffle.api.library.provider.DefaultExportProvider"
+    },
+    {
+      "glob": "META-INF/services/com.oracle.truffle.api.provider.InternalResourceProvider"
+    },
+    {
+      "glob": "META-INF/services/com.oracle.truffle.api.provider.TruffleLanguageProvider"
+    },
+    {
+      "glob": "META-INF/services/org.eclipse.jetty.http.HttpFieldPreEncoder"
+    },
+    {
+      "glob": "META-INF/services/org.eclipse.jetty.websocket.core.Extension"
+    },
+    {
+      "glob": "META-INF/services/org.graalvm.home.HomeFinder"
+    },
+    {
+      "glob": "META-INF/services/org.graalvm.polyglot.impl.AbstractPolyglotImpl"
+    },
+    {
+      "glob": "META-INF/services/org.pkl.core.StackFrameTransformer"
+    },
+    {
+      "glob": "META-INF/services/org.pkl.core.module.ModuleKeyFactory"
+    },
+    {
+      "glob": "META-INF/services/org.pkl.core.resource.ResourceReader"
+    },
+    {
+      "glob": "META-INF/services/org.slf4j.spi.SLF4JServiceProvider"
+    },
+    {
+      "glob": "assets"
+    },
+    {
+      "glob": "assets/.*"
+    },
+    {
+      "glob": "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib"
+    },
+    {
+      "glob": "darwin-aarch64/libsodium.dylib"
+    },
+    {
+      "glob": "darwin/libsodium.dylib"
+    },
+    {
+      "glob": "helpers.nashorn.js"
+    },
+    {
+      "glob": "jakarta/servlet/LocalStrings.properties"
+    },
+    {
+      "glob": "jakarta/servlet/LocalStrings_en.properties"
+    },
+    {
+      "glob": "jakarta/servlet/LocalStrings_en_US.properties"
+    },
+    {
+      "glob": "jakarta/servlet/http/LocalStrings.properties"
+    },
+    {
+      "glob": "jakarta/servlet/http/LocalStrings_en.properties"
+    },
+    {
+      "glob": "jakarta/servlet/http/LocalStrings_en_US.properties"
+    },
+    {
+      "glob": "keystore"
+    },
+    {
+      "glob": "org/eclipse/jetty/http/encoding.properties"
+    },
+    {
+      "glob": "org/eclipse/jetty/http/mime.properties"
+    },
+    {
+      "glob": "org/eclipse/jetty/server/jetty-dir.css"
+    },
+    {
+      "glob": "org/eclipse/jetty/version/build.properties"
+    },
+    {
+      "glob": "org/pkl/core/Release.properties"
+    },
+    {
+      "glob": "org/pkl/core/stdlib/base.pkl"
+    },
+    {
+      "glob": "org/publicsuffix/list/effective_tld_names.dat"
+    },
+    {
+      "glob": "org/slf4j/impl/StaticLoggerBinder.class"
+    },
+    {
+      "glob": "swagger/.*"
+    },
+    {
+      "glob": "version.properties"
+    },
+        {
+      "bundle": "jakarta.servlet.LocalStrings"
+    },
+    {
+      "bundle": "jakarta.servlet.http.LocalStrings"
+    }
+  ]
+}
