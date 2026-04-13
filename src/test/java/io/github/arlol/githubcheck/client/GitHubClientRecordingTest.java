@@ -2,7 +2,6 @@ package io.github.arlol.githubcheck.client;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.recordSpec;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.awaitility.Awaitility.given;
 
 import java.io.IOException;
@@ -12,6 +11,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -38,11 +38,13 @@ class GitHubClientRecordingTest {
 			.build();
 
 	@Test
+	@EnabledIfEnvironmentVariable(named = "DRIFTY_GITHUB_TOKEN", matches = ".*")
+	@EnabledIfEnvironmentVariable(
+			named = "DRIFTY_WIREMOCK_RECORD",
+			matches = ".*"
+	)
 	void record_gitHubApiInteractions() throws Exception {
 		String token = System.getenv("DRIFTY_GITHUB_TOKEN");
-		assumeThat(token).isNotBlank();
-		String wiremockRecord = System.getenv("DRIFTY_WIREMOCK_RECORD");
-		assumeThat(wiremockRecord).isNotBlank();
 
 		clearDirectory(MAPPINGS_DIR);
 		clearDirectory(FILES_DIR);
