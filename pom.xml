@@ -33,6 +33,11 @@
 			<artifactId>lazysodium-java</artifactId>
 			<version>5.2.0</version>
 		</dependency>
+		<dependency>
+			<groupId>net.java.dev.jna</groupId>
+			<artifactId>jna</artifactId>
+			<version>5.17.0</version>
+		</dependency>
 
 		<dependency>
 			<groupId>net.jcip</groupId>
