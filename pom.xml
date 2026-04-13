@@ -23,6 +23,121 @@
 		<project.build.outputTimestamp>2023-01-01T00:00:00Z</project.build.outputTimestamp>
 	</properties>
 
+	<profiles>
+		<profile>
+			<id>macos</id>
+			<activation>
+				<os>
+					<family>mac</family>
+				</os>
+			</activation>
+			<properties>
+				<platform>macos</platform>
+			</properties>
+		</profile>
+		<profile>
+			<id>unix</id>
+			<activation>
+				<os>
+					<family>unix</family>
+					<name>Linux</name>
+				</os>
+			</activation>
+			<properties>
+				<platform>linux</platform>
+			</properties>
+		</profile>
+		<profile>
+			<id>windows</id>
+			<activation>
+				<os>
+					<family>windows</family>
+				</os>
+			</activation>
+			<properties>
+				<platform>windows</platform>
+			</properties>
+		</profile>
+		<profile>
+			<id>graal</id>
+			<activation>
+				<file>
+					<exists>${env.JAVA_HOME}/lib/graal</exists>
+				</file>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.graalvm.buildtools</groupId>
+						<artifactId>native-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>build-native</id>
+								<goals>
+									<goal>compile-no-fork</goal>
+								</goals>
+								<phase>package</phase>
+							</execution>
+							<execution>
+								<id>test-native</id>
+								<goals>
+									<goal>test</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<agent>
+								<enabled>false</enabled>
+								<options>
+									<accessFilterFiles>
+										<filterFile>${project.basedir}/src/main/resources/META-INF/native-image/access-filter.json</filterFile>
+									</accessFilterFiles>
+								</options>
+								<metadataCopy>
+									<disabledStages>
+										<stage>main</stage>
+									</disabledStages>
+									<merge>true</merge>
+									<outputDirectory>${project.basedir}/src/main/resources/META-INF/native-image</outputDirectory>
+								</metadataCopy>
+							</agent>
+							<imageName>${project.artifactId}-${platform}-${project.version}</imageName>
+							<metadataRepository>
+								<enabled>true</enabled>
+							</metadataRepository>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<configuration>
+							<mainClass>${start-class}</mainClass>
+							<arguments>
+								<argument>
+									-agentlib:native-image-agent=config-merge-dir=${project.basedir}/src/main/resources/META-INF/native-image,access-filter-file=${project.basedir}/src/main/resources/META-INF/native-image/access-filter.json
+								</argument>
+								<argument>-classpath</argument>
+								<classpath />
+								<argument>${start-class}</argument>
+							</arguments>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>env-build-timestamp</id>
+			<activation>
+				<property>
+					<name>env.BUILD_TIMESTAMP</name>
+				</property>
+			</activation>
+			<properties>
+				<project.build.outputTimestamp>${env.BUILD_TIMESTAMP}</project.build.outputTimestamp>
+			</properties>
+		</profile>
+	</profiles>
+
 	<dependencies>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
@@ -100,6 +215,12 @@
 		<dependency>
 			<groupId>org.awaitility</groupId>
 			<artifactId>awaitility</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.github.classgraph</groupId>
+			<artifactId>classgraph</artifactId>
+			<version>4.8.184</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -324,6 +445,12 @@
 				<plugin>
 					<artifactId>maven-site-plugin</artifactId>
 					<version>3.21.0</version>
+				</plugin>
+				<plugin>
+					<groupId>org.graalvm.buildtools</groupId>
+					<artifactId>native-maven-plugin</artifactId>
+					<version>1.0.0</version>
+					<extensions>true</extensions>
 				</plugin>
 			</plugins>
 		</pluginManagement>

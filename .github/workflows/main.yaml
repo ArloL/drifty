@@ -79,7 +79,7 @@ jobs:
     - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
       with:
         cache: maven
-        distribution: temurin
+        distribution: graalvm
         java-version-file: .tool-versions
     - name: Build with Maven
       run: |
@@ -89,10 +89,12 @@ jobs:
           -Dsha1="${GITHUB_SHA}" \
           -Drevision="${REVISION}" \
           verify
+    - name: Test executable
+      run: sh ./src/test/native/test-executable.sh "${ARTIFACT}" macos "${REVISION}"
     - name: Move artifacts
       run: |
         mkdir target/artifacts
-        cp target/${{ env.ARTIFACT }}-* target/artifacts
+        cp target/"${ARTIFACT}"-* target/artifacts
     - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: ${{ env.ARTIFACT }}-${{ github.job }}-${{ needs.version.outputs.new_version }}
@@ -112,7 +114,7 @@ jobs:
     - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
       with:
         cache: maven
-        distribution: temurin
+        distribution: graalvm
         java-version-file: .tool-versions
     - name: Build with Maven
       run: |
@@ -122,10 +124,12 @@ jobs:
           -Dsha1="${GITHUB_SHA}" \
           -Drevision="${REVISION}" \
           verify
+    - name: Test executable
+      run: sh ./src/test/native/test-executable.sh "${ARTIFACT}" linux "${REVISION}"
     - name: Move artifacts
       run: |
         mkdir target/artifacts
-        cp target/${{ env.ARTIFACT }}-* target/artifacts
+        cp target/"${ARTIFACT}"-* target/artifacts
     - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: ${{ env.ARTIFACT }}-${{ github.job }}-${{ needs.version.outputs.new_version }}
@@ -136,7 +140,6 @@ jobs:
     needs: version
     runs-on: windows-latest
     env:
-      USER: runner
       REVISION: ${{ needs.version.outputs.new_version }}
       BUILD_TIMESTAMP: ${{ needs.version.outputs.build_timestamp }}
     steps:
@@ -146,15 +149,19 @@ jobs:
     - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
       with:
         cache: maven
-        distribution: temurin
+        distribution: graalvm
         java-version-file: .tool-versions
+    - name: Remove WindowsImageHeapProviderFeature
+      run: '& 7z d "$env:JAVA_HOME\lib\svm\builder\svm.jar" com/oracle/svm/core/windows/WindowsImageHeapProviderFeature.class'
     - name: Build with Maven
       run: |
         .\mvnw --batch-mode -Dsha1="$env:GITHUB_SHA" -Drevision="$env:REVISION" verify
+    - name: Test executable
+      run: sh ./src/test/native/test-executable.sh "$env:ARTIFACT" windows "$env:REVISION"
     - name: Move artifacts
       run: |
         mkdir target/artifacts
-        copy target/${{ env.ARTIFACT }}-* target/artifacts
+        copy target/$env:ARTIFACT-* target/artifacts
     - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: ${{ env.ARTIFACT }}-${{ github.job }}-${{ needs.version.outputs.new_version }}
@@ -188,6 +195,9 @@ jobs:
         zip -r "artifacts/${ARTIFACT}-windows-${NEW_VERSION}.zip" "${ARTIFACT}-windows-${NEW_VERSION}/"
         zip -r "artifacts/${ARTIFACT}-linux-${NEW_VERSION}.zip" "${ARTIFACT}-linux-${NEW_VERSION}/"
         zip -r "artifacts/${ARTIFACT}-macos-${NEW_VERSION}.zip" "${ARTIFACT}-macos-${NEW_VERSION}/"
+        mv "${ARTIFACT}-windows-${NEW_VERSION}/${ARTIFACT}-windows-${NEW_VERSION}.exe" "artifacts/${ARTIFACT}-windows.exe"
+        mv "${ARTIFACT}-linux-${NEW_VERSION}/${ARTIFACT}-linux-${NEW_VERSION}" "artifacts/${ARTIFACT}-linux"
+        mv "${ARTIFACT}-macos-${NEW_VERSION}/${ARTIFACT}-macos-${NEW_VERSION}" "artifacts/${ARTIFACT}-macos"
     - name: Create Release
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,30 @@
+{
+    "rules": [
+        {
+            "excludeClasses": "**"
+        },
+        {
+            "includeClasses": "io.github.arlol.githubcheck.**"
+        },
+        {
+            "excludeClasses": "io.github.arlol.githubcheck.GitHubCheck"
+        },
+        {
+            "includeClasses": "com.github.tomakehurst.wiremock.**"
+        },
+        {
+            "includeClasses": "org.eclipse.jetty.**"
+        },
+        {
+            "includeClasses": "com.goterl.lazysodium.**"
+        },
+        {
+            "includeClasses": "com.sun.jna.**"
+        }
+    ],
+    "regexRules": [
+        {
+            "excludeClasses": "io\\.github\\.arlol\\.githubcheck\\..*Test"
+        }
+    ]
+}
