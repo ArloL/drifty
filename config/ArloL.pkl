@@ -170,8 +170,20 @@ repositories {
     immutableReleases = true
   }
   (mainCiRepoTemplate) {
+    name = "pkl-config-java-native"
+    description = "A superset of pkl-config-java that works in native binaries"
+  }
+  (mainCiRepoTemplate) {
     name = "rss-to-mail"
     description = "Read from RSS feeds and send an email for every new item"
+  }
+  (mainCiRepoTemplate) {
+    name = "template-graal"
+    description = "A template for graal projects"
+  }
+  (mainCiRepoTemplate) {
+    name = "template-maven"
+    description = "A template for maven projects"
   }
   (mainCiRepoTemplate) {
     name = "wait-for-ports"

@@ -352,10 +352,24 @@ public class GitHubCheck {
 						.immutableReleases(true)
 						.build(),
 				mainCiRepo.toBuilder()
+						.name("pkl-config-java-native")
+						.description(
+								"A superset of pkl-config-java that works in native binaries"
+						)
+						.build(),
+				mainCiRepo.toBuilder()
 						.name("rss-to-mail")
 						.description(
 								"Read from RSS feeds and send an email for every new item"
 						)
+						.build(),
+				mainCiRepo.toBuilder()
+						.name("template-graal")
+						.description("A template for graal projects")
+						.build(),
+				mainCiRepo.toBuilder()
+						.name("template-maven")
+						.description("A template for maven projects")
 						.build(),
 				mainCiRepo.toBuilder()
 						.name("wait-for-ports")
