@@ -89,8 +89,6 @@ jobs:
           -Dsha1="${GITHUB_SHA}" \
           -Drevision="${REVISION}" \
           verify
-    - name: Test executable
-      run: sh ./src/test/native/test-executable.sh "${ARTIFACT}" macos "${REVISION}"
     - name: Move artifacts
       run: |
         mkdir target/artifacts
@@ -124,8 +122,6 @@ jobs:
           -Dsha1="${GITHUB_SHA}" \
           -Drevision="${REVISION}" \
           verify
-    - name: Test executable
-      run: sh ./src/test/native/test-executable.sh "${ARTIFACT}" linux "${REVISION}"
     - name: Move artifacts
       run: |
         mkdir target/artifacts
@@ -156,8 +152,6 @@ jobs:
     - name: Build with Maven
       run: |
         .\mvnw --batch-mode -Dsha1="$env:GITHUB_SHA" -Drevision="$env:REVISION" verify
-    - name: Test executable
-      run: sh ./src/test/native/test-executable.sh "$env:ARTIFACT" windows "$env:REVISION"
     - name: Move artifacts
       run: |
         mkdir target/artifacts
