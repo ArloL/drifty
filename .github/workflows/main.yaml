@@ -147,8 +147,6 @@ jobs:
         cache: maven
         distribution: graalvm
         java-version-file: .tool-versions
-    - name: Remove WindowsImageHeapProviderFeature
-      run: '& 7z d "$env:JAVA_HOME\lib\svm\builder\svm.jar" com/oracle/svm/core/windows/WindowsImageHeapProviderFeature.class'
     - name: Build with Maven
       run: |
         .\mvnw --batch-mode -Dsha1="$env:GITHUB_SHA" -Drevision="$env:REVISION" verify
