@@ -16,8 +16,8 @@ class NativeExecutableIT {
 	void version() throws IOException, InterruptedException {
 		String expectedArtifactId = System.getProperty("project.artifactId");
 		String expectedVersion = System.getProperty("project.version");
-		String expected = expectedArtifactId + " version \""
-				+ expectedVersion + "\"";
+		String expected = expectedArtifactId + " version \"" + expectedVersion
+				+ "\"";
 
 		Process process = new ProcessBuilder(
 				EXECUTABLE.toAbsolutePath().toString(),
@@ -32,7 +32,8 @@ class NativeExecutableIT {
 	}
 
 	@Test
-	void runsWithoutChangingAnything() throws IOException, InterruptedException {
+	void runsWithoutChangingAnything()
+			throws IOException, InterruptedException {
 		Process process = new ProcessBuilder(
 				EXECUTABLE.toAbsolutePath().toString()
 		).start();
