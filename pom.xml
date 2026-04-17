@@ -161,9 +161,9 @@
 			<optional>true</optional>
 		</dependency>
 		<dependency>
-			<groupId>org.pkl-lang</groupId>
-			<artifactId>pkl-config-java</artifactId>
-			<version>0.31.1</version>
+			<groupId>io.github.arlol</groupId>
+			<artifactId>pkl-config-java-native</artifactId>
+			<version>2604.0.108</version>
 		</dependency>
 
 		<dependency>
@@ -455,4 +455,10 @@
 			</plugins>
 		</pluginManagement>
 	</build>
+	<repositories>
+		<repository>
+		    <id>jitpack.io</id>
+		    <url>https://jitpack.io</url>
+		</repository>
+	</repositories>
 </project>
