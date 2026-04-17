@@ -26,6 +26,13 @@ public class GitHubCheck {
 
 	static void main(String[] args)
 			throws IOException, InterruptedException, ExecutionException {
+		if (args.length == 1 && "--version".equals(args[0])) {
+			Package pkg = GitHubCheck.class.getPackage();
+			String title = pkg.getImplementationTitle();
+			String version = pkg.getImplementationVersion();
+			System.out.println(title + " version \"" + version + "\"");
+			return;
+		}
 		String token = System.getenv("DRIFTY_GITHUB_TOKEN");
 		if (token == null || token.isBlank()) {
 			System.err.println(
