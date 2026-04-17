@@ -122,6 +122,28 @@
 							</arguments>
 						</configuration>
 					</plugin>
+					<plugin>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>integration-test-native</id>
+								<goals>
+									<goal>integration-test</goal>
+									<goal>verify</goal>
+								</goals>
+								<configuration>
+									<systemPropertyVariables>
+										<native.executable>${project.build.directory}/${project.artifactId}-${platform}-${project.version}</native.executable>
+										<project.artifactId>${project.artifactId}</project.artifactId>
+										<project.version>${project.version}</project.version>
+									</systemPropertyVariables>
+									<includes>
+										<include>**/*IT.java</include>
+									</includes>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
 				</plugins>
 			</build>
 		</profile>
