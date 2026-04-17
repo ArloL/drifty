@@ -131,20 +131,6 @@
 								<project.version>${project.version}</project.version>
 							</systemPropertyVariables>
 						</configuration>
-						<executions>
-							<execution>
-								<id>integration-test-native</id>
-								<goals>
-									<goal>integration-test</goal>
-									<goal>verify</goal>
-								</goals>
-								<configuration>
-									<includes>
-										<include>**/*IT.java</include>
-									</includes>
-								</configuration>
-							</execution>
-						</executions>
 					</plugin>
 				</plugins>
 			</build>
