@@ -6,11 +6,13 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
+@EnabledIfSystemProperty(named = "native.executable", matches = ".+")
 class NativeExecutableIT {
 
 	private static final Path EXECUTABLE = Path
-			.of(System.getProperty("native.executable"));
+			.of(System.getProperty("native.executable", ""));
 
 	@Test
 	void version() throws IOException, InterruptedException {
