@@ -199,3 +199,7 @@ Enable/disable delegated secret scanning bypass per repo, including configuratio
 - Read `securityAndAnalysis.secretScanningDelegatedBypass()` in `checkSecuritySettings()`.
 - Diff the enabled status and the reviewer list.
 - Fix via PATCH `security_and_analysis.secret_scanning_delegated_bypass` with `{"status": "enabled"|"disabled", "bypass_reviewers": [...]}`.
+
+## ~~32. Pkl as the Default Configuration~~ DONE
+
+Implemented: Pkl is now the only configuration mechanism. The hardcoded Java config method `GitHubCheck.repositories()` was removed. `GitHubCheck.main()` resolves a config path — the value of `--pkl <path>` when supplied, otherwise `./drifty.pkl` in the working directory — and exits with code 1 and `ERROR: config file not found: <path>` if it is missing. `PklConfigLoaderTest` was reworked from a Java/Pkl equivalence check into a smoke test that loads `config/ArloL.pkl`. `SPEC.md` was updated to describe the Pkl configuration model.

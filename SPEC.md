@@ -2,45 +2,47 @@
 
 ## Overview
 
-**drifty** is a Java CLI tool that manages the configuration of GitHub repositories for a single org or personal account. It compares actual repository state against desired configuration defined in Java code, reports drift, and can automatically fix discrepancies via `--fix`.
+**drifty** is a Java CLI tool that manages the configuration of GitHub repositories for a single org or personal account. It compares actual repository state against desired configuration defined in a Pkl file, reports drift, and can automatically fix discrepancies via `--fix`.
 
 ## Core Concepts
 
 ### Configuration Model
 
-Desired repository state is defined **in Java code** using builder-style APIs. There is no external config file format — the tool IS the config.
+Desired repository state is defined in a **Pkl** configuration file. The schema lives in `config/drifty.pkl`; a concrete config `amends` it and lists the managed repositories (see `config/ArloL.pkl` for a complete example).
+
+drifty loads `./drifty.pkl` from the current working directory by default. A different file can be passed with `--pkl <path>`.
 
 #### Field Defaults
 
-`RepositoryArgs` field defaults match **GitHub's defaults** for newly created repos. This means a bare `RepositoryArgs.create("my-repo").build()` represents a repo with GitHub's out-of-the-box settings and reports no drift against a freshly created repo.
+The `Repository` type in `config/drifty.pkl` declares defaults that match **GitHub's defaults** for newly created repos. A minimal repo entry (just `owner` and `name`) therefore represents a repo with GitHub's out-of-the-box settings and reports no drift against a freshly created repo.
 
-Non-default desired values (e.g. disabling merge commits, enabling auto-merge) are set in the `defaultRepository` template in `GitHubCheck.repositories()`, not in `RepositoryArgs` itself.
+Non-default desired values (e.g. disabling merge commits, enabling auto-merge) are set in shared templates in the config file, not in the schema.
 
 #### Grouping Model
 
-Repos are organized into groups that share defaults. Each group defines baseline settings via a template `RepositoryArgs`, and individual repos can override any field via `toBuilder()`.
+Repos are organized into groups that share defaults. Each group defines a `local` template `Repository`, and individual repos amend the template and override any field.
 
-```java
-// GitHubCheck.repositories() — pseudocode showing the grouping model
-var defaultRepository = RepositoryArgs.create("default")
-    .allowAutoMerge(true)
-    .allowMergeCommit(false)
-    .deleteBranchOnMerge(true)
-    .secretScanning(true)
-    // ... org-wide policy overrides
-    .build();
+```pkl
+// config — grouping model
+local defaultRepo: Repository = new {
+  owner = "ArloL"
+  allowMergeCommit = false
+  allowAutoMerge = true
+  deleteBranchOnMerge = true
+  // ... org-wide policy overrides
+}
 
-var repos = List.of(
-    defaultRepository.toBuilder().name("repo-a").description("...").build(),
-    defaultRepository.toBuilder().name("repo-b").description("...").topics("library", "java").build(),
-    // Per-repo overrides
-    defaultRepository.toBuilder().name("special-repo").allowSquashMerge(true).build()
-);
+repositories {
+  (defaultRepo) { name = "repo-a"; description = "..." }
+  (defaultRepo) { name = "repo-b"; description = "..."; topics { "library"; "java" } }
+  // Per-repo overrides
+  (defaultRepo) { name = "special-repo"; allowSquashMerge = true }
+}
 ```
 
 ### Org/Account Targeting
 
-The target org or personal account is **hardcoded in the config code**. There is no CLI argument for it. To manage multiple orgs, run the tool multiple times with different config blocks. Multi-org support within a single invocation is a future consideration.
+The target org or personal account is set via the `owner` field on each repository in the config file. There is no CLI argument for it. To manage multiple orgs, run the tool multiple times with different config files. Multi-org support within a single invocation is a future consideration.
 
 ### Archived Repos
 
@@ -57,9 +59,12 @@ If a repo is listed in config but does not exist on GitHub, it is reported as `M
 ### Commands
 
 ```
-drifty          # Report drift with human-readable diffs and fix previews
-drifty --fix    # Apply all fixable changes
+drifty                # Report drift; loads ./drifty.pkl by default
+drifty --fix          # Apply all fixable changes
+drifty --pkl <path>   # Use a config file at an explicit path
 ```
+
+The config file defaults to `./drifty.pkl` in the working directory. If the resolved file does not exist, drifty prints `ERROR: config file not found: <path>` and exits with code 1.
 
 ### Environment Variables
 
@@ -94,7 +99,7 @@ repo-e: ERROR: 403 Forbidden
 
 ## Managed Settings
 
-All settings below are fields on `RepositoryArgs`. Field defaults in `RepositoryArgs` match GitHub's defaults for newly created repos — the "GitHub default" column documents these. Non-default desired values are set in the `defaultRepository` template in `GitHubCheck.repositories()`.
+All settings below are fields on the `Repository` type in `config/drifty.pkl`. Their defaults match GitHub's defaults for newly created repos — the "GitHub default" column documents these. Non-default desired values are set in shared templates in the config file.
 
 ### Repository Settings
 
@@ -214,15 +219,17 @@ Repo-level rulesets managed via the `rulesets` list on `RepositoryArgs`. drifty 
 
 ### Required Status Checks
 
-Defined as a base set per group plus per-repo additions:
+Status checks are defined on rulesets and branch protections. Shared `StatusCheck` values can be declared once as `local` bindings and reused; amending a ruleset appends additional checks to the inherited list:
 
-```java
-var defaultRepository = RepositoryArgs.create("default")
-    .requiredStatusChecks("CodeQL", "codeql-analysis", "zizmor")
-    .build();
+```pkl
+local baseRuleset: Ruleset = new {
+  requiredStatusChecks { checkActions; codeqlAnalysis }
+}
 
-defaultRepository.toBuilder().name("my-repo").addRequiredStatusChecks("build", "test").build()
-// Results in: CodeQL, codeql-analysis, zizmor, build, test
+// Amends baseRuleset, appending one more required status check.
+local mainCiRuleset: Ruleset = (baseRuleset) {
+  requiredStatusChecks { mainCiCheck }
+}
 ```
 
 ### GitHub Pages
@@ -242,8 +249,11 @@ If config has no Pages and the repo has Pages enabled, `--fix` disables it.
 
 Config declares expected secret names per repo:
 
-```java
-defaults.toBuilder().name("my-repo").secrets("PAT", "DOCKER_HUB_ACCESS_TOKEN").build()
+```pkl
+(defaultRepo) {
+  name = "my-repo"
+  actionsSecrets { "PAT"; "DOCKER_HUB_ACCESS_TOKEN" }
+}
 ```
 
 **Check:** Verifies that the declared secret names exist on the repo.
