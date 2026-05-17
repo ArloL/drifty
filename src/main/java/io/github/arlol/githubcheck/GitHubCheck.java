@@ -14,6 +14,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
 import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.state.DriftyState;
+import io.github.arlol.githubcheck.state.StateStore;
 
 public class GitHubCheck {
 
@@ -39,6 +41,10 @@ public class GitHubCheck {
 		int pklIndex = argsList.indexOf("--pkl");
 		String pklPath = (pklIndex >= 0 && pklIndex + 1 < argsList.size())
 				? argsList.get(pklIndex + 1)
+				: null;
+		int stateIndex = argsList.indexOf("--state");
+		String statePath = (stateIndex >= 0 && stateIndex + 1 < argsList.size())
+				? argsList.get(stateIndex + 1)
 				: null;
 
 		Map<String, String> githubSecrets = Map.of();
@@ -67,6 +73,12 @@ public class GitHubCheck {
 		}
 		List<RepositoryArgs> repos = PklConfigLoader
 				.load(configPath.toAbsolutePath());
+
+		Path stateFile = statePath != null ? Path.of(statePath)
+				: configPath.toAbsolutePath()
+						.resolveSibling("drifty-state.json");
+		var stateStore = new StateStore();
+		DriftyState state = stateStore.load(stateFile);
 
 		if (fix) {
 			var missingSecrets = new ArrayList<String>();
@@ -101,9 +113,13 @@ public class GitHubCheck {
 
 		long startTime = System.currentTimeMillis();
 
-		var checker = new OrgChecker(token, "ArloL", fix, githubSecrets);
+		var checker = new OrgChecker(token, "ArloL", fix, githubSecrets, state);
 		CheckResult result = checker.check(repos);
 		checker.printReport(result);
+
+		if (fix) {
+			stateStore.save(stateFile, state);
+		}
 
 		double totalSeconds = (System.currentTimeMillis() - startTime) / 1000.0;
 		System.out

@@ -62,9 +62,12 @@ If a repo is listed in config but does not exist on GitHub, it is reported as `M
 drifty                # Report drift; loads ./drifty.pkl by default
 drifty --fix          # Apply all fixable changes
 drifty --pkl <path>   # Use a config file at an explicit path
+drifty --state <path> # Use a state file at an explicit path
 ```
 
 The config file defaults to `./drifty.pkl` in the working directory. If the resolved file does not exist, drifty prints `ERROR: config file not found: <path>` and exits with code 1.
+
+The state file defaults to `drifty-state.json` next to the resolved config file. See [State File](#state-file).
 
 ### Environment Variables
 
@@ -256,9 +259,17 @@ Config declares expected secret names per repo:
 }
 ```
 
-**Check:** Verifies that the declared secret names exist on the repo.
+**Check:** Verifies that each declared secret exists on the repo and is still
+the value drifty last pushed. GitHub never returns a secret's value, so drifty
+relies on the [state file](#state-file): it compares the recorded `updated_at`
+timestamp and value hash against the current GitHub timestamp and the desired
+value. A secret with no recorded baseline is reported as `unverifiable`.
 
-**Fix:** `--fix` always creates/updates secrets when `DRIFTY_GITHUB_SECRETS` provides a value (no staleness detection). If the value is not provided, reports the drift as unfixable.
+**Fix:** `--fix` only pushes secrets that are drifted — missing, changed
+out-of-band, rotated (config value changed), or unverifiable. Verified secrets
+are left untouched. After a push, drifty records the new `updated_at` and value
+hash in the state file. If a value is not provided in `DRIFTY_GITHUB_SECRETS`,
+the drift is reported as unfixable.
 
 #### Secret Value Mapping
 
@@ -293,6 +304,54 @@ Per-repo setting:
 | Setting | Check | Fix |
 |---------|-------|-----|
 | Enabled | Yes | Yes |
+
+## State File
+
+GitHub never returns a secret's value, so drifty cannot tell from the API
+alone whether an existing secret is still correct. It keeps a small JSON state
+file (default `drifty-state.json` next to the config file, override with
+`--state <path>`) recording, per managed secret, the `updated_at` timestamp it
+last observed and a salted SHA-256 hash of the value it last pushed.
+
+```json
+{
+  "version": 1,
+  "salt": "9f3c…",
+  "repositories": {
+    "my-repo": {
+      "action_secrets": {
+        "PAT": {
+          "updated_at": "2026-01-02T03:04:05Z",
+          "value_hash": "ab12…"
+        }
+      },
+      "environment_secrets": {
+        "production": {
+          "TF_GITHUB_TOKEN": {
+            "updated_at": "2026-01-02T03:04:05Z",
+            "value_hash": "cd34…"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+On each run drifty compares the recorded values against GitHub and the desired
+config:
+
+| GitHub state | State-file entry | Result |
+|---|---|---|
+| missing | — | drift (`missing`), `--fix` creates + records |
+| exists | none recorded | drift (`unverifiable`), `--fix` pushes + records |
+| exists | recorded, `updated_at` mismatch | drift (`changed outside drifty`), `--fix` re-pushes + records |
+| exists | recorded, `updated_at` match, hash mismatch | drift (`config value changed`), `--fix` re-pushes + records |
+| exists | recorded, both match | no drift (verified) |
+
+`check` (read-only) never writes the state file; only `--fix` saves it. The
+salt defeats rainbow tables and hides equal values across secrets — it does
+not make a low-entropy secret uncrackable offline.
 
 ## Unmanaged Repos
 
@@ -349,7 +408,6 @@ These are explicitly out of scope for the initial version but acknowledged as po
 - **Org-level rulesets** — manage rulesets at the org level (full CRUD, same as repo-level). Repo-level first.
 - **Multi-org support** — manage multiple orgs in a single invocation with per-org config blocks.
 - **GraphQL for bulk reads** — REST first, profile and optimize later.
-- **Lightweight state file** — track secret `updated_at` timestamps to skip unchanged secrets on subsequent runs.
 - **Collaborator/team access management** — out of scope for now, may be added later.
 - **Custom properties** — manage GitHub custom property values per repo (org-level definitions assumed to exist).
 - **Webhooks** — full lifecycle management of repo webhooks (URL, events, content type, secrets via `DRIFTY_GITHUB_SECRETS`).

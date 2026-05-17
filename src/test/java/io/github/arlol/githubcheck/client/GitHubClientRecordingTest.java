@@ -186,7 +186,7 @@ class GitHubClientRecordingTest {
 							actionKey.keyId()
 					)
 			);
-			client.getActionSecretNames(owner, repo);
+			client.getActionSecrets(owner, repo);
 
 			client.enableImmutableReleases(owner, repo);
 			client.getImmutableReleases(owner, repo);
@@ -220,7 +220,7 @@ class GitHubClientRecordingTest {
 							envKey.keyId()
 					)
 			);
-			client.getEnvironmentSecretNames(owner, repo, envName);
+			client.getEnvironmentSecrets(owner, repo, envName);
 			client.getEnvironments(owner, repo);
 			client.deleteEnvironment(owner, repo, envName);
 		} finally {

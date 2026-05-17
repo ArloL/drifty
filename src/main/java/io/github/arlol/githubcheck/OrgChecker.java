@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +22,7 @@ import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
+import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
@@ -49,6 +49,7 @@ import io.github.arlol.githubcheck.drift.SecretScanningValidityChecksDriftGroup;
 import io.github.arlol.githubcheck.drift.TopicsDriftGroup;
 import io.github.arlol.githubcheck.drift.VulnerabilityAlertsDriftGroup;
 import io.github.arlol.githubcheck.drift.WorkflowPermissionsDriftGroup;
+import io.github.arlol.githubcheck.state.DriftyState;
 
 public class OrgChecker {
 
@@ -56,13 +57,14 @@ public class OrgChecker {
 	private final String org;
 	private final boolean fix;
 	private final Map<String, String> githubSecrets;
+	private final DriftyState state;
 
 	public OrgChecker(String token, String org) {
-		this(new GitHubClient(token), org, false, Map.of());
+		this(new GitHubClient(token), org, false, Map.of(), new DriftyState());
 	}
 
 	public OrgChecker(String token, String org, boolean fix) {
-		this(new GitHubClient(token), org, fix, Map.of());
+		this(new GitHubClient(token), org, fix, Map.of(), new DriftyState());
 	}
 
 	public OrgChecker(
@@ -71,15 +73,31 @@ public class OrgChecker {
 			boolean fix,
 			Map<String, String> githubSecrets
 	) {
-		this(new GitHubClient(token), org, fix, githubSecrets);
+		this(
+				new GitHubClient(token),
+				org,
+				fix,
+				githubSecrets,
+				new DriftyState()
+		);
+	}
+
+	public OrgChecker(
+			String token,
+			String org,
+			boolean fix,
+			Map<String, String> githubSecrets,
+			DriftyState state
+	) {
+		this(new GitHubClient(token), org, fix, githubSecrets, state);
 	}
 
 	OrgChecker(GitHubClient client, String org) {
-		this(client, org, false, Map.of());
+		this(client, org, false, Map.of(), new DriftyState());
 	}
 
 	OrgChecker(GitHubClient client, String org, boolean fix) {
-		this(client, org, fix, Map.of());
+		this(client, org, fix, Map.of(), new DriftyState());
 	}
 
 	OrgChecker(
@@ -88,10 +106,21 @@ public class OrgChecker {
 			boolean fix,
 			Map<String, String> githubSecrets
 	) {
+		this(client, org, fix, githubSecrets, new DriftyState());
+	}
+
+	OrgChecker(
+			GitHubClient client,
+			String org,
+			boolean fix,
+			Map<String, String> githubSecrets,
+			DriftyState state
+	) {
 		this.client = client;
 		this.org = org;
 		this.fix = fix;
 		this.githubSecrets = githubSecrets;
+		this.state = state;
 	}
 
 	public CheckResult check(List<RepositoryArgs> repositories)
@@ -239,17 +268,17 @@ public class OrgChecker {
 			}
 		}
 
-		List<String> secretNames = client.getActionSecretNames(org, name);
+		List<Secret> secrets = client.getActionSecrets(org, name);
 		List<EnvironmentDetailsResponse> environments = client
 				.getEnvironments(org, name);
 
-		Map<String, List<String>> envSecrets = new LinkedHashMap<>();
+		Map<String, List<Secret>> envSecrets = new LinkedHashMap<>();
 		Map<String, EnvironmentDetailsResponse> envDetails = new LinkedHashMap<>();
 		for (EnvironmentDetailsResponse env : environments) {
 			envDetails.put(env.name(), env);
 			envSecrets.put(
 					env.name(),
-					client.getEnvironmentSecretNames(org, name, env.name())
+					client.getEnvironmentSecrets(org, name, env.name())
 			);
 		}
 
@@ -276,7 +305,7 @@ public class OrgChecker {
 				vulnAlerts,
 				automatedSecurityFixes,
 				branchProtections,
-				secretNames,
+				secrets,
 				envSecrets,
 				wfPerms,
 				rulesets,
@@ -399,8 +428,9 @@ public class OrgChecker {
 		groups.add(
 				new ActionSecretsDriftGroup(
 						desired,
-						new HashSet<>(actual.actionSecretNames()),
+						actual.actionSecrets(),
 						githubSecrets,
+						state,
 						client,
 						org,
 						actual.summary().name()
@@ -409,8 +439,9 @@ public class OrgChecker {
 		groups.add(
 				new EnvironmentSecretsDriftGroup(
 						desired,
-						actual.environmentSecretNames(),
+						actual.environmentSecrets(),
 						githubSecrets,
+						state,
 						client,
 						org,
 						actual.summary().name()

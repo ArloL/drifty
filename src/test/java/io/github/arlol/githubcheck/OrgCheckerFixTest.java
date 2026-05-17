@@ -462,8 +462,8 @@ class OrgCheckerFixTest {
 				false,
 				false,
 				state.branchProtections(),
-				state.actionSecretNames(),
-				state.environmentSecretNames(),
+				state.actionSecrets(),
+				state.environmentSecrets(),
 				state.workflowPermissions(),
 				List.of(),
 				Optional.empty(),
@@ -531,8 +531,8 @@ class OrgCheckerFixTest {
 				false,
 				false,
 				baseState.branchProtections(),
-				baseState.actionSecretNames(),
-				baseState.environmentSecretNames(),
+				baseState.actionSecrets(),
+				baseState.environmentSecrets(),
 				baseState.workflowPermissions(),
 				List.of(),
 				Optional.empty(),
@@ -2535,6 +2535,17 @@ class OrgCheckerFixTest {
 				put(urlEqualTo("/repos/owner/repo/actions/secrets/PAT"))
 						.willReturn(WireMock.status(201))
 		);
+		stubFor(
+				WireMock.get(
+						urlEqualTo("/repos/owner/repo/actions/secrets/PAT")
+				).willReturn(okJson("""
+						{
+							"name": "PAT",
+							"created_at": "2024-01-01T00:00:00Z",
+							"updated_at": "2024-06-01T00:00:00Z"
+						}
+						"""))
+		);
 
 		var localChecker = checkerWithSecrets(
 				wm,
@@ -2655,6 +2666,19 @@ class OrgCheckerFixTest {
 								"/repos/owner/repo/environments/production/secrets/TF_GITHUB_TOKEN"
 						)
 				).willReturn(WireMock.status(201))
+		);
+		stubFor(
+				WireMock.get(
+						urlEqualTo(
+								"/repos/owner/repo/environments/production/secrets/TF_GITHUB_TOKEN"
+						)
+				).willReturn(okJson("""
+						{
+							"name": "TF_GITHUB_TOKEN",
+							"created_at": "2024-01-01T00:00:00Z",
+							"updated_at": "2024-06-01T00:00:00Z"
+						}
+						"""))
 		);
 
 		var localChecker = checkerWithSecrets(
