@@ -2916,6 +2916,24 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.state.DriftyState",
+      "allDeclaredFields": true,
+      "allDeclaredMethods": true,
+      "allDeclaredConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.state.DriftyState$RepoState",
+      "allDeclaredFields": true,
+      "allDeclaredMethods": true,
+      "allDeclaredConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.state.DriftyState$SecretRecord",
+      "allDeclaredFields": true,
+      "allDeclaredMethods": true,
+      "allDeclaredConstructors": true
+    },
+    {
       "type": "java.lang.Boolean",
       "allPublicConstructors": true,
       "jniAccessible": true,

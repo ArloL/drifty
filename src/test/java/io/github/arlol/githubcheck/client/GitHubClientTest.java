@@ -656,8 +656,9 @@ class GitHubClientTest {
 						)
 		);
 
-		List<String> names = client.getActionSecretNames("owner", "my-repo");
-		assertThat(names).containsExactlyInAnyOrder("PAT", "DEPLOY_KEY");
+		var secrets = client.getActionSecrets("owner", "my-repo");
+		assertThat(secrets).extracting(Secret::name)
+				.containsExactlyInAnyOrder("PAT", "DEPLOY_KEY");
 	}
 
 	@Test
@@ -669,7 +670,7 @@ class GitHubClientTest {
 								"""))
 		);
 
-		assertThat(client.getActionSecretNames("owner", "my-repo")).isEmpty();
+		assertThat(client.getActionSecrets("owner", "my-repo")).isEmpty();
 	}
 
 	// ─── getEnvironments
@@ -736,8 +737,8 @@ class GitHubClientTest {
 						)
 		);
 
-		List<String> names = client.getActionSecretNames("owner", "my-repo");
-		assertThat(names)
+		var secrets = client.getActionSecrets("owner", "my-repo");
+		assertThat(secrets).extracting(Secret::name)
 				.containsExactlyInAnyOrder("SECRET_1", "SECRET_2", "SECRET_3");
 	}
 
@@ -793,9 +794,10 @@ class GitHubClientTest {
 						"""))
 		);
 
-		List<String> names = client
-				.getEnvironmentSecretNames("owner", "my-repo", "production");
-		assertThat(names).containsExactly("TF_GITHUB_TOKEN");
+		var secrets = client
+				.getEnvironmentSecrets("owner", "my-repo", "production");
+		assertThat(secrets).extracting(Secret::name)
+				.containsExactly("TF_GITHUB_TOKEN");
 	}
 
 	@Test
@@ -828,9 +830,10 @@ class GitHubClientTest {
 						"""))
 		);
 
-		List<String> names = client
-				.getEnvironmentSecretNames("owner", "my-repo", "production");
-		assertThat(names).containsExactlyInAnyOrder("SECRET_A", "SECRET_B");
+		var secrets = client
+				.getEnvironmentSecrets("owner", "my-repo", "production");
+		assertThat(secrets).extracting(Secret::name)
+				.containsExactlyInAnyOrder("SECRET_A", "SECRET_B");
 	}
 
 	// ─── getWorkflowPermissions

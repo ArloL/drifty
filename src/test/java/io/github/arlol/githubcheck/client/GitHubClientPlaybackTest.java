@@ -257,10 +257,9 @@ class GitHubClientPlaybackTest {
 	}
 
 	@Test
-	void getActionSecretNames_returnsRecordedSecrets() throws Exception {
-		List<String> names = client
-				.getActionSecretNames("ArloL", "drifty-test");
-		assertThat(names).contains("ACTION_SECRET");
+	void getActionSecrets_returnsRecordedSecrets() throws Exception {
+		var secrets = client.getActionSecrets("ArloL", "drifty-test");
+		assertThat(secrets).extracting(Secret::name).contains("ACTION_SECRET");
 	}
 
 	@Test
@@ -280,13 +279,10 @@ class GitHubClientPlaybackTest {
 	}
 
 	@Test
-	void getEnvironmentSecretNames_returnsRecordedSecrets() throws Exception {
-		List<String> names = client.getEnvironmentSecretNames(
-				"ArloL",
-				"drifty-test",
-				"production"
-		);
-		assertThat(names).contains("ENV_SECRET");
+	void getEnvironmentSecrets_returnsRecordedSecrets() throws Exception {
+		var secrets = client
+				.getEnvironmentSecrets("ArloL", "drifty-test", "production");
+		assertThat(secrets).extracting(Secret::name).contains("ENV_SECRET");
 	}
 
 	@Test

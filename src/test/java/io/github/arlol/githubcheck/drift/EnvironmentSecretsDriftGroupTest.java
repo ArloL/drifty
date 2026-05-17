@@ -7,9 +7,22 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.state.DriftyState;
 
 class EnvironmentSecretsDriftGroupTest {
+
+	private static Secret secret(String name, String updatedAt) {
+		return new Secret(name, "2023-01-01T00:00:00Z", updatedAt);
+	}
+
+	private static List<DriftItem> items(EnvironmentSecretsDriftGroup group) {
+		return group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
+	}
 
 	@Test
 	void detectsExtraSecret_whenNoDesiredSecrets() {
@@ -19,17 +32,18 @@ class EnvironmentSecretsDriftGroupTest {
 				.build();
 		var group = new EnvironmentSecretsDriftGroup(
 				desired,
-				Map.of("production", List.of("EXTRA_SECRET")),
+				Map.of(
+						"production",
+						List.of(secret("EXTRA_SECRET", "2024-01-01T00:00:00Z"))
+				),
 				Map.of(),
+				new DriftyState(),
 				null,
 				"owner",
 				"repo"
 		);
 
-		var items = group.detect()
-				.stream()
-				.flatMap(f -> f.items().stream())
-				.toList();
+		var items = items(group);
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst()).isInstanceOf(DriftItem.SectionExtra.class);
@@ -38,29 +52,28 @@ class EnvironmentSecretsDriftGroupTest {
 	}
 
 	@Test
-	void detectsUnverifiable_whenSecretExists() {
+	void detectsUnverifiable_whenSecretExistsWithoutRecordedBaseline() {
 		var desired = RepositoryArgs.create("owner", "repo")
 				.environment("production", env -> env.secrets("DB_PASS"))
 				.build();
 		var group = new EnvironmentSecretsDriftGroup(
 				desired,
-				Map.of("production", List.of("DB_PASS")),
+				Map.of(
+						"production",
+						List.of(secret("DB_PASS", "2024-01-01T00:00:00Z"))
+				),
 				Map.of(),
+				new DriftyState(),
 				null,
 				"owner",
 				"repo"
 		);
 
-		var items = group.detect()
-				.stream()
-				.flatMap(f -> f.items().stream())
-				.toList();
+		var items = items(group);
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.SecretUnverifiable.class);
-		assertThat(items.getFirst().path())
-				.isEqualTo("environment.production.secrets.DB_PASS");
 		assertThat(items.getFirst().message()).isEqualTo(
 				"environment.production.secrets.DB_PASS: unverifiable"
 		);
@@ -75,21 +88,17 @@ class EnvironmentSecretsDriftGroupTest {
 				desired,
 				Map.of("production", List.of()),
 				Map.of(),
+				new DriftyState(),
 				null,
 				"owner",
 				"repo"
 		);
 
-		var items = group.detect()
-				.stream()
-				.flatMap(f -> f.items().stream())
-				.toList();
+		var items = items(group);
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.SectionMissing.class);
-		assertThat(items.getFirst().path())
-				.isEqualTo("environment.production.secrets.DB_PASS");
 		assertThat(items.getFirst().message())
 				.isEqualTo("environment.production.secrets.DB_PASS: missing");
 	}
@@ -101,17 +110,21 @@ class EnvironmentSecretsDriftGroupTest {
 				.build();
 		var group = new EnvironmentSecretsDriftGroup(
 				desired,
-				Map.of("production", List.of("DB_PASS", "STALE_KEY")),
+				Map.of(
+						"production",
+						List.of(
+								secret("DB_PASS", "2024-01-01T00:00:00Z"),
+								secret("STALE_KEY", "2024-01-01T00:00:00Z")
+						)
+				),
 				Map.of(),
+				new DriftyState(),
 				null,
 				"owner",
 				"repo"
 		);
 
-		var items = group.detect()
-				.stream()
-				.flatMap(f -> f.items().stream())
-				.toList();
+		var items = items(group);
 
 		assertThat(items).hasSize(2);
 		assertThat(items).anyMatch(
@@ -134,15 +147,13 @@ class EnvironmentSecretsDriftGroupTest {
 				desired,
 				Map.of("staging", List.of(), "production", List.of()),
 				Map.of(),
+				new DriftyState(),
 				null,
 				"owner",
 				"repo"
 		);
 
-		var items = group.detect()
-				.stream()
-				.flatMap(f -> f.items().stream())
-				.toList();
+		var items = items(group);
 
 		assertThat(items).hasSize(2);
 		assertThat(items).anyMatch(
@@ -152,6 +163,105 @@ class EnvironmentSecretsDriftGroupTest {
 		assertThat(items).anyMatch(
 				i -> i instanceof DriftItem.SectionMissing && i.path()
 						.equals("environment.production.secrets.PROD_KEY")
+		);
+	}
+
+	@Test
+	void noDrift_whenRecordedTimestampMatches() {
+		var desired = RepositoryArgs.create("owner", "repo")
+				.environment("production", env -> env.secrets("DB_PASS"))
+				.build();
+		var state = new DriftyState();
+		state.recordEnvironmentSecret(
+				"repo",
+				"production",
+				"DB_PASS",
+				"2024-01-01T00:00:00Z",
+				state.hash("value")
+		);
+		var group = new EnvironmentSecretsDriftGroup(
+				desired,
+				Map.of(
+						"production",
+						List.of(secret("DB_PASS", "2024-01-01T00:00:00Z"))
+				),
+				Map.of(),
+				state,
+				null,
+				"owner",
+				"repo"
+		);
+
+		assertThat(group.detect()).isEmpty();
+	}
+
+	@Test
+	void detectsSecretChanged_whenTimestampMismatch() {
+		var desired = RepositoryArgs.create("owner", "repo")
+				.environment("production", env -> env.secrets("DB_PASS"))
+				.build();
+		var state = new DriftyState();
+		state.recordEnvironmentSecret(
+				"repo",
+				"production",
+				"DB_PASS",
+				"2024-01-01T00:00:00Z",
+				state.hash("value")
+		);
+		var group = new EnvironmentSecretsDriftGroup(
+				desired,
+				Map.of(
+						"production",
+						List.of(secret("DB_PASS", "2024-06-01T00:00:00Z"))
+				),
+				Map.of(),
+				state,
+				null,
+				"owner",
+				"repo"
+		);
+
+		var items = items(group);
+
+		assertThat(items).hasSize(1);
+		assertThat(items.getFirst())
+				.isInstanceOf(DriftItem.SecretChanged.class);
+	}
+
+	@Test
+	void detectsSecretValueChanged_whenConfigValueChanged() {
+		var desired = RepositoryArgs.create("owner", "repo")
+				.environment("production", env -> env.secrets("DB_PASS"))
+				.build();
+		var state = new DriftyState();
+		state.recordEnvironmentSecret(
+				"repo",
+				"production",
+				"DB_PASS",
+				"2024-01-01T00:00:00Z",
+				state.hash("old-value")
+		);
+		var group = new EnvironmentSecretsDriftGroup(
+				desired,
+				Map.of(
+						"production",
+						List.of(secret("DB_PASS", "2024-01-01T00:00:00Z"))
+				),
+				Map.of("repo-production-DB_PASS", "new-value"),
+				state,
+				null,
+				"owner",
+				"repo"
+		);
+
+		var items = items(group);
+
+		assertThat(items).hasSize(1);
+		assertThat(items.getFirst())
+				.isInstanceOf(DriftItem.SecretValueChanged.class);
+		assertThat(items.getFirst().message()).isEqualTo(
+				"environment.production.secrets.DB_PASS: "
+						+ "config value changed since last push"
 		);
 	}
 
