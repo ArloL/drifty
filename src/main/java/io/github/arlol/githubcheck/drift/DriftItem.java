@@ -90,4 +90,29 @@ public sealed interface DriftItem {
 
 	}
 
+	record SecretChanged(
+			String path,
+			String recordedUpdatedAt,
+			String actualUpdatedAt
+	) implements DriftItem {
+
+		@Override
+		public String message() {
+			return path + ": changed outside drifty (recorded "
+					+ recordedUpdatedAt + ", now " + actualUpdatedAt + ")";
+		}
+
+	}
+
+	record SecretValueChanged(
+			String path
+	) implements DriftItem {
+
+		@Override
+		public String message() {
+			return path + ": config value changed since last push";
+		}
+
+	}
+
 }

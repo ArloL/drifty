@@ -26,6 +26,7 @@ import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetRuleType;
 import io.github.arlol.githubcheck.client.RulesetTarget;
+import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.BranchProtectionArgs;
 import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
@@ -167,8 +168,8 @@ class OrgCheckerDiffTest {
 		private boolean hasBranchProtection = true;
 		private Map<String, BranchProtectionResponse> extraBranchProtections = Map
 				.of();
-		private List<String> actionSecretNames = List.of();
-		private Map<String, List<String>> environmentSecretNames = Map.of();
+		private List<Secret> actionSecrets = List.of();
+		private Map<String, List<Secret>> environmentSecrets = Map.of();
 		private String workflowPermissionsJson = GOOD_WORKFLOW_PERMISSIONS_JSON;
 		private List<RulesetDetailsResponse> rulesets = List.of();
 		private Optional<PagesResponse> pages = Optional.empty();
@@ -233,14 +234,25 @@ class OrgCheckerDiffTest {
 		}
 
 		StateBuilder actionSecretNames(String... names) {
-			this.actionSecretNames = List.of(names);
+			this.actionSecrets = java.util.Arrays.stream(names)
+					.map(n -> new Secret(n, null, null))
+					.toList();
 			return this;
 		}
 
 		StateBuilder environmentSecretNames(
 				Map<String, List<String>> envSecrets
 		) {
-			this.environmentSecretNames = envSecrets;
+			var converted = new java.util.LinkedHashMap<String, List<Secret>>();
+			envSecrets.forEach(
+					(env, names) -> converted.put(
+							env,
+							names.stream()
+									.map(n -> new Secret(n, null, null))
+									.toList()
+					)
+			);
+			this.environmentSecrets = converted;
 			return this;
 		}
 
@@ -290,8 +302,8 @@ class OrgCheckerDiffTest {
 					vulnerabilityAlerts,
 					automatedSecurityFixes,
 					Map.copyOf(bpMap),
-					actionSecretNames,
-					environmentSecretNames,
+					actionSecrets,
+					environmentSecrets,
 					parse(workflowPermissionsJson, WorkflowPermissions.class),
 					rulesets,
 					pages,

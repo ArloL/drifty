@@ -190,7 +190,7 @@ public class GitHubClient {
 				.of(readValue(resp.body(), BranchProtectionResponse.class));
 	}
 
-	public List<String> getActionSecretNames(String owner, String repo) {
+	public List<Secret> getActionSecrets(String owner, String repo) {
 		String url = repoUrl(owner, repo) + "/actions/secrets?per_page=100";
 		HttpResponse<String> resp = get(url);
 		if (resp.statusCode() != 200) {
@@ -200,8 +200,21 @@ public class GitHubClient {
 			);
 		}
 		return collectPaginatedArrayItems(resp, "secrets").stream()
-				.map(s -> mapper.convertValue(s, Secret.class).name())
+				.map(s -> mapper.convertValue(s, Secret.class))
 				.toList();
+	}
+
+	public Secret getActionSecret(String owner, String repo, String name) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/actions/secrets/" + name
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " GET action secret " + name
+							+ " on " + repo + ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), Secret.class);
 	}
 
 	public List<EnvironmentDetailsResponse> getEnvironments(
@@ -280,7 +293,7 @@ public class GitHubClient {
 		}
 	}
 
-	public List<String> getEnvironmentSecretNames(
+	public List<Secret> getEnvironmentSecrets(
 			String owner,
 			String repo,
 			String env
@@ -295,8 +308,27 @@ public class GitHubClient {
 			);
 		}
 		return collectPaginatedArrayItems(resp, "secrets").stream()
-				.map(s -> mapper.convertValue(s, Secret.class).name())
+				.map(s -> mapper.convertValue(s, Secret.class))
 				.toList();
+	}
+
+	public Secret getEnvironmentSecret(
+			String owner,
+			String repo,
+			String env,
+			String name
+	) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/environments/" + env + "/secrets/"
+						+ name
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " GET env secret " + name
+							+ " on " + repo + "/" + env + ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), Secret.class);
 	}
 
 	public SecretPublicKeyResponse getActionSecretPublicKey(
