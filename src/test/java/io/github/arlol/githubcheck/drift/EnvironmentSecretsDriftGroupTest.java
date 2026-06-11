@@ -52,7 +52,7 @@ class EnvironmentSecretsDriftGroupTest {
 	}
 
 	@Test
-	void detectsUnverifiable_whenSecretExistsWithoutRecordedBaseline() {
+	void detectsMissingBaseline_whenSecretExistsWithoutRecordedBaseline() {
 		var desired = RepositoryArgs.create("owner", "repo")
 				.environment("production", env -> env.secrets("DB_PASS"))
 				.build();
@@ -73,9 +73,10 @@ class EnvironmentSecretsDriftGroupTest {
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
-				.isInstanceOf(DriftItem.SecretUnverifiable.class);
+				.isInstanceOf(DriftItem.SecretMissingBaseline.class);
 		assertThat(items.getFirst().message()).isEqualTo(
-				"environment.production.secrets.DB_PASS: unverifiable"
+				"environment.production.secrets.DB_PASS: exists but has no "
+						+ "recorded baseline (--fix pushes the configured value)"
 		);
 	}
 
@@ -128,7 +129,7 @@ class EnvironmentSecretsDriftGroupTest {
 
 		assertThat(items).hasSize(2);
 		assertThat(items).anyMatch(
-				i -> i instanceof DriftItem.SecretUnverifiable && i.path()
+				i -> i instanceof DriftItem.SecretMissingBaseline && i.path()
 						.equals("environment.production.secrets.DB_PASS")
 		);
 		assertThat(items).anyMatch(

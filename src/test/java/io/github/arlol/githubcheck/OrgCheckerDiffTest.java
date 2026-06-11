@@ -799,7 +799,7 @@ class OrgCheckerDiffTest {
 	// ──────────────────────────────────────────
 
 	@Test
-	void existingEnvironmentSecret_isAlwaysUnverifiable() {
+	void existingEnvironmentSecret_withoutBaseline_isDrift() {
 		var args = defaultArgs().toBuilder()
 				.environment(
 						"production",
@@ -829,12 +829,13 @@ class OrgCheckerDiffTest {
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).containsExactly(
-				"environment.production.secrets.TF_GITHUB_TOKEN: unverifiable"
+				"environment.production.secrets.TF_GITHUB_TOKEN: exists but "
+						+ "has no recorded baseline (--fix pushes the configured value)"
 		);
 	}
 
 	@Test
-	void existingActionSecret_isAlwaysUnverifiable() {
+	void existingActionSecret_withoutBaseline_isDrift() {
 		var args = defaultArgs().toBuilder().actionsSecrets("PAT").build();
 		var state = new StateBuilder().actionSecretNames("PAT").build();
 		var groupDrifts = checker.computeGroupDrifts(state, args);
@@ -844,8 +845,10 @@ class OrgCheckerDiffTest {
 				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
-		assertThat(messages)
-				.containsExactly("action_secrets.PAT: unverifiable");
+		assertThat(messages).containsExactly(
+				"action_secrets.PAT: exists but has no recorded baseline "
+						+ "(--fix pushes the configured value)"
+		);
 	}
 
 	// ─── Pages
