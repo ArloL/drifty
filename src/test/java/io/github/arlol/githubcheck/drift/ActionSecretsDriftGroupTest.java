@@ -62,7 +62,7 @@ class ActionSecretsDriftGroupTest {
 	}
 
 	@Test
-	void detectsUnverifiable_whenSecretExistsWithoutRecordedBaseline() {
+	void detectsMissingBaseline_whenSecretExistsWithoutRecordedBaseline() {
 		var items = items(
 				group(
 						List.of("DEPLOY_KEY"),
@@ -72,9 +72,10 @@ class ActionSecretsDriftGroupTest {
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
-				.isInstanceOf(DriftItem.SecretUnverifiable.class);
-		assertThat(items.getFirst().message())
-				.isEqualTo("action_secrets.DEPLOY_KEY: unverifiable");
+				.isInstanceOf(DriftItem.SecretMissingBaseline.class);
+		assertThat(items.getFirst().message()).isEqualTo(
+				"action_secrets.DEPLOY_KEY: exists but has no recorded baseline (--fix pushes the configured value)"
+		);
 	}
 
 	@Test

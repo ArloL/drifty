@@ -80,7 +80,7 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 		} else {
 			var record = state.actionSecretRecord(repo, secretName);
 			if (record == null) {
-				driftItem = new DriftItem.SecretUnverifiable(path);
+				driftItem = new DriftItem.SecretMissingBaseline(path);
 			} else if (!Objects
 					.equals(record.updatedAt(), actualSecret.updatedAt())) {
 				driftItem = new DriftItem.SecretChanged(

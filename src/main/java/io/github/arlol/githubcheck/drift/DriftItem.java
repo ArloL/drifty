@@ -79,13 +79,14 @@ public sealed interface DriftItem {
 
 	}
 
-	record SecretUnverifiable(
+	record SecretMissingBaseline(
 			String path
 	) implements DriftItem {
 
 		@Override
 		public String message() {
-			return path + ": unverifiable";
+			return path
+					+ ": exists but has no recorded baseline (--fix pushes the configured value)";
 		}
 
 	}

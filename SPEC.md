@@ -263,11 +263,12 @@ Config declares expected secret names per repo:
 the value drifty last pushed. GitHub never returns a secret's value, so drifty
 relies on the [state file](#state-file): it compares the recorded `updated_at`
 timestamp and value hash against the current GitHub timestamp and the desired
-value. A secret with no recorded baseline is reported as `unverifiable`.
+value. A secret with no recorded baseline is reported as drift (`exists but
+has no recorded baseline`).
 
 **Fix:** `--fix` only pushes secrets that are drifted — missing, changed
-out-of-band, rotated (config value changed), or unverifiable. Verified secrets
-are left untouched. After a push, drifty records the new `updated_at` and value
+out-of-band, rotated (config value changed), or lacking a recorded baseline.
+Verified secrets are left untouched. After a push, drifty records the new `updated_at` and value
 hash in the state file. If a value is not provided in `DRIFTY_GITHUB_SECRETS`,
 the drift is reported as unfixable.
 
@@ -344,7 +345,7 @@ config:
 | GitHub state | State-file entry | Result |
 |---|---|---|
 | missing | — | drift (`missing`), `--fix` creates + records |
-| exists | none recorded | drift (`unverifiable`), `--fix` pushes + records |
+| exists | none recorded | drift (`no recorded baseline`), `--fix` pushes + records |
 | exists | recorded, `updated_at` mismatch | drift (`changed outside drifty`), `--fix` re-pushes + records |
 | exists | recorded, `updated_at` match, hash mismatch | drift (`config value changed`), `--fix` re-pushes + records |
 | exists | recorded, both match | no drift (verified) |

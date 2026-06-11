@@ -95,7 +95,7 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 			var record = state
 					.environmentSecretRecord(repo, envName, secretName);
 			if (record == null) {
-				driftItem = new DriftItem.SecretUnverifiable(path);
+				driftItem = new DriftItem.SecretMissingBaseline(path);
 			} else if (!Objects
 					.equals(record.updatedAt(), actualSecret.updatedAt())) {
 				driftItem = new DriftItem.SecretChanged(
