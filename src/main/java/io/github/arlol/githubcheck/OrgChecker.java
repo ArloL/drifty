@@ -46,6 +46,7 @@ import io.github.arlol.githubcheck.drift.RepoSettingsDriftGroup;
 import io.github.arlol.githubcheck.drift.RulesetDriftGroup;
 import io.github.arlol.githubcheck.drift.SecretScanningAiDetectionDriftGroup;
 import io.github.arlol.githubcheck.drift.SecretScanningDelegatedAlertDismissalDriftGroup;
+import io.github.arlol.githubcheck.drift.SecretScanningDelegatedBypassDriftGroup;
 import io.github.arlol.githubcheck.drift.SecretScanningDriftGroup;
 import io.github.arlol.githubcheck.drift.SecretScanningNonProviderPatternsDriftGroup;
 import io.github.arlol.githubcheck.drift.SecretScanningPushProtectionDriftGroup;
@@ -355,6 +356,18 @@ public class OrgChecker {
 				.status() == SecurityAndAnalysis.StatusObject.Status.ENABLED;
 	}
 
+	private static List<SecurityAndAnalysis.BypassReviewer> bypassReviewers(
+			RepositoryState actual
+	) {
+		var sa = actual.details().securityAndAnalysis();
+		if (sa == null || sa.secretScanningDelegatedBypassOptions() == null
+				|| sa.secretScanningDelegatedBypassOptions()
+						.reviewers() == null) {
+			return List.of();
+		}
+		return sa.secretScanningDelegatedBypassOptions().reviewers();
+	}
+
 	List<DriftGroup> createDriftGroups(
 			RepositoryState actual,
 			RepositoryArgs desired
@@ -598,6 +611,19 @@ public class OrgChecker {
 								actual,
 								SecurityAndAnalysis::secretScanningDelegatedAlertDismissal
 						),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
+				new SecretScanningDelegatedBypassDriftGroup(
+						desired,
+						securityFlag(
+								actual,
+								SecurityAndAnalysis::secretScanningDelegatedBypass
+						),
+						bypassReviewers(actual),
 						client,
 						org,
 						actual.summary().name()

@@ -47,6 +47,8 @@ public record RepositoryArgs(
 		boolean advancedSecurity,
 		boolean secretScanningAiDetection,
 		boolean secretScanningDelegatedAlertDismissal,
+		boolean secretScanningDelegatedBypass,
+		List<SecretScanningBypassReviewerArgs> secretScanningDelegatedBypassReviewers,
 		boolean hasIssues,
 		boolean hasProjects,
 		boolean hasWiki,
@@ -73,6 +75,8 @@ public record RepositoryArgs(
 				.unmodifiableMap(new LinkedHashMap<>(environments));
 		rulesets = List.copyOf(rulesets);
 		branchProtections = Map.copyOf(branchProtections);
+		secretScanningDelegatedBypassReviewers = List
+				.copyOf(secretScanningDelegatedBypassReviewers);
 	}
 
 	public boolean pages() {
@@ -116,6 +120,9 @@ public record RepositoryArgs(
 		private boolean advancedSecurity = false;
 		private boolean secretScanningAiDetection = false;
 		private boolean secretScanningDelegatedAlertDismissal = false;
+		private boolean secretScanningDelegatedBypass = false;
+		private List<SecretScanningBypassReviewerArgs> secretScanningDelegatedBypassReviewers = List
+				.of();
 		private boolean hasIssues = true;
 		private boolean hasProjects = true;
 		private boolean hasWiki = true;
@@ -167,6 +174,8 @@ public record RepositoryArgs(
 			this.advancedSecurity = repositoryArgs.advancedSecurity;
 			this.secretScanningAiDetection = repositoryArgs.secretScanningAiDetection;
 			this.secretScanningDelegatedAlertDismissal = repositoryArgs.secretScanningDelegatedAlertDismissal;
+			this.secretScanningDelegatedBypass = repositoryArgs.secretScanningDelegatedBypass;
+			this.secretScanningDelegatedBypassReviewers = repositoryArgs.secretScanningDelegatedBypassReviewers;
 			this.hasIssues = repositoryArgs.hasIssues;
 			this.hasProjects = repositoryArgs.hasProjects;
 			this.hasWiki = repositoryArgs.hasWiki;
@@ -386,6 +395,20 @@ public record RepositoryArgs(
 			return this;
 		}
 
+		public Builder secretScanningDelegatedBypass(
+				boolean secretScanningDelegatedBypass
+		) {
+			this.secretScanningDelegatedBypass = secretScanningDelegatedBypass;
+			return this;
+		}
+
+		public Builder secretScanningDelegatedBypassReviewers(
+				SecretScanningBypassReviewerArgs... reviewers
+		) {
+			this.secretScanningDelegatedBypassReviewers = List.of(reviewers);
+			return this;
+		}
+
 		public Builder hasIssues(boolean hasIssues) {
 			this.hasIssues = hasIssues;
 			return this;
@@ -512,6 +535,8 @@ public record RepositoryArgs(
 					advancedSecurity,
 					secretScanningAiDetection,
 					secretScanningDelegatedAlertDismissal,
+					secretScanningDelegatedBypass,
+					secretScanningDelegatedBypassReviewers,
 					hasIssues,
 					hasProjects,
 					hasWiki,

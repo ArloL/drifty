@@ -14,6 +14,7 @@ import org.pkl.core.ModuleSource;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
+import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.BranchProtectionArgs;
 import io.github.arlol.githubcheck.config.BypassActorArgs;
@@ -23,6 +24,7 @@ import io.github.arlol.githubcheck.config.PagesArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulePatternArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
+import io.github.arlol.githubcheck.config.SecretScanningBypassReviewerArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
@@ -70,6 +72,14 @@ public final class PklConfigLoader {
 				.secretScanningAiDetection(r.secretScanningAiDetection)
 				.secretScanningDelegatedAlertDismissal(
 						r.secretScanningDelegatedAlertDismissal
+				)
+				.secretScanningDelegatedBypass(r.secretScanningDelegatedBypass)
+				.secretScanningDelegatedBypassReviewers(
+						r.secretScanningDelegatedBypassReviewers.stream()
+								.map(PklConfigLoader::mapBypassReviewer)
+								.toArray(
+										SecretScanningBypassReviewerArgs[]::new
+								)
 				)
 				.defaultWorkflowPermissions(
 						mapWorkflowPermissions(r.defaultWorkflowPermissions)
@@ -298,6 +308,24 @@ public final class PklConfigLoader {
 		case ENDS_WITH -> RulePatternArgs.PatternOperator.ENDS_WITH;
 		case CONTAINS -> RulePatternArgs.PatternOperator.CONTAINS;
 		case REGEX -> RulePatternArgs.PatternOperator.REGEX;
+		};
+	}
+
+	private static SecretScanningBypassReviewerArgs mapBypassReviewer(
+			Drifty.SecretScanningBypassReviewer r
+	) {
+		return new SecretScanningBypassReviewerArgs(
+				r.reviewerId,
+				mapReviewerType(r.reviewerType)
+		);
+	}
+
+	private static SecurityAndAnalysis.BypassReviewer.ReviewerType mapReviewerType(
+			Drifty.SecretScanningBypassReviewerType t
+	) {
+		return switch (t) {
+		case TEAM -> SecurityAndAnalysis.BypassReviewer.ReviewerType.TEAM;
+		case ROLE -> SecurityAndAnalysis.BypassReviewer.ReviewerType.ROLE;
 		};
 	}
 

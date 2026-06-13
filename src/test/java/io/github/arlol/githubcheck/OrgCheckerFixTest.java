@@ -44,11 +44,13 @@ import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetTarget;
+import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.BranchProtectionArgs;
 import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.config.RulesetArgs;
+import io.github.arlol.githubcheck.config.SecretScanningBypassReviewerArgs;
 import io.github.arlol.githubcheck.config.StatusCheckArgs;
 import io.github.arlol.githubcheck.drift.DriftItem;
 
@@ -1091,6 +1093,68 @@ class OrgCheckerFixTest {
 												{
 													"security_and_analysis": {
 														"secret_scanning_delegated_alert_dismissal": {"status": "enabled"}
+													}
+												}
+												"""
+								)
+						)
+		);
+	}
+
+	@Test
+	void secretScanningDelegatedBypassDrift_patchesStatusAndReviewers()
+			throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
+				.secretScanningDelegatedBypass(true)
+				.secretScanningDelegatedBypassReviewers(
+						new SecretScanningBypassReviewerArgs(
+								7L,
+								SecurityAndAnalysis.BypassReviewer.ReviewerType.TEAM
+						)
+				)
+				.build();
+
+		var state = stateWithDetailsOverride(
+				"""
+						{
+							"security_and_analysis": {
+								"secret_scanning": {"status": "enabled"},
+								"secret_scanning_push_protection": {"status": "enabled"},
+								"secret_scanning_delegated_bypass": {"status": "disabled"}
+							}
+						}
+						"""
+		);
+
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
+				.map(DriftItem::message)
+				.toList();
+
+		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
+						.withRequestBody(
+								equalToJson(
+										"""
+												{
+													"security_and_analysis": {
+														"secret_scanning_delegated_bypass": {"status": "enabled"},
+														"secret_scanning_delegated_bypass_options": {
+															"reviewers": [
+																{"reviewer_id": 7, "reviewer_type": "TEAM"}
+															]
+														}
 													}
 												}
 												"""
