@@ -39,12 +39,20 @@ JDK/JSSE code, not the test libraries). Instead, regenerate like this:
 ```
 
 The splitter is `ReachabilityMetadata` (a `main` in `src/test/java`, so it uses
-test-scoped ClassGraph without shipping it). It partitions by a conservative
-denylist of test-only packages — anything not clearly test-only stays in the
-production file, so a mis-classification can only keep a redundant entry, never
-drop a needed one — and then augments the production file with every public
-`client`/`pkl` record via ClassGraph so the project's own Jackson/Pkl types are
-always registered even if untested.
+test-scoped ClassGraph without shipping it). Reflection is partitioned by a
+production **allowlist** — only `io.github.arlol.*` records and the
+lazysodium/JNA binding go to the main file; everything else (~160 third-party
+and JDK entries) is supplied by the GraalVM metadata repository and routed to
+test scope. Resources use a test-only denylist (no clean allowlist exists; the
+~30 that remain are real Pkl/native-library/JDK-SPI resources). The main file is
+then augmented with every public `client`/`pkl` record via ClassGraph so the
+project's own types are registered even if untested.
+
+The reflection allowlist was established empirically: the production image was
+rebuilt with progressively fewer entries and smoke-tested (Pkl load + TLS to
+GitHub), while the native test suite (Jackson round-trips + libsodium crypto)
+guarded the rest. Removing the JNA/lazysodium entries breaks `SecretsTest`
+(`UnsatisfiedLinkError: sodium_init`), which is why they stay.
 
 Note: don't pass `-Dexec.arguments` on a full lifecycle invocation — it would
 leak into the phase-bound `pkl-codegen-java` exec execution. The splitter needs
