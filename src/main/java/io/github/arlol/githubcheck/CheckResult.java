@@ -14,31 +14,71 @@ public record CheckResult(
 			String name,
 			Status status,
 			List<String> diffs,
+			List<String> fixPreview,
 			String error
 	) {
 
 		public RepoCheckResult {
 			diffs = List.copyOf(diffs);
+			fixPreview = List.copyOf(fixPreview);
 		}
 
 		public static RepoCheckResult ok(String name) {
-			return new RepoCheckResult(name, Status.OK, List.of(), null);
+			return new RepoCheckResult(
+					name,
+					Status.OK,
+					List.of(),
+					List.of(),
+					null
+			);
 		}
 
 		public static RepoCheckResult drift(String name, List<String> diffs) {
-			return new RepoCheckResult(name, Status.DRIFT, diffs, null);
+			return drift(name, diffs, List.of());
+		}
+
+		public static RepoCheckResult drift(
+				String name,
+				List<String> diffs,
+				List<String> fixPreview
+		) {
+			return new RepoCheckResult(
+					name,
+					Status.DRIFT,
+					diffs,
+					fixPreview,
+					null
+			);
 		}
 
 		public static RepoCheckResult error(String name, String error) {
-			return new RepoCheckResult(name, Status.ERROR, List.of(), error);
+			return new RepoCheckResult(
+					name,
+					Status.ERROR,
+					List.of(),
+					List.of(),
+					error
+			);
 		}
 
 		public static RepoCheckResult unknown(String name) {
-			return new RepoCheckResult(name, Status.UNKNOWN, List.of(), null);
+			return new RepoCheckResult(
+					name,
+					Status.UNKNOWN,
+					List.of(),
+					List.of(),
+					null
+			);
 		}
 
 		public static RepoCheckResult missing(String name) {
-			return new RepoCheckResult(name, Status.MISSING, List.of(), null);
+			return new RepoCheckResult(
+					name,
+					Status.MISSING,
+					List.of(),
+					List.of(),
+					null
+			);
 		}
 
 	}

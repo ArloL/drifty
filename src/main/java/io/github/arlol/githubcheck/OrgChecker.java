@@ -201,9 +201,18 @@ public class OrgChecker {
 
 			if (fix) {
 				diffs = applyFixes(name, diffs, groupDrifts);
+				return diffs.isEmpty() ? CheckResult.RepoCheckResult.ok(name)
+						: CheckResult.RepoCheckResult.drift(name, diffs);
 			}
-			return diffs.isEmpty() ? CheckResult.RepoCheckResult.ok(name)
-					: CheckResult.RepoCheckResult.drift(name, diffs);
+			if (diffs.isEmpty()) {
+				return CheckResult.RepoCheckResult.ok(name);
+			}
+			// In check mode, preview which groups --fix would act on.
+			List<String> fixPreview = groupDrifts.keySet()
+					.stream()
+					.map(DriftGroup::name)
+					.toList();
+			return CheckResult.RepoCheckResult.drift(name, diffs, fixPreview);
 		} catch (IOException | InterruptedException e) {
 			return CheckResult.RepoCheckResult.error(name, e.getMessage());
 		}
@@ -708,6 +717,12 @@ public class OrgChecker {
 				System.out.printf("[DRIFT]   %s:%n", r.name());
 				r.diffs()
 						.forEach(d -> System.out.printf("            %s%n", d));
+				if (!r.fixPreview().isEmpty()) {
+					System.out.printf(
+							"  Would fix: %s%n",
+							String.join(", ", r.fixPreview())
+					);
+				}
 			}
 			case ERROR ->
 				System.out.printf("[ERROR]   %s: %s%n", r.name(), r.error());
