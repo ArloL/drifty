@@ -2295,61 +2295,10 @@
   ],
   "resources": [
     {
-      "glob": "META-INF/graalvm/org.graalvm.polyglot/version"
-    },
-    {
-      "glob": "META-INF/graalvm/org.graalvm.truffle/version"
-    },
-    {
       "glob": "META-INF/org/pkl/config/java/mapper/classes/drifty.properties"
     },
     {
       "glob": "META-INF/org/pkl/config/java/mapper/classes/pkl.base.properties"
-    },
-    {
-      "glob": "META-INF/resources/engine/libtruffleattach/darwin/aarch64/sha256"
-    },
-    {
-      "glob": "META-INF/services/com.oracle.truffle.api.TruffleRuntimeAccess"
-    },
-    {
-      "glob": "META-INF/services/com.oracle.truffle.api.impl.TruffleLocator"
-    },
-    {
-      "glob": "META-INF/services/com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider"
-    },
-    {
-      "glob": "META-INF/services/com.oracle.truffle.api.library.provider.DefaultExportProvider"
-    },
-    {
-      "glob": "META-INF/services/com.oracle.truffle.api.provider.InternalResourceProvider"
-    },
-    {
-      "glob": "META-INF/services/com.oracle.truffle.api.provider.TruffleLanguageProvider"
-    },
-    {
-      "glob": "META-INF/services/java.net.spi.InetAddressResolverProvider"
-    },
-    {
-      "glob": "META-INF/services/java.net.spi.URLStreamHandlerProvider"
-    },
-    {
-      "glob": "META-INF/services/java.nio.channels.spi.SelectorProvider"
-    },
-    {
-      "glob": "META-INF/services/java.nio.file.spi.FileSystemProvider"
-    },
-    {
-      "glob": "META-INF/services/java.time.zone.ZoneRulesProvider"
-    },
-    {
-      "glob": "META-INF/services/java.util.spi.ResourceBundleControlProvider"
-    },
-    {
-      "glob": "META-INF/services/org.graalvm.home.HomeFinder"
-    },
-    {
-      "glob": "META-INF/services/org.graalvm.polyglot.impl.AbstractPolyglotImpl"
     },
     {
       "glob": "META-INF/services/org.pkl.core.StackFrameTransformer"
@@ -2361,14 +2310,7 @@
       "glob": "META-INF/services/org.pkl.core.resource.ResourceReader"
     },
     {
-      "glob": "META-INF/services/org.slf4j.spi.SLF4JServiceProvider"
-    },
-    {
       "glob": "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib"
-    },
-    {
-      "module": "java.base",
-      "glob": "jdk/internal/icu/impl/data/icudt76b/nfc.nrm"
     },
     {
       "glob": "mac_arm/libsodium.dylib"
@@ -2378,12 +2320,6 @@
     },
     {
       "glob": "org/pkl/core/stdlib/base.pkl"
-    },
-    {
-      "glob": "org/slf4j/impl/StaticLoggerBinder.class"
-    },
-    {
-      "glob": "version.properties"
     }
   ]
 }
