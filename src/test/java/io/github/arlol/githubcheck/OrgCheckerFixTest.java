@@ -953,6 +953,153 @@ class OrgCheckerFixTest {
 	}
 
 	@Test
+	void advancedSecurityDrift_patches() throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
+				.advancedSecurity(true)
+				.build();
+
+		var state = stateWithDetailsOverride(
+				"""
+						{
+							"security_and_analysis": {
+								"secret_scanning": {"status": "enabled"},
+								"secret_scanning_push_protection": {"status": "enabled"},
+								"advanced_security": {"status": "disabled"}
+							}
+						}
+						"""
+		);
+
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
+				.map(DriftItem::message)
+				.toList();
+
+		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				patchRequestedFor(
+						urlEqualTo("/repos/owner/repo")
+				).withRequestBody(equalToJson("""
+						{
+							"security_and_analysis": {
+								"advanced_security": {"status": "enabled"}
+							}
+						}
+						"""))
+		);
+	}
+
+	@Test
+	void secretScanningAiDetectionDrift_patches() throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
+				.secretScanningAiDetection(true)
+				.build();
+
+		var state = stateWithDetailsOverride(
+				"""
+						{
+							"security_and_analysis": {
+								"secret_scanning": {"status": "enabled"},
+								"secret_scanning_push_protection": {"status": "enabled"},
+								"secret_scanning_ai_detection": {"status": "disabled"}
+							}
+						}
+						"""
+		);
+
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
+				.map(DriftItem::message)
+				.toList();
+
+		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
+						.withRequestBody(
+								equalToJson(
+										"""
+												{
+													"security_and_analysis": {
+														"secret_scanning_ai_detection": {"status": "enabled"}
+													}
+												}
+												"""
+								)
+						)
+		);
+	}
+
+	@Test
+	void secretScanningDelegatedAlertDismissalDrift_patches() throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
+				.secretScanningDelegatedAlertDismissal(true)
+				.build();
+
+		var state = stateWithDetailsOverride(
+				"""
+						{
+							"security_and_analysis": {
+								"secret_scanning": {"status": "enabled"},
+								"secret_scanning_push_protection": {"status": "enabled"},
+								"secret_scanning_delegated_alert_dismissal": {"status": "disabled"}
+							}
+						}
+						"""
+		);
+
+		var groupDrifts = checker.computeGroupDrifts(state, desired);
+
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
+				.map(DriftItem::message)
+				.toList();
+
+		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+
+		assertThat(remaining).isEmpty();
+		verify(
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
+						.withRequestBody(
+								equalToJson(
+										"""
+												{
+													"security_and_analysis": {
+														"secret_scanning_delegated_alert_dismissal": {"status": "enabled"}
+													}
+												}
+												"""
+								)
+						)
+		);
+	}
+
+	@Test
 	void enablePrivateVulnerabilityReporting_whenDesiredTrue()
 			throws Exception {
 		stubFor(

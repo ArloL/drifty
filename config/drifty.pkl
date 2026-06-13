@@ -123,6 +123,9 @@ class Repository {
   secretScanningNonProviderPatterns: Boolean = false
   privateVulnerabilityReporting: Boolean = false
   codeScanningDefaultSetup: Boolean = false
+  advancedSecurity: Boolean = false
+  secretScanningAiDetection: Boolean = false
+  secretScanningDelegatedAlertDismissal: Boolean = false
 
   defaultWorkflowPermissions: WorkflowPermissions = "write"
   canApprovePullRequestReviews: Boolean = true

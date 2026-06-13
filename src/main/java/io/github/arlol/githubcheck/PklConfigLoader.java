@@ -66,6 +66,11 @@ public final class PklConfigLoader {
 				)
 				.privateVulnerabilityReporting(r.privateVulnerabilityReporting)
 				.codeScanningDefaultSetup(r.codeScanningDefaultSetup)
+				.advancedSecurity(r.advancedSecurity)
+				.secretScanningAiDetection(r.secretScanningAiDetection)
+				.secretScanningDelegatedAlertDismissal(
+						r.secretScanningDelegatedAlertDismissal
+				)
 				.defaultWorkflowPermissions(
 						mapWorkflowPermissions(r.defaultWorkflowPermissions)
 				)
