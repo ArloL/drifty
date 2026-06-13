@@ -43,10 +43,10 @@ test-scoped ClassGraph without shipping it). Both reflection and resources are
 partitioned by a production **allowlist**, with everything else supplied by the
 GraalVM metadata repository and routed to test scope:
 
-- reflection: only `io.github.arlol.*` records and the lazysodium/JNA binding
-  (~180 entries; ~160 third-party/JDK entries dropped);
-- resources: only Pkl's own resources and the `libsodium`/`jnidispatch` native
-  libraries (9 entries; ~21 JDK/ICU/Truffle resources dropped).
+- reflection: only `io.github.arlol.*` records and the `com.goterl.lazysodium`
+  binding (160 entries; everything else, including JNA, is repository-supplied);
+- resources: only Pkl's own resources and a platform-agnostic `**/libsodium.*`
+  glob for the lazysodium native library (8 entries).
 
 The main file is then augmented with every public `client`/`pkl` record via
 ClassGraph so the project's own types are registered even if untested.
