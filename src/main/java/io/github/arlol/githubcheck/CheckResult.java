@@ -63,8 +63,12 @@ public record CheckResult(
 		return repos.stream().filter(r -> r.status() == Status.UNKNOWN).count();
 	}
 
+	public long missingCount() {
+		return repos.stream().filter(r -> r.status() == Status.MISSING).count();
+	}
+
 	public boolean hasDrift() {
-		return driftCount() > 0 || errorCount() > 0;
+		return driftCount() > 0 || errorCount() > 0 || missingCount() > 0;
 	}
 
 }
