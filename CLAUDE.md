@@ -39,14 +39,17 @@ JDK/JSSE code, not the test libraries). Instead, regenerate like this:
 ```
 
 The splitter is `ReachabilityMetadata` (a `main` in `src/test/java`, so it uses
-test-scoped ClassGraph without shipping it). Reflection is partitioned by a
-production **allowlist** — only `io.github.arlol.*` records and the
-lazysodium/JNA binding go to the main file; everything else (~160 third-party
-and JDK entries) is supplied by the GraalVM metadata repository and routed to
-test scope. Resources use a test-only denylist (no clean allowlist exists; the
-~30 that remain are real Pkl/native-library/JDK-SPI resources). The main file is
-then augmented with every public `client`/`pkl` record via ClassGraph so the
-project's own types are registered even if untested.
+test-scoped ClassGraph without shipping it). Both reflection and resources are
+partitioned by a production **allowlist**, with everything else supplied by the
+GraalVM metadata repository and routed to test scope:
+
+- reflection: only `io.github.arlol.*` records and the lazysodium/JNA binding
+  (~180 entries; ~160 third-party/JDK entries dropped);
+- resources: only Pkl's own resources and the `libsodium`/`jnidispatch` native
+  libraries (9 entries; ~21 JDK/ICU/Truffle resources dropped).
+
+The main file is then augmented with every public `client`/`pkl` record via
+ClassGraph so the project's own types are registered even if untested.
 
 The reflection allowlist was established empirically: the production image was
 rebuilt with progressively fewer entries and smoke-tested (Pkl load + TLS to

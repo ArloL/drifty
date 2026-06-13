@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.TreeMap;
 
 import com.fasterxml.jackson.core.util.DefaultIndenter;
@@ -45,11 +44,12 @@ import io.github.classgraph.ScanResult;
  * the agent recorded are all repository-supplied.
  *
  * <p>
- * Resources use a conservative denylist (only clearly test-only globs move to
- * test); the handful that remain are genuine production resources (Pkl stdlib,
- * the {@code libsodium}/{@code jnidispatch} native libraries, JDK service
- * providers). The native test image puts both resource roots on its classpath,
- * so it still sees the union; the production image sees only the trimmed file.
+ * Resources use the same allowlist idea: only Pkl's own resources (mapper
+ * configs, stdlib, ServiceLoader files) and the {@code libsodium}/
+ * {@code jnidispatch} native libraries survive into the production image — they
+ * are the resources the metadata repository does not supply. The native test
+ * image puts both resource roots on its classpath, so it still sees the union;
+ * the production image sees only the trimmed file.
  *
  * <p>
  * After splitting, the production file is augmented with every public record in
@@ -88,28 +88,23 @@ public final class ReachabilityMetadata {
 			"com.goterl.lazysodium." // secret encryption
 	);
 
-	/** Resource globs (exact) that belong to test-only infrastructure. */
-	private static final Set<String> TEST_RESOURCE_EXACT = Set.of(
-			"assets", // WireMock admin UI
-			"helpers.nashorn.js", // WireMock handlebars helpers
-			"keystore", // WireMock HTTPS test keystore
-			"junit-platform.properties" // JUnit config
+	/**
+	 * Resource glob prefixes that belong in the production image. As with
+	 * reflection, everything else (JDK service providers, ICU data, Truffle /
+	 * GraalVM runtime files, ...) is supplied by the GraalVM metadata
+	 * repository. The survivors are Pkl's own resources and the native
+	 * libraries, none of which the repository covers.
+	 */
+	private static final List<String> MAIN_RESOURCE_PREFIXES = List.of(
+			"META-INF/org/pkl/", // Pkl java-config class mappers
+			"META-INF/services/org.pkl.", // Pkl ServiceLoader providers
+			"org/pkl/", // Pkl stdlib + Release.properties
+			"com/sun/jna/" // JNA dispatch native library
 	);
 
-	/**
-	 * Resource glob/bundle substrings that belong to test-only infrastructure.
-	 */
-	private static final List<String> TEST_RESOURCE_SUBSTRINGS = List.of(
-			"com.github.tomakehurst",
-			"org.eclipse.jetty",
-			"org/eclipse/jetty",
-			"org.apache.maven",
-			"org.assertj",
-			"org.junit",
-			"jakarta/servlet",
-			"jakarta.servlet",
-			"org/publicsuffix", // public suffix list (Jetty/WireMock)
-			"jdk/jfr"
+	/** Production resource glob substrings (platform dir varies by build). */
+	private static final List<String> MAIN_RESOURCE_SUBSTRINGS = List.of(
+			"libsodium" // lazysodium native library
 	);
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -136,7 +131,7 @@ public final class ReachabilityMetadata {
 		var mainRes = MAPPER.createArrayNode();
 		var testRes = MAPPER.createArrayNode();
 		for (JsonNode e : resources) {
-			(isTestResource(e) ? testRes : mainRes).add(e);
+			(isMainResource(e) ? mainRes : testRes).add(e);
 		}
 
 		augmentProjectRecords(mainRefl);
@@ -168,19 +163,15 @@ public final class ReachabilityMetadata {
 		return MAIN_TYPE_PREFIXES.stream().anyMatch(type::startsWith);
 	}
 
-	private static boolean isTestResource(JsonNode entry) {
+	private static boolean isMainResource(JsonNode entry) {
 		JsonNode glob = entry.get("glob");
-		if (glob != null) {
-			String g = glob.asText();
-			return TEST_RESOURCE_EXACT.contains(g)
-					|| TEST_RESOURCE_SUBSTRINGS.stream().anyMatch(g::contains);
+		if (glob == null) {
+			// resource bundles (e.g. servlet LocalStrings) are all test-only
+			return false;
 		}
-		JsonNode bundle = entry.get("bundle");
-		if (bundle != null) {
-			String b = bundle.asText();
-			return TEST_RESOURCE_SUBSTRINGS.stream().anyMatch(b::contains);
-		}
-		return false;
+		String g = glob.asText();
+		return MAIN_RESOURCE_PREFIXES.stream().anyMatch(g::startsWith)
+				|| MAIN_RESOURCE_SUBSTRINGS.stream().anyMatch(g::contains);
 	}
 
 	/**
