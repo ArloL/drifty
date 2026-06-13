@@ -13,6 +13,43 @@ status.
 ./mvnw exec:java
 ```
 
+## Native-image reachability metadata
+
+The native image needs reflection/resource metadata for everything Jackson and
+Pkl touch reflectively. It is **scope-split** so the shipped image stays lean:
+
+- `src/main/resources/META-INF/native-image/reachability-metadata.json` —
+  production scope (project records, Jackson, Pkl/Truffle, JNA/lazysodium, TLS).
+- `src/test/resources/META-INF/native-image/reachability-metadata.json` —
+  test-only scope (WireMock, Jetty, JMX/JFR, JUnit/surefire/AssertJ). The native
+  *test* image sees both because test resources are on its classpath; the
+  production image only sees the main file.
+
+Do **not** commit the raw tracing-agent dump into the main file — it mixes
+~100+ test-only entries into the shipped image. The caller-based
+`access-filter.json` cannot remove them (the reflective calls originate in
+JDK/JSSE code, not the test libraries). Instead, regenerate like this:
+
+```bash
+./mvnw test -Dagent=true                # retrace into target/native/agent-output
+./mvnw test-compile                     # compile the tool onto the test classpath
+./mvnw exec:java@reachability-metadata  # partition into the two scoped files
+./mvnw -DskipTests package              # build + smoke-run the production image
+./mvnw clean test                       # build + run the native test image
+```
+
+The splitter is `ReachabilityMetadata` (a `main` in `src/test/java`, so it uses
+test-scoped ClassGraph without shipping it). It partitions by a conservative
+denylist of test-only packages — anything not clearly test-only stays in the
+production file, so a mis-classification can only keep a redundant entry, never
+drop a needed one — and then augments the production file with every public
+`client`/`pkl` record via ClassGraph so the project's own Jackson/Pkl types are
+always registered even if untested.
+
+Note: don't pass `-Dexec.arguments` on a full lifecycle invocation — it would
+leak into the phase-bound `pkl-codegen-java` exec execution. The splitter needs
+no arguments; it reads the default agent-output path.
+
 ## Downloading GitHub API schemas
 
 `download-schemas.py` downloads the official GitHub REST API OpenAPI spec and

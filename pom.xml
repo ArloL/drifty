@@ -456,6 +456,19 @@
 							</arguments>
 						</configuration>
 					</execution>
+					<execution>
+						<!-- Split the native-image agent dump into the scoped
+						     reachability-metadata.json files. Invoke manually:
+						     ./mvnw test-compile exec:java@reachability-metadata -->
+						<id>reachability-metadata</id>
+						<goals>
+							<goal>java</goal>
+						</goals>
+						<configuration combine.self="override">
+							<mainClass>io.github.arlol.githubcheck.ReachabilityMetadata</mainClass>
+							<classpathScope>test</classpathScope>
+						</configuration>
+					</execution>
 				</executions>
 				<dependencies>
 					<dependency>

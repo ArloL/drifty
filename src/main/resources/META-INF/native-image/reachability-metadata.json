@@ -1,50 +1,7 @@
 {
   "reflection": [
     {
-      "type": "com.github.tomakehurst.wiremock.client.BasicCredentials"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.common.Errors",
-      "allDeclaredFields": true,
-      "allDeclaredMethods": true,
-      "allDeclaredConstructors": true
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.common.Errors$Error",
-      "allDeclaredFields": true,
-      "allDeclaredMethods": true,
-      "allDeclaredConstructors": true
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.common.Errors$Error$Source",
-      "allDeclaredFields": true,
-      "allDeclaredMethods": true,
-      "allDeclaredConstructors": true
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.common.Metadata"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.common.Prioritisable"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.common.ssl.WritableFileOrClasspathKeyStoreSource",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "java.lang.String",
-            "java.lang.String",
-            "char[]"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.extension.Parameters"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.extension.PostServeActionDefinitionListDeserializer",
+      "type": "apple.security.AppleProvider",
       "methods": [
         {
           "name": "<init>",
@@ -53,22 +10,37 @@
       ]
     },
     {
-      "type": "com.github.tomakehurst.wiremock.extension.ServeEventListener$RequestPhase"
+      "type": "boolean[]"
     },
     {
-      "type": "com.github.tomakehurst.wiremock.extension.ServeEventListenerDefinition"
+      "type": "byte"
     },
     {
-      "type": "com.github.tomakehurst.wiremock.http.ChunkedDribbleDelay"
+      "type": "byte[]"
     },
     {
-      "type": "com.github.tomakehurst.wiremock.http.DelayDistribution"
+      "type": "char[]"
     },
     {
-      "type": "com.github.tomakehurst.wiremock.http.Fault"
+      "type": "com.fasterxml.jackson.core.JsonGenerator"
     },
     {
-      "type": "com.github.tomakehurst.wiremock.http.HttpHeadersJsonDeserializer",
+      "type": "com.fasterxml.jackson.databind.ObjectMapper"
+    },
+    {
+      "type": "com.fasterxml.jackson.databind.deser.BeanDeserializerModifier[]"
+    },
+    {
+      "type": "com.fasterxml.jackson.databind.deser.Deserializers[]"
+    },
+    {
+      "type": "com.fasterxml.jackson.databind.deser.KeyDeserializers[]"
+    },
+    {
+      "type": "com.fasterxml.jackson.databind.deser.ValueInstantiators[]"
+    },
+    {
+      "type": "com.fasterxml.jackson.databind.ext.Java7SupportImpl",
       "methods": [
         {
           "name": "<init>",
@@ -77,7 +49,46 @@
       ]
     },
     {
-      "type": "com.github.tomakehurst.wiremock.http.HttpHeadersJsonSerializer",
+      "type": "com.fasterxml.jackson.databind.ser.BeanSerializerModifier[]"
+    },
+    {
+      "type": "com.fasterxml.jackson.databind.ser.Serializers[]"
+    },
+    {
+      "type": "com.google.gson.Gson"
+    },
+    {
+      "type": "com.goterl.lazysodium.Sodium"
+    },
+    {
+      "type": "com.goterl.lazysodium.SodiumJava"
+    },
+    {
+      "type": "com.jayway.jsonpath.spi.cache.CacheProvider"
+    },
+    {
+      "type": "com.oracle.truffle.api.debug.impl.DebuggerInstrumentProvider"
+    },
+    {
+      "type": "com.oracle.truffle.api.nodes.RootNode"
+    },
+    {
+      "type": "com.oracle.truffle.polyglot.JDKSupportLibTruffleAttachResourceProvider"
+    },
+    {
+      "type": "com.oracle.truffle.polyglot.PolyglotImpl"
+    },
+    {
+      "type": "com.oracle.truffle.polyglot.PolyglotLanguageInstance"
+    },
+    {
+      "type": "com.oracle.truffle.polyglot.WeakAssumedValue"
+    },
+    {
+      "type": "com.squareup.moshi.Moshi"
+    },
+    {
+      "type": "com.sun.crypto.provider.AESCipher$General",
       "methods": [
         {
           "name": "<init>",
@@ -86,7 +97,7 @@
       ]
     },
     {
-      "type": "com.github.tomakehurst.wiremock.http.RequestMethodJsonDeserializer",
+      "type": "com.sun.crypto.provider.ARCFOURCipher",
       "methods": [
         {
           "name": "<init>",
@@ -95,114 +106,7 @@
       ]
     },
     {
-      "type": "com.github.tomakehurst.wiremock.http.ResponseDefinition",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "int",
-            "java.lang.String",
-            "java.lang.String",
-            "com.fasterxml.jackson.databind.JsonNode",
-            "java.lang.String",
-            "java.lang.String",
-            "com.github.tomakehurst.wiremock.http.HttpHeaders",
-            "com.github.tomakehurst.wiremock.http.HttpHeaders",
-            "java.util.List",
-            "java.lang.Integer",
-            "com.github.tomakehurst.wiremock.http.DelayDistribution",
-            "com.github.tomakehurst.wiremock.http.ChunkedDribbleDelay",
-            "java.lang.String",
-            "java.lang.String",
-            "com.github.tomakehurst.wiremock.http.Fault",
-            "java.util.List",
-            "com.github.tomakehurst.wiremock.extension.Parameters",
-            "java.lang.Boolean"
-          ]
-        },
-        {
-          "name": "getAdditionalProxyRequestHeaders",
-          "parameterTypes": []
-        },
-        {
-          "name": "getBase64Body",
-          "parameterTypes": []
-        },
-        {
-          "name": "getBody",
-          "parameterTypes": []
-        },
-        {
-          "name": "getBodyFileName",
-          "parameterTypes": []
-        },
-        {
-          "name": "getChunkedDribbleDelay",
-          "parameterTypes": []
-        },
-        {
-          "name": "getDelayDistribution",
-          "parameterTypes": []
-        },
-        {
-          "name": "getFault",
-          "parameterTypes": []
-        },
-        {
-          "name": "getFixedDelayMilliseconds",
-          "parameterTypes": []
-        },
-        {
-          "name": "getHeaders",
-          "parameterTypes": []
-        },
-        {
-          "name": "getJsonBody",
-          "parameterTypes": []
-        },
-        {
-          "name": "getProxyBaseUrl",
-          "parameterTypes": []
-        },
-        {
-          "name": "getProxyUrlPrefixToRemove",
-          "parameterTypes": []
-        },
-        {
-          "name": "getRemoveProxyRequestHeaders",
-          "parameterTypes": []
-        },
-        {
-          "name": "getStatus",
-          "parameterTypes": []
-        },
-        {
-          "name": "getStatusMessage",
-          "parameterTypes": []
-        },
-        {
-          "name": "getTransformerParameters",
-          "parameterTypes": []
-        },
-        {
-          "name": "getTransformers",
-          "parameterTypes": []
-        },
-        {
-          "name": "isFromConfiguredStub",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.http.client.apache5.ApacheHttpClientFactory"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.jetty.JettyHttpServerFactory"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.jetty.WireMockHandlerDispatchingServlet",
-      "allPublicConstructors": true,
+      "type": "com.sun.crypto.provider.ChaCha20Cipher$ChaCha20Poly1305",
       "methods": [
         {
           "name": "<init>",
@@ -211,8 +115,7 @@
       ]
     },
     {
-      "type": "com.github.tomakehurst.wiremock.jetty.servlet.ContentTypeSettingFilter",
-      "allPublicConstructors": true,
+      "type": "com.sun.crypto.provider.DESCipher",
       "methods": [
         {
           "name": "<init>",
@@ -221,7 +124,7 @@
       ]
     },
     {
-      "type": "com.github.tomakehurst.wiremock.jetty.servlet.NotMatchedServlet",
+      "type": "com.sun.crypto.provider.DESedeCipher",
       "methods": [
         {
           "name": "<init>",
@@ -230,8 +133,7 @@
       ]
     },
     {
-      "type": "com.github.tomakehurst.wiremock.jetty.servlet.TrailingSlashFilter",
-      "allPublicConstructors": true,
+      "type": "com.sun.crypto.provider.DHParameters",
       "methods": [
         {
           "name": "<init>",
@@ -240,7 +142,7 @@
       ]
     },
     {
-      "type": "com.github.tomakehurst.wiremock.junit5.WireMockExtension",
+      "type": "com.sun.crypto.provider.GaloisCounterMode$AESGCM",
       "methods": [
         {
           "name": "<init>",
@@ -249,197 +151,13 @@
       ]
     },
     {
-      "type": "com.github.tomakehurst.wiremock.junit5.WireMockTest"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.AnythingPattern",
-      "allDeclaredFields": true,
-      "allDeclaredMethods": true,
-      "allDeclaredConstructors": true
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.ContainsPattern"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.ContentPatternDeserialiser",
+      "type": "com.sun.crypto.provider.TlsMasterSecretGenerator",
       "methods": [
         {
           "name": "<init>",
           "parameterTypes": []
         }
       ]
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.CustomMatcherDefinition"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.EqualToJsonPattern"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.EqualToPattern",
-      "allDeclaredFields": true,
-      "allDeclaredMethods": true,
-      "allDeclaredConstructors": true
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.MultiValuePattern"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.MultiValuePatternDeserializer",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.MultipartValuePattern"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.MultipartValuePattern$MatchingType"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.NamedValueMatcher"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.RegexPattern"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.RequestPattern",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "java.lang.String",
-            "com.github.tomakehurst.wiremock.matching.StringValuePattern",
-            "java.lang.Integer",
-            "java.lang.String",
-            "com.github.tomakehurst.wiremock.matching.StringValuePattern",
-            "java.lang.String",
-            "java.lang.String",
-            "java.lang.String",
-            "java.lang.String",
-            "com.github.tomakehurst.wiremock.http.RequestMethod",
-            "java.util.Map",
-            "java.util.Map",
-            "java.util.Map",
-            "java.util.Map",
-            "java.util.Map",
-            "com.github.tomakehurst.wiremock.client.BasicCredentials",
-            "java.util.List",
-            "com.github.tomakehurst.wiremock.matching.CustomMatcherDefinition",
-            "java.util.List"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.SingleMatchMultiValuePattern",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "com.github.tomakehurst.wiremock.matching.StringValuePattern"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.StringValuePattern",
-      "allDeclaredFields": true,
-      "allDeclaredMethods": true,
-      "allDeclaredConstructors": true
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.StringValuePatternJsonDeserializer",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.UrlPattern",
-      "allDeclaredFields": true,
-      "allDeclaredMethods": true,
-      "allDeclaredConstructors": true
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.matching.ValueMatcher"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.stubbing.StubMapping",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "java.util.UUID",
-            "java.lang.String",
-            "java.lang.Boolean",
-            "com.github.tomakehurst.wiremock.matching.RequestPattern",
-            "com.github.tomakehurst.wiremock.http.ResponseDefinition",
-            "java.lang.Integer",
-            "java.lang.String",
-            "java.lang.String",
-            "java.lang.String",
-            "java.util.List",
-            "java.util.List",
-            "com.github.tomakehurst.wiremock.common.Metadata",
-            "long"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.stubbing.StubMappingOrMappings"
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.stubbing.StubMappingOrMappingsJsonDeserializer",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "com.github.tomakehurst.wiremock.verification.diff.DiffEventData",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "int",
-            "java.lang.String",
-            "java.lang.String"
-          ]
-        },
-        {
-          "name": "getContentType",
-          "parameterTypes": []
-        },
-        {
-          "name": "getReport",
-          "parameterTypes": []
-        },
-        {
-          "name": "getStatus",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "com.goterl.lazysodium.Sodium",
-      "allDeclaredMethods": true,
-      "allDeclaredConstructors": true,
-      "jniAccessible": true
-    },
-    {
-      "type": "com.goterl.lazysodium.SodiumJava",
-      "allDeclaredMethods": true,
-      "allDeclaredConstructors": true,
-      "jniAccessible": true
     },
     {
       "type": "com.sun.jna.Callback",
@@ -750,10 +468,28 @@
       ]
     },
     {
+      "type": "com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "double[]"
+    },
+    {
+      "type": "float[]"
+    },
+    {
+      "type": "int"
+    },
+    {
+      "type": "int[]"
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.AutomatedSecurityFixesResponse",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -761,13 +497,13 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionRequest",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "allowForcePushes",
@@ -793,13 +529,13 @@
           "name": "restrictions",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionRequest$RequiredPullRequestReviews",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "dismissStaleReviews",
@@ -817,13 +553,13 @@
           "name": "requiredApprovingReviewCount",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionRequest$RequiredStatusChecks",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "checks",
@@ -833,7 +569,10 @@
           "name": "strict",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionRequest$RequiredStatusChecks$StatusCheck",
@@ -842,10 +581,10 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionRequest$RequiredStatusChecks$StatusCheck[]"
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionRequest$Restrictions",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "apps",
@@ -859,13 +598,13 @@
           "name": "users",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -888,13 +627,13 @@
             "io.github.arlol.githubcheck.client.BranchProtectionResponse$AllowForkSyncing"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$AllowDeletions",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -902,13 +641,13 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$AllowForcePushes",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -916,13 +655,13 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$AllowForkSyncing",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -930,13 +669,13 @@
             "java.lang.Boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$BlockCreations",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -944,13 +683,13 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$EnforceAdmins",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -959,13 +698,13 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$LockBranch",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -973,13 +712,13 @@
             "java.lang.Boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredConversationResolution",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -987,13 +726,13 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredLinearHistory",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1001,13 +740,13 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredPullRequestReviews",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1019,13 +758,13 @@
             "java.lang.Boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredSignatures",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1034,13 +773,13 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredStatusChecks",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1053,16 +792,17 @@
             "java.lang.String"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredStatusChecks$EnforcementLevel"
+      "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredStatusChecks$EnforcementLevel",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$RequiredStatusChecks$StatusCheck",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1071,13 +811,13 @@
             "java.lang.Integer"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$Restrictions",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1091,13 +831,13 @@
             "java.util.List"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$Restrictions$App",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1114,13 +854,13 @@
             "java.lang.String"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionResponse$Restrictions$Team",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1132,13 +872,13 @@
             "java.lang.String"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchResponse",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1147,25 +887,25 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.CodeScanningDefaultSetupRequest",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "state",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.CodeScanningDefaultSetupResponse",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1173,16 +913,17 @@
             "io.github.arlol.githubcheck.client.CodeScanningDefaultSetupResponse$State"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.CodeScanningDefaultSetupResponse$State"
+      "type": "io.github.arlol.githubcheck.client.CodeScanningDefaultSetupResponse$State",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1192,13 +933,13 @@
             "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse$DeploymentBranchPolicy"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse$DeploymentBranchPolicy",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1207,13 +948,13 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse$ProtectionRule",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1223,10 +964,14 @@
             "java.util.List"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse$ProtectionRuleType"
+      "type": "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse$ProtectionRuleType",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.EnvironmentDetailsResponse$Reviewer",
@@ -1241,13 +986,11 @@
       "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.EnvironmentReviewerType"
+      "type": "io.github.arlol.githubcheck.client.EnvironmentReviewerType",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.EnvironmentUpdateRequest",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "deploymentBranchPolicy",
@@ -1261,13 +1004,13 @@
           "name": "waitTimer",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.EnvironmentUpdateRequest$DeploymentBranchPolicy",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "customBranchPolicies",
@@ -1277,7 +1020,10 @@
           "name": "protectedBranches",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.EnvironmentUpdateRequest$Reviewer",
@@ -1286,16 +1032,15 @@
       "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.GitHubApiException"
+      "type": "io.github.arlol.githubcheck.client.GitHubApiException",
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.GitHubClient"
+      "type": "io.github.arlol.githubcheck.client.GitHubClient",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.ImmutableReleasesResponse",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1303,13 +1048,13 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.License",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1322,22 +1067,25 @@
             "java.lang.String"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.MergeCommitMessage"
+      "type": "io.github.arlol.githubcheck.client.MergeCommitMessage",
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.MergeCommitTitle"
+      "type": "io.github.arlol.githubcheck.client.MergeCommitTitle",
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.PagesBuildType"
+      "type": "io.github.arlol.githubcheck.client.PagesBuildType",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.PagesCreateRequest",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "buildType",
@@ -1347,7 +1095,10 @@
           "name": "source",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.PagesCreateRequest$Source",
@@ -1357,9 +1108,6 @@
     },
     {
       "type": "io.github.arlol.githubcheck.client.PagesResponse",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1378,13 +1126,13 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.PagesResponse$HttpsCertificate",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1395,19 +1143,21 @@
             "java.lang.String"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.PagesResponse$HttpsCertificate$State"
+      "type": "io.github.arlol.githubcheck.client.PagesResponse$HttpsCertificate$State",
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.PagesResponse$ProtectedDomainState"
+      "type": "io.github.arlol.githubcheck.client.PagesResponse$ProtectedDomainState",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.PagesResponse$Source",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1416,16 +1166,17 @@
             "java.lang.String"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.PagesResponse$Status"
+      "type": "io.github.arlol.githubcheck.client.PagesResponse$Status",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.PagesUpdateRequest",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "buildType",
@@ -1439,7 +1190,10 @@
           "name": "source",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.PagesUpdateRequest$Source",
@@ -1449,9 +1203,6 @@
     },
     {
       "type": "io.github.arlol.githubcheck.client.PrivateVulnerabilityReportingResponse",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1459,22 +1210,26 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.PullRequestCreationPolicy"
+      "type": "io.github.arlol.githubcheck.client.PullRequestCreationPolicy",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.ReplaceTopicsRequest",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "names",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RepositoryCreateRequest",
@@ -1483,13 +1238,11 @@
       "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.RepositoryCreateRequest$Builder"
+      "type": "io.github.arlol.githubcheck.client.RepositoryCreateRequest$Builder",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RepositoryDetailsResponse",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1559,13 +1312,13 @@
             "io.github.arlol.githubcheck.client.SecurityAndAnalysis"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RepositoryPermissions",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1577,13 +1330,13 @@
             "java.lang.Boolean"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RepositorySummaryResponse",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1643,13 +1396,13 @@
             "io.github.arlol.githubcheck.client.SecurityAndAnalysis"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RepositoryUpdateRequest",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "allowAutoMerge",
@@ -1739,19 +1492,25 @@
           "name": "webCommitSignoffRequired",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.RepositoryUpdateRequest$Builder"
+      "type": "io.github.arlol.githubcheck.client.RepositoryUpdateRequest$Builder",
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.RepositoryVisibility"
+      "type": "io.github.arlol.githubcheck.client.RepositoryVisibility",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule"
     },
     {
-      "type": "io.github.arlol.githubcheck.client.Rule$AlertsThreshold"
+      "type": "io.github.arlol.githubcheck.client.Rule$AlertsThreshold",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$BranchNamePattern",
@@ -1761,33 +1520,30 @@
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$CodeScanning",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "parameters",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$CodeScanning$Parameters",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "codeScanningTools",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$CodeScanningTool",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "alertsThreshold",
@@ -1801,7 +1557,10 @@
           "name": "tool",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$CommitAuthorEmailPattern",
@@ -1871,15 +1630,15 @@
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$RequiredLinearHistory",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$RequiredSignatures",
@@ -1889,21 +1648,18 @@
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$RequiredStatusChecks",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "parameters",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$RequiredStatusChecks$Parameters",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "requiredStatusChecks",
@@ -1913,16 +1669,17 @@
           "name": "strictRequiredStatusChecksPolicy",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.Rule$SecurityAlertsThreshold"
+      "type": "io.github.arlol.githubcheck.client.Rule$SecurityAlertsThreshold",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$StatusCheck",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "context",
@@ -1932,7 +1689,10 @@
           "name": "integrationId",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$TagNamePattern",
@@ -1960,9 +1720,6 @@
     },
     {
       "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -1982,7 +1739,10 @@
             "java.util.List"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$BypassActor",
@@ -1991,16 +1751,15 @@
       "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$BypassActor$ActorType"
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$BypassActor$ActorType",
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$BypassActor$BypassMode"
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$BypassActor$BypassMode",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2011,13 +1770,13 @@
             "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions$RepositoryProperty"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions$RefName",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2026,7 +1785,10 @@
             "java.util.List"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$Conditions$RepositoryId",
@@ -2053,16 +1815,15 @@
       "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$CurrentUserCanBypass"
+      "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse$CurrentUserCanBypass",
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.RulesetEnforcement"
+      "type": "io.github.arlol.githubcheck.client.RulesetEnforcement",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RulesetRequest",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "bypassActors",
@@ -2088,7 +1849,10 @@
           "name": "target",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RulesetRequest$BypassActorRequest",
@@ -2097,10 +1861,10 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.RulesetRequest$BypassActorRequest[]"
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.RulesetRequest$Conditions",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "refName",
@@ -2118,13 +1882,13 @@
           "name": "repositoryProperty",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RulesetRequest$Conditions$RefName",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "exclude",
@@ -2134,7 +1898,10 @@
           "name": "include",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RulesetRequest$Conditions$RepositoryId",
@@ -2161,16 +1928,15 @@
       "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.RulesetRuleType"
+      "type": "io.github.arlol.githubcheck.client.RulesetRuleType",
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.RulesetSourceType"
+      "type": "io.github.arlol.githubcheck.client.RulesetSourceType",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.RulesetSummaryResponse",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2185,16 +1951,17 @@
             "java.lang.String"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.RulesetTarget"
+      "type": "io.github.arlol.githubcheck.client.RulesetTarget",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.Secret",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2204,13 +1971,13 @@
             "java.lang.String"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.SecretPublicKeyResponse",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2219,13 +1986,13 @@
             "java.lang.String"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.SecretRequest",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "encryptedValue",
@@ -2235,16 +2002,17 @@
           "name": "keyId",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.Secrets"
+      "type": "io.github.arlol.githubcheck.client.Secrets",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2258,7 +2026,8 @@
             "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
             "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
             "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
-            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject"
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$DelegatedBypassOptions"
           ]
         },
         {
@@ -2290,6 +2059,10 @@
           "parameterTypes": []
         },
         {
+          "name": "secretScanningDelegatedBypassOptions",
+          "parameterTypes": []
+        },
+        {
           "name": "secretScanningNonProviderPatterns",
           "parameterTypes": []
         },
@@ -2301,16 +2074,52 @@
           "name": "secretScanningValidityChecks",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$Builder"
+      "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$Builder",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$BypassReviewer",
+      "methods": [
+        {
+          "name": "reviewerId",
+          "parameterTypes": []
+        },
+        {
+          "name": "reviewerType",
+          "parameterTypes": []
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$BypassReviewer$ReviewerType",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$BypassReviewer[]"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$DelegatedBypassOptions",
+      "methods": [
+        {
+          "name": "reviewers",
+          "parameterTypes": []
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2322,16 +2131,17 @@
           "name": "status",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject$Status"
+      "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$StatusObject$Status",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.SimpleUser",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2350,22 +2160,25 @@
             "java.lang.String"
           ]
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.SimpleUser$UserType"
+      "type": "io.github.arlol.githubcheck.client.SimpleUser$UserType",
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.SquashMergeCommitMessage"
+      "type": "io.github.arlol.githubcheck.client.SquashMergeCommitMessage",
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.SquashMergeCommitTitle"
+      "type": "io.github.arlol.githubcheck.client.SquashMergeCommitTitle",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.WorkflowPermissions",
-      "allPublicFields": true,
-      "allPublicMethods": true,
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2382,346 +2195,14 @@
           "name": "defaultWorkflowPermissions",
           "parameterTypes": []
         }
-      ]
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.WorkflowPermissions$DefaultWorkflowPermissions"
-    },
-    {
-      "type": "io.github.arlol.githubcheck.config.BranchProtectionArgs",
-      "fields": [
-        {
-          "name": "allowForcePushes"
-        },
-        {
-          "name": "apps"
-        },
-        {
-          "name": "dismissStaleReviews"
-        },
-        {
-          "name": "enforceAdmins"
-        },
-        {
-          "name": "pattern"
-        },
-        {
-          "name": "requireCodeOwnerReviews"
-        },
-        {
-          "name": "requireConversationResolution"
-        },
-        {
-          "name": "requireLastPushApproval"
-        },
-        {
-          "name": "requiredApprovingReviewCount"
-        },
-        {
-          "name": "requiredLinearHistory"
-        },
-        {
-          "name": "requiredStatusChecks"
-        },
-        {
-          "name": "teams"
-        },
-        {
-          "name": "users"
-        }
-      ]
-    },
-    {
-      "type": "io.github.arlol.githubcheck.config.CodeScanningToolArgs",
-      "fields": [
-        {
-          "name": "alertsThreshold"
-        },
-        {
-          "name": "securityAlertsThreshold"
-        },
-        {
-          "name": "tool"
-        }
-      ]
-    },
-    {
-      "type": "io.github.arlol.githubcheck.config.EnvironmentArgs",
-      "fields": [
-        {
-          "name": "deploymentBranchPolicy"
-        },
-        {
-          "name": "name"
-        },
-        {
-          "name": "reviewers"
-        },
-        {
-          "name": "secrets"
-        },
-        {
-          "name": "waitTimer"
-        }
-      ]
-    },
-    {
-      "type": "io.github.arlol.githubcheck.config.PagesArgs",
-      "fields": [
-        {
-          "name": "buildType"
-        },
-        {
-          "name": "sourceBranch"
-        },
-        {
-          "name": "sourcePath"
-        }
-      ]
-    },
-    {
-      "type": "io.github.arlol.githubcheck.config.RepositoryArgs",
-      "methods": [
-        {
-          "name": "actionsSecrets",
-          "parameterTypes": []
-        },
-        {
-          "name": "allowAutoMerge",
-          "parameterTypes": []
-        },
-        {
-          "name": "allowForking",
-          "parameterTypes": []
-        },
-        {
-          "name": "allowMergeCommit",
-          "parameterTypes": []
-        },
-        {
-          "name": "allowRebaseMerge",
-          "parameterTypes": []
-        },
-        {
-          "name": "allowSquashMerge",
-          "parameterTypes": []
-        },
-        {
-          "name": "allowUpdateBranch",
-          "parameterTypes": []
-        },
-        {
-          "name": "archived",
-          "parameterTypes": []
-        },
-        {
-          "name": "automatedSecurityFixes",
-          "parameterTypes": []
-        },
-        {
-          "name": "branchProtections",
-          "parameterTypes": []
-        },
-        {
-          "name": "canApprovePullRequestReviews",
-          "parameterTypes": []
-        },
-        {
-          "name": "codeScanningDefaultSetup",
-          "parameterTypes": []
-        },
-        {
-          "name": "defaultBranch",
-          "parameterTypes": []
-        },
-        {
-          "name": "defaultWorkflowPermissions",
-          "parameterTypes": []
-        },
-        {
-          "name": "deleteBranchOnMerge",
-          "parameterTypes": []
-        },
-        {
-          "name": "description",
-          "parameterTypes": []
-        },
-        {
-          "name": "environments",
-          "parameterTypes": []
-        },
-        {
-          "name": "hasDiscussions",
-          "parameterTypes": []
-        },
-        {
-          "name": "hasIssues",
-          "parameterTypes": []
-        },
-        {
-          "name": "hasProjects",
-          "parameterTypes": []
-        },
-        {
-          "name": "hasWiki",
-          "parameterTypes": []
-        },
-        {
-          "name": "homepageUrl",
-          "parameterTypes": []
-        },
-        {
-          "name": "immutableReleases",
-          "parameterTypes": []
-        },
-        {
-          "name": "isTemplate",
-          "parameterTypes": []
-        },
-        {
-          "name": "mergeCommitMessage",
-          "parameterTypes": []
-        },
-        {
-          "name": "mergeCommitTitle",
-          "parameterTypes": []
-        },
-        {
-          "name": "name",
-          "parameterTypes": []
-        },
-        {
-          "name": "owner",
-          "parameterTypes": []
-        },
-        {
-          "name": "pagesArgs",
-          "parameterTypes": []
-        },
-        {
-          "name": "privateVulnerabilityReporting",
-          "parameterTypes": []
-        },
-        {
-          "name": "rulesets",
-          "parameterTypes": []
-        },
-        {
-          "name": "secretScanning",
-          "parameterTypes": []
-        },
-        {
-          "name": "secretScanningNonProviderPatterns",
-          "parameterTypes": []
-        },
-        {
-          "name": "secretScanningPushProtection",
-          "parameterTypes": []
-        },
-        {
-          "name": "secretScanningValidityChecks",
-          "parameterTypes": []
-        },
-        {
-          "name": "squashMergeCommitMessage",
-          "parameterTypes": []
-        },
-        {
-          "name": "squashMergeCommitTitle",
-          "parameterTypes": []
-        },
-        {
-          "name": "topics",
-          "parameterTypes": []
-        },
-        {
-          "name": "visibility",
-          "parameterTypes": []
-        },
-        {
-          "name": "vulnerabilityAlerts",
-          "parameterTypes": []
-        },
-        {
-          "name": "webCommitSignoffRequired",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "io.github.arlol.githubcheck.config.RulesetArgs",
-      "fields": [
-        {
-          "name": "branchNamePattern"
-        },
-        {
-          "name": "bypassActors"
-        },
-        {
-          "name": "commitAuthorEmailPattern"
-        },
-        {
-          "name": "commitMessagePattern"
-        },
-        {
-          "name": "committerEmailPattern"
-        },
-        {
-          "name": "creation"
-        },
-        {
-          "name": "deletion"
-        },
-        {
-          "name": "includePatterns"
-        },
-        {
-          "name": "name"
-        },
-        {
-          "name": "noForcePushes"
-        },
-        {
-          "name": "requiredCodeScanning"
-        },
-        {
-          "name": "requiredDeployments"
-        },
-        {
-          "name": "requiredLinearHistory"
-        },
-        {
-          "name": "requiredReviewCount"
-        },
-        {
-          "name": "requiredSignatures"
-        },
-        {
-          "name": "requiredStatusChecks"
-        },
-        {
-          "name": "tagNamePattern"
-        },
-        {
-          "name": "update"
-        },
-        {
-          "name": "updateAllowsFetchAndMerge"
-        }
-      ]
-    },
-    {
-      "type": "io.github.arlol.githubcheck.config.StatusCheckArgs",
-      "methods": [
-        {
-          "name": "getAppId",
-          "parameterTypes": []
-        },
-        {
-          "name": "getContext",
-          "parameterTypes": []
-        }
-      ]
+      "type": "io.github.arlol.githubcheck.client.WorkflowPermissions$DefaultWorkflowPermissions",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty",
@@ -2737,7 +2218,6 @@
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$BranchProtection",
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2756,7 +2236,8 @@
             "java.util.List"
           ]
         }
-      ]
+      ],
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$BypassActor",
@@ -2768,7 +2249,6 @@
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$CodeScanningTool",
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2778,11 +2258,11 @@
             "io.github.arlol.githubcheck.pkl.Drifty$SecurityAlertsThreshold"
           ]
         }
-      ]
+      ],
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$Environment",
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2793,11 +2273,11 @@
             "boolean"
           ]
         }
-      ]
+      ],
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$Pages",
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2807,7 +2287,8 @@
             "java.lang.String"
           ]
         }
-      ]
+      ],
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$PatternOperator",
@@ -2815,7 +2296,6 @@
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$Repository",
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2845,6 +2325,11 @@
             "boolean",
             "boolean",
             "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "java.util.List",
             "io.github.arlol.githubcheck.pkl.Drifty$WorkflowPermissions",
             "boolean",
             "boolean",
@@ -2855,7 +2340,8 @@
             "java.util.Map"
           ]
         }
-      ]
+      ],
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$RulePattern",
@@ -2863,7 +2349,6 @@
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$Ruleset",
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2888,7 +2373,16 @@
             "java.util.List"
           ]
         }
-      ]
+      ],
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$SecretScanningBypassReviewer",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$SecretScanningBypassReviewerType",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$SecurityAlertsThreshold",
@@ -2896,7 +2390,6 @@
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$StatusCheck",
-      "allPublicConstructors": true,
       "methods": [
         {
           "name": "<init>",
@@ -2905,7 +2398,8 @@
             "long"
           ]
         }
-      ]
+      ],
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$Visibility",
@@ -2917,27 +2411,82 @@
     },
     {
       "type": "io.github.arlol.githubcheck.state.DriftyState",
-      "allDeclaredFields": true,
-      "allDeclaredMethods": true,
-      "allDeclaredConstructors": true
+      "fields": [
+        {
+          "name": "repositories"
+        },
+        {
+          "name": "salt"
+        },
+        {
+          "name": "version"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
     },
     {
       "type": "io.github.arlol.githubcheck.state.DriftyState$RepoState",
-      "allDeclaredFields": true,
-      "allDeclaredMethods": true,
-      "allDeclaredConstructors": true
+      "fields": [
+        {
+          "name": "actionSecrets"
+        },
+        {
+          "name": "environmentSecrets"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
     },
     {
       "type": "io.github.arlol.githubcheck.state.DriftyState$SecretRecord",
-      "allDeclaredFields": true,
-      "allDeclaredMethods": true,
-      "allDeclaredConstructors": true
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "updatedAt",
+          "parameterTypes": []
+        },
+        {
+          "name": "valueHash",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.io.Serializable"
     },
     {
       "type": "java.lang.Boolean",
-      "allPublicConstructors": true,
       "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
       "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
         {
           "name": "getBoolean",
           "parameterTypes": [
@@ -2947,8 +2496,53 @@
       ]
     },
     {
-      "type": "java.lang.Class",
+      "type": "java.lang.Byte",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
       "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "byte"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Character",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "char"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Class",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getComponentType",
+          "parameterTypes": []
+        },
         {
           "name": "getRecordComponents",
           "parameterTypes": []
@@ -2960,7 +2554,286 @@
       ]
     },
     {
+      "type": "java.lang.ClassLoader",
+      "fields": [
+        {
+          "name": "classLoaderValueMap"
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Comparable"
+    },
+    {
+      "type": "java.lang.Deprecated"
+    },
+    {
+      "type": "java.lang.Double",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "double"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Float",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "float"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Integer",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Iterable"
+    },
+    {
+      "type": "java.lang.Long",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Number"
+    },
+    {
+      "type": "java.lang.Object",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Object[]"
+    },
+    {
+      "type": "java.lang.ProcessHandle",
+      "methods": [
+        {
+          "name": "info",
+          "parameterTypes": []
+        },
+        {
+          "name": "of",
+          "parameterTypes": [
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.ProcessHandle$Info",
+      "methods": [
+        {
+          "name": "startInstant",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "java.lang.Record"
+    },
+    {
+      "type": "java.lang.SecurityManager",
+      "methods": [
+        {
+          "name": "checkPermission",
+          "parameterTypes": [
+            "java.security.Permission"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Short",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "short"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.StackTraceElement"
+    },
+    {
+      "type": "java.lang.String",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "byte[]"
+          ]
+        },
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "byte[]",
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "getBytes",
+          "parameterTypes": []
+        },
+        {
+          "name": "getBytes",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "toCharArray",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.String[]"
+    },
+    {
+      "type": "java.lang.System",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getProperty",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "getSecurityManager",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Thread",
+      "methods": [
+        {
+          "name": "ofVirtual",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Thread$Builder",
+      "methods": [
+        {
+          "name": "factory",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Throwable"
+    },
+    {
+      "type": "java.lang.UnsatisfiedLinkError",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Void",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "TYPE"
+        }
+      ]
+    },
+    {
+      "type": "java.lang.reflect.Method",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getParameterTypes",
+          "parameterTypes": []
+        },
+        {
+          "name": "getReturnType",
+          "parameterTypes": []
+        }
+      ]
     },
     {
       "type": "java.lang.reflect.RecordComponent",
@@ -2976,16 +2849,192 @@
       ]
     },
     {
+      "type": "java.math.BigDecimal"
+    },
+    {
+      "type": "java.math.BigInteger"
+    },
+    {
+      "type": "java.nio.Buffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "position",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.ByteBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.CharBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.DoubleBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.FloatBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.IntBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.LongBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.ShortBuffer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "array",
+          "parameterTypes": []
+        },
+        {
+          "name": "arrayOffset",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.security.AccessController",
+      "methods": [
+        {
+          "name": "doPrivileged",
+          "parameterTypes": [
+            "java.security.PrivilegedAction"
+          ]
+        }
+      ]
+    },
+    {
       "type": "java.security.AlgorithmParametersSpi"
     },
     {
       "type": "java.security.KeyStoreSpi"
     },
     {
-      "type": "java.security.interfaces.ECPrivateKey"
+      "type": "java.time.Instant"
     },
     {
-      "type": "java.security.interfaces.ECPublicKey"
+      "type": "java.util.AbstractCollection"
+    },
+    {
+      "type": "java.util.AbstractMap"
+    },
+    {
+      "type": "java.util.ArrayList",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "float"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.util.Arrays",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "asList",
+          "parameterTypes": [
+            "java.lang.Object[]"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.util.Collection"
+    },
+    {
+      "type": "java.util.Date"
+    },
+    {
+      "type": "java.util.HashMap",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "float"
+          ]
+        }
+      ]
     },
     {
       "type": "java.util.HashSet",
@@ -2997,7 +3046,189 @@
       ]
     },
     {
-      "type": "org.eclipse.jetty.ee11.servlet.DefaultServlet",
+      "type": "java.util.ImmutableCollections$AbstractImmutableCollection"
+    },
+    {
+      "type": "java.util.ImmutableCollections$AbstractImmutableList"
+    },
+    {
+      "type": "java.util.ImmutableCollections$List12"
+    },
+    {
+      "type": "java.util.ImmutableCollections$ListN"
+    },
+    {
+      "type": "java.util.List"
+    },
+    {
+      "type": "java.util.Map"
+    },
+    {
+      "type": "java.util.Optional"
+    },
+    {
+      "type": "java.util.RandomAccess"
+    },
+    {
+      "type": "java.util.concurrent.Executors",
+      "methods": [
+        {
+          "name": "newThreadPerTaskExecutor",
+          "parameterTypes": [
+            "java.util.concurrent.ThreadFactory"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "javax.inject.Named"
+    },
+    {
+      "type": "javax.security.auth.Subject",
+      "methods": [
+        {
+          "name": "callAs",
+          "parameterTypes": [
+            "javax.security.auth.Subject",
+            "java.util.concurrent.Callable"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "jdk.internal.jrtfs.JrtFileSystemProvider"
+    },
+    {
+      "type": "jdk.internal.misc.Unsafe"
+    },
+    {
+      "type": "kotlin.Metadata"
+    },
+    {
+      "type": "long"
+    },
+    {
+      "type": "long[]"
+    },
+    {
+      "type": "org.apache.johnzon.mapper.Mapper"
+    },
+    {
+      "type": "org.apiguardian.api.API"
+    },
+    {
+      "type": "org.graalvm.home.impl.DefaultHomeFinder"
+    },
+    {
+      "type": "org.graalvm.polyglot.io.IOHelper",
+      "fields": [
+        {
+          "name": "ACCESS"
+        }
+      ]
+    },
+    {
+      "type": "org.graalvm.polyglot.management.Management",
+      "fields": [
+        {
+          "name": "ACCESS"
+        }
+      ]
+    },
+    {
+      "type": "org.json.JSONObject"
+    },
+    {
+      "type": "org.opentest4j.AssertionFailedError",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.Object",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "org.pkl.core.runtime.VmLanguageProvider"
+    },
+    {
+      "type": "org.slf4j.Logger"
+    },
+    {
+      "type": "short[]"
+    },
+    {
+      "type": "sun.management.ClassLoadingImpl"
+    },
+    {
+      "type": "sun.management.CompilationImpl"
+    },
+    {
+      "type": "sun.management.ManagementFactoryHelper$1"
+    },
+    {
+      "type": "sun.management.ManagementFactoryHelper$PlatformLoggingImpl"
+    },
+    {
+      "type": "sun.management.MemoryImpl"
+    },
+    {
+      "type": "sun.management.MemoryManagerImpl"
+    },
+    {
+      "type": "sun.management.MemoryPoolImpl"
+    },
+    {
+      "type": "sun.management.RuntimeImpl"
+    },
+    {
+      "type": "sun.management.VMManagementImpl",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "compTimeMonitoringSupport"
+        },
+        {
+          "name": "currentThreadCpuTimeSupport"
+        },
+        {
+          "name": "objectMonitorUsageSupport"
+        },
+        {
+          "name": "otherThreadCpuTimeSupport"
+        },
+        {
+          "name": "remoteDiagnosticCommandsSupport"
+        },
+        {
+          "name": "synchronizerUsageSupport"
+        },
+        {
+          "name": "threadAllocatedMemorySupport"
+        },
+        {
+          "name": "threadContentionMonitoringSupport"
+        }
+      ]
+    },
+    {
+      "type": "sun.reflect.misc.Trampoline",
+      "methods": [
+        {
+          "name": "invoke",
+          "parameterTypes": [
+            "java.lang.reflect.Method",
+            "java.lang.Object",
+            "java.lang.Object[]"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.pkcs12.PKCS12KeyStore",
       "methods": [
         {
           "name": "<init>",
@@ -3006,7 +3237,7 @@
       ]
     },
     {
-      "type": "org.eclipse.jetty.ee11.servlets.CrossOriginFilter",
+      "type": "sun.security.pkcs12.PKCS12KeyStore$DualFormatPKCS12",
       "methods": [
         {
           "name": "<init>",
@@ -3015,13 +3246,7 @@
       ]
     },
     {
-      "type": "org.eclipse.jetty.http.Http10FieldPreEncoder"
-    },
-    {
-      "type": "org.eclipse.jetty.http.Http11FieldPreEncoder"
-    },
-    {
-      "type": "org.eclipse.jetty.http.pathmap.PathSpecSet",
+      "type": "sun.security.provider.DSA$SHA224withDSA",
       "methods": [
         {
           "name": "<init>",
@@ -3030,10 +3255,7 @@
       ]
     },
     {
-      "type": "org.eclipse.jetty.http2.hpack.HpackFieldPreEncoder"
-    },
-    {
-      "type": "org.eclipse.jetty.util.AsciiLowerCaseSet",
+      "type": "sun.security.provider.DSA$SHA256withDSA",
       "methods": [
         {
           "name": "<init>",
@@ -3042,74 +3264,282 @@
       ]
     },
     {
-      "type": "org.eclipse.jetty.util.TypeUtil",
+      "type": "sun.security.provider.NativePRNG",
       "methods": [
         {
-          "name": "getClassLoaderLocation",
+          "name": "<init>",
           "parameterTypes": [
-            "java.lang.Class"
-          ]
-        },
-        {
-          "name": "getCodeSourceLocation",
-          "parameterTypes": [
-            "java.lang.Class"
-          ]
-        },
-        {
-          "name": "getModuleLocation",
-          "parameterTypes": [
-            "java.lang.Class"
-          ]
-        },
-        {
-          "name": "getSystemClassLoaderLocation",
-          "parameterTypes": [
-            "java.lang.Class"
+            "java.security.SecureRandomParameters"
           ]
         }
       ]
     },
     {
-      "type": "org.eclipse.jetty.util.Utf8StringBuilder",
+      "type": "sun.security.provider.SHA",
       "methods": [
         {
-          "name": "errorActionIgnore",
-          "parameterTypes": []
-        },
-        {
-          "name": "errorActionReplace",
-          "parameterTypes": []
-        },
-        {
-          "name": "errorActionReport",
+          "name": "<init>",
           "parameterTypes": []
         }
       ]
     },
     {
-      "type": "org.eclipse.jetty.websocket.core.internal.FragmentExtension"
+      "type": "sun.security.provider.SHA2$SHA224",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
     },
     {
-      "type": "org.eclipse.jetty.websocket.core.internal.FrameCaptureExtension"
+      "type": "sun.security.provider.SHA2$SHA256",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
     },
     {
-      "type": "org.eclipse.jetty.websocket.core.internal.IdentityExtension"
+      "type": "sun.security.provider.SHA5$SHA384",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
     },
     {
-      "type": "org.eclipse.jetty.websocket.core.internal.PerMessageDeflateExtension"
+      "type": "sun.security.provider.SHA5$SHA512",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
     },
     {
-      "type": "org.eclipse.jetty.websocket.core.internal.ValidationExtension"
+      "type": "sun.security.provider.X509Factory",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.rsa.PSSParameters",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.rsa.RSAKeyFactory$Legacy",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.rsa.RSAPSSSignature",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.rsa.RSASignature$SHA224withRSA",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.ssl.KeyManagerFactoryImpl$SunX509",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.ssl.SSLContextImpl$DefaultSSLContext",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.ssl.SSLContextImpl$TLSContext",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.ssl.TrustManagerFactoryImpl$PKIXFactory",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.AuthorityInfoAccessExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.AuthorityKeyIdentifierExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.BasicConstraintsExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.CRLDistributionPointsExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.CertificatePoliciesExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.ExtendedKeyUsageExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.KeyUsageExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.NetscapeCertTypeExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.PrivateKeyUsageExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.SubjectKeyIdentifierExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.text.resources.cldr.FormatData"
+    },
+    {
+      "type": "sun.text.resources.cldr.FormatData_en"
+    },
+    {
+      "type": "sun.text.resources.cldr.FormatData_en_US"
+    },
+    {
+      "type": "sun.util.resources.cldr.CalendarData"
+    },
+    {
+      "type": "tools.jackson.databind.ObjectMapper"
+    },
+    {
+      "type": "void"
     }
   ],
   "resources": [
-    {
-      "glob": "**/libsodium.*"
-    },
-    {
-      "glob": "META-INF/MANIFEST.MF"
-    },
     {
       "glob": "META-INF/graalvm/org.graalvm.polyglot/version"
     },
@@ -3124,9 +3554,6 @@
     },
     {
       "glob": "META-INF/resources/engine/libtruffleattach/darwin/aarch64/sha256"
-    },
-    {
-      "glob": "META-INF/services/com.github.tomakehurst.wiremock.extension.Extension"
     },
     {
       "glob": "META-INF/services/com.oracle.truffle.api.TruffleRuntimeAccess"
@@ -3147,10 +3574,22 @@
       "glob": "META-INF/services/com.oracle.truffle.api.provider.TruffleLanguageProvider"
     },
     {
-      "glob": "META-INF/services/org.eclipse.jetty.http.HttpFieldPreEncoder"
+      "glob": "META-INF/services/java.net.spi.InetAddressResolverProvider"
     },
     {
-      "glob": "META-INF/services/org.eclipse.jetty.websocket.core.Extension"
+      "glob": "META-INF/services/java.net.spi.URLStreamHandlerProvider"
+    },
+    {
+      "glob": "META-INF/services/java.nio.channels.spi.SelectorProvider"
+    },
+    {
+      "glob": "META-INF/services/java.nio.file.spi.FileSystemProvider"
+    },
+    {
+      "glob": "META-INF/services/java.time.zone.ZoneRulesProvider"
+    },
+    {
+      "glob": "META-INF/services/java.util.spi.ResourceBundleControlProvider"
     },
     {
       "glob": "META-INF/services/org.graalvm.home.HomeFinder"
@@ -3171,55 +3610,14 @@
       "glob": "META-INF/services/org.slf4j.spi.SLF4JServiceProvider"
     },
     {
-      "glob": "assets"
-    },
-    {
-      "glob": "assets/.*"
-    },
-    {
       "glob": "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib"
     },
     {
-      "glob": "darwin-aarch64/libsodium.dylib"
+      "module": "java.base",
+      "glob": "jdk/internal/icu/impl/data/icudt76b/nfc.nrm"
     },
     {
-      "glob": "darwin/libsodium.dylib"
-    },
-    {
-      "glob": "helpers.nashorn.js"
-    },
-    {
-      "glob": "jakarta/servlet/LocalStrings.properties"
-    },
-    {
-      "glob": "jakarta/servlet/LocalStrings_en.properties"
-    },
-    {
-      "glob": "jakarta/servlet/LocalStrings_en_US.properties"
-    },
-    {
-      "glob": "jakarta/servlet/http/LocalStrings.properties"
-    },
-    {
-      "glob": "jakarta/servlet/http/LocalStrings_en.properties"
-    },
-    {
-      "glob": "jakarta/servlet/http/LocalStrings_en_US.properties"
-    },
-    {
-      "glob": "keystore"
-    },
-    {
-      "glob": "org/eclipse/jetty/http/encoding.properties"
-    },
-    {
-      "glob": "org/eclipse/jetty/http/mime.properties"
-    },
-    {
-      "glob": "org/eclipse/jetty/server/jetty-dir.css"
-    },
-    {
-      "glob": "org/eclipse/jetty/version/build.properties"
+      "glob": "mac_arm/libsodium.dylib"
     },
     {
       "glob": "org/pkl/core/Release.properties"
@@ -3228,22 +3626,10 @@
       "glob": "org/pkl/core/stdlib/base.pkl"
     },
     {
-      "glob": "org/publicsuffix/list/effective_tld_names.dat"
-    },
-    {
       "glob": "org/slf4j/impl/StaticLoggerBinder.class"
     },
     {
-      "glob": "swagger/.*"
-    },
-    {
       "glob": "version.properties"
-    },
-        {
-      "bundle": "jakarta.servlet.LocalStrings"
-    },
-    {
-      "bundle": "jakarta.servlet.http.LocalStrings"
     }
   ]
 }

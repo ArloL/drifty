@@ -1,0 +1,855 @@
+{
+  "reflection": [
+    {
+      "type": "com.github.tomakehurst.wiremock.client.BasicCredentials"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.common.Metadata"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.common.Prioritisable"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.common.ssl.WritableFileOrClasspathKeyStoreSource",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "char[]"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.extension.Parameters"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.extension.PostServeActionDefinitionListDeserializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.extension.ServeEventListener$RequestPhase"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.extension.ServeEventListenerDefinition"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.ChunkedDribbleDelay"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.DelayDistribution"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.Fault"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.HttpHeadersJsonDeserializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.HttpHeadersJsonSerializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.RequestMethodJsonDeserializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.ResponseDefinition",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "java.lang.String",
+            "java.lang.String",
+            "com.fasterxml.jackson.databind.JsonNode",
+            "java.lang.String",
+            "java.lang.String",
+            "com.github.tomakehurst.wiremock.http.HttpHeaders",
+            "com.github.tomakehurst.wiremock.http.HttpHeaders",
+            "java.util.List",
+            "java.lang.Integer",
+            "com.github.tomakehurst.wiremock.http.DelayDistribution",
+            "com.github.tomakehurst.wiremock.http.ChunkedDribbleDelay",
+            "java.lang.String",
+            "java.lang.String",
+            "com.github.tomakehurst.wiremock.http.Fault",
+            "java.util.List",
+            "com.github.tomakehurst.wiremock.extension.Parameters",
+            "java.lang.Boolean"
+          ]
+        },
+        {
+          "name": "getAdditionalProxyRequestHeaders",
+          "parameterTypes": []
+        },
+        {
+          "name": "getBase64Body",
+          "parameterTypes": []
+        },
+        {
+          "name": "getBody",
+          "parameterTypes": []
+        },
+        {
+          "name": "getBodyFileName",
+          "parameterTypes": []
+        },
+        {
+          "name": "getChunkedDribbleDelay",
+          "parameterTypes": []
+        },
+        {
+          "name": "getDelayDistribution",
+          "parameterTypes": []
+        },
+        {
+          "name": "getFault",
+          "parameterTypes": []
+        },
+        {
+          "name": "getFixedDelayMilliseconds",
+          "parameterTypes": []
+        },
+        {
+          "name": "getHeaders",
+          "parameterTypes": []
+        },
+        {
+          "name": "getJsonBody",
+          "parameterTypes": []
+        },
+        {
+          "name": "getProxyBaseUrl",
+          "parameterTypes": []
+        },
+        {
+          "name": "getProxyUrlPrefixToRemove",
+          "parameterTypes": []
+        },
+        {
+          "name": "getRemoveProxyRequestHeaders",
+          "parameterTypes": []
+        },
+        {
+          "name": "getStatus",
+          "parameterTypes": []
+        },
+        {
+          "name": "getStatusMessage",
+          "parameterTypes": []
+        },
+        {
+          "name": "getTransformerParameters",
+          "parameterTypes": []
+        },
+        {
+          "name": "getTransformers",
+          "parameterTypes": []
+        },
+        {
+          "name": "isFromConfiguredStub",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.http.client.apache5.ApacheHttpClientFactory"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.jetty.JettyHttpServerFactory"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.jetty.WireMockHandlerDispatchingServlet",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.jetty.servlet.ContentTypeSettingFilter",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.jetty.servlet.NotMatchedServlet",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.jetty.servlet.TrailingSlashFilter",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.junit5.WireMockExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.junit5.WireMockTest"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.AnythingPattern"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.ContainsPattern"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.ContentPatternDeserialiser",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.CustomMatcherDefinition"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.EqualToJsonPattern"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.EqualToPattern"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.MultiValuePattern"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.MultiValuePatternDeserializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.MultipartValuePattern"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.MultipartValuePattern$MatchingType"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.NamedValueMatcher"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.RegexPattern"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.RequestPattern",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "com.github.tomakehurst.wiremock.matching.StringValuePattern",
+            "java.lang.Integer",
+            "java.lang.String",
+            "com.github.tomakehurst.wiremock.matching.StringValuePattern",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "com.github.tomakehurst.wiremock.http.RequestMethod",
+            "java.util.Map",
+            "java.util.Map",
+            "java.util.Map",
+            "java.util.Map",
+            "java.util.Map",
+            "com.github.tomakehurst.wiremock.client.BasicCredentials",
+            "java.util.List",
+            "com.github.tomakehurst.wiremock.matching.CustomMatcherDefinition",
+            "java.util.List"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.SingleMatchMultiValuePattern",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.github.tomakehurst.wiremock.matching.StringValuePattern"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.StringValuePatternJsonDeserializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.matching.ValueMatcher"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.stubbing.StubMapping",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.util.UUID",
+            "java.lang.String",
+            "java.lang.Boolean",
+            "com.github.tomakehurst.wiremock.matching.RequestPattern",
+            "com.github.tomakehurst.wiremock.http.ResponseDefinition",
+            "java.lang.Integer",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.util.List",
+            "java.util.List",
+            "com.github.tomakehurst.wiremock.common.Metadata",
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.stubbing.StubMappingOrMappings"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.stubbing.StubMappingOrMappingsJsonDeserializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.verification.diff.DiffEventData",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "getContentType",
+          "parameterTypes": []
+        },
+        {
+          "name": "getReport",
+          "parameterTypes": []
+        },
+        {
+          "name": "getStatus",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.management.GarbageCollectorMXBean"
+    },
+    {
+      "type": "com.sun.management.GcInfo"
+    },
+    {
+      "type": "com.sun.management.HotSpotDiagnosticMXBean",
+      "methods": [
+        {
+          "name": "getVMOption",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.management.ThreadMXBean"
+    },
+    {
+      "type": "com.sun.management.UnixOperatingSystemMXBean"
+    },
+    {
+      "type": "com.sun.management.VMOption",
+      "methods": [
+        {
+          "name": "getName",
+          "parameterTypes": []
+        },
+        {
+          "name": "getOrigin",
+          "parameterTypes": []
+        },
+        {
+          "name": "getValue",
+          "parameterTypes": []
+        },
+        {
+          "name": "isWriteable",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.management.VMOption$Origin",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "ATTACH_ON_DEMAND"
+        },
+        {
+          "name": "CONFIG_FILE"
+        },
+        {
+          "name": "DEFAULT"
+        },
+        {
+          "name": "ENVIRON_VAR"
+        },
+        {
+          "name": "ERGONOMIC"
+        },
+        {
+          "name": "MANAGEMENT"
+        },
+        {
+          "name": "OTHER"
+        },
+        {
+          "name": "VM_CREATION"
+        }
+      ]
+    },
+    {
+      "type": "com.sun.management.internal.DiagnosticCommandArgumentInfo",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "boolean",
+            "boolean",
+            "boolean",
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.management.internal.DiagnosticCommandArgumentInfo[]"
+    },
+    {
+      "type": "com.sun.management.internal.DiagnosticCommandInfo",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "boolean",
+            "java.util.List"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.management.internal.DiagnosticCommandInfo[]"
+    },
+    {
+      "type": "com.sun.management.internal.Flag",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.Object",
+            "boolean",
+            "boolean",
+            "com.sun.management.VMOption$Origin"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.sun.management.internal.GarbageCollectorExtImpl"
+    },
+    {
+      "type": "com.sun.management.internal.HotSpotDiagnostic"
+    },
+    {
+      "type": "com.sun.management.internal.HotSpotThreadImpl"
+    },
+    {
+      "type": "com.sun.management.internal.OperatingSystemImpl"
+    },
+    {
+      "type": "com.sun.management.internal.VirtualThreadSchedulerImpls$VirtualThreadSchedulerImpl"
+    },
+    {
+      "type": "java.lang.management.BufferPoolMXBean"
+    },
+    {
+      "type": "java.lang.management.ClassLoadingMXBean"
+    },
+    {
+      "type": "java.lang.management.CompilationMXBean"
+    },
+    {
+      "type": "java.lang.management.LockInfo"
+    },
+    {
+      "type": "java.lang.management.MemoryMXBean"
+    },
+    {
+      "type": "java.lang.management.MemoryManagerMXBean"
+    },
+    {
+      "type": "java.lang.management.MemoryPoolMXBean"
+    },
+    {
+      "type": "java.lang.management.MemoryUsage"
+    },
+    {
+      "type": "java.lang.management.MonitorInfo"
+    },
+    {
+      "type": "java.lang.management.PlatformLoggingMXBean"
+    },
+    {
+      "type": "java.lang.management.RuntimeMXBean"
+    },
+    {
+      "type": "java.lang.management.ThreadInfo"
+    },
+    {
+      "type": "javax.management.MBeanOperationInfo"
+    },
+    {
+      "type": "javax.management.MBeanServerBuilder",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "javax.management.ObjectName"
+    },
+    {
+      "type": "javax.management.StandardEmitterMBean"
+    },
+    {
+      "type": "javax.management.openmbean.CompositeData"
+    },
+    {
+      "type": "javax.management.openmbean.CompositeData[]"
+    },
+    {
+      "type": "javax.management.openmbean.OpenMBeanOperationInfoSupport"
+    },
+    {
+      "type": "javax.management.openmbean.TabularData"
+    },
+    {
+      "type": "jdk.management.VirtualThreadSchedulerMXBean"
+    },
+    {
+      "type": "jdk.management.jfr.ConfigurationInfo"
+    },
+    {
+      "type": "jdk.management.jfr.EventTypeInfo"
+    },
+    {
+      "type": "jdk.management.jfr.FlightRecorderMXBean"
+    },
+    {
+      "type": "jdk.management.jfr.FlightRecorderMXBeanImpl"
+    },
+    {
+      "type": "jdk.management.jfr.RecordingInfo"
+    },
+    {
+      "type": "jdk.management.jfr.SettingDescriptorInfo"
+    },
+    {
+      "type": "net.javacrumbs.jsonunit.core.internal.Node"
+    },
+    {
+      "type": "net.javacrumbs.jsonunit.core.internal.Node$JsonMap"
+    },
+    {
+      "type": "net.javacrumbs.jsonunit.core.internal.NodeWrapper"
+    },
+    {
+      "type": "org.apache.maven.surefire.booter.spi.LegacyMasterProcessChannelProcessorFactory"
+    },
+    {
+      "type": "org.apache.maven.surefire.booter.spi.SurefireMasterProcessChannelProcessorFactory"
+    },
+    {
+      "type": "org.apache.maven.surefire.junitplatform.JUnitPlatformProvider",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "org.apache.maven.surefire.api.provider.ProviderParameters"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.ee11.servlet.DefaultServlet",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.ee11.servlet.FilterHolder[]"
+    },
+    {
+      "type": "org.eclipse.jetty.ee11.servlets.CrossOriginFilter",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.http.Http10FieldPreEncoder"
+    },
+    {
+      "type": "org.eclipse.jetty.http.Http11FieldPreEncoder"
+    },
+    {
+      "type": "org.eclipse.jetty.http.pathmap.PathSpecSet",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.http2.hpack.HpackFieldPreEncoder"
+    },
+    {
+      "type": "org.eclipse.jetty.util.AsciiLowerCaseSet",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.util.TypeUtil",
+      "methods": [
+        {
+          "name": "getClassLoaderLocation",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "getCodeSourceLocation",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "getModuleLocation",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        },
+        {
+          "name": "getSystemClassLoaderLocation",
+          "parameterTypes": [
+            "java.lang.Class"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.util.Utf8StringBuilder",
+      "methods": [
+        {
+          "name": "errorActionIgnore",
+          "parameterTypes": []
+        },
+        {
+          "name": "errorActionReplace",
+          "parameterTypes": []
+        },
+        {
+          "name": "errorActionReport",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.eclipse.jetty.websocket.core.internal.FragmentExtension"
+    },
+    {
+      "type": "org.eclipse.jetty.websocket.core.internal.FrameCaptureExtension"
+    },
+    {
+      "type": "org.eclipse.jetty.websocket.core.internal.IdentityExtension"
+    },
+    {
+      "type": "org.eclipse.jetty.websocket.core.internal.PerMessageDeflateExtension"
+    },
+    {
+      "type": "org.eclipse.jetty.websocket.core.internal.ValidationExtension"
+    }
+  ],
+  "resources": [
+    {
+      "glob": "META-INF/services/com.github.tomakehurst.wiremock.extension.Extension"
+    },
+    {
+      "glob": "META-INF/services/org.apache.maven.surefire.spi.MasterProcessChannelProcessorFactory"
+    },
+    {
+      "glob": "META-INF/services/org.assertj.core.configuration.Configuration"
+    },
+    {
+      "glob": "META-INF/services/org.assertj.core.presentation.Representation"
+    },
+    {
+      "glob": "META-INF/services/org.eclipse.jetty.http.HttpFieldPreEncoder"
+    },
+    {
+      "glob": "META-INF/services/org.eclipse.jetty.websocket.core.Extension"
+    },
+    {
+      "glob": "META-INF/services/org.junit.platform.commons.support.scanning.ClasspathScanner"
+    },
+    {
+      "glob": "META-INF/services/org.junit.platform.engine.TestEngine"
+    },
+    {
+      "glob": "META-INF/services/org.junit.platform.launcher.LauncherDiscoveryListener"
+    },
+    {
+      "glob": "META-INF/services/org.junit.platform.launcher.LauncherSessionListener"
+    },
+    {
+      "glob": "META-INF/services/org.junit.platform.launcher.PostDiscoveryFilter"
+    },
+    {
+      "glob": "META-INF/services/org.junit.platform.launcher.TestExecutionListener"
+    },
+    {
+      "glob": "assets"
+    },
+    {
+      "glob": "helpers.nashorn.js"
+    },
+    {
+      "bundle": "jakarta.servlet.LocalStrings"
+    },
+    {
+      "bundle": "jakarta.servlet.http.LocalStrings"
+    },
+    {
+      "glob": "jakarta/servlet/LocalStrings.properties"
+    },
+    {
+      "glob": "jakarta/servlet/LocalStrings_en.properties"
+    },
+    {
+      "glob": "jakarta/servlet/LocalStrings_en_US.properties"
+    },
+    {
+      "glob": "jakarta/servlet/http/LocalStrings.properties"
+    },
+    {
+      "glob": "jakarta/servlet/http/LocalStrings_en.properties"
+    },
+    {
+      "glob": "jakarta/servlet/http/LocalStrings_en_US.properties"
+    },
+    {
+      "module": "jdk.jfr",
+      "glob": "jdk/jfr/internal/query/view.ini"
+    },
+    {
+      "glob": "junit-platform.properties"
+    },
+    {
+      "glob": "keystore"
+    },
+    {
+      "glob": "org/eclipse/jetty/http/encoding.properties"
+    },
+    {
+      "glob": "org/eclipse/jetty/http/mime.properties"
+    },
+    {
+      "glob": "org/eclipse/jetty/server/jetty-dir.css"
+    },
+    {
+      "glob": "org/eclipse/jetty/version/build.properties"
+    },
+    {
+      "glob": "org/publicsuffix/list/effective_tld_names.dat"
+    }
+  ]
+}
