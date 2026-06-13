@@ -118,15 +118,16 @@ Implemented: `BypassActorArgs` config record added (reusing `RulesetDetailsRespo
 
 Implemented: `OrgChecker.checkRulesets()` now identifies actual rulesets not in desired config and adds `ruleset.<name>: extra` diffs. `applyFixes()` iterates extra rulesets and calls `GitHubClient.deleteRuleset()` for each. `GitHubClient.deleteRuleset(owner, repo, rulesetId)` sends `DELETE /repos/{owner}/{repo}/rulesets/{id}` and expects 204.
 
-## 25. Missing Repo Detection
+## ~~25. Missing Repo Detection~~ DONE
 
-Repos in config that don't exist on GitHub should be reported as MISSING with exit code 1.
-
-### Plan
-
-- After fetching all org repos, compare against config list.
-- Repos in config but not on GitHub get status MISSING.
-- Include in report and cause non-zero exit.
+Implemented: `OrgChecker.check()` compares the configured repositories against
+the set of repo names returned by `listOrgRepos()`; any config repo not found
+in the org is added as a `CheckResult.RepoCheckResult.missing(name)` with the
+`MISSING` status. `printReport()` prints a `[MISSING] <name>: in config but not
+found in org` line and a `Missing:` summary count (`CheckResult.missingCount()`).
+`CheckResult.hasDrift()` now returns `true` when `missingCount() > 0`, so a
+missing repo causes a non-zero exit code. `CheckResultTest` covers
+`missingCount()` and the `hasDrift()` behaviour for missing/unknown repos.
 
 ## ~~26. Move Hardcoded Desired Values from OrgChecker to RepositoryArgs~~ DONE
 

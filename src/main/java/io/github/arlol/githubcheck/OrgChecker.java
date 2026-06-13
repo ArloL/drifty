@@ -648,6 +648,7 @@ public class OrgChecker {
 		System.out.printf("Drifted:        %d%n", result.driftCount());
 		System.out.printf("Errored:        %d%n", result.errorCount());
 		System.out.printf("Unknown:        %d%n", result.unknownCount());
+		System.out.printf("Missing:        %d%n", result.missingCount());
 	}
 
 }
