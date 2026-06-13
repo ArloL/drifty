@@ -38,4 +38,20 @@ class CheckResultTest {
 		assertThat(result.hasDrift()).isFalse();
 	}
 
+	@Test
+	void drift_carriesFixPreview() {
+		var r = RepoCheckResult.drift(
+				"a",
+				List.of("description: want=Foo got="),
+				List.of("repo_settings", "topics")
+		);
+		assertThat(r.fixPreview()).containsExactly("repo_settings", "topics");
+	}
+
+	@Test
+	void drift_defaultsToEmptyFixPreview() {
+		var r = RepoCheckResult.drift("a", List.of("some diff"));
+		assertThat(r.fixPreview()).isEmpty();
+	}
+
 }

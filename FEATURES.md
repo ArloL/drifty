@@ -52,15 +52,18 @@ Per spec update: the owner is hardcoded in the config code. No CLI argument need
 
 Implemented: `RepositoryArgs.Builder` gained a `name(String)` setter (making `toBuilder()` usable as a group-defaults template) and an `addRequiredStatusChecks()` method that appends to the inherited list instead of replacing it. `GitHubCheck.repositories()` was reorganized into four named groups — `pagesSites` (6 repos sharing `.pages()`), `mainCiRepos` (9 repos sharing `main.required-status-check`), `individual` (unique configs), and `archived` — combined into a flat list via `Stream.of(...).flatMap(List::stream).toList()`. A new `RepositoryArgsTest` covers the builder additions.
 
-## 12. Human-Readable Fix Previews
+## ~~12. Human-Readable Fix Previews~~ DONE
 
-The default (non-fix) output should show human-readable previews of what `--fix` would do (e.g. `Would fix: enable auto-merge, update description`).
-
-### Plan
-
-- After printing drifts for a repo, compute and print human-readable descriptions of the fixes that would be applied.
-- Format: `Would fix: <comma-separated list of actions>`.
-- This requires the fix logic to be queryable without executing — extract fix descriptions as data before applying.
+Implemented: in check mode (no `--fix`), `OrgChecker.checkOne()` collects the
+names of the drift groups that detected drift (the keys of `groupDrifts`, which
+only contains groups with non-empty fixes) and passes them as a `fixPreview`
+list on `CheckResult.RepoCheckResult.drift(name, diffs, fixPreview)`.
+`printReport()` prints a `  Would fix: <group1, group2, ...>` line after the
+drift list for each drifted repo. The preview is derived without executing any
+fix — it reflects the groups whose `--fix` action would run. In `--fix` mode no
+preview is emitted (the fixes are applied instead). Group names (e.g.
+`repo_settings`, `advanced_security`, `topics`) are the human-readable tokens;
+`CheckResultTest` covers that `drift(...)` carries and defaults the preview.
 
 ## ~~13. `--verbose` Flag~~ DROPPED
 
