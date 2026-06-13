@@ -187,17 +187,22 @@ against `securityAndAnalysis.secretScanningDelegatedAlertDismissal().status()`
 and fixes via PATCH
 `security_and_analysis.secret_scanning_delegated_alert_dismissal.status`.
 
-## 31. Secret Scanning Delegated Bypass
+## ~~31. Secret Scanning Delegated Bypass~~ DONE
 
-Enable/disable delegated secret scanning bypass per repo, including configuration of bypass reviewers.
-
-### Plan
-
-- Add `secretScanningDelegatedBypass` boolean field to `RepositoryArgs` (default: `false`).
-- Add `secretScanningDelegatedBypassReviewers` list field to `RepositoryArgs` (default: `[]`) — each entry specifies a reviewer (type + id, similar to `BypassActorArgs`).
-- Read `securityAndAnalysis.secretScanningDelegatedBypass()` in `checkSecuritySettings()`.
-- Diff the enabled status and the reviewer list.
-- Fix via PATCH `security_and_analysis.secret_scanning_delegated_bypass` with `{"status": "enabled"|"disabled", "bypass_reviewers": [...]}`.
+Implemented: `RepositoryArgs` has a `secretScanningDelegatedBypass` boolean
+(default `false`) and a `secretScanningDelegatedBypassReviewers` list of
+`SecretScanningBypassReviewerArgs` (reviewer id + `ReviewerType` enum
+`TEAM`/`ROLE`), wired through the Pkl schema (`SecretScanningBypassReviewer`
+class + `SecretScanningBypassReviewerType` typealias) and `PklConfigLoader`. The
+client `SecurityAndAnalysis` record gained a `secretScanningDelegatedBypassOptions`
+field (`DelegatedBypassOptions` holding a `List<BypassReviewer>`) so the same
+record models both the GET response and the PATCH request.
+`SecretScanningDelegatedBypassDriftGroup` diffs the enabled status and — only
+when enabled — the reviewer set (compared as `TYPE:id` strings). The fix sends a
+single PATCH with `security_and_analysis.secret_scanning_delegated_bypass.status`
+and, when enabled, `security_and_analysis.secret_scanning_delegated_bypass_options.reviewers`
+(`reviewer_id` + `reviewer_type`). Actual reviewers are read via the
+`OrgChecker.bypassReviewers()` helper.
 
 ## ~~32. Pkl as the Default Configuration~~ DONE
 

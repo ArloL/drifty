@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.client;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -14,7 +16,8 @@ public record SecurityAndAnalysis(
 		StatusObject secretScanningValidityChecks,
 		StatusObject secretScanningAiDetection,
 		StatusObject secretScanningDelegatedAlertDismissal,
-		StatusObject secretScanningDelegatedBypass
+		StatusObject secretScanningDelegatedBypass,
+		DelegatedBypassOptions secretScanningDelegatedBypassOptions
 ) {
 
 	public static Builder builder() {
@@ -33,6 +36,7 @@ public record SecurityAndAnalysis(
 		private StatusObject secretScanningAiDetection;
 		private StatusObject secretScanningDelegatedAlertDismissal;
 		private StatusObject secretScanningDelegatedBypass;
+		private DelegatedBypassOptions secretScanningDelegatedBypassOptions;
 
 		private Builder() {
 		}
@@ -88,6 +92,15 @@ public record SecurityAndAnalysis(
 			return this;
 		}
 
+		public Builder secretScanningDelegatedBypassReviewers(
+				List<BypassReviewer> reviewers
+		) {
+			this.secretScanningDelegatedBypassOptions = new DelegatedBypassOptions(
+					reviewers
+			);
+			return this;
+		}
+
 		public SecurityAndAnalysis build() {
 			return new SecurityAndAnalysis(
 					secretScanning,
@@ -99,8 +112,27 @@ public record SecurityAndAnalysis(
 					secretScanningValidityChecks,
 					secretScanningAiDetection,
 					secretScanningDelegatedAlertDismissal,
-					secretScanningDelegatedBypass
+					secretScanningDelegatedBypass,
+					secretScanningDelegatedBypassOptions
 			);
+		}
+
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public record DelegatedBypassOptions(
+			List<BypassReviewer> reviewers
+	) {
+
+	}
+
+	public record BypassReviewer(
+			Long reviewerId,
+			ReviewerType reviewerType
+	) {
+
+		public enum ReviewerType {
+			TEAM, ROLE
 		}
 
 	}

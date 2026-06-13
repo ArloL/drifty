@@ -13,6 +13,12 @@ typealias SecurityAlertsThreshold = "none" | "critical" | "high_or_higher" | "me
 typealias PatternOperator = "starts_with" | "ends_with" | "contains" | "regex"
 typealias ActorType = "Integration" | "OrganizationAdmin" | "RepositoryRole" | "Team"
 typealias BypassMode = "always" | "pull_request"
+typealias SecretScanningBypassReviewerType = "TEAM" | "ROLE"
+
+class SecretScanningBypassReviewer {
+  reviewerId: Int
+  reviewerType: SecretScanningBypassReviewerType
+}
 
 class StatusCheck {
   context: String
@@ -126,6 +132,8 @@ class Repository {
   advancedSecurity: Boolean = false
   secretScanningAiDetection: Boolean = false
   secretScanningDelegatedAlertDismissal: Boolean = false
+  secretScanningDelegatedBypass: Boolean = false
+  secretScanningDelegatedBypassReviewers: Listing<SecretScanningBypassReviewer> = new {}
 
   defaultWorkflowPermissions: WorkflowPermissions = "write"
   canApprovePullRequestReviews: Boolean = true
