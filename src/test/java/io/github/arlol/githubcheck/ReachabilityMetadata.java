@@ -35,24 +35,27 @@ import io.github.classgraph.ScanResult;
  *
  * <p>
  * Reflection uses a production <em>allowlist</em>: only the project's own types
- * and the lazysodium/JNA binding (whose JNI registration is not in the metadata
- * repository) belong in the shipped image. Everything else is routed to
+ * and the {@code com.goterl.lazysodium} binding (which ships no native-image
+ * metadata of its own — its {@code sodium_init} JNI registration is the one
+ * third-party entry the repository does not cover) belong in the shipped image.
+ * Everything else, including JNA itself, is routed to
  * {@code src/test/resources}. This was established empirically — the production
  * native image builds, loads Pkl config and reaches GitHub over TLS with only
  * the allowlisted reflection, and the full native test suite (Jackson
- * round-trips + libsodium crypto) passes — so the ~160 third-party/JDK entries
+ * round-trips + libsodium crypto) passes — so the ~180 third-party/JDK entries
  * the agent recorded are all repository-supplied.
  *
  * <p>
  * Resources use the same allowlist idea: only Pkl's own resources (mapper
- * configs, stdlib, ServiceLoader files) and the {@code libsodium}/
- * {@code jnidispatch} native libraries survive into the production image — they
- * are the resources the metadata repository does not supply. The lazysodium
- * library is emitted as a platform-agnostic {@code **}{@code /libsodium.*} glob
- * (see {@link #NATIVE_LIB_GLOBS}) rather than the host path the agent traced,
- * so cross-platform native builds bundle their own variant. The native test
- * image puts both resource roots on its classpath, so it still sees the union;
- * the production image sees only the trimmed file.
+ * configs, stdlib, ServiceLoader files) and the lazysodium native library
+ * survive into the production image — they are the resources the metadata
+ * repository does not supply. (JNA's {@code jnidispatch} is repository-covered,
+ * so it is dropped.) The lazysodium library is emitted as a platform-agnostic
+ * {@code **}{@code /libsodium.*} glob (see {@link #NATIVE_LIB_GLOBS}) rather
+ * than the host path the agent traced, so cross-platform native builds bundle
+ * their own variant. The native test image puts both resource roots on its
+ * classpath, so it still sees the union; the production image sees only the
+ * trimmed file.
  *
  * <p>
  * After splitting, the production file is augmented with every public record in
@@ -87,8 +90,7 @@ public final class ReachabilityMetadata {
 	 */
 	private static final List<String> MAIN_TYPE_PREFIXES = List.of(
 			"io.github.arlol.", // project records (Jackson + Pkl)
-			"com.sun.jna.", // lazysodium's JNI binding
-			"com.goterl.lazysodium." // secret encryption
+			"com.goterl.lazysodium." // secret encryption (ships no metadata)
 	);
 
 	/**
@@ -101,8 +103,7 @@ public final class ReachabilityMetadata {
 	private static final List<String> MAIN_RESOURCE_PREFIXES = List.of(
 			"META-INF/org/pkl/", // Pkl java-config class mappers
 			"META-INF/services/org.pkl.", // Pkl ServiceLoader providers
-			"org/pkl/", // Pkl stdlib + Release.properties
-			"com/sun/jna/" // JNA dispatch native library
+			"org/pkl/" // Pkl stdlib + Release.properties
 	);
 
 	/**
