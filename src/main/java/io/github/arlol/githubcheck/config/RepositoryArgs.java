@@ -44,6 +44,9 @@ public record RepositoryArgs(
 		boolean secretScanningNonProviderPatterns,
 		boolean privateVulnerabilityReporting,
 		boolean codeScanningDefaultSetup,
+		boolean advancedSecurity,
+		boolean secretScanningAiDetection,
+		boolean secretScanningDelegatedAlertDismissal,
 		boolean hasIssues,
 		boolean hasProjects,
 		boolean hasWiki,
@@ -110,6 +113,9 @@ public record RepositoryArgs(
 		private boolean secretScanningNonProviderPatterns = false;
 		private boolean privateVulnerabilityReporting = false;
 		private boolean codeScanningDefaultSetup = false;
+		private boolean advancedSecurity = false;
+		private boolean secretScanningAiDetection = false;
+		private boolean secretScanningDelegatedAlertDismissal = false;
 		private boolean hasIssues = true;
 		private boolean hasProjects = true;
 		private boolean hasWiki = true;
@@ -158,6 +164,9 @@ public record RepositoryArgs(
 			this.secretScanningNonProviderPatterns = repositoryArgs.secretScanningNonProviderPatterns;
 			this.privateVulnerabilityReporting = repositoryArgs.privateVulnerabilityReporting;
 			this.codeScanningDefaultSetup = repositoryArgs.codeScanningDefaultSetup;
+			this.advancedSecurity = repositoryArgs.advancedSecurity;
+			this.secretScanningAiDetection = repositoryArgs.secretScanningAiDetection;
+			this.secretScanningDelegatedAlertDismissal = repositoryArgs.secretScanningDelegatedAlertDismissal;
 			this.hasIssues = repositoryArgs.hasIssues;
 			this.hasProjects = repositoryArgs.hasProjects;
 			this.hasWiki = repositoryArgs.hasWiki;
@@ -358,6 +367,25 @@ public record RepositoryArgs(
 			return this;
 		}
 
+		public Builder advancedSecurity(boolean advancedSecurity) {
+			this.advancedSecurity = advancedSecurity;
+			return this;
+		}
+
+		public Builder secretScanningAiDetection(
+				boolean secretScanningAiDetection
+		) {
+			this.secretScanningAiDetection = secretScanningAiDetection;
+			return this;
+		}
+
+		public Builder secretScanningDelegatedAlertDismissal(
+				boolean secretScanningDelegatedAlertDismissal
+		) {
+			this.secretScanningDelegatedAlertDismissal = secretScanningDelegatedAlertDismissal;
+			return this;
+		}
+
 		public Builder hasIssues(boolean hasIssues) {
 			this.hasIssues = hasIssues;
 			return this;
@@ -481,6 +509,9 @@ public record RepositoryArgs(
 					secretScanningNonProviderPatterns,
 					privateVulnerabilityReporting,
 					codeScanningDefaultSetup,
+					advancedSecurity,
+					secretScanningAiDetection,
+					secretScanningDelegatedAlertDismissal,
 					hasIssues,
 					hasProjects,
 					hasWiki,

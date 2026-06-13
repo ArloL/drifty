@@ -158,36 +158,34 @@ Implemented: Eight new settings added to `RepositoryArgs` (with GitHub-matching 
 
 All fields are already present in `RepositoryFull` (fetched from the API), so no new API calls were needed.
 
-## 28. GitHub Advanced Security (GHAS)
+## ~~28. GitHub Advanced Security (GHAS)~~ DONE
 
-Enable/disable GitHub Advanced Security per repo via the `advanced_security` field in `security_and_analysis`.
+Implemented: `RepositoryArgs` has an `advancedSecurity` boolean field (default
+`false`) wired through the Pkl schema (`config/drifty.pkl`) and `PklConfigLoader`.
+`AdvancedSecurityDriftGroup` diffs `desired.advancedSecurity()` against the
+actual `securityAndAnalysis.advancedSecurity().status()` (read via the
+`OrgChecker.securityFlag()` helper) and fixes via PATCH
+`security_and_analysis.advanced_security.status` (`"enabled"`/`"disabled"`).
+Enabling GHAS on a private repo that lacks a paid plan makes the PATCH fail;
+`applyFixes()` already catches per-group fix exceptions and leaves the diff in
+the remaining list, so such failures are reported but not fatal.
 
-### Plan
+## ~~29. Secret Scanning AI Detection~~ DONE
 
-- Add `advancedSecurity` boolean field to `RepositoryArgs` (default: `false`).
-- Read `securityAndAnalysis.advancedSecurity().status()` in `checkSecuritySettings()`.
-- Fix via PATCH `security_and_analysis.advanced_security.status` (`"enabled"` / `"disabled"`).
-- Note: enabling GHAS on private repos requires a paid plan; fix failures should be reported but not fatal.
+Implemented: `RepositoryArgs` has a `secretScanningAiDetection` boolean field
+(default `false`) wired through the Pkl schema and `PklConfigLoader`.
+`SecretScanningAiDetectionDriftGroup` diffs against
+`securityAndAnalysis.secretScanningAiDetection().status()` and fixes via PATCH
+`security_and_analysis.secret_scanning_ai_detection.status`.
 
-## 29. Secret Scanning AI Detection
+## ~~30. Secret Scanning Delegated Alert Dismissal~~ DONE
 
-Enable/disable AI-powered secret scanning detection per repo.
-
-### Plan
-
-- Add `secretScanningAiDetection` boolean field to `RepositoryArgs` (default: `false`).
-- Read `securityAndAnalysis.secretScanningAiDetection().status()` in `checkSecuritySettings()`.
-- Fix via PATCH `security_and_analysis.secret_scanning_ai_detection.status`.
-
-## 30. Secret Scanning Delegated Alert Dismissal
-
-Enable/disable delegated secret scanning alert dismissal per repo.
-
-### Plan
-
-- Add `secretScanningDelegatedAlertDismissal` boolean field to `RepositoryArgs` (default: `false`).
-- Read `securityAndAnalysis.secretScanningDelegatedAlertDismissal().status()` in `checkSecuritySettings()`.
-- Fix via PATCH `security_and_analysis.secret_scanning_delegated_alert_dismissal.status`.
+Implemented: `RepositoryArgs` has a `secretScanningDelegatedAlertDismissal`
+boolean field (default `false`) wired through the Pkl schema and
+`PklConfigLoader`. `SecretScanningDelegatedAlertDismissalDriftGroup` diffs
+against `securityAndAnalysis.secretScanningDelegatedAlertDismissal().status()`
+and fixes via PATCH
+`security_and_analysis.secret_scanning_delegated_alert_dismissal.status`.
 
 ## 31. Secret Scanning Delegated Bypass
 

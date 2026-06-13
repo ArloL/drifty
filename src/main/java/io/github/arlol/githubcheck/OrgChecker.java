@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
@@ -27,6 +28,7 @@ import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.config.RepositoryArgs;
 import io.github.arlol.githubcheck.drift.ActionSecretsDriftGroup;
+import io.github.arlol.githubcheck.drift.AdvancedSecurityDriftGroup;
 import io.github.arlol.githubcheck.drift.ArchivedDriftGroup;
 import io.github.arlol.githubcheck.drift.AutomatedSecurityFixesDriftGroup;
 import io.github.arlol.githubcheck.drift.BranchProtectionDriftGroup;
@@ -42,6 +44,8 @@ import io.github.arlol.githubcheck.drift.PagesDriftGroup;
 import io.github.arlol.githubcheck.drift.PrivateVulnerabilityReportingDriftGroup;
 import io.github.arlol.githubcheck.drift.RepoSettingsDriftGroup;
 import io.github.arlol.githubcheck.drift.RulesetDriftGroup;
+import io.github.arlol.githubcheck.drift.SecretScanningAiDetectionDriftGroup;
+import io.github.arlol.githubcheck.drift.SecretScanningDelegatedAlertDismissalDriftGroup;
 import io.github.arlol.githubcheck.drift.SecretScanningDriftGroup;
 import io.github.arlol.githubcheck.drift.SecretScanningNonProviderPatternsDriftGroup;
 import io.github.arlol.githubcheck.drift.SecretScanningPushProtectionDriftGroup;
@@ -338,6 +342,19 @@ public class OrgChecker {
 		return groupDrifts;
 	}
 
+	private static boolean securityFlag(
+			RepositoryState actual,
+			Function<SecurityAndAnalysis, SecurityAndAnalysis.StatusObject> getter
+	) {
+		var sa = actual.details().securityAndAnalysis();
+		if (sa == null) {
+			return false;
+		}
+		var statusObject = getter.apply(sa);
+		return statusObject != null && statusObject
+				.status() == SecurityAndAnalysis.StatusObject.Status.ENABLED;
+	}
+
 	List<DriftGroup> createDriftGroups(
 			RepositoryState actual,
 			RepositoryArgs desired
@@ -545,6 +562,42 @@ public class OrgChecker {
 				new SecretScanningValidityChecksDriftGroup(
 						desired,
 						actual.secretScanningValidityChecks(),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
+				new AdvancedSecurityDriftGroup(
+						desired,
+						securityFlag(
+								actual,
+								SecurityAndAnalysis::advancedSecurity
+						),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
+				new SecretScanningAiDetectionDriftGroup(
+						desired,
+						securityFlag(
+								actual,
+								SecurityAndAnalysis::secretScanningAiDetection
+						),
+						client,
+						org,
+						actual.summary().name()
+				)
+		);
+		groups.add(
+				new SecretScanningDelegatedAlertDismissalDriftGroup(
+						desired,
+						securityFlag(
+								actual,
+								SecurityAndAnalysis::secretScanningDelegatedAlertDismissal
+						),
 						client,
 						org,
 						actual.summary().name()
