@@ -2295,6 +2295,9 @@
   ],
   "resources": [
     {
+      "glob": "**/libsodium.*"
+    },
+    {
       "glob": "META-INF/org/pkl/config/java/mapper/classes/drifty.properties"
     },
     {
@@ -2311,9 +2314,6 @@
     },
     {
       "glob": "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib"
-    },
-    {
-      "glob": "mac_arm/libsodium.dylib"
     },
     {
       "glob": "org/pkl/core/Release.properties"

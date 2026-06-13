@@ -47,7 +47,10 @@ import io.github.classgraph.ScanResult;
  * Resources use the same allowlist idea: only Pkl's own resources (mapper
  * configs, stdlib, ServiceLoader files) and the {@code libsodium}/
  * {@code jnidispatch} native libraries survive into the production image — they
- * are the resources the metadata repository does not supply. The native test
+ * are the resources the metadata repository does not supply. The lazysodium
+ * library is emitted as a platform-agnostic {@code **}{@code /libsodium.*} glob
+ * (see {@link #NATIVE_LIB_GLOBS}) rather than the host path the agent traced,
+ * so cross-platform native builds bundle their own variant. The native test
  * image puts both resource roots on its classpath, so it still sees the union;
  * the production image sees only the trimmed file.
  *
@@ -102,10 +105,16 @@ public final class ReachabilityMetadata {
 			"com/sun/jna/" // JNA dispatch native library
 	);
 
-	/** Production resource glob substrings (platform dir varies by build). */
-	private static final List<String> MAIN_RESOURCE_SUBSTRINGS = List.of(
-			"libsodium" // lazysodium native library
-	);
+	/**
+	 * Native-library resources emitted as platform-agnostic globs. The agent
+	 * only traces the host variant (e.g. {@code mac_arm/libsodium.dylib}), but
+	 * lazysodium probes several candidate paths at load time and a
+	 * linux/windows native build needs its own variant — so match every variant
+	 * the jar bundles. The agent's host-specific entry is dropped in favour of
+	 * this.
+	 */
+	private static final List<String> NATIVE_LIB_GLOBS = List
+			.of("**/libsodium.*");
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	private static final ObjectWriter WRITER = writer();
@@ -131,7 +140,13 @@ public final class ReachabilityMetadata {
 		var mainRes = MAPPER.createArrayNode();
 		var testRes = MAPPER.createArrayNode();
 		for (JsonNode e : resources) {
+			if (e.path("glob").asText("").contains("libsodium")) {
+				continue; // replaced by NATIVE_LIB_GLOBS below
+			}
 			(isMainResource(e) ? mainRes : testRes).add(e);
+		}
+		for (String glob : NATIVE_LIB_GLOBS) {
+			mainRes.add(MAPPER.createObjectNode().put("glob", glob));
 		}
 
 		augmentProjectRecords(mainRefl);
@@ -170,8 +185,7 @@ public final class ReachabilityMetadata {
 			return false;
 		}
 		String g = glob.asText();
-		return MAIN_RESOURCE_PREFIXES.stream().anyMatch(g::startsWith)
-				|| MAIN_RESOURCE_SUBSTRINGS.stream().anyMatch(g::contains);
+		return MAIN_RESOURCE_PREFIXES.stream().anyMatch(g::startsWith);
 	}
 
 	/**
