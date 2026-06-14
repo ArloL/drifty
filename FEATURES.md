@@ -209,7 +209,7 @@ and, when enabled, `security_and_analysis.secret_scanning_delegated_bypass_optio
 
 ## ~~32. Pkl as the Default Configuration~~ DONE
 
-Implemented: Pkl is now the only configuration mechanism. The hardcoded Java config method `GitHubCheck.repositories()` was removed. `GitHubCheck.main()` resolves a config path — the value of `--pkl <path>` when supplied, otherwise `./drifty.pkl` in the working directory — and exits with code 1 and `ERROR: config file not found: <path>` if it is missing. `PklConfigLoaderTest` was reworked from a Java/Pkl equivalence check into a smoke test that loads `config/ArloL.pkl`. `SPEC.md` was updated to describe the Pkl configuration model.
+Implemented: Pkl is now the only configuration mechanism. The hardcoded Java config method `GitHubCheck.repositories()` was removed. `GitHubCheck.main()` resolves a config path — the value of `--config <path>` when supplied, otherwise `./drifty.pkl` in the working directory — and exits with code 1 and `ERROR: config file not found: <path>` if it is missing. `PklConfigLoaderTest` was reworked from a Java/Pkl equivalence check into a smoke test that loads `config/ArloL.pkl`. `SPEC.md` was updated to describe the Pkl configuration model.
 
 ## ~~33. Secret Drift Detection via State File~~ DONE
 
