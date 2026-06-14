@@ -124,6 +124,10 @@ public record SecurityAndAnalysis(
 			List<BypassReviewer> reviewers
 	) {
 
+		public DelegatedBypassOptions {
+			reviewers = reviewers == null ? null : List.copyOf(reviewers);
+		}
+
 	}
 
 	public record BypassReviewer(

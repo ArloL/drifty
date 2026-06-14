@@ -34,7 +34,7 @@ public class SecretScanningDelegatedBypassDriftGroup extends DriftGroup {
 		this.actualEnabled = actualEnabled;
 		this.desiredReviewers = desired
 				.secretScanningDelegatedBypassReviewers();
-		this.actualReviewers = actualReviewers;
+		this.actualReviewers = List.copyOf(actualReviewers);
 		this.client = client;
 		this.owner = owner;
 		this.repo = repo;
