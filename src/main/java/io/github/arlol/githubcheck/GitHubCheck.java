@@ -38,10 +38,11 @@ public class GitHubCheck {
 
 		var argsList = List.of(args);
 		boolean fix = argsList.contains("--fix");
-		int pklIndex = argsList.indexOf("--pkl");
-		String pklPath = (pklIndex >= 0 && pklIndex + 1 < argsList.size())
-				? argsList.get(pklIndex + 1)
-				: null;
+		int configIndex = argsList.indexOf("--config");
+		String configArg = (configIndex >= 0
+				&& configIndex + 1 < argsList.size())
+						? argsList.get(configIndex + 1)
+						: null;
 		int stateIndex = argsList.indexOf("--state");
 		String statePath = (stateIndex >= 0 && stateIndex + 1 < argsList.size())
 				? argsList.get(stateIndex + 1)
@@ -65,7 +66,7 @@ public class GitHubCheck {
 					);
 		}
 
-		Path configPath = pklPath != null ? Path.of(pklPath)
+		Path configPath = configArg != null ? Path.of(configArg)
 				: Path.of("drifty.pkl");
 		if (!Files.isRegularFile(configPath)) {
 			System.err.println("ERROR: config file not found: " + configPath);

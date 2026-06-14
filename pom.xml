@@ -433,7 +433,7 @@
 						<classpath />
 						<argument>${start-class}</argument>
 						<argument>--no-fix</argument>
-						<argument>--pkl</argument>
+						<argument>--config</argument>
 						<argument>./config/ArloL.pkl</argument>
 					</arguments>
 				</configuration>

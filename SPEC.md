@@ -10,7 +10,7 @@
 
 Desired repository state is defined in a **Pkl** configuration file. The schema lives in `config/drifty.pkl`; a concrete config `amends` it and lists the managed repositories (see `config/ArloL.pkl` for a complete example).
 
-drifty loads `./drifty.pkl` from the current working directory by default. A different file can be passed with `--pkl <path>`.
+drifty loads `./drifty.pkl` from the current working directory by default. A different file can be passed with `--config <path>`.
 
 #### Field Defaults
 
@@ -61,7 +61,7 @@ If a repo is listed in config but does not exist on GitHub, it is reported as `M
 ```
 drifty                # Report drift; loads ./drifty.pkl by default
 drifty --fix          # Apply all fixable changes
-drifty --pkl <path>   # Use a config file at an explicit path
+drifty --config <path> # Use a config file at an explicit path
 drifty --state <path> # Use a state file at an explicit path
 ```
 
