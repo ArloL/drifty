@@ -8,8 +8,9 @@ import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis.BypassReviewer;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis.BypassReviewer.ReviewerType;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
-import io.github.arlol.githubcheck.config.SecretScanningBypassReviewerArgs;
+import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.testsupport.SecretScanningBypassReviewerArgs;
 
 class SecretScanningDelegatedBypassDriftGroupTest {
 
@@ -25,7 +26,7 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 				)
 				.build();
 		var group = new SecretScanningDelegatedBypassDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				true,
 				List.of(new BypassReviewer(7L, ReviewerType.TEAM)),
 				null,
@@ -44,7 +45,7 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 				.secretScanningDelegatedBypass(true)
 				.build();
 		var group = new SecretScanningDelegatedBypassDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				false,
 				List.of(),
 				null,
@@ -76,7 +77,7 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 				)
 				.build();
 		var group = new SecretScanningDelegatedBypassDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				true,
 				List.of(new BypassReviewer(9L, ReviewerType.ROLE)),
 				null,
@@ -99,7 +100,7 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 				.secretScanningDelegatedBypass(false)
 				.build();
 		var group = new SecretScanningDelegatedBypassDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				false,
 				List.of(new BypassReviewer(9L, ReviewerType.ROLE)),
 				null,

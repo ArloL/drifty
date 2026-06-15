@@ -22,6 +22,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.github.arlol.githubcheck.drift.DriftFix;
+import io.github.arlol.githubcheck.drift.DriftGroup;
+import io.github.arlol.githubcheck.testsupport.ToDrifty;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -46,12 +50,12 @@ import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
-import io.github.arlol.githubcheck.config.BranchProtectionArgs;
-import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
-import io.github.arlol.githubcheck.config.RulesetArgs;
-import io.github.arlol.githubcheck.config.SecretScanningBypassReviewerArgs;
-import io.github.arlol.githubcheck.config.StatusCheckArgs;
+import io.github.arlol.githubcheck.testsupport.BranchProtectionArgs;
+import io.github.arlol.githubcheck.testsupport.CodeScanningToolArgs;
+import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.RulesetArgs;
+import io.github.arlol.githubcheck.testsupport.SecretScanningBypassReviewerArgs;
+import io.github.arlol.githubcheck.testsupport.StatusCheckArgs;
 import io.github.arlol.githubcheck.drift.DriftItem;
 
 @WireMockTest
@@ -131,6 +135,13 @@ class OrgCheckerFixTest {
 	void setUp(WireMockRuntimeInfo wm) {
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
 		checker = new OrgChecker(client, "owner", true);
+	}
+
+	private Map<DriftGroup, List<DriftFix>> computeGroupDrifts(
+			RepositoryState actual,
+			RepositoryArgs desired
+	) {
+		return checker.computeGroupDrifts(actual, ToDrifty.repository(desired));
 	}
 
 	// ─── Helpers
@@ -219,7 +230,7 @@ class OrgCheckerFixTest {
 	@Test
 	void noDiffs_noApiCalls() throws Exception {
 		var state = goodPublicState();
-		var groupDrifts = checker.computeGroupDrifts(
+		var groupDrifts = computeGroupDrifts(
 				state,
 				RepositoryArgs.create("owner", "repo").build()
 		);
@@ -243,7 +254,7 @@ class OrgCheckerFixTest {
 
 		var state = goodPublicState(); // topics = []
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -275,7 +286,7 @@ class OrgCheckerFixTest {
 				{"description": "wrong"}
 				""");
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -331,7 +342,7 @@ class OrgCheckerFixTest {
 				{"description": "wrong"}
 				""");
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -393,7 +404,7 @@ class OrgCheckerFixTest {
 				}
 				""");
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -475,7 +486,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(stateWithBadVuln, desired);
+		var groupDrifts = computeGroupDrifts(stateWithBadVuln, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -544,7 +555,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -622,7 +633,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -680,7 +691,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -737,7 +748,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -775,7 +786,7 @@ class OrgCheckerFixTest {
 
 		var state = goodPublicState();
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -826,7 +837,7 @@ class OrgCheckerFixTest {
 
 		var state = goodPublicState();
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -876,7 +887,7 @@ class OrgCheckerFixTest {
 						"""
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -926,7 +937,7 @@ class OrgCheckerFixTest {
 						"""
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -976,7 +987,7 @@ class OrgCheckerFixTest {
 						"""
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1023,7 +1034,7 @@ class OrgCheckerFixTest {
 						"""
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1073,7 +1084,7 @@ class OrgCheckerFixTest {
 						"""
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1130,7 +1141,7 @@ class OrgCheckerFixTest {
 						"""
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1199,7 +1210,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1264,7 +1275,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1328,7 +1339,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1385,7 +1396,7 @@ class OrgCheckerFixTest {
 				true
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1444,7 +1455,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1475,7 +1486,7 @@ class OrgCheckerFixTest {
 		RepositoryArgs desired = RepositoryArgs.create("owner", "repo").build();
 		var state = goodPublicState();
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1538,7 +1549,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1582,7 +1593,7 @@ class OrgCheckerFixTest {
 
 		var state = goodPublicState();
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1632,7 +1643,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1707,7 +1718,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1788,7 +1799,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1875,7 +1886,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1915,7 +1926,7 @@ class OrgCheckerFixTest {
 		RepositoryArgs desired = RepositoryArgs.create("owner", "repo").build();
 		var state = goodPublicState();
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -1971,7 +1982,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2009,7 +2020,7 @@ class OrgCheckerFixTest {
 				{"description": "wrong"}
 				""");
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2086,7 +2097,7 @@ class OrgCheckerFixTest {
 
 		var state = goodPublicState(); // no rulesets
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2200,7 +2211,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2291,7 +2302,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2358,7 +2369,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2419,7 +2430,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2483,7 +2494,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2512,7 +2523,7 @@ class OrgCheckerFixTest {
 
 		var state = goodPublicState();
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2574,7 +2585,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2639,7 +2650,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2703,7 +2714,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2786,7 +2797,11 @@ class OrgCheckerFixTest {
 				.actionsSecrets("PAT")
 				.build();
 
-		var groupDrifts = localChecker.computeGroupDrifts(state, desired);
+		var groupDrifts = localChecker.computeGroupDrifts(
+				state,
+				io.github.arlol.githubcheck.testsupport.ToDrifty
+						.repository(desired)
+		);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2835,7 +2850,11 @@ class OrgCheckerFixTest {
 				.actionsSecrets("PAT")
 				.build();
 
-		var groupDrifts = localChecker.computeGroupDrifts(state, desired);
+		var groupDrifts = localChecker.computeGroupDrifts(
+				state,
+				io.github.arlol.githubcheck.testsupport.ToDrifty
+						.repository(desired)
+		);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2926,7 +2945,11 @@ class OrgCheckerFixTest {
 				)
 				.build();
 
-		var groupDrifts = localChecker.computeGroupDrifts(state, desired);
+		var groupDrifts = localChecker.computeGroupDrifts(
+				state,
+				io.github.arlol.githubcheck.testsupport.ToDrifty
+						.repository(desired)
+		);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -2960,7 +2983,7 @@ class OrgCheckerFixTest {
 		var desired = RepositoryArgs.create("owner", "repo").archived().build();
 		var state = goodPublicState(); // not archived
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()
@@ -3011,7 +3034,7 @@ class OrgCheckerFixTest {
 				false
 		);
 
-		var groupDrifts = checker.computeGroupDrifts(state, desired);
+		var groupDrifts = computeGroupDrifts(state, desired);
 
 		var messages = groupDrifts.values()
 				.stream()

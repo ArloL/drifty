@@ -10,9 +10,10 @@ import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetTarget;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
-import io.github.arlol.githubcheck.config.RulesetArgs;
-import io.github.arlol.githubcheck.config.StatusCheckArgs;
+import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.testsupport.RulesetArgs;
+import io.github.arlol.githubcheck.testsupport.StatusCheckArgs;
 
 class RulesetDriftGroupTest {
 
@@ -46,7 +47,7 @@ class RulesetDriftGroupTest {
 	void noDrift_whenBothEmpty() {
 		var desired = RepositoryArgs.create("owner", "repo").build();
 		var group = new RulesetDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				List.of(),
 				null,
 				"owner",
@@ -60,7 +61,7 @@ class RulesetDriftGroupTest {
 	void detectsExtraRuleset() {
 		var desired = RepositoryArgs.create("owner", "repo").build();
 		var group = new RulesetDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				List.of(matchingResponse("ci")),
 				null,
 				"owner",
@@ -84,7 +85,7 @@ class RulesetDriftGroupTest {
 				.rulesets(RulesetArgs.builder("ci").build())
 				.build();
 		var group = new RulesetDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				List.of(),
 				null,
 				"owner",
@@ -108,7 +109,7 @@ class RulesetDriftGroupTest {
 				.rulesets(RulesetArgs.builder("ci").build())
 				.build();
 		var group = new RulesetDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				List.of(matchingResponse("ci")),
 				null,
 				"owner",
@@ -128,7 +129,7 @@ class RulesetDriftGroupTest {
 				)
 				.build();
 		var group = new RulesetDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				List.of(matchingResponse("ci")),
 				null,
 				"owner",
@@ -158,7 +159,7 @@ class RulesetDriftGroupTest {
 				)
 				.build();
 		var group = new RulesetDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				List.of(matchingResponse("ci")),
 				null,
 				"owner",
@@ -211,7 +212,7 @@ class RulesetDriftGroupTest {
 				List.of(new Rule.RequiredLinearHistory())
 		);
 		var group = new RulesetDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				List.of(actual),
 				null,
 				"owner",
@@ -232,7 +233,7 @@ class RulesetDriftGroupTest {
 				)
 				.build();
 		var group = new RulesetDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				List.of(matchingResponse("ci")),
 				null,
 				"owner",
@@ -257,7 +258,7 @@ class RulesetDriftGroupTest {
 				.rulesets(RulesetArgs.builder("new-ruleset").build())
 				.build();
 		var group = new RulesetDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				List.of(matchingResponse("old-ruleset")),
 				null,
 				"owner",

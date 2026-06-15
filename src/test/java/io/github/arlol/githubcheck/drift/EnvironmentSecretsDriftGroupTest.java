@@ -8,7 +8,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.Secret;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.ToDrifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 
 class EnvironmentSecretsDriftGroupTest {
@@ -31,7 +32,7 @@ class EnvironmentSecretsDriftGroupTest {
 				})
 				.build();
 		var group = new EnvironmentSecretsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of(
 						"production",
 						List.of(secret("EXTRA_SECRET", "2024-01-01T00:00:00Z"))
@@ -57,7 +58,7 @@ class EnvironmentSecretsDriftGroupTest {
 				.environment("production", env -> env.secrets("DB_PASS"))
 				.build();
 		var group = new EnvironmentSecretsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of(
 						"production",
 						List.of(secret("DB_PASS", "2024-01-01T00:00:00Z"))
@@ -86,7 +87,7 @@ class EnvironmentSecretsDriftGroupTest {
 				.environment("production", env -> env.secrets("DB_PASS"))
 				.build();
 		var group = new EnvironmentSecretsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of("production", List.of()),
 				Map.of(),
 				new DriftyState(),
@@ -110,7 +111,7 @@ class EnvironmentSecretsDriftGroupTest {
 				.environment("production", env -> env.secrets("DB_PASS"))
 				.build();
 		var group = new EnvironmentSecretsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of(
 						"production",
 						List.of(
@@ -145,7 +146,7 @@ class EnvironmentSecretsDriftGroupTest {
 				.environment("production", env -> env.secrets("PROD_KEY"))
 				.build();
 		var group = new EnvironmentSecretsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of("staging", List.of(), "production", List.of()),
 				Map.of(),
 				new DriftyState(),
@@ -181,7 +182,7 @@ class EnvironmentSecretsDriftGroupTest {
 				state.hash("value")
 		);
 		var group = new EnvironmentSecretsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of(
 						"production",
 						List.of(secret("DB_PASS", "2024-01-01T00:00:00Z"))
@@ -210,7 +211,7 @@ class EnvironmentSecretsDriftGroupTest {
 				state.hash("value")
 		);
 		var group = new EnvironmentSecretsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of(
 						"production",
 						List.of(secret("DB_PASS", "2024-06-01T00:00:00Z"))
@@ -243,7 +244,7 @@ class EnvironmentSecretsDriftGroupTest {
 				state.hash("old-value")
 		);
 		var group = new EnvironmentSecretsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of(
 						"production",
 						List.of(secret("DB_PASS", "2024-01-01T00:00:00Z"))

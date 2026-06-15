@@ -26,7 +26,7 @@ class SecretScanningBypassReviewer {
 
 class StatusCheck {
   context: String
-  appId: Int
+  appId: Int?
 }
 
 class CodeScanningTool {

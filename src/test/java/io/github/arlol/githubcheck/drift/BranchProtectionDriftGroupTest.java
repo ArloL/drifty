@@ -8,9 +8,10 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
-import io.github.arlol.githubcheck.config.BranchProtectionArgs;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
-import io.github.arlol.githubcheck.config.StatusCheckArgs;
+import io.github.arlol.githubcheck.testsupport.BranchProtectionArgs;
+import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.testsupport.StatusCheckArgs;
 
 class BranchProtectionDriftGroupTest {
 
@@ -46,7 +47,7 @@ class BranchProtectionDriftGroupTest {
 	void noDrift_whenBothEmpty() {
 		var desired = RepositoryArgs.create("owner", "repo").build();
 		var group = new BranchProtectionDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of(),
 				null,
 				"owner",
@@ -62,7 +63,7 @@ class BranchProtectionDriftGroupTest {
 				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of(),
 				null,
 				"owner",
@@ -85,7 +86,7 @@ class BranchProtectionDriftGroupTest {
 	void detectsExtraBranchProtection() {
 		var desired = RepositoryArgs.create("owner", "repo").build();
 		var group = new BranchProtectionDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of("main", matchingResponse("main")),
 				null,
 				"owner",
@@ -109,7 +110,7 @@ class BranchProtectionDriftGroupTest {
 				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of("main", matchingResponse("main")),
 				null,
 				"owner",
@@ -129,7 +130,7 @@ class BranchProtectionDriftGroupTest {
 				)
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of("main", matchingResponse("main")),
 				null,
 				"owner",
@@ -160,7 +161,7 @@ class BranchProtectionDriftGroupTest {
 				)
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of("main", matchingResponse("main")),
 				null,
 				"owner",
@@ -191,7 +192,7 @@ class BranchProtectionDriftGroupTest {
 				)
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of("main", matchingResponse("main")),
 				null,
 				"owner",
@@ -217,7 +218,7 @@ class BranchProtectionDriftGroupTest {
 				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				Map.of("release", matchingResponse("release")),
 				null,
 				"owner",

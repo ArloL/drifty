@@ -9,31 +9,30 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis.BypassReviewer;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
-import io.github.arlol.githubcheck.config.SecretScanningBypassReviewerArgs;
+import io.github.arlol.githubcheck.PklTypes;
+import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class SecretScanningDelegatedBypassDriftGroup extends DriftGroup {
 
 	private final boolean desiredEnabled;
 	private final boolean actualEnabled;
-	private final List<SecretScanningBypassReviewerArgs> desiredReviewers;
+	private final List<Drifty.SecretScanningBypassReviewer> desiredReviewers;
 	private final List<BypassReviewer> actualReviewers;
 	private final GitHubClient client;
 	private final String owner;
 	private final String repo;
 
 	public SecretScanningDelegatedBypassDriftGroup(
-			RepositoryArgs desired,
+			Drifty.Repository desired,
 			boolean actualEnabled,
 			List<BypassReviewer> actualReviewers,
 			GitHubClient client,
 			String owner,
 			String repo
 	) {
-		this.desiredEnabled = desired.secretScanningDelegatedBypass();
+		this.desiredEnabled = desired.secretScanningDelegatedBypass;
 		this.actualEnabled = actualEnabled;
-		this.desiredReviewers = desired
-				.secretScanningDelegatedBypassReviewers();
+		this.desiredReviewers = desired.secretScanningDelegatedBypassReviewers;
 		this.actualReviewers = List.copyOf(actualReviewers);
 		this.client = client;
 		this.owner = owner;
@@ -53,7 +52,7 @@ public class SecretScanningDelegatedBypassDriftGroup extends DriftGroup {
 		// Reviewers are only honored when delegated bypass is enabled.
 		if (desiredEnabled) {
 			Set<String> wanted = desiredReviewers.stream()
-					.map(r -> key(r.reviewerType().name(), r.reviewerId()))
+					.map(r -> key(r.reviewerType.name(), r.reviewerId))
 					.collect(Collectors.toSet());
 			Set<String> got = actualReviewers.stream()
 					.map(r -> key(r.reviewerType().name(), r.reviewerId()))
@@ -68,8 +67,10 @@ public class SecretScanningDelegatedBypassDriftGroup extends DriftGroup {
 						desiredReviewers.stream()
 								.map(
 										r -> new BypassReviewer(
-												r.reviewerId(),
-												r.reviewerType()
+												r.reviewerId,
+												PklTypes.reviewerType(
+														r.reviewerType
+												)
 										)
 								)
 								.toList()

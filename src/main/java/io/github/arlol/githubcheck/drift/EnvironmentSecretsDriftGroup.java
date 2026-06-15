@@ -8,13 +8,12 @@ import java.util.Objects;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.Secret;
-import io.github.arlol.githubcheck.config.EnvironmentArgs;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 
 public class EnvironmentSecretsDriftGroup extends DriftGroup {
 
-	private final Map<String, EnvironmentArgs> desired;
+	private final Map<String, Drifty.Environment> desired;
 	private final Map<String, List<Secret>> actual;
 	private final Map<String, String> secretValues;
 	private final DriftyState state;
@@ -23,7 +22,7 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 	private final String repo;
 
 	public EnvironmentSecretsDriftGroup(
-			RepositoryArgs desired,
+			Drifty.Repository desired,
 			Map<String, List<Secret>> actual,
 			Map<String, String> secretValues,
 			DriftyState state,
@@ -31,7 +30,7 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 			String owner,
 			String repo
 	) {
-		this.desired = Map.copyOf(desired.environments());
+		this.desired = Map.copyOf(desired.environments);
 		this.actual = Map.copyOf(actual);
 		this.secretValues = Map.copyOf(secretValues);
 		this.state = state;
@@ -51,7 +50,7 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 
 		for (var entry : desired.entrySet()) {
 			String envName = entry.getKey();
-			EnvironmentArgs wantEnv = entry.getValue();
+			Drifty.Environment wantEnv = entry.getValue();
 
 			List<Secret> actualSecrets = actual
 					.getOrDefault(envName, List.of());
@@ -60,7 +59,7 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 				byName.put(secret.name(), secret);
 			}
 
-			for (String secretName : wantEnv.secrets()) {
+			for (String secretName : wantEnv.secrets) {
 				DriftFix fix = secretDriftFix(secretName, envName, byName);
 				if (fix != null) {
 					fixes.add(fix);
@@ -68,7 +67,7 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 			}
 
 			for (Secret secret : actualSecrets) {
-				if (!wantEnv.secrets().contains(secret.name())) {
+				if (!wantEnv.secrets.contains(secret.name())) {
 					var item = new DriftItem.SectionExtra(
 							"environment." + envName + ".secrets."
 									+ secret.name()

@@ -4,32 +4,31 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+import io.github.arlol.githubcheck.PklTypes;
 import io.github.arlol.githubcheck.client.GitHubClient;
-import io.github.arlol.githubcheck.client.PagesBuildType;
 import io.github.arlol.githubcheck.client.PagesCreateRequest;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.PagesUpdateRequest;
-import io.github.arlol.githubcheck.config.PagesArgs;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class PagesDriftGroup extends DriftGroup {
 
 	private final boolean desiredEnabled;
-	private final PagesArgs desired;
+	private final Drifty.Pages desired;
 	private final Optional<PagesResponse> actual;
 	private final GitHubClient client;
 	private final String owner;
 	private final String repo;
 
 	public PagesDriftGroup(
-			RepositoryArgs desired,
+			Drifty.Repository desired,
 			Optional<PagesResponse> actual,
 			GitHubClient client,
 			String owner,
 			String repo
 	) {
-		this.desiredEnabled = desired.pages();
-		this.desired = desiredEnabled ? desired.pagesArgs() : null;
+		this.desiredEnabled = desired.pages != null;
+		this.desired = desiredEnabled ? desired.pages : null;
 		this.actual = actual;
 		this.client = client;
 		this.owner = owner;
@@ -65,26 +64,24 @@ public class PagesDriftGroup extends DriftGroup {
 		var items = combine(
 				compare(
 						"build_type",
-						desired.buildType().name().toLowerCase(Locale.ROOT),
+						desired.buildType,
 						p.buildType() != null
 								? p.buildType().name().toLowerCase(Locale.ROOT)
 								: null
 				),
-				desired.buildType() == PagesBuildType.LEGACY
-						&& p.source() != null
-								? combine(
-										compare(
-												"source.branch",
-												desired.sourceBranch(),
-												p.source().branch()
-										),
-										compare(
-												"source.path",
-												desired.sourcePath(),
-												p.source().path()
-										)
+				"legacy".equals(desired.buildType) && p.source() != null
+						? combine(
+								compare(
+										"source.branch",
+										desired.sourceBranch,
+										p.source().branch()
+								),
+								compare(
+										"source.path",
+										desired.sourcePath,
+										p.source().path()
 								)
-								: List.of(),
+						) : List.of(),
 				compare("https_enforced", true, p.httpsEnforced())
 		);
 		return List.of(new DriftFix(items, () -> {
@@ -93,26 +90,37 @@ public class PagesDriftGroup extends DriftGroup {
 		}));
 	}
 
-	private static PagesCreateRequest buildPagesCreateRequest(PagesArgs args) {
+	private static PagesCreateRequest buildPagesCreateRequest(
+			Drifty.Pages args
+	) {
 		PagesCreateRequest.Source source = null;
-		if (args.buildType() == PagesBuildType.LEGACY) {
+		if ("legacy".equals(args.buildType)) {
 			source = new PagesCreateRequest.Source(
-					args.sourceBranch(),
-					args.sourcePath()
+					args.sourceBranch,
+					args.sourcePath
 			);
 		}
-		return new PagesCreateRequest(args.buildType(), source);
+		return new PagesCreateRequest(
+				PklTypes.pagesBuildType(args.buildType),
+				source
+		);
 	}
 
-	private static PagesUpdateRequest buildPagesUpdateRequest(PagesArgs args) {
+	private static PagesUpdateRequest buildPagesUpdateRequest(
+			Drifty.Pages args
+	) {
 		PagesUpdateRequest.Source source = null;
-		if (args.buildType() == PagesBuildType.LEGACY) {
+		if ("legacy".equals(args.buildType)) {
 			source = new PagesUpdateRequest.Source(
-					args.sourceBranch(),
-					args.sourcePath()
+					args.sourceBranch,
+					args.sourcePath
 			);
 		}
-		return new PagesUpdateRequest(args.buildType(), source, true);
+		return new PagesUpdateRequest(
+				PklTypes.pagesBuildType(args.buildType),
+				source,
+				true
+		);
 	}
 
 }

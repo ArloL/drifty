@@ -8,7 +8,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.Secret;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.ToDrifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 
 class ActionSecretsDriftGroupTest {
@@ -39,7 +40,7 @@ class ActionSecretsDriftGroupTest {
 				.actionsSecrets(desiredSecrets.toArray(String[]::new))
 				.build();
 		return new ActionSecretsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				actualSecrets,
 				secretValues,
 				state,

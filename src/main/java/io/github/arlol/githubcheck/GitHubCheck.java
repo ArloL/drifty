@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 import io.github.arlol.githubcheck.state.StateStore;
 
@@ -72,7 +72,7 @@ public class GitHubCheck {
 			System.err.println("ERROR: config file not found: " + configPath);
 			System.exit(1);
 		}
-		List<RepositoryArgs> repos = PklConfigLoader
+		List<Drifty.Repository> repos = PklConfigLoader
 				.load(configPath.toAbsolutePath());
 
 		Path stateFile = statePath != null ? Path.of(statePath)
@@ -83,17 +83,17 @@ public class GitHubCheck {
 
 		if (fix) {
 			var missingSecrets = new ArrayList<String>();
-			for (RepositoryArgs repo : repos) {
-				for (String secretName : repo.actionsSecrets()) {
-					String key = repo.name() + "-" + secretName;
+			for (Drifty.Repository repo : repos) {
+				for (String secretName : repo.actionsSecrets) {
+					String key = repo.name + "-" + secretName;
 					if (!githubSecrets.containsKey(key)) {
 						missingSecrets.add(key);
 					}
 				}
-				for (var entry : repo.environments().entrySet()) {
+				for (var entry : repo.environments.entrySet()) {
 					String envName = entry.getKey();
-					for (String secretName : entry.getValue().secrets()) {
-						String key = repo.name() + "-" + envName + "-"
+					for (String secretName : entry.getValue().secrets) {
+						String key = repo.name + "-" + envName + "-"
 								+ secretName;
 						if (!githubSecrets.containsKey(key)) {
 							missingSecrets.add(key);

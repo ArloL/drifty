@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.github.arlol.githubcheck.drift.DriftFix;
+import io.github.arlol.githubcheck.drift.DriftGroup;
+import io.github.arlol.githubcheck.testsupport.ToDrifty;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,11 +32,11 @@ import io.github.arlol.githubcheck.client.RulesetRuleType;
 import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
-import io.github.arlol.githubcheck.config.BranchProtectionArgs;
-import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
-import io.github.arlol.githubcheck.config.RulesetArgs;
-import io.github.arlol.githubcheck.config.StatusCheckArgs;
+import io.github.arlol.githubcheck.testsupport.BranchProtectionArgs;
+import io.github.arlol.githubcheck.testsupport.CodeScanningToolArgs;
+import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.RulesetArgs;
+import io.github.arlol.githubcheck.testsupport.StatusCheckArgs;
 import io.github.arlol.githubcheck.drift.DriftItem;
 
 class OrgCheckerDiffTest {
@@ -114,6 +118,13 @@ class OrgCheckerDiffTest {
 	@BeforeEach
 	void setUp() {
 		checker = new OrgChecker((GitHubClient) null, "owner");
+	}
+
+	private Map<DriftGroup, List<DriftFix>> computeGroupDrifts(
+			RepositoryState actual,
+			RepositoryArgs desired
+	) {
+		return checker.computeGroupDrifts(actual, ToDrifty.repository(desired));
 	}
 
 	// ─── Helpers
@@ -325,8 +336,7 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void noDrift_forCorrectPublicRepo() {
-		var groupDrifts = checker
-				.computeGroupDrifts(goodPublicState(), defaultArgs());
+		var groupDrifts = computeGroupDrifts(goodPublicState(), defaultArgs());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -351,7 +361,7 @@ class OrgCheckerDiffTest {
 						}
 						""")
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(
+		var groupDrifts = computeGroupDrifts(
 				state,
 				defaultArgs().toBuilder().archived().branchProtections().build()
 		);
@@ -394,7 +404,7 @@ class OrgCheckerDiffTest {
 						}
 						""")
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(
+		var groupDrifts = computeGroupDrifts(
 				state,
 				defaultArgs().toBuilder().archived().branchProtections().build()
 		);
@@ -416,7 +426,7 @@ class OrgCheckerDiffTest {
 				.automatedSecurityFixes(false)
 				.noBranchProtection()
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(
+		var groupDrifts = computeGroupDrifts(
 				state,
 				defaultArgs().toBuilder().branchProtections().build()
 		);
@@ -444,7 +454,7 @@ class OrgCheckerDiffTest {
 					"can_approve_pull_request_reviews": true
 				}
 				""").build();
-		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultArgs());
 		var groupDriftMessages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -462,7 +472,7 @@ class OrgCheckerDiffTest {
 					"can_approve_pull_request_reviews": false
 				}
 				""").build();
-		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultArgs());
 		var groupDriftMessages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -479,7 +489,7 @@ class OrgCheckerDiffTest {
 	@Test
 	void drift_branchProtectionMissing() {
 		var state = new StateBuilder().noBranchProtection().build();
-		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultArgs());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -494,7 +504,7 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder().branchProtectionOverride("""
 				{"enforce_admins": {"enabled": false}}
 				""").build();
-		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultArgs());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -511,7 +521,7 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder().branchProtectionOverride("""
 				{"required_linear_history": {"enabled": false}}
 				""").build();
-		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultArgs());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -528,7 +538,7 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder().branchProtectionOverride("""
 				{"allow_force_pushes": {"enabled": true}}
 				""").build();
-		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultArgs());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -559,7 +569,7 @@ class OrgCheckerDiffTest {
 								"""
 				)
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultArgs());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -583,7 +593,7 @@ class OrgCheckerDiffTest {
 					}
 				}
 				""").build();
-		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultArgs());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -606,7 +616,7 @@ class OrgCheckerDiffTest {
 					}
 				}
 				""").build();
-		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultArgs());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -629,7 +639,7 @@ class OrgCheckerDiffTest {
 					}
 				}
 				""").build();
-		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultArgs());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -658,7 +668,7 @@ class OrgCheckerDiffTest {
 								.build()
 				)
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -692,7 +702,7 @@ class OrgCheckerDiffTest {
 								.build()
 				)
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -728,7 +738,7 @@ class OrgCheckerDiffTest {
 								.build()
 				)
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -763,7 +773,7 @@ class OrgCheckerDiffTest {
 								.build()
 				)
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -783,7 +793,7 @@ class OrgCheckerDiffTest {
 						BranchProtectionArgs.builder("staging").build()
 				)
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultArgs());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -821,7 +831,7 @@ class OrgCheckerDiffTest {
 						)
 				)
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -838,7 +848,7 @@ class OrgCheckerDiffTest {
 	void existingActionSecret_withoutBaseline_isDrift() {
 		var args = defaultArgs().toBuilder().actionsSecrets("PAT").build();
 		var state = new StateBuilder().actionSecretNames("PAT").build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -861,7 +871,7 @@ class OrgCheckerDiffTest {
 				.environmentSecretNames(Map.of("github-pages", List.of()))
 				.pages(Optional.of(goodPagesResponse()))
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -1014,7 +1024,7 @@ class OrgCheckerDiffTest {
 						)
 				)
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -1036,7 +1046,7 @@ class OrgCheckerDiffTest {
 				)
 				.build();
 		var state = new StateBuilder().rulesets(List.of()).build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -1059,7 +1069,7 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder()
 				.rulesets(List.of(rulesetWithRules("main-branch-rules")))
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -1084,7 +1094,7 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder()
 				.rulesets(List.of(rulesetWithRules("main-branch-rules")))
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -1116,7 +1126,7 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder().rulesets(
 				List.of(rulesetWithStatusChecks("main-branch-rules", "CodeQL"))
 		).build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -1155,7 +1165,7 @@ class OrgCheckerDiffTest {
 						)
 				)
 				.build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -1217,7 +1227,7 @@ class OrgCheckerDiffTest {
 				)
 		);
 		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -1282,7 +1292,7 @@ class OrgCheckerDiffTest {
 				)
 		);
 		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -1331,7 +1341,7 @@ class OrgCheckerDiffTest {
 				List.of()
 		);
 		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -1389,7 +1399,7 @@ class OrgCheckerDiffTest {
 				)
 		);
 		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
-		var groupDrifts = checker.computeGroupDrifts(state, args);
+		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)

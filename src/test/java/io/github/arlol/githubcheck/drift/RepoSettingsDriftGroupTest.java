@@ -14,7 +14,8 @@ import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.SquashMergeCommitMessage;
 import io.github.arlol.githubcheck.client.SquashMergeCommitTitle;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.ToDrifty;
 
 class RepoSettingsDriftGroupTest {
 
@@ -99,7 +100,7 @@ class RepoSettingsDriftGroupTest {
 			RepositoryDetailsResponse actual
 	) {
 		return new RepoSettingsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				actual,
 				null,
 				"owner",
@@ -195,7 +196,7 @@ class RepoSettingsDriftGroupTest {
 				.description("")
 				.build();
 		var items = new RepoSettingsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				parseDetails(json),
 				null,
 				"owner",
@@ -237,7 +238,7 @@ class RepoSettingsDriftGroupTest {
 				.homepageUrl("")
 				.build();
 		var items = new RepoSettingsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				parseDetails(json),
 				null,
 				"owner",

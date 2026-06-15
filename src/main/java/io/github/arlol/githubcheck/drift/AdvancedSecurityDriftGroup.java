@@ -5,7 +5,7 @@ import java.util.List;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class AdvancedSecurityDriftGroup extends DriftGroup {
 
@@ -16,13 +16,13 @@ public class AdvancedSecurityDriftGroup extends DriftGroup {
 	private final String repo;
 
 	public AdvancedSecurityDriftGroup(
-			RepositoryArgs desired,
+			Drifty.Repository desired,
 			boolean actual,
 			GitHubClient client,
 			String owner,
 			String repo
 	) {
-		this.desired = desired.advancedSecurity();
+		this.desired = desired.advancedSecurity;
 		this.actual = actual;
 		this.client = client;
 		this.owner = owner;
