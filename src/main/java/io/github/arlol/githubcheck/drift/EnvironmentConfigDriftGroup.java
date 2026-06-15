@@ -7,25 +7,24 @@ import java.util.Map;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.EnvironmentUpdateRequest;
 import io.github.arlol.githubcheck.client.GitHubClient;
-import io.github.arlol.githubcheck.config.EnvironmentArgs;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class EnvironmentConfigDriftGroup extends DriftGroup {
 
-	private final Map<String, EnvironmentArgs> desired;
+	private final Map<String, Drifty.Environment> desired;
 	private final Map<String, EnvironmentDetailsResponse> actual;
 	private final GitHubClient client;
 	private final String owner;
 	private final String repo;
 
 	public EnvironmentConfigDriftGroup(
-			RepositoryArgs desired,
+			Drifty.Repository desired,
 			Map<String, EnvironmentDetailsResponse> actual,
 			GitHubClient client,
 			String owner,
 			String repo
 	) {
-		this.desired = Map.copyOf(desired.environments());
+		this.desired = Map.copyOf(desired.environments);
 		this.actual = Map.copyOf(actual);
 		this.client = client;
 		this.owner = owner;
@@ -43,7 +42,7 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 
 		for (var entry : desired.entrySet()) {
 			String envName = entry.getKey();
-			EnvironmentArgs wantEnv = entry.getValue();
+			Drifty.Environment wantEnv = entry.getValue();
 			EnvironmentDetailsResponse actualEnv = actual.get(envName);
 
 			if (actualEnv == null) {
@@ -60,19 +59,19 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 
 			var items = new ArrayList<DriftItem>();
 
-			if (wantEnv.waitTimer() != null) {
+			if (wantEnv.waitTimer > 0) {
 				ocompare(
 						"environment." + envName + ".wait_timer",
-						wantEnv.waitTimer(),
+						(int) wantEnv.waitTimer,
 						actualEnv.getWaitTimer()
 				).ifPresent(items::add);
 			}
 
-			if (wantEnv.deploymentBranchPolicy() != null) {
+			if (wantEnv.protectedBranches || wantEnv.customBranchPolicies) {
 				ocompare(
 						"environment." + envName
 								+ ".deployment_branch_policy.protected_branches",
-						wantEnv.deploymentBranchPolicy().protectedBranches(),
+						wantEnv.protectedBranches,
 						actualEnv.deploymentBranchPolicy() != null
 								&& actualEnv.deploymentBranchPolicy()
 										.protectedBranches()
@@ -80,21 +79,10 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 				ocompare(
 						"environment." + envName
 								+ ".deployment_branch_policy.custom_branch_policies",
-						wantEnv.deploymentBranchPolicy().customBranchPolicies(),
+						wantEnv.customBranchPolicies,
 						actualEnv.deploymentBranchPolicy() != null
 								&& actualEnv.deploymentBranchPolicy()
 										.customBranchPolicies()
-				).ifPresent(items::add);
-			}
-
-			if (!wantEnv.reviewers().isEmpty()) {
-				ocompare(
-						"environment." + envName + ".reviewers",
-						wantEnv.reviewers()
-								.stream()
-								.map(r -> r.type().name() + ":" + r.id())
-								.toList(),
-						actualEnv.getReviewerIds()
 				).ifPresent(items::add);
 			}
 
@@ -106,7 +94,7 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 
 	private DriftFix.FixAction getFixAction(
 			String envName,
-			EnvironmentArgs wantEnv
+			Drifty.Environment wantEnv
 	) {
 		return () -> {
 			client.updateEnvironment(
@@ -120,20 +108,20 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 	}
 
 	private static EnvironmentUpdateRequest buildEnvironmentUpdateRequest(
-			EnvironmentArgs args
+			Drifty.Environment args
 	) {
 		EnvironmentUpdateRequest.DeploymentBranchPolicy dbp = null;
-		if (args.deploymentBranchPolicy() != null) {
-			var policy = args.deploymentBranchPolicy();
+		if (args.protectedBranches || args.customBranchPolicies) {
 			dbp = new EnvironmentUpdateRequest.DeploymentBranchPolicy(
-					policy.protectedBranches(),
-					policy.customBranchPolicies()
+					args.protectedBranches,
+					args.customBranchPolicies
 			);
 		}
 
 		return new EnvironmentUpdateRequest(
-				args.waitTimer(),
-				args.reviewers().isEmpty() ? null : args.reviewers(),
+				args.waitTimer > 0 ? Integer.valueOf((int) args.waitTimer)
+						: null,
+				null,
 				dbp
 		);
 	}

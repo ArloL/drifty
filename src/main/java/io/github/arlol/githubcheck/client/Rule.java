@@ -8,8 +8,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-import io.github.arlol.githubcheck.config.RulePatternArgs;
-
 @JsonTypeInfo(
 		use = JsonTypeInfo.Id.NAME,
 		property = "type",
@@ -175,7 +173,7 @@ public sealed interface Rule
 	record PatternParameters(
 			String name,
 			Boolean negate,
-			RulePatternArgs.PatternOperator operator,
+			RulePatternOperator operator,
 			String pattern
 	) {
 	}

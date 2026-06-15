@@ -2,20 +2,21 @@ package io.github.arlol.githubcheck.drift;
 
 import java.util.List;
 
+import io.github.arlol.githubcheck.PklTypes;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class WorkflowPermissionsDriftGroup extends DriftGroup {
 
-	private final RepositoryArgs desired;
+	private final Drifty.Repository desired;
 	private final WorkflowPermissions actual;
 	private final GitHubClient client;
 	private final String owner;
 	private final String repo;
 
 	public WorkflowPermissionsDriftGroup(
-			RepositoryArgs desired,
+			Drifty.Repository desired,
 			WorkflowPermissions actual,
 			GitHubClient client,
 			String owner,
@@ -38,12 +39,14 @@ public class WorkflowPermissionsDriftGroup extends DriftGroup {
 		var items = combine(
 				compare(
 						"default",
-						desired.defaultWorkflowPermissions(),
+						PklTypes.workflowPermissions(
+								desired.defaultWorkflowPermissions
+						),
 						actual.defaultWorkflowPermissions()
 				),
 				compare(
 						"can_approve_prs",
-						desired.canApprovePullRequestReviews(),
+						desired.canApprovePullRequestReviews,
 						actual.canApprovePullRequestReviews()
 				)
 		);
@@ -52,8 +55,10 @@ public class WorkflowPermissionsDriftGroup extends DriftGroup {
 					owner,
 					repo,
 					new WorkflowPermissions(
-							desired.defaultWorkflowPermissions(),
-							desired.canApprovePullRequestReviews()
+							PklTypes.workflowPermissions(
+									desired.defaultWorkflowPermissions
+							),
+							desired.canApprovePullRequestReviews
 					)
 			);
 			return FixResult.success();

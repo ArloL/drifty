@@ -14,28 +14,25 @@ import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetRequest;
 import io.github.arlol.githubcheck.client.RulesetRuleType;
 import io.github.arlol.githubcheck.client.RulesetTarget;
-import io.github.arlol.githubcheck.config.CodeScanningToolArgs;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
-import io.github.arlol.githubcheck.config.RulePatternArgs;
-import io.github.arlol.githubcheck.config.RulesetArgs;
-import io.github.arlol.githubcheck.config.StatusCheckArgs;
+import io.github.arlol.githubcheck.PklTypes;
+import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class RulesetDriftGroup extends DriftGroup {
 
-	private final List<RulesetArgs> desired;
+	private final Map<String, Drifty.Ruleset> desired;
 	private final List<RulesetDetailsResponse> actual;
 	private final GitHubClient client;
 	private final String owner;
 	private final String repo;
 
 	public RulesetDriftGroup(
-			RepositoryArgs desired,
+			Drifty.Repository desired,
 			List<RulesetDetailsResponse> actual,
 			GitHubClient client,
 			String owner,
 			String repo
 	) {
-		this.desired = List.copyOf(desired.rulesets());
+		this.desired = Map.copyOf(desired.rulesets);
 		this.actual = List.copyOf(actual);
 		this.client = client;
 		this.owner = owner;
@@ -77,8 +74,9 @@ public class RulesetDriftGroup extends DriftGroup {
 			return fixes;
 		}
 
-		for (var wanted : desired) {
-			String rName = wanted.name();
+		for (var entry : desired.entrySet()) {
+			String rName = entry.getKey();
+			Drifty.Ruleset wanted = entry.getValue();
 			RulesetDetailsResponse got = actualByName.get(rName);
 
 			var items = new ArrayList<DriftItem>();
@@ -89,14 +87,14 @@ public class RulesetDriftGroup extends DriftGroup {
 					client.createRuleset(
 							owner,
 							repo,
-							buildRulesetRequest(wanted)
+							buildRulesetRequest(rName, wanted)
 					);
 					return FixResult.success();
 				}));
 				continue;
 			}
 
-			Set<String> wantIncludes = new HashSet<>(wanted.includePatterns());
+			Set<String> wantIncludes = new HashSet<>(wanted.includePatterns);
 			Set<String> gotIncludes = Set.of();
 			if (got.conditions() != null && got.conditions().refName() != null
 					&& got.conditions().refName().include() != null) {
@@ -118,7 +116,7 @@ public class RulesetDriftGroup extends DriftGroup {
 					.containsKey(RulesetRuleType.REQUIRED_LINEAR_HISTORY);
 			ocompare(
 					"ruleset." + rName + ".required_linear_history",
-					wanted.requiredLinearHistory(),
+					wanted.requiredLinearHistory,
 					hasLinearHistory
 			).ifPresent(items::add);
 
@@ -126,16 +124,12 @@ public class RulesetDriftGroup extends DriftGroup {
 					.containsKey(RulesetRuleType.NON_FAST_FORWARD);
 			ocompare(
 					"ruleset." + rName + ".no_force_pushes",
-					wanted.noForcePushes(),
+					wanted.noForcePushes,
 					hasNonFastForward
 			).ifPresent(items::add);
 
-			Set<StatusCheckArgs> wantChecks = new HashSet<>(
-					wanted.requiredStatusChecks()
-			);
-			Set<StatusCheckArgs> gotChecks = extractStatusChecks(
-					actualRulesByType
-			);
+			Set<StatusCheck> wantChecks = desiredStatusChecks(wanted);
+			Set<StatusCheck> gotChecks = extractStatusChecks(actualRulesByType);
 			if (!wantChecks.isEmpty() || !gotChecks.isEmpty()) {
 				ocompare(
 						"ruleset." + rName + ".required_status_checks",
@@ -144,26 +138,25 @@ public class RulesetDriftGroup extends DriftGroup {
 				).ifPresent(items::add);
 			}
 
-			if (wanted.requiredReviewCount() != null) {
+			if (wanted.requiredReviewCount != null) {
 				Integer gotCount = extractRequiredReviewCount(
 						actualRulesByType
 				);
-				if (wanted.requiredReviewCount() != null
-						&& !wanted.requiredReviewCount().equals(gotCount)) {
+				Integer wantCount = wanted.requiredReviewCount.intValue();
+				if (!wantCount.equals(gotCount)) {
 					items.add(
 							new DriftItem.FieldMismatch(
 									"ruleset." + rName
 											+ ".required_review_count",
-									wanted.requiredReviewCount(),
+									wantCount,
 									gotCount
 							)
 					);
 				}
 			}
 
-			Set<String> wantTools = wanted.requiredCodeScanning()
-					.stream()
-					.map(CodeScanningToolArgs::tool)
+			Set<String> wantTools = wanted.requiredCodeScanning.stream()
+					.map(t -> t.tool)
 					.collect(Collectors.toSet());
 			Set<String> gotTools = extractCodeScanningTools(actualRulesByType);
 			if (!wantTools.isEmpty() || !gotTools.isEmpty()) {
@@ -176,30 +169,30 @@ public class RulesetDriftGroup extends DriftGroup {
 
 			ocompare(
 					"ruleset." + rName + ".creation",
-					wanted.creation(),
+					wanted.creation,
 					actualRulesByType.containsKey(RulesetRuleType.CREATION)
 			).ifPresent(items::add);
 
 			ocompare(
 					"ruleset." + rName + ".deletion",
-					wanted.deletion(),
+					wanted.deletion,
 					actualRulesByType.containsKey(RulesetRuleType.DELETION)
 			).ifPresent(items::add);
 
 			ocompare(
 					"ruleset." + rName + ".required_signatures",
-					wanted.requiredSignatures(),
+					wanted.requiredSignatures,
 					actualRulesByType
 							.containsKey(RulesetRuleType.REQUIRED_SIGNATURES)
 			).ifPresent(items::add);
 
 			ocompare(
 					"ruleset." + rName + ".update",
-					wanted.update(),
+					wanted.update,
 					actualRulesByType.containsKey(RulesetRuleType.UPDATE)
 			).ifPresent(items::add);
 
-			if (wanted.update() && actualRulesByType.get(
+			if (wanted.update && actualRulesByType.get(
 					RulesetRuleType.UPDATE
 			) instanceof Rule.Update updateRule) {
 				Boolean gotAllowsFetch = updateRule.parameters() != null
@@ -207,7 +200,7 @@ public class RulesetDriftGroup extends DriftGroup {
 						: null;
 				ocompare(
 						"ruleset." + rName + ".update_allows_fetch_and_merge",
-						wanted.updateAllowsFetchAndMerge(),
+						wanted.updateAllowsFetchAndMerge,
 						Boolean.TRUE.equals(gotAllowsFetch)
 				).ifPresent(items::add);
 			}
@@ -215,7 +208,7 @@ public class RulesetDriftGroup extends DriftGroup {
 			checkPatternRule(
 					items,
 					rName + ".commit_message_pattern",
-					wanted.commitMessagePattern(),
+					wanted.commitMessagePattern,
 					actualRulesByType
 							.get(RulesetRuleType.COMMIT_MESSAGE_PATTERN)
 			);
@@ -223,7 +216,7 @@ public class RulesetDriftGroup extends DriftGroup {
 			checkPatternRule(
 					items,
 					rName + ".commit_author_email_pattern",
-					wanted.commitAuthorEmailPattern(),
+					wanted.commitAuthorEmailPattern,
 					actualRulesByType
 							.get(RulesetRuleType.COMMIT_AUTHOR_EMAIL_PATTERN)
 			);
@@ -231,7 +224,7 @@ public class RulesetDriftGroup extends DriftGroup {
 			checkPatternRule(
 					items,
 					rName + ".committer_email_pattern",
-					wanted.committerEmailPattern(),
+					wanted.committerEmailPattern,
 					actualRulesByType
 							.get(RulesetRuleType.COMMITTER_EMAIL_PATTERN)
 			);
@@ -239,18 +232,20 @@ public class RulesetDriftGroup extends DriftGroup {
 			checkPatternRule(
 					items,
 					rName + ".branch_name_pattern",
-					wanted.branchNamePattern(),
+					wanted.branchNamePattern,
 					actualRulesByType.get(RulesetRuleType.BRANCH_NAME_PATTERN)
 			);
 
 			checkPatternRule(
 					items,
 					rName + ".tag_name_pattern",
-					wanted.tagNamePattern(),
+					wanted.tagNamePattern,
 					actualRulesByType.get(RulesetRuleType.TAG_NAME_PATTERN)
 			);
 
-			Set<String> wantDeployments = wanted.requiredDeployments();
+			Set<String> wantDeployments = new HashSet<>(
+					wanted.requiredDeployments
+			);
 			Set<String> gotDeployments = extractRequiredDeployments(
 					actualRulesByType
 			);
@@ -262,12 +257,12 @@ public class RulesetDriftGroup extends DriftGroup {
 				).ifPresent(items::add);
 			}
 
-			if (!wanted.bypassActors().isEmpty()) {
-				Set<String> wantBypass = wanted.bypassActors()
-						.stream()
+			if (!wanted.bypassActors.isEmpty()) {
+				Set<String> wantBypass = wanted.bypassActors.stream()
 						.map(
-								a -> a.actorType() + ":" + a.actorId() + ":"
-										+ a.bypassMode()
+								a -> PklTypes.actorType(a.actorType) + ":"
+										+ a.actorId + ":"
+										+ PklTypes.bypassMode(a.bypassMode)
 						)
 						.collect(Collectors.toSet());
 				Set<String> gotBypass = got.bypassActors() != null
@@ -293,16 +288,14 @@ public class RulesetDriftGroup extends DriftGroup {
 							owner,
 							repo,
 							gotId,
-							buildRulesetRequest(wanted)
+							buildRulesetRequest(rName, wanted)
 					);
 					return FixResult.success();
 				}));
 			}
 		}
 
-		Set<String> desiredNames = desired.stream()
-				.map(RulesetArgs::name)
-				.collect(Collectors.toSet());
+		Set<String> desiredNames = desired.keySet();
 		for (var extra : actual) {
 			if (!desiredNames.contains(extra.name())) {
 				var item = new DriftItem.SectionExtra(
@@ -330,7 +323,20 @@ public class RulesetDriftGroup extends DriftGroup {
 				.collect(Collectors.toMap(Rule::type, r -> r, (a, _) -> a));
 	}
 
-	private Set<StatusCheckArgs> extractStatusChecks(
+	private static Set<StatusCheck> desiredStatusChecks(Drifty.Ruleset r) {
+		Set<StatusCheck> checks = new HashSet<>();
+		for (var sc : r.requiredStatusChecks) {
+			checks.add(
+					new StatusCheck(
+							sc.context,
+							sc.appId != null ? sc.appId.intValue() : null
+					)
+			);
+		}
+		return checks;
+	}
+
+	private Set<StatusCheck> extractStatusChecks(
 			Map<RulesetRuleType, Rule> rulesByType
 	) {
 		if (rulesByType.get(
@@ -341,10 +347,10 @@ public class RulesetDriftGroup extends DriftGroup {
 					.requiredStatusChecks()
 					.stream()
 					.map(
-							sc -> StatusCheckArgs.builder()
-									.context(sc.context())
-									.appId(sc.integrationId())
-									.build()
+							sc -> new StatusCheck(
+									sc.context(),
+									sc.integrationId()
+							)
 					)
 					.collect(Collectors.toSet());
 		}
@@ -395,7 +401,7 @@ public class RulesetDriftGroup extends DriftGroup {
 	private void checkPatternRule(
 			List<DriftItem> items,
 			String path,
-			RulePatternArgs wanted,
+			Drifty.RulePattern wanted,
 			Rule actual
 	) {
 		String got = null;
@@ -416,45 +422,48 @@ public class RulesetDriftGroup extends DriftGroup {
 			got = tnp.parameters().pattern();
 		}
 
-		String want = wanted != null ? wanted.pattern() : null;
+		String want = wanted != null ? wanted.pattern : null;
 		if (want != null || got != null) {
 			ocompare(path, want, got).ifPresent(items::add);
 		}
 	}
 
-	private static RulesetRequest buildRulesetRequest(RulesetArgs args) {
+	private static RulesetRequest buildRulesetRequest(
+			String name,
+			Drifty.Ruleset args
+	) {
 		List<Rule> rules = new ArrayList<>();
-		if (args.creation()) {
+		if (args.creation) {
 			rules.add(new Rule.Creation());
 		}
-		if (args.deletion()) {
+		if (args.deletion) {
 			rules.add(new Rule.Deletion());
 		}
-		if (args.requiredSignatures()) {
+		if (args.requiredSignatures) {
 			rules.add(new Rule.RequiredSignatures());
 		}
-		if (args.requiredLinearHistory()) {
+		if (args.requiredLinearHistory) {
 			rules.add(new Rule.RequiredLinearHistory());
 		}
-		if (args.noForcePushes()) {
+		if (args.noForcePushes) {
 			rules.add(new Rule.NonFastForward());
 		}
-		if (args.update()) {
+		if (args.update) {
 			rules.add(
 					new Rule.Update(
 							new Rule.Update.Parameters(
-									args.updateAllowsFetchAndMerge()
+									args.updateAllowsFetchAndMerge
 							)
 					)
 			);
 		}
-		if (!args.requiredStatusChecks().isEmpty()) {
-			List<Rule.StatusCheck> checks = args.requiredStatusChecks()
-					.stream()
+		if (!args.requiredStatusChecks.isEmpty()) {
+			List<Rule.StatusCheck> checks = args.requiredStatusChecks.stream()
 					.map(
 							sc -> new Rule.StatusCheck(
-									sc.getContext(),
-									sc.getAppId()
+									sc.context,
+									sc.appId != null ? sc.appId.intValue()
+											: null
 							)
 					)
 					.toList();
@@ -467,11 +476,11 @@ public class RulesetDriftGroup extends DriftGroup {
 					)
 			);
 		}
-		if (args.requiredReviewCount() != null) {
+		if (args.requiredReviewCount != null) {
 			rules.add(
 					new Rule.PullRequest(
 							new Rule.PullRequest.Parameters(
-									args.requiredReviewCount(),
+									args.requiredReviewCount.intValue(),
 									null,
 									null,
 									null
@@ -479,14 +488,18 @@ public class RulesetDriftGroup extends DriftGroup {
 					)
 			);
 		}
-		if (!args.requiredCodeScanning().isEmpty()) {
-			List<Rule.CodeScanningTool> tools = args.requiredCodeScanning()
+		if (!args.requiredCodeScanning.isEmpty()) {
+			List<Rule.CodeScanningTool> tools = args.requiredCodeScanning
 					.stream()
 					.map(
 							cst -> new Rule.CodeScanningTool(
-									cst.tool(),
-									cst.alertsThreshold(),
-									cst.securityAlertsThreshold()
+									cst.tool,
+									PklTypes.alertsThreshold(
+											cst.alertsThreshold
+									),
+									PklTypes.securityAlertsThreshold(
+											cst.securityAlertsThreshold
+									)
 							)
 					)
 					.toList();
@@ -496,65 +509,64 @@ public class RulesetDriftGroup extends DriftGroup {
 					)
 			);
 		}
-		if (!args.requiredDeployments().isEmpty()) {
+		if (!args.requiredDeployments.isEmpty()) {
 			rules.add(
 					new Rule.RequiredDeployments(
 							new Rule.RequiredDeployments.Parameters(
-									new ArrayList<>(args.requiredDeployments())
+									new ArrayList<>(args.requiredDeployments)
 							)
 					)
 			);
 		}
 
-		if (args.commitMessagePattern() != null) {
+		if (args.commitMessagePattern != null) {
 			rules.add(
 					new Rule.CommitMessagePattern(
-							toPatternParameters(args.commitMessagePattern())
+							toPatternParameters(args.commitMessagePattern)
 					)
 			);
 		}
-		if (args.commitAuthorEmailPattern() != null) {
+		if (args.commitAuthorEmailPattern != null) {
 			rules.add(
 					new Rule.CommitAuthorEmailPattern(
-							toPatternParameters(args.commitAuthorEmailPattern())
+							toPatternParameters(args.commitAuthorEmailPattern)
 					)
 			);
 		}
-		if (args.committerEmailPattern() != null) {
+		if (args.committerEmailPattern != null) {
 			rules.add(
 					new Rule.CommitterEmailPattern(
-							toPatternParameters(args.committerEmailPattern())
+							toPatternParameters(args.committerEmailPattern)
 					)
 			);
 		}
-		if (args.branchNamePattern() != null) {
+		if (args.branchNamePattern != null) {
 			rules.add(
 					new Rule.BranchNamePattern(
-							toPatternParameters(args.branchNamePattern())
+							toPatternParameters(args.branchNamePattern)
 					)
 			);
 		}
-		if (args.tagNamePattern() != null) {
+		if (args.tagNamePattern != null) {
 			rules.add(
 					new Rule.TagNamePattern(
-							toPatternParameters(args.tagNamePattern())
+							toPatternParameters(args.tagNamePattern)
 					)
 			);
 		}
 
-		List<RulesetRequest.BypassActorRequest> bypassActors = args
-				.bypassActors()
+		List<RulesetRequest.BypassActorRequest> bypassActors = args.bypassActors
 				.stream()
 				.map(
 						a -> new RulesetRequest.BypassActorRequest(
-								a.actorId(),
-								a.actorType(),
-								a.bypassMode()
+								a.actorId,
+								PklTypes.actorType(a.actorType),
+								PklTypes.bypassMode(a.bypassMode)
 						)
 				)
 				.toList();
 		var refName = new RulesetRequest.Conditions.RefName(
-				args.includePatterns(),
+				args.includePatterns,
 				List.of()
 		);
 		var conditions = new RulesetRequest.Conditions(
@@ -564,7 +576,7 @@ public class RulesetDriftGroup extends DriftGroup {
 				null
 		);
 		return new RulesetRequest(
-				args.name(),
+				name,
 				RulesetTarget.BRANCH,
 				RulesetEnforcement.ACTIVE,
 				bypassActors,
@@ -574,14 +586,26 @@ public class RulesetDriftGroup extends DriftGroup {
 	}
 
 	private static Rule.PatternParameters toPatternParameters(
-			RulePatternArgs args
+			Drifty.RulePattern args
 	) {
 		return new Rule.PatternParameters(
-				args.name(),
-				args.negate(),
-				args.operator(),
-				args.pattern()
+				args.name,
+				args.negate,
+				PklTypes.patternOperator(args.operator),
+				args.pattern
 		);
+	}
+
+	private record StatusCheck(
+			String context,
+			Integer appId
+	) {
+
+		@Override
+		public String toString() {
+			return appId != null ? context + ":" + appId : context;
+		}
+
 	}
 
 }

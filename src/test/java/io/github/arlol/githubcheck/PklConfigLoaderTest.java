@@ -8,22 +8,20 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.pkl.Drifty;
 
 class PklConfigLoaderTest {
 
 	@Test
 	void loadsArloLConfig() throws IOException {
-		List<RepositoryArgs> repos = PklConfigLoader
+		List<Drifty.Repository> repos = PklConfigLoader
 				.load(Path.of("config/ArloL.pkl").toAbsolutePath());
 
 		assertThat(repos).isNotEmpty();
-		assertThat(repos).allSatisfy(
-				repo -> assertThat(repo.owner()).isEqualTo("ArloL")
-		);
-		assertThat(repos).anySatisfy(
-				repo -> assertThat(repo.name()).isEqualTo("drifty")
-		);
+		assertThat(repos)
+				.allSatisfy(repo -> assertThat(repo.owner).isEqualTo("ArloL"));
+		assertThat(repos)
+				.anySatisfy(repo -> assertThat(repo.name).isEqualTo("drifty"));
 	}
 
 }

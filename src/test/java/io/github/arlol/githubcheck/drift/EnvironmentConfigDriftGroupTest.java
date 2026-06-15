@@ -8,7 +8,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.ToDrifty;
 
 class EnvironmentConfigDriftGroupTest {
 
@@ -20,7 +21,7 @@ class EnvironmentConfigDriftGroupTest {
 				new EnvironmentDetailsResponse("production", List.of(), null)
 		);
 		var group = new EnvironmentConfigDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				actual,
 				null,
 				"owner",
@@ -55,7 +56,7 @@ class EnvironmentConfigDriftGroupTest {
 				)
 		);
 		var group = new EnvironmentConfigDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				actual,
 				null,
 				"owner",
@@ -90,7 +91,7 @@ class EnvironmentConfigDriftGroupTest {
 				)
 		);
 		var group = new EnvironmentConfigDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				actual,
 				null,
 				"owner",
@@ -131,7 +132,7 @@ class EnvironmentConfigDriftGroupTest {
 				)
 		);
 		var group = new EnvironmentConfigDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				actual,
 				null,
 				"owner",
@@ -168,7 +169,7 @@ class EnvironmentConfigDriftGroupTest {
 		var actual = Map.<String, EnvironmentDetailsResponse>of();
 
 		var group = new EnvironmentConfigDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				actual,
 				null,
 				"owner",

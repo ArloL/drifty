@@ -1,4 +1,4 @@
-package io.github.arlol.githubcheck.config;
+package io.github.arlol.githubcheck.testsupport;
 
 import java.util.Objects;
 

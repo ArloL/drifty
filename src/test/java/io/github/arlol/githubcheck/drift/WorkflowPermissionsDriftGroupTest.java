@@ -6,7 +6,8 @@ import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.client.WorkflowPermissions.DefaultWorkflowPermissions;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.ToDrifty;
 
 class WorkflowPermissionsDriftGroupTest {
 
@@ -21,7 +22,7 @@ class WorkflowPermissionsDriftGroupTest {
 				true
 		);
 		var group = new WorkflowPermissionsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				actual,
 				null,
 				"owner",
@@ -48,7 +49,7 @@ class WorkflowPermissionsDriftGroupTest {
 				false
 		);
 		var group = new WorkflowPermissionsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				actual,
 				null,
 				"owner",
@@ -86,7 +87,7 @@ class WorkflowPermissionsDriftGroupTest {
 				false
 		);
 		var group = new WorkflowPermissionsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				actual,
 				null,
 				"owner",
@@ -118,7 +119,7 @@ class WorkflowPermissionsDriftGroupTest {
 				false
 		);
 		var group = new WorkflowPermissionsDriftGroup(
-				desired,
+				ToDrifty.repository(desired),
 				actual,
 				null,
 				"owner",

@@ -8,7 +8,7 @@ import java.util.Objects;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.Secret;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 
 public class ActionSecretsDriftGroup extends DriftGroup {
@@ -22,7 +22,7 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 	private final String repo;
 
 	public ActionSecretsDriftGroup(
-			RepositoryArgs desired,
+			Drifty.Repository desired,
 			List<Secret> actual,
 			Map<String, String> secretValues,
 			DriftyState state,
@@ -30,7 +30,7 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 			String owner,
 			String repo
 	) {
-		this.desired = List.copyOf(desired.actionsSecrets());
+		this.desired = List.copyOf(desired.actionsSecrets);
 		var byName = new LinkedHashMap<String, Secret>();
 		for (Secret secret : actual) {
 			byName.put(secret.name(), secret);

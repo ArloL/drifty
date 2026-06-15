@@ -8,8 +8,9 @@ import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.PagesBuildType;
 import io.github.arlol.githubcheck.client.PagesResponse;
-import io.github.arlol.githubcheck.config.PagesArgs;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.PagesArgs;
+import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
+import io.github.arlol.githubcheck.testsupport.ToDrifty;
 
 class PagesDriftGroupTest {
 
@@ -32,7 +33,13 @@ class PagesDriftGroupTest {
 						true
 				)
 		);
-		var group = new PagesDriftGroup(desired, actual, null, "owner", "repo");
+		var group = new PagesDriftGroup(
+				ToDrifty.repository(desired),
+				actual,
+				null,
+				"owner",
+				"repo"
+		);
 
 		var items = group.detect()
 				.stream()
@@ -46,7 +53,13 @@ class PagesDriftGroupTest {
 	void detectsMissingPages() {
 		var desired = RepositoryArgs.create("owner", "repo").pages().build();
 		Optional<PagesResponse> actual = Optional.empty();
-		var group = new PagesDriftGroup(desired, actual, null, "owner", "repo");
+		var group = new PagesDriftGroup(
+				ToDrifty.repository(desired),
+				actual,
+				null,
+				"owner",
+				"repo"
+		);
 
 		var items = group.detect()
 				.stream()
@@ -79,7 +92,13 @@ class PagesDriftGroupTest {
 						true
 				)
 		);
-		var group = new PagesDriftGroup(desired, actual, null, "owner", "repo");
+		var group = new PagesDriftGroup(
+				ToDrifty.repository(desired),
+				actual,
+				null,
+				"owner",
+				"repo"
+		);
 
 		var items = group.detect()
 				.stream()
@@ -114,7 +133,13 @@ class PagesDriftGroupTest {
 						false // https_enforced is false → drift
 				)
 		);
-		var group = new PagesDriftGroup(desired, actual, null, "owner", "repo");
+		var group = new PagesDriftGroup(
+				ToDrifty.repository(desired),
+				actual,
+				null,
+				"owner",
+				"repo"
+		);
 
 		var items = group.detect()
 				.stream()
@@ -151,7 +176,13 @@ class PagesDriftGroupTest {
 						true
 				)
 		);
-		var group = new PagesDriftGroup(desired, actual, null, "owner", "repo");
+		var group = new PagesDriftGroup(
+				ToDrifty.repository(desired),
+				actual,
+				null,
+				"owner",
+				"repo"
+		);
 
 		var items = group.detect()
 				.stream()
@@ -182,7 +213,13 @@ class PagesDriftGroupTest {
 						true
 				)
 		);
-		var group = new PagesDriftGroup(desired, actual, null, "owner", "repo");
+		var group = new PagesDriftGroup(
+				ToDrifty.repository(desired),
+				actual,
+				null,
+				"owner",
+				"repo"
+		);
 
 		var items = group.detect()
 				.stream()

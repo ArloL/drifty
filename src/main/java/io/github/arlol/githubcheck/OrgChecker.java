@@ -26,7 +26,7 @@ import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
-import io.github.arlol.githubcheck.config.RepositoryArgs;
+import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.drift.ActionSecretsDriftGroup;
 import io.github.arlol.githubcheck.drift.AdvancedSecurityDriftGroup;
 import io.github.arlol.githubcheck.drift.ArchivedDriftGroup;
@@ -128,7 +128,7 @@ public class OrgChecker {
 		this.state = state;
 	}
 
-	public CheckResult check(List<RepositoryArgs> repositories)
+	public CheckResult check(List<Drifty.Repository> repositories)
 			throws IOException, InterruptedException, ExecutionException {
 		System.out.println("Fetching repo list for org: " + org);
 		List<RepositorySummaryResponse> summaries = client.listOrgRepos(org);
@@ -139,8 +139,8 @@ public class OrgChecker {
 
 		long startFetch = System.currentTimeMillis();
 
-		Map<String, RepositoryArgs> desiredByName = repositories.stream()
-				.collect(Collectors.toMap(RepositoryArgs::name, r -> r));
+		Map<String, Drifty.Repository> desiredByName = repositories.stream()
+				.collect(Collectors.toMap(r -> r.name, r -> r));
 
 		List<CheckResult.RepoCheckResult> results = new ArrayList<>();
 
@@ -164,8 +164,8 @@ public class OrgChecker {
 				.map(RepositorySummaryResponse::name)
 				.collect(Collectors.toSet());
 		repositories.stream()
-				.filter(r -> !foundNames.contains(r.name()))
-				.map(r -> CheckResult.RepoCheckResult.missing(r.name()))
+				.filter(r -> !foundNames.contains(r.name))
+				.map(r -> CheckResult.RepoCheckResult.missing(r.name))
 				.forEach(results::add);
 
 		double fetchSeconds = (System.currentTimeMillis() - startFetch)
@@ -177,10 +177,10 @@ public class OrgChecker {
 
 	private CheckResult.RepoCheckResult checkOne(
 			RepositorySummaryResponse summary,
-			Map<String, RepositoryArgs> desiredByName
+			Map<String, Drifty.Repository> desiredByName
 	) {
 		String name = summary.name();
-		RepositoryArgs desired = desiredByName.get(name);
+		Drifty.Repository desired = desiredByName.get(name);
 		if (desired == null) {
 			return CheckResult.RepoCheckResult.unknown(name);
 		}
@@ -340,7 +340,7 @@ public class OrgChecker {
 
 	Map<DriftGroup, List<DriftFix>> computeGroupDrifts(
 			RepositoryState actual,
-			RepositoryArgs desired
+			Drifty.Repository desired
 	) {
 		Map<DriftGroup, List<DriftFix>> groupDrifts = new LinkedHashMap<>();
 		for (var group : createDriftGroups(actual, desired)) {
@@ -379,9 +379,9 @@ public class OrgChecker {
 
 	List<DriftGroup> createDriftGroups(
 			RepositoryState actual,
-			RepositoryArgs desired
+			Drifty.Repository desired
 	) {
-		if (desired.archived()) {
+		if (desired.archived) {
 			// When archiving (or already archived): only check archived state,
 			// skip all other groups since settings don't matter for archived
 			// repos.
@@ -424,7 +424,7 @@ public class OrgChecker {
 		);
 		groups.add(
 				new TopicsDriftGroup(
-						desired.topics(),
+						desired.topics,
 						actual.details().topics() != null
 								? actual.details().topics()
 								: List.of(),

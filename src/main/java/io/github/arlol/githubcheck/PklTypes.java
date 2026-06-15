@@ -1,7 +1,10 @@
 package io.github.arlol.githubcheck;
 
+import java.util.Locale;
+
 import io.github.arlol.githubcheck.client.MergeCommitMessage;
 import io.github.arlol.githubcheck.client.MergeCommitTitle;
+import io.github.arlol.githubcheck.client.PagesBuildType;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulePatternOperator;
@@ -21,6 +24,10 @@ import io.github.arlol.githubcheck.pkl.Drifty;
 public final class PklTypes {
 
 	private PklTypes() {
+	}
+
+	public static PagesBuildType pagesBuildType(String buildType) {
+		return PagesBuildType.valueOf(buildType.toUpperCase(Locale.ROOT));
 	}
 
 	public static RepositoryVisibility visibility(Drifty.Visibility v) {
