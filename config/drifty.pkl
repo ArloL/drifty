@@ -14,6 +14,10 @@ typealias PatternOperator = "starts_with" | "ends_with" | "contains" | "regex"
 typealias ActorType = "Integration" | "OrganizationAdmin" | "RepositoryRole" | "Team"
 typealias BypassMode = "always" | "pull_request"
 typealias SecretScanningBypassReviewerType = "TEAM" | "ROLE"
+typealias SquashMergeCommitTitle = "PR_TITLE" | "COMMIT_OR_PR_TITLE"
+typealias SquashMergeCommitMessage = "PR_BODY" | "COMMIT_MESSAGES" | "BLANK"
+typealias MergeCommitTitle = "PR_TITLE" | "MERGE_MESSAGE"
+typealias MergeCommitMessage = "PR_BODY" | "PR_TITLE" | "BLANK"
 
 class SecretScanningBypassReviewer {
   reviewerId: Int
@@ -113,6 +117,10 @@ class Repository {
   hasIssues: Boolean = true
   hasProjects: Boolean = true
   hasWiki: Boolean = true
+  hasDiscussions: Boolean = false
+  isTemplate: Boolean = false
+  allowForking: Boolean = true
+  webCommitSignoffRequired: Boolean = false
 
   allowMergeCommit: Boolean = true
   allowSquashMerge: Boolean = true
@@ -120,6 +128,10 @@ class Repository {
   allowAutoMerge: Boolean = false
   deleteBranchOnMerge: Boolean = false
   allowUpdateBranch: Boolean = false
+  squashMergeCommitTitle: SquashMergeCommitTitle = "COMMIT_OR_PR_TITLE"
+  squashMergeCommitMessage: SquashMergeCommitMessage = "COMMIT_MESSAGES"
+  mergeCommitTitle: MergeCommitTitle = "MERGE_MESSAGE"
+  mergeCommitMessage: MergeCommitMessage = "PR_TITLE"
 
   vulnerabilityAlerts: Boolean = true
   automatedSecurityFixes: Boolean = false
