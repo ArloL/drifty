@@ -134,7 +134,7 @@ All settings below are fields on the `Repository` type in `config/drifty.pkl`. T
 
 ### Security Settings
 
-All configurable per-repo via `RepositoryArgs`, with defaults matching GitHub's defaults.
+All configurable per-repo via the `Repository` class in `drifty.pkl`, with defaults matching GitHub's defaults.
 
 | Setting | GitHub default (public repos) | Check | Fix |
 |---------|-------------------------------|-------|-----|
@@ -160,7 +160,7 @@ All configurable per-repo via `RepositoryArgs`, with defaults matching GitHub's 
 
 ### Branch Protection (Legacy)
 
-Managed via an explicit `branchProtectionArgs` field on `RepositoryArgs`. If the field is set (non-null), legacy branch protection is managed for that repo. If null, legacy protection is not managed (regardless of whether rulesets are configured). A repo can have both legacy protection and rulesets.
+Managed via the `branchProtections` mapping (keyed by branch pattern) on the Pkl `Repository`. If a branch pattern entry is present, legacy branch protection is managed for that branch. If the mapping is empty, legacy protection is not managed (regardless of whether rulesets are configured). A repo can have both legacy protection and rulesets.
 
 | Setting | Check | Fix |
 |---------|-------|-----|
@@ -195,7 +195,7 @@ Full configuration of push restrictions:
 
 ### Repository Rulesets
 
-Repo-level rulesets managed via the `rulesets` list on `RepositoryArgs`. drifty supports all GitHub ruleset rule types:
+Repo-level rulesets managed via the `rulesets` mapping (keyed by ruleset name) on the Pkl `Repository`. drifty supports all GitHub ruleset rule types:
 
 | Setting | Check | Fix |
 |---------|-------|-----|
