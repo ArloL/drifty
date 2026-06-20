@@ -173,7 +173,7 @@
 		<dependency>
 			<groupId>io.github.arlol</groupId>
 			<artifactId>pkl-config-java-native</artifactId>
-			<version>2604.0.108</version>
+			<version>v2604.0.110</version>
 		</dependency>
 
 		<dependency>
