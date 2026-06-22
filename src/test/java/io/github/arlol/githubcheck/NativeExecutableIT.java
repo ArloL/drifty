@@ -1,6 +1,6 @@
 package io.github.arlol.githubcheck;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -25,8 +25,8 @@ class NativeExecutableIT {
 		String output = new String(process.getInputStream().readAllBytes())
 				.strip();
 
-		assertThat(exitCode).isZero();
-		assertThat(output).isEqualTo(expected);
+		assertEquals(0, exitCode);
+		assertEquals(expected, output);
 	}
 
 }
