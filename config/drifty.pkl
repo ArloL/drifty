@@ -26,7 +26,10 @@ class SecretScanningBypassReviewer {
 
 class StatusCheck {
   context: String
-  appId: Int?
+  /// Omit (null) to allow any app to report this check; set to a GitHub App ID
+  /// (e.g. githubActionsAppId) to require that specific app. Mirrors the
+  /// optional app_id in GitHub's branch protection / ruleset APIs.
+  appId: Int? = null
 }
 
 class CodeScanningTool {
