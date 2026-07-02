@@ -1,7 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -51,7 +51,7 @@ public sealed interface DriftItem {
 			List<String> list = new ArrayList<>(
 					s.stream().map(Object::toString).toList()
 			);
-			Collections.sort(list);
+			list.sort(Comparator.naturalOrder());
 			return list;
 		}
 
