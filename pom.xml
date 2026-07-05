@@ -506,6 +506,14 @@
 		</pluginManagement>
 	</build>
 	<repositories>
+		<!-- central must come before jitpack: jitpack auto-generates stub
+			POMs for com.github.* coordinates (e.g. the handlebars.java parent
+			POM, without packaging "pom"), which would otherwise shadow the
+			real artifacts and silently drop transitive dependencies -->
+		<repository>
+			<id>central</id>
+			<url>https://repo.maven.apache.org/maven2</url>
+		</repository>
 		<repository>
 			<id>jitpack.io</id>
 			<url>https://jitpack.io</url>
