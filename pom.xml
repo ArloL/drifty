@@ -196,25 +196,25 @@
 		<dependency>
 			<groupId>org.wiremock</groupId>
 			<artifactId>wiremock-core</artifactId>
-			<version>4.0.0-beta.32</version>
+			<version>4.0.0-beta.38</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.wiremock</groupId>
 			<artifactId>wiremock-jetty</artifactId>
-			<version>4.0.0-beta.30</version>
+			<version>4.0.0-beta.38</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.wiremock</groupId>
 			<artifactId>wiremock-junit5</artifactId>
-			<version>4.0.0-beta.37</version>
+			<version>4.0.0-beta.38</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.wiremock</groupId>
 			<artifactId>wiremock-httpclient-apache5</artifactId>
-			<version>4.0.0-beta.37</version>
+			<version>4.0.0-beta.38</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

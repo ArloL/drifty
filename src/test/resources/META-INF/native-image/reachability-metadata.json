@@ -1,15 +1,6 @@
 {
   "reflection": [
     {
-      "type": "apple.security.AppleProvider",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
       "type": "boolean[]"
     },
     {
@@ -62,6 +53,15 @@
     },
     {
       "type": "com.github.tomakehurst.wiremock.common.Prioritisable"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.common.entity.EntityDefinitionDeserializer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
     },
     {
       "type": "com.github.tomakehurst.wiremock.common.ssl.WritableFileOrClasspathKeyStoreSource",
@@ -138,7 +138,7 @@
           "parameterTypes": [
             "int",
             "java.lang.String",
-            "java.lang.String",
+            "com.github.tomakehurst.wiremock.common.entity.EntityDefinition",
             "com.fasterxml.jackson.databind.JsonNode",
             "java.lang.String",
             "java.lang.String",
@@ -717,6 +717,9 @@
       ]
     },
     {
+      "type": "com.sun.jna.SecurityManagerExposer"
+    },
+    {
       "type": "com.sun.jna.Structure",
       "jniAccessible": true,
       "fields": [
@@ -1114,9 +1117,6 @@
       ]
     },
     {
-      "type": "java.lang.Comparable"
-    },
-    {
       "type": "java.lang.Deprecated"
     },
     {
@@ -1203,9 +1203,6 @@
       ]
     },
     {
-      "type": "java.lang.Number"
-    },
-    {
       "type": "java.lang.Object",
       "jniAccessible": true,
       "methods": [
@@ -1278,6 +1275,15 @@
     },
     {
       "type": "java.lang.StackTraceElement"
+    },
+    {
+      "type": "java.lang.StackWalker"
+    },
+    {
+      "type": "java.lang.StackWalker$Option"
+    },
+    {
+      "type": "java.lang.StackWalker$StackFrame"
     },
     {
       "type": "java.lang.String",
@@ -1441,6 +1447,9 @@
     },
     {
       "type": "java.math.BigInteger"
+    },
+    {
+      "type": "java.net.UnixDomainSocketAddress"
     },
     {
       "type": "java.nio.Buffer",
@@ -2038,6 +2047,15 @@
       ]
     },
     {
+      "type": "sun.security.provider.JavaKeyStore$JKS",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "sun.security.provider.NativePRNG",
       "methods": [
         {
@@ -2283,6 +2301,18 @@
       ]
     },
     {
+      "type": "sun.security.x509.SubjectAlternativeNameExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
       "type": "sun.security.x509.SubjectKeyIdentifierExtension",
       "methods": [
         {
@@ -2321,7 +2351,7 @@
       "glob": "META-INF/graalvm/org.graalvm.truffle/version"
     },
     {
-      "glob": "META-INF/resources/engine/libtruffleattach/darwin/aarch64/sha256"
+      "glob": "META-INF/resources/engine/libtruffleattach/linux/amd64/sha256"
     },
     {
       "glob": "META-INF/services/com.github.tomakehurst.wiremock.extension.Extension"
@@ -2408,7 +2438,7 @@
       "glob": "assets"
     },
     {
-      "glob": "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib"
+      "glob": "com/sun/jna/linux-x86-64/libjnidispatch.so"
     },
     {
       "glob": "helpers.nashorn.js"
@@ -2438,10 +2468,6 @@
       "glob": "jakarta/servlet/http/LocalStrings_en_US.properties"
     },
     {
-      "module": "java.base",
-      "glob": "jdk/internal/icu/impl/data/icudt76b/nfc.nrm"
-    },
-    {
       "module": "jdk.jfr",
       "glob": "jdk/jfr/internal/query/view.ini"
     },
@@ -2462,9 +2488,6 @@
     },
     {
       "glob": "org/eclipse/jetty/version/build.properties"
-    },
-    {
-      "glob": "org/publicsuffix/list/effective_tld_names.dat"
     },
     {
       "glob": "org/slf4j/impl/StaticLoggerBinder.class"
