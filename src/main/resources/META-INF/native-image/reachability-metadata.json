@@ -1237,6 +1237,10 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.RulePatternOperator",
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.RulesetDetailsResponse",
       "methods": [
         {
@@ -1622,9 +1626,6 @@
       "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$BypassReviewer[]"
-    },
-    {
       "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$DelegatedBypassOptions",
       "methods": [
         {
@@ -1795,6 +1796,14 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$MergeCommitMessage",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$MergeCommitTitle",
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$Pages",
       "methods": [
         {
@@ -1835,6 +1844,14 @@
             "boolean",
             "boolean",
             "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "io.github.arlol.githubcheck.pkl.Drifty$SquashMergeCommitTitle",
+            "io.github.arlol.githubcheck.pkl.Drifty$SquashMergeCommitMessage",
+            "io.github.arlol.githubcheck.pkl.Drifty$MergeCommitTitle",
+            "io.github.arlol.githubcheck.pkl.Drifty$MergeCommitMessage",
             "boolean",
             "boolean",
             "boolean",
@@ -1907,13 +1924,21 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$SquashMergeCommitMessage",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$SquashMergeCommitTitle",
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$StatusCheck",
       "methods": [
         {
           "name": "<init>",
           "parameterTypes": [
             "java.lang.String",
-            "long"
+            "java.lang.Long"
           ]
         }
       ],
