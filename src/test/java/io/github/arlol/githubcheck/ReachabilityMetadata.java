@@ -87,10 +87,28 @@ public final class ReachabilityMetadata {
 	 * Reflection {@code type} prefixes that belong in the production image.
 	 * Everything else the agent traced is supplied by the GraalVM
 	 * reachability-metadata repository and is routed to the test scope.
+	 *
+	 * <p>
+	 * {@code com.sun.jna} is here despite the repository shipping a JNA config.
+	 * The repository config only covers interface mapping
+	 * ({@code Native.load}); lazysodium uses direct mapping
+	 * ({@code Native.register}), which builds the libffi call descriptors in
+	 * Java and reflectively instantiates types the config never registers.
+	 * Dropping the block and rebuilding fails at the first crypto call with
+	 * {@code NoSuchMethodException} — on
+	 * {@code com.sun.jna.Structure$FFIType.<init>()}, and after that on
+	 * {@code com.sun.jna.NativeLong.<init>()}. That is a property of the
+	 * binding mode, not of the JNA version: 5.18.1 fails the same way.
+	 *
+	 * <p>
+	 * So the JNA reflection metadata is self-supplied here and
+	 * {@code NativeExecutableIT.selfTest} guards it. See {@code FOLLOWUPS.md}
+	 * for the upstream work that would let this entry go.
 	 */
 	private static final List<String> MAIN_TYPE_PREFIXES = List.of(
 			"io.github.arlol.", // project records (Jackson + Pkl)
-			"com.goterl.lazysodium." // secret encryption (ships no metadata)
+			"com.goterl.lazysodium.", // secret encryption (ships no metadata)
+			"com.sun.jna." // repository config too old; see note above
 	);
 
 	/**
