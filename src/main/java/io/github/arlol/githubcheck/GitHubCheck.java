@@ -28,6 +28,23 @@ public class GitHubCheck {
 			System.out.println(title + " version \"" + version + "\"");
 			return;
 		}
+		// Network- and token-free smoke test of the libsodium/JNA path. This is
+		// the code that crashes in the native image when the JNA reflection
+		// metadata is missing (NoSuchMethodException on
+		// com.sun.jna.Structure$FFIType.<init>()). NativeExecutableIT runs the
+		// built production binary with this flag, so metadata regressions fail
+		// the build instead of shipping. 32-byte all-zeros key, base64.
+		if (args.length == 1 && "--self-test".equals(args[0])) {
+			String publicKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+			String encrypted = io.github.arlol.githubcheck.client.Secrets
+					.encryptSecret(publicKey, "drifty-self-test");
+			if (encrypted == null || encrypted.isBlank()) {
+				System.err.println("self-test FAILED: empty ciphertext");
+				System.exit(1);
+			}
+			System.out.println("self-test OK");
+			return;
+		}
 		String token = System.getenv("DRIFTY_GITHUB_TOKEN");
 		if (token == null || token.isBlank()) {
 			System.err.println(
