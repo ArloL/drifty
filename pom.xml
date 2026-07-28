@@ -161,7 +161,7 @@
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna</artifactId>
-			<version>5.19.1</version>
+			<version>5.18.1</version>
 		</dependency>
 
 		<dependency>
@@ -499,8 +499,21 @@
 				<plugin>
 					<groupId>org.graalvm.buildtools</groupId>
 					<artifactId>native-maven-plugin</artifactId>
-					<version>1.1.3</version>
+					<version>1.1.6</version>
 					<extensions>true</extensions>
+					<dependencies>
+						<!--
+							1.1.6 calls org.apache.maven.shared.utils.logging.MessageUtils
+							but no longer gets maven-shared-utils from the Maven core
+							classpath, so the test/compile goals fail with
+							NoClassDefFoundError unless we add it to the plugin classpath.
+						-->
+						<dependency>
+							<groupId>org.apache.maven.shared</groupId>
+							<artifactId>maven-shared-utils</artifactId>
+							<version>3.4.2</version>
+						</dependency>
+					</dependencies>
 				</plugin>
 			</plugins>
 		</pluginManagement>
