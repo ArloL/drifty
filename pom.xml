@@ -161,7 +161,15 @@
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna</artifactId>
-			<version>5.18.1</version>
+			<!--
+				5.19.x is not in the reachability-metadata repository's
+				tested-versions, so the plugin falls back to the latest config
+				(net.java.dev.jna/jna/5.8.0). That config is missing the
+				Structure$FFIType entries, so the JNA reflection metadata is
+				self-supplied here and NativeExecutableIT.selfTest guards it.
+				See FOLLOWUPS.md before touching this.
+			-->
+			<version>5.19.1</version>
 		</dependency>
 
 		<dependency>
