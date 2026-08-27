@@ -21,6 +21,9 @@
 		<platform>unknown</platform>
 		<start-class>io.github.arlol.githubcheck.GitHubCheck</start-class>
 		<project.build.outputTimestamp>2023-01-01T00:00:00Z</project.build.outputTimestamp>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+		<sonar.organization>ArloL</sonar.organization>
+		<sonar.projectKey>ArloL_drifty</sonar.projectKey>
 	</properties>
 
 	<profiles>
@@ -403,6 +406,25 @@
 				</executions>
 			</plugin>
 			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.13</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
 				<executions>
@@ -503,6 +525,11 @@
 				<plugin>
 					<artifactId>maven-site-plugin</artifactId>
 					<version>3.22.0</version>
+				</plugin>
+				<plugin>
+					<groupId>org.sonarsource.scanner.maven</groupId>
+					<artifactId>sonar-maven-plugin</artifactId>
+					<version>5.1.0.4751</version>
 				</plugin>
 				<plugin>
 					<groupId>org.graalvm.buildtools</groupId>
