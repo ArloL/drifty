@@ -53,12 +53,12 @@ jobs:
         persist-credentials: false
         # Sonar needs the full history to attribute new code to authors
         fetch-depth: 0
-    # temurin on purpose: the graal profile activates off $JAVA_HOME/lib/graal,
-    # so this skips the native image build and runs JaCoCo-instrumented JVM tests
+    # .tool-versions names graalvm-community, and setup-java takes the
+    # distribution from there rather than from the input below
     - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
       with:
         cache: maven
-        distribution: temurin
+        distribution: graalvm
         java-version-file: .tool-versions
     - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
@@ -71,9 +71,12 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
         set -o xtrace
+        # Sonar only needs the JVM tests JaCoCo instruments, so skip the
+        # native image build: 20s instead of 9min, same coverage report
         ./mvnw \
           --batch-mode \
           -Dsha1="${GITHUB_SHA}" \
+          -P '!graal' \
           verify \
           sonar:sonar
     - name: Make sure build did not change anything

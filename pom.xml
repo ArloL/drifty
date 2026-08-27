@@ -22,7 +22,7 @@
 		<start-class>io.github.arlol.githubcheck.GitHubCheck</start-class>
 		<project.build.outputTimestamp>2023-01-01T00:00:00Z</project.build.outputTimestamp>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
-		<sonar.organization>ArloL</sonar.organization>
+		<sonar.organization>arlol</sonar.organization>
 		<sonar.projectKey>ArloL_drifty</sonar.projectKey>
 	</properties>
 
