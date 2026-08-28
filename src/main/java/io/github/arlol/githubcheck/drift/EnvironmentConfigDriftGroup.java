@@ -11,6 +11,8 @@ import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class EnvironmentConfigDriftGroup extends DriftGroup {
 
+	private static final String KEY_PREFIX = "environment.";
+
 	private final Map<String, Drifty.Environment> desired;
 	private final Map<String, EnvironmentDetailsResponse> actual;
 	private final GitHubClient client;
@@ -49,7 +51,7 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 				fixes.add(
 						new DriftFix(
 								new DriftItem.SectionMissing(
-										"environment." + envName
+										KEY_PREFIX + envName
 								),
 								getFixAction(envName, wantEnv)
 						)
@@ -61,7 +63,7 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 
 			if (wantEnv.waitTimer > 0) {
 				ocompare(
-						"environment." + envName + ".wait_timer",
+						KEY_PREFIX + envName + ".wait_timer",
 						(int) wantEnv.waitTimer,
 						actualEnv.getWaitTimer()
 				).ifPresent(items::add);
@@ -69,7 +71,7 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 
 			if (wantEnv.protectedBranches || wantEnv.customBranchPolicies) {
 				ocompare(
-						"environment." + envName
+						KEY_PREFIX + envName
 								+ ".deployment_branch_policy.protected_branches",
 						wantEnv.protectedBranches,
 						actualEnv.deploymentBranchPolicy() != null
@@ -77,7 +79,7 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 										.protectedBranches()
 				).ifPresent(items::add);
 				ocompare(
-						"environment." + envName
+						KEY_PREFIX + envName
 								+ ".deployment_branch_policy.custom_branch_policies",
 						wantEnv.customBranchPolicies,
 						actualEnv.deploymentBranchPolicy() != null

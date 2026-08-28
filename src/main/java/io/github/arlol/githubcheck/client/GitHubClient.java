@@ -20,6 +20,15 @@ import net.jcip.annotations.Immutable;
 @Immutable
 public class GitHubClient {
 
+	private static final String PATH_VULNERABILITY_ALERTS = "/vulnerability-alerts";
+	private static final String PATH_AUTOMATED_SECURITY_FIXES = "/automated-security-fixes";
+	private static final String PATH_IMMUTABLE_RELEASES = "/immutable-releases";
+	private static final String PATH_PRIVATE_VULNERABILITY_REPORTING = "/private-vulnerability-reporting";
+	private static final String PATH_CODE_SCANNING_DEFAULT_SETUP = "/code-scanning/default-setup";
+
+	private static final String HEADER_CONTENT_TYPE = "Content-Type";
+	private static final String MEDIA_TYPE_JSON = "application/json";
+
 	// ─── Client
 	// ──────────────────────────────────────────────────────────────
 
@@ -94,7 +103,7 @@ public class GitHubClient {
 
 	public boolean getVulnerabilityAlerts(String owner, String repo) {
 		HttpResponse<String> resp = get(
-				repoUrl(owner, repo) + "/vulnerability-alerts"
+				repoUrl(owner, repo) + PATH_VULNERABILITY_ALERTS
 		);
 		if (resp.statusCode() == 204) {
 			return true;
@@ -110,7 +119,7 @@ public class GitHubClient {
 
 	public boolean getAutomatedSecurityFixes(String owner, String repo) {
 		HttpResponse<String> resp = get(
-				repoUrl(owner, repo) + "/automated-security-fixes"
+				repoUrl(owner, repo) + PATH_AUTOMATED_SECURITY_FIXES
 		);
 		if (resp.statusCode() == 200) {
 			return readValue(resp.body(), AutomatedSecurityFixesResponse.class)
@@ -130,7 +139,7 @@ public class GitHubClient {
 			String repo
 	) {
 		HttpResponse<String> resp = get(
-				repoUrl(owner, repo) + "/immutable-releases"
+				repoUrl(owner, repo) + PATH_IMMUTABLE_RELEASES
 		);
 		if (resp.statusCode() == 200) {
 			return Optional.of(
@@ -175,7 +184,7 @@ public class GitHubClient {
 			String branch
 	) {
 		HttpResponse<String> resp = get(
-				repoUrl(owner, repo) + "/branches/" + branch + "/protection"
+				branchProtectionUrl(owner, repo, branch)
 		);
 		if (resp.statusCode() == 404) {
 			return Optional.empty();
@@ -247,7 +256,7 @@ public class GitHubClient {
 	) {
 		String body = writeValue(payload);
 		HttpResponse<String> resp = put(
-				repoUrl(owner, repo) + "/environments/" + envName,
+				environmentUrl(owner, repo, envName),
 				body
 		);
 		if (resp.statusCode() != 200 && resp.statusCode() != 201) {
@@ -268,7 +277,7 @@ public class GitHubClient {
 	) {
 		String body = writeValue(payload);
 		HttpResponse<String> resp = put(
-				repoUrl(owner, repo) + "/environments/" + envName,
+				environmentUrl(owner, repo, envName),
 				body
 		);
 		if (resp.statusCode() != 200) {
@@ -282,7 +291,7 @@ public class GitHubClient {
 
 	public void deleteEnvironment(String owner, String repo, String envName) {
 		HttpResponse<String> resp = delete(
-				repoUrl(owner, repo) + "/environments/" + envName
+				environmentUrl(owner, repo, envName)
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -298,8 +307,7 @@ public class GitHubClient {
 			String repo,
 			String env
 	) {
-		String url = repoUrl(owner, repo) + "/environments/" + env
-				+ "/secrets?per_page=100";
+		String url = environmentUrl(owner, repo, env) + "/secrets?per_page=100";
 		HttpResponse<String> resp = get(url);
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
@@ -319,8 +327,7 @@ public class GitHubClient {
 			String name
 	) {
 		HttpResponse<String> resp = get(
-				repoUrl(owner, repo) + "/environments/" + env + "/secrets/"
-						+ name
+				environmentUrl(owner, repo, env) + "/secrets/" + name
 		);
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
@@ -390,8 +397,7 @@ public class GitHubClient {
 			String env
 	) {
 		HttpResponse<String> resp = get(
-				repoUrl(owner, repo) + "/environments/" + env
-						+ "/secrets/public-key"
+				environmentUrl(owner, repo, env) + "/secrets/public-key"
 		);
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
@@ -436,8 +442,7 @@ public class GitHubClient {
 	) {
 		String body = writeValue(request);
 		HttpResponse<String> resp = put(
-				repoUrl(owner, repo) + "/environments/" + env + "/secrets/"
-						+ name,
+				environmentUrl(owner, repo, env) + "/secrets/" + name,
 				body
 		);
 		if (resp.statusCode() != 201 && resp.statusCode() != 204) {
@@ -496,7 +501,7 @@ public class GitHubClient {
 	) {
 		String body = writeValue(payload);
 		HttpResponse<String> resp = put(
-				repoUrl(owner, repo) + "/branches/" + branch + "/protection",
+				branchProtectionUrl(owner, repo, branch),
 				body
 		);
 		if (resp.statusCode() != 200) {
@@ -514,7 +519,7 @@ public class GitHubClient {
 			String branch
 	) {
 		HttpResponse<String> resp = delete(
-				repoUrl(owner, repo) + "/branches/" + branch + "/protection"
+				branchProtectionUrl(owner, repo, branch)
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -541,7 +546,7 @@ public class GitHubClient {
 	}
 
 	public Optional<PagesResponse> getPages(String owner, String repo) {
-		HttpResponse<String> resp = get(repoUrl(owner, repo) + "/pages");
+		HttpResponse<String> resp = get(pagesUrl(owner, repo));
 		if (resp.statusCode() == 403) {
 			throw new GitHubApiException(
 					"HTTP 403 for pages on " + repo
@@ -565,7 +570,7 @@ public class GitHubClient {
 			PagesCreateRequest payload
 	) {
 		String body = writeValue(payload);
-		HttpResponse<String> resp = post(repoUrl(owner, repo) + "/pages", body);
+		HttpResponse<String> resp = post(pagesUrl(owner, repo), body);
 		if (resp.statusCode() != 201) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " creating pages for " + owner
@@ -581,7 +586,7 @@ public class GitHubClient {
 			PagesUpdateRequest payload
 	) {
 		String body = writeValue(payload);
-		HttpResponse<String> resp = put(repoUrl(owner, repo) + "/pages", body);
+		HttpResponse<String> resp = put(pagesUrl(owner, repo), body);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " updating pages for " + owner
@@ -591,7 +596,7 @@ public class GitHubClient {
 	}
 
 	public void deletePages(String owner, String repo) {
-		HttpResponse<String> resp = delete(repoUrl(owner, repo) + "/pages");
+		HttpResponse<String> resp = delete(pagesUrl(owner, repo));
 		if (resp.statusCode() != 204 && resp.statusCode() != 404) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " deleting pages for " + owner
@@ -602,7 +607,7 @@ public class GitHubClient {
 
 	public void enableVulnerabilityAlerts(String owner, String repo) {
 		HttpResponse<String> resp = put(
-				repoUrl(owner, repo) + "/vulnerability-alerts"
+				repoUrl(owner, repo) + PATH_VULNERABILITY_ALERTS
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -614,7 +619,7 @@ public class GitHubClient {
 
 	public void enableAutomatedSecurityFixes(String owner, String repo) {
 		HttpResponse<String> resp = put(
-				repoUrl(owner, repo) + "/automated-security-fixes"
+				repoUrl(owner, repo) + PATH_AUTOMATED_SECURITY_FIXES
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -626,7 +631,7 @@ public class GitHubClient {
 
 	public void disableVulnerabilityAlerts(String owner, String repo) {
 		HttpResponse<String> resp = delete(
-				repoUrl(owner, repo) + "/vulnerability-alerts"
+				repoUrl(owner, repo) + PATH_VULNERABILITY_ALERTS
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -638,7 +643,7 @@ public class GitHubClient {
 
 	public void disableAutomatedSecurityFixes(String owner, String repo) {
 		HttpResponse<String> resp = delete(
-				repoUrl(owner, repo) + "/automated-security-fixes"
+				repoUrl(owner, repo) + PATH_AUTOMATED_SECURITY_FIXES
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -650,7 +655,7 @@ public class GitHubClient {
 
 	public void enableImmutableReleases(String owner, String repo) {
 		HttpResponse<String> resp = put(
-				repoUrl(owner, repo) + "/immutable-releases"
+				repoUrl(owner, repo) + PATH_IMMUTABLE_RELEASES
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -662,7 +667,7 @@ public class GitHubClient {
 
 	public void disableImmutableReleases(String owner, String repo) {
 		HttpResponse<String> resp = delete(
-				repoUrl(owner, repo) + "/immutable-releases"
+				repoUrl(owner, repo) + PATH_IMMUTABLE_RELEASES
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -674,7 +679,7 @@ public class GitHubClient {
 
 	public boolean getPrivateVulnerabilityReporting(String owner, String repo) {
 		HttpResponse<String> resp = get(
-				repoUrl(owner, repo) + "/private-vulnerability-reporting"
+				repoUrl(owner, repo) + PATH_PRIVATE_VULNERABILITY_REPORTING
 		);
 		if (resp.statusCode() == 200) {
 			return readValue(
@@ -693,7 +698,7 @@ public class GitHubClient {
 
 	public void enablePrivateVulnerabilityReporting(String owner, String repo) {
 		HttpResponse<String> resp = put(
-				repoUrl(owner, repo) + "/private-vulnerability-reporting"
+				repoUrl(owner, repo) + PATH_PRIVATE_VULNERABILITY_REPORTING
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -709,7 +714,7 @@ public class GitHubClient {
 			String repo
 	) {
 		HttpResponse<String> resp = delete(
-				repoUrl(owner, repo) + "/private-vulnerability-reporting"
+				repoUrl(owner, repo) + PATH_PRIVATE_VULNERABILITY_REPORTING
 		);
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
@@ -722,7 +727,7 @@ public class GitHubClient {
 
 	public boolean getCodeScanningDefaultSetup(String owner, String repo) {
 		HttpResponse<String> resp = get(
-				repoUrl(owner, repo) + "/code-scanning/default-setup"
+				repoUrl(owner, repo) + PATH_CODE_SCANNING_DEFAULT_SETUP
 		);
 		if (resp.statusCode() == 200) {
 			return readValue(
@@ -746,7 +751,7 @@ public class GitHubClient {
 				)
 		);
 		HttpResponse<String> resp = patch(
-				repoUrl(owner, repo) + "/code-scanning/default-setup",
+				repoUrl(owner, repo) + PATH_CODE_SCANNING_DEFAULT_SETUP,
 				body
 		);
 		if (resp.statusCode() != 200 && resp.statusCode() != 202) {
@@ -764,7 +769,7 @@ public class GitHubClient {
 				)
 		);
 		HttpResponse<String> resp = patch(
-				repoUrl(owner, repo) + "/code-scanning/default-setup",
+				repoUrl(owner, repo) + PATH_CODE_SCANNING_DEFAULT_SETUP,
 				body
 		);
 		if (resp.statusCode() != 200 && resp.statusCode() != 202) {
@@ -818,9 +823,7 @@ public class GitHubClient {
 	}
 
 	public void deleteRuleset(String owner, String repo, long rulesetId) {
-		HttpResponse<String> resp = delete(
-				repoUrl(owner, repo) + "/rulesets/" + rulesetId
-		);
+		HttpResponse<String> resp = delete(rulesetUrl(owner, repo, rulesetId));
 		if (resp.statusCode() != 204) {
 			throw new GitHubApiException(
 					"HTTP " + resp.statusCode() + " deleting ruleset "
@@ -838,7 +841,7 @@ public class GitHubClient {
 	) {
 		String body = writeValue(payload);
 		HttpResponse<String> resp = put(
-				repoUrl(owner, repo) + "/rulesets/" + rulesetId,
+				rulesetUrl(owner, repo, rulesetId),
 				body
 		);
 		if (resp.statusCode() != 200) {
@@ -941,6 +944,26 @@ public class GitHubClient {
 		return baseUrl + "/repos/" + owner + "/" + repo;
 	}
 
+	private String pagesUrl(String owner, String repo) {
+		return repoUrl(owner, repo) + "/pages";
+	}
+
+	private String branchProtectionUrl(
+			String owner,
+			String repo,
+			String branch
+	) {
+		return repoUrl(owner, repo) + "/branches/" + branch + "/protection";
+	}
+
+	private String environmentUrl(String owner, String repo, String env) {
+		return repoUrl(owner, repo) + "/environments/" + env;
+	}
+
+	private String rulesetUrl(String owner, String repo, long rulesetId) {
+		return repoUrl(owner, repo) + "/rulesets/" + rulesetId;
+	}
+
 	private <T> T readValue(String json, Class<T> type) {
 		try {
 			return mapper.readValue(json, type);
@@ -1001,7 +1024,7 @@ public class GitHubClient {
 
 	private HttpResponse<String> post(String url, String body) {
 		return sendRequest(
-				requestBuilder(url).header("Content-Type", "application/json")
+				requestBuilder(url).header(HEADER_CONTENT_TYPE, MEDIA_TYPE_JSON)
 						.POST(HttpRequest.BodyPublishers.ofString(body))
 						.build()
 		);
@@ -1009,7 +1032,7 @@ public class GitHubClient {
 
 	private HttpResponse<String> patch(String url, String body) {
 		return sendRequest(
-				requestBuilder(url).header("Content-Type", "application/json")
+				requestBuilder(url).header(HEADER_CONTENT_TYPE, MEDIA_TYPE_JSON)
 						.method(
 								"PATCH",
 								HttpRequest.BodyPublishers.ofString(body)
@@ -1020,7 +1043,7 @@ public class GitHubClient {
 
 	private HttpResponse<String> put(String url, String body) {
 		return sendRequest(
-				requestBuilder(url).header("Content-Type", "application/json")
+				requestBuilder(url).header(HEADER_CONTENT_TYPE, MEDIA_TYPE_JSON)
 						.PUT(HttpRequest.BodyPublishers.ofString(body))
 						.build()
 		);
@@ -1084,9 +1107,7 @@ public class GitHubClient {
 			String repo,
 			long rulesetId
 	) {
-		HttpResponse<String> resp = get(
-				repoUrl(owner, repo) + "/rulesets/" + rulesetId
-		);
+		HttpResponse<String> resp = get(rulesetUrl(owner, repo, rulesetId));
 		if (resp.statusCode() == 403) {
 			throw new GitHubApiException(
 					"HTTP 403 for workflow permissions on " + repo

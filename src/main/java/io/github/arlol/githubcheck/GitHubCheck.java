@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import io.github.arlol.githubcheck.client.Secrets;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 import io.github.arlol.githubcheck.state.StateStore;
@@ -21,73 +22,36 @@ public class GitHubCheck {
 
 	static void main(String[] args)
 			throws IOException, InterruptedException, ExecutionException {
-		if (args.length == 1 && "--version".equals(args[0])) {
-			Package pkg = GitHubCheck.class.getPackage();
-			String title = pkg.getImplementationTitle();
-			String version = pkg.getImplementationVersion();
-			System.out.println(title + " version \"" + version + "\"");
+		if (handledVersion(args)) {
 			return;
 		}
-		// Network- and token-free smoke test of the libsodium/JNA path. This is
-		// the code that crashes in the native image when the JNA reflection
-		// metadata is missing (NoSuchMethodException on
-		// com.sun.jna.Structure$FFIType.<init>()). NativeExecutableIT runs the
-		// built production binary with this flag, so metadata regressions fail
-		// the build instead of shipping. 32-byte all-zeros key, base64.
 		if (args.length == 1 && "--self-test".equals(args[0])) {
-			String publicKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-			String encrypted = io.github.arlol.githubcheck.client.Secrets
-					.encryptSecret(publicKey, "drifty-self-test");
-			if (encrypted == null || encrypted.isBlank()) {
-				System.err.println("self-test FAILED: empty ciphertext");
-				System.exit(1);
-			}
-			System.out.println("self-test OK");
+			System.exit(selfTest());
 			return;
 		}
+
 		String token = System.getenv("DRIFTY_GITHUB_TOKEN");
 		if (token == null || token.isBlank()) {
 			System.err.println(
 					"ERROR: DRIFTY_GITHUB_TOKEN environment variable not set"
 			);
 			System.exit(1);
+			return;
 		}
 
 		var argsList = List.of(args);
 		boolean fix = argsList.contains("--fix");
-		int configIndex = argsList.indexOf("--config");
-		String configArg = (configIndex >= 0
-				&& configIndex + 1 < argsList.size())
-						? argsList.get(configIndex + 1)
-						: null;
-		int stateIndex = argsList.indexOf("--state");
-		String statePath = (stateIndex >= 0 && stateIndex + 1 < argsList.size())
-				? argsList.get(stateIndex + 1)
-				: null;
+		String configArg = optionValue(argsList, "--config");
+		String statePath = optionValue(argsList, "--state");
 
-		Map<String, String> githubSecrets = Map.of();
-		String githubSecretsJson = System.getenv("DRIFTY_GITHUB_SECRETS");
-		if (githubSecretsJson != null && !githubSecretsJson.isBlank()) {
-			githubSecrets = new ObjectMapper()
-					.configure(
-							DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-							false
-					)
-					.setPropertyNamingStrategy(
-							PropertyNamingStrategies.SNAKE_CASE
-					)
-					.readValue(
-							githubSecretsJson,
-							new TypeReference<Map<String, String>>() {
-							}
-					);
-		}
+		Map<String, String> githubSecrets = loadGithubSecrets();
 
 		Path configPath = configArg != null ? Path.of(configArg)
 				: Path.of("drifty.pkl");
 		if (!Files.isRegularFile(configPath)) {
 			System.err.println("ERROR: config file not found: " + configPath);
 			System.exit(1);
+			return;
 		}
 		List<Drifty.Repository> repos = PklConfigLoader
 				.load(configPath.toAbsolutePath());
@@ -98,35 +62,9 @@ public class GitHubCheck {
 		var stateStore = new StateStore();
 		DriftyState state = stateStore.load(stateFile);
 
-		if (fix) {
-			var missingSecrets = new ArrayList<String>();
-			for (Drifty.Repository repo : repos) {
-				for (String secretName : repo.actionsSecrets) {
-					String key = repo.name + "-" + secretName;
-					if (!githubSecrets.containsKey(key)) {
-						missingSecrets.add(key);
-					}
-				}
-				for (var entry : repo.environments.entrySet()) {
-					String envName = entry.getKey();
-					for (String secretName : entry.getValue().secrets) {
-						String key = repo.name + "-" + envName + "-"
-								+ secretName;
-						if (!githubSecrets.containsKey(key)) {
-							missingSecrets.add(key);
-						}
-					}
-				}
-			}
-			if (!missingSecrets.isEmpty()) {
-				System.err.println(
-						"ERROR: Missing secret values in DRIFTY_GITHUB_SECRETS for fix mode:"
-				);
-				for (String key : missingSecrets) {
-					System.err.println("  " + key);
-				}
-				System.exit(1);
-			}
+		if (fix && reportMissingSecrets(repos, githubSecrets)) {
+			System.exit(1);
+			return;
 		}
 
 		long startTime = System.currentTimeMillis();
@@ -144,6 +82,123 @@ public class GitHubCheck {
 				.printf("%nTotal execution time: %.2f seconds%n", totalSeconds);
 
 		System.exit(result.hasDrift() ? 1 : 0);
+	}
+
+	private static boolean handledVersion(String[] args) {
+		if (args.length != 1 || !"--version".equals(args[0])) {
+			return false;
+		}
+		Package pkg = GitHubCheck.class.getPackage();
+		String title = pkg.getImplementationTitle();
+		String version = pkg.getImplementationVersion();
+		System.out.println(title + " version \"" + version + "\"");
+		return true;
+	}
+
+	// Network- and token-free smoke test of the libsodium/JNA path. This is
+	// the code that crashes in the native image when the JNA reflection
+	// metadata is missing (NoSuchMethodException on
+	// com.sun.jna.Structure$FFIType.<init>()). NativeExecutableIT runs the
+	// built production binary with this flag, so metadata regressions fail
+	// the build instead of shipping. 32-byte all-zeros key, base64.
+	private static int selfTest() {
+		String publicKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+		String encrypted = Secrets.encryptSecret(publicKey, "drifty-self-test");
+		if (encrypted == null || encrypted.isBlank()) {
+			System.err.println("self-test FAILED: empty ciphertext");
+			return 1;
+		}
+		System.out.println("self-test OK");
+		return 0;
+	}
+
+	private static String optionValue(List<String> argsList, String option) {
+		int index = argsList.indexOf(option);
+		return (index >= 0 && index + 1 < argsList.size())
+				? argsList.get(index + 1)
+				: null;
+	}
+
+	private static Map<String, String> loadGithubSecrets() throws IOException {
+		String githubSecretsJson = System.getenv("DRIFTY_GITHUB_SECRETS");
+		if (githubSecretsJson == null || githubSecretsJson.isBlank()) {
+			return Map.of();
+		}
+		return new ObjectMapper()
+				.configure(
+						DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+						false
+				)
+				.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+				.readValue(
+						githubSecretsJson,
+						new TypeReference<Map<String, String>>() {
+						}
+				);
+	}
+
+	/**
+	 * Prints every secret that fix mode needs but {@code DRIFTY_GITHUB_SECRETS}
+	 * does not carry.
+	 *
+	 * @return whether any secret value was missing
+	 */
+	private static boolean reportMissingSecrets(
+			List<Drifty.Repository> repos,
+			Map<String, String> githubSecrets
+	) {
+		List<String> missingSecrets = collectMissingSecrets(
+				repos,
+				githubSecrets
+		);
+		if (missingSecrets.isEmpty()) {
+			return false;
+		}
+		System.err.println(
+				"ERROR: Missing secret values in DRIFTY_GITHUB_SECRETS for fix mode:"
+		);
+		for (String key : missingSecrets) {
+			System.err.println("  " + key);
+		}
+		return true;
+	}
+
+	private static List<String> collectMissingSecrets(
+			List<Drifty.Repository> repos,
+			Map<String, String> githubSecrets
+	) {
+		var missingSecrets = new ArrayList<String>();
+		for (Drifty.Repository repo : repos) {
+			addMissingSecrets(
+					missingSecrets,
+					githubSecrets,
+					repo.actionsSecrets,
+					repo.name + "-"
+			);
+			for (var entry : repo.environments.entrySet()) {
+				addMissingSecrets(
+						missingSecrets,
+						githubSecrets,
+						entry.getValue().secrets,
+						repo.name + "-" + entry.getKey() + "-"
+				);
+			}
+		}
+		return missingSecrets;
+	}
+
+	private static void addMissingSecrets(
+			List<String> missingSecrets,
+			Map<String, String> githubSecrets,
+			List<String> secretNames,
+			String keyPrefix
+	) {
+		for (String secretName : secretNames) {
+			String key = keyPrefix + secretName;
+			if (!githubSecrets.containsKey(key)) {
+				missingSecrets.add(key);
+			}
+		}
 	}
 
 }

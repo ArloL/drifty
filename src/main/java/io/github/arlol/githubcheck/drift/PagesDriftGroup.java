@@ -13,6 +13,8 @@ import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class PagesDriftGroup extends DriftGroup {
 
+	private static final String BUILD_TYPE_LEGACY = "legacy";
+
 	private final boolean desiredEnabled;
 	private final Drifty.Pages desired;
 	private final Optional<PagesResponse> actual;
@@ -69,19 +71,21 @@ public class PagesDriftGroup extends DriftGroup {
 								? p.buildType().name().toLowerCase(Locale.ROOT)
 								: null
 				),
-				"legacy".equals(desired.buildType) && p.source() != null
-						? combine(
-								compare(
-										"source.branch",
-										desired.sourceBranch,
-										p.source().branch()
-								),
-								compare(
-										"source.path",
-										desired.sourcePath,
-										p.source().path()
+				BUILD_TYPE_LEGACY.equals(desired.buildType)
+						&& p.source() != null
+								? combine(
+										compare(
+												"source.branch",
+												desired.sourceBranch,
+												p.source().branch()
+										),
+										compare(
+												"source.path",
+												desired.sourcePath,
+												p.source().path()
+										)
 								)
-						) : List.of(),
+								: List.of(),
 				compare("https_enforced", true, p.httpsEnforced())
 		);
 		return List.of(new DriftFix(items, () -> {
@@ -94,7 +98,7 @@ public class PagesDriftGroup extends DriftGroup {
 			Drifty.Pages args
 	) {
 		PagesCreateRequest.Source source = null;
-		if ("legacy".equals(args.buildType)) {
+		if (BUILD_TYPE_LEGACY.equals(args.buildType)) {
 			source = new PagesCreateRequest.Source(
 					args.sourceBranch,
 					args.sourcePath
@@ -110,7 +114,7 @@ public class PagesDriftGroup extends DriftGroup {
 			Drifty.Pages args
 	) {
 		PagesUpdateRequest.Source source = null;
-		if ("legacy".equals(args.buildType)) {
+		if (BUILD_TYPE_LEGACY.equals(args.buildType)) {
 			source = new PagesUpdateRequest.Source(
 					args.sourceBranch,
 					args.sourcePath
