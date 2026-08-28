@@ -84,7 +84,7 @@ public class GitHubCheck {
 		System.exit(result.hasDrift() ? 1 : 0);
 	}
 
-	private static boolean handledVersion(String[] args) {
+	static boolean handledVersion(String[] args) {
 		if (args.length != 1 || !"--version".equals(args[0])) {
 			return false;
 		}
@@ -101,7 +101,7 @@ public class GitHubCheck {
 	// com.sun.jna.Structure$FFIType.<init>()). NativeExecutableIT runs the
 	// built production binary with this flag, so metadata regressions fail
 	// the build instead of shipping. 32-byte all-zeros key, base64.
-	private static int selfTest() {
+	static int selfTest() {
 		String publicKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 		String encrypted = Secrets.encryptSecret(publicKey, "drifty-self-test");
 		if (encrypted == null || encrypted.isBlank()) {
@@ -112,7 +112,7 @@ public class GitHubCheck {
 		return 0;
 	}
 
-	private static String optionValue(List<String> argsList, String option) {
+	static String optionValue(List<String> argsList, String option) {
 		int index = argsList.indexOf(option);
 		return (index >= 0 && index + 1 < argsList.size())
 				? argsList.get(index + 1)
@@ -120,7 +120,11 @@ public class GitHubCheck {
 	}
 
 	private static Map<String, String> loadGithubSecrets() throws IOException {
-		String githubSecretsJson = System.getenv("DRIFTY_GITHUB_SECRETS");
+		return parseGithubSecrets(System.getenv("DRIFTY_GITHUB_SECRETS"));
+	}
+
+	static Map<String, String> parseGithubSecrets(String githubSecretsJson)
+			throws IOException {
 		if (githubSecretsJson == null || githubSecretsJson.isBlank()) {
 			return Map.of();
 		}
@@ -143,7 +147,7 @@ public class GitHubCheck {
 	 *
 	 * @return whether any secret value was missing
 	 */
-	private static boolean reportMissingSecrets(
+	static boolean reportMissingSecrets(
 			List<Drifty.Repository> repos,
 			Map<String, String> githubSecrets
 	) {
@@ -163,7 +167,7 @@ public class GitHubCheck {
 		return true;
 	}
 
-	private static List<String> collectMissingSecrets(
+	static List<String> collectMissingSecrets(
 			List<Drifty.Repository> repos,
 			Map<String, String> githubSecrets
 	) {
