@@ -213,7 +213,10 @@ public class OrgChecker {
 					.map(DriftGroup::name)
 					.toList();
 			return CheckResult.RepoCheckResult.drift(name, diffs, fixPreview);
-		} catch (IOException | InterruptedException e) {
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return CheckResult.RepoCheckResult.error(name, e.getMessage());
+		} catch (IOException e) {
 			return CheckResult.RepoCheckResult.error(name, e.getMessage());
 		}
 	}
@@ -228,59 +231,14 @@ public class OrgChecker {
 
 		var details = client.getRepo(org, name);
 
-		boolean vulnAlerts = false;
-		boolean automatedSecurityFixes = false;
-		boolean immutableReleases = false;
-		boolean privateVulnerabilityReporting = false;
-		boolean codeScanningDefaultSetup = false;
-		boolean secretScanning = false;
-		boolean secretScanningPushProtection = false;
-		boolean secretScanningNonProviderPatterns = false;
-		boolean secretScanningValidityChecks = false;
-		if (!archived) {
-			vulnAlerts = client.getVulnerabilityAlerts(org, name);
-			automatedSecurityFixes = client
-					.getAutomatedSecurityFixes(org, name);
-			var ir = client.getImmutableReleases(org, name);
-			if (ir.isPresent()) {
-				immutableReleases = ir.orElseThrow().enabled();
-			}
-			privateVulnerabilityReporting = client
-					.getPrivateVulnerabilityReporting(org, name);
-			codeScanningDefaultSetup = client
-					.getCodeScanningDefaultSetup(org, name);
-			var sa = details.securityAndAnalysis();
-			if (sa != null) {
-				if (sa.secretScanning() != null && sa.secretScanning()
-						.status() == SecurityAndAnalysis.StatusObject.Status.ENABLED) {
-					secretScanning = true;
-				}
-				if (sa.secretScanningPushProtection() != null && sa
-						.secretScanningPushProtection()
-						.status() == SecurityAndAnalysis.StatusObject.Status.ENABLED) {
-					secretScanningPushProtection = true;
-				}
-				if (sa.secretScanningNonProviderPatterns() != null && sa
-						.secretScanningNonProviderPatterns()
-						.status() == SecurityAndAnalysis.StatusObject.Status.ENABLED) {
-					secretScanningNonProviderPatterns = true;
-				}
-				if (sa.secretScanningValidityChecks() != null && sa
-						.secretScanningValidityChecks()
-						.status() == SecurityAndAnalysis.StatusObject.Status.ENABLED) {
-					secretScanningValidityChecks = true;
-				}
-			}
-		}
+		SecurityFlags security = archived ? SecurityFlags.NONE
+				: fetchSecurityFlags(name, details.securityAndAnalysis());
 
-		Map<String, BranchProtectionResponse> branchProtections = new HashMap<>();
-		if (!archived && RepositoryVisibility.PUBLIC == summary.visibility()) {
-			var branches = client.getBranches(org, name, true);
-			for (var branch : branches) {
-				var bp = client.getBranchProtection(org, name, branch.name());
-				branchProtections.put(branch.name(), bp.orElseThrow());
-			}
-		}
+		Map<String, BranchProtectionResponse> branchProtections = fetchBranchProtections(
+				summary,
+				name,
+				archived
+		);
 
 		List<Secret> secrets = client.getActionSecrets(org, name);
 		List<EnvironmentDetailsResponse> environments = client
@@ -298,16 +256,8 @@ public class OrgChecker {
 
 		WorkflowPermissions wfPerms = client.getWorkflowPermissions(org, name);
 
-		List<RulesetDetailsResponse> rulesets;
-		if (archived) {
-			rulesets = List.of();
-		} else {
-			var rulesetSummaries = client.listRulesets(org, name);
-			rulesets = new ArrayList<>();
-			for (var rs : rulesetSummaries) {
-				rulesets.add(client.getRuleset(org, name, rs.id()));
-			}
-		}
+		List<RulesetDetailsResponse> rulesets = archived ? List.of()
+				: fetchRulesets(name);
 
 		Optional<PagesResponse> pages = archived ? Optional.empty()
 				: client.getPages(org, name);
@@ -316,8 +266,8 @@ public class OrgChecker {
 				name,
 				summary,
 				details,
-				vulnAlerts,
-				automatedSecurityFixes,
+				security.vulnAlerts(),
+				security.automatedSecurityFixes(),
 				branchProtections,
 				secrets,
 				envSecrets,
@@ -325,14 +275,101 @@ public class OrgChecker {
 				rulesets,
 				pages,
 				envDetails,
-				immutableReleases,
+				security.immutableReleases(),
+				security.privateVulnerabilityReporting(),
+				security.codeScanningDefaultSetup(),
+				security.secretScanning(),
+				security.secretScanningPushProtection(),
+				security.secretScanningNonProviderPatterns(),
+				security.secretScanningValidityChecks()
+		);
+	}
+
+	private SecurityFlags fetchSecurityFlags(
+			String name,
+			SecurityAndAnalysis sa
+	) {
+		boolean vulnAlerts = client.getVulnerabilityAlerts(org, name);
+		boolean automatedSecurityFixes = client
+				.getAutomatedSecurityFixes(org, name);
+		var immutableReleases = client.getImmutableReleases(org, name);
+		boolean privateVulnerabilityReporting = client
+				.getPrivateVulnerabilityReporting(org, name);
+		boolean codeScanningDefaultSetup = client
+				.getCodeScanningDefaultSetup(org, name);
+		return new SecurityFlags(
+				vulnAlerts,
+				automatedSecurityFixes,
+				immutableReleases.isPresent()
+						&& immutableReleases.orElseThrow().enabled(),
 				privateVulnerabilityReporting,
 				codeScanningDefaultSetup,
-				secretScanning,
-				secretScanningPushProtection,
-				secretScanningNonProviderPatterns,
-				secretScanningValidityChecks
+				sa != null && isEnabled(sa.secretScanning()),
+				sa != null && isEnabled(sa.secretScanningPushProtection()),
+				sa != null && isEnabled(sa.secretScanningNonProviderPatterns()),
+				sa != null && isEnabled(sa.secretScanningValidityChecks())
 		);
+	}
+
+	private static boolean isEnabled(
+			SecurityAndAnalysis.StatusObject statusObject
+	) {
+		return statusObject != null && statusObject
+				.status() == SecurityAndAnalysis.StatusObject.Status.ENABLED;
+	}
+
+	private Map<String, BranchProtectionResponse> fetchBranchProtections(
+			RepositorySummaryResponse summary,
+			String name,
+			boolean archived
+	) {
+		Map<String, BranchProtectionResponse> branchProtections = new HashMap<>();
+		if (archived || RepositoryVisibility.PUBLIC != summary.visibility()) {
+			return branchProtections;
+		}
+		for (var branch : client.getBranches(org, name, true)) {
+			var bp = client.getBranchProtection(org, name, branch.name());
+			branchProtections.put(branch.name(), bp.orElseThrow());
+		}
+		return branchProtections;
+	}
+
+	private List<RulesetDetailsResponse> fetchRulesets(String name) {
+		var rulesets = new ArrayList<RulesetDetailsResponse>();
+		for (var rs : client.listRulesets(org, name)) {
+			rulesets.add(client.getRuleset(org, name, rs.id()));
+		}
+		return rulesets;
+	}
+
+	/**
+	 * The security- and analysis-related repository flags, all {@code false}
+	 * for an archived repository since GitHub does not expose them there.
+	 */
+	private record SecurityFlags(
+			boolean vulnAlerts,
+			boolean automatedSecurityFixes,
+			boolean immutableReleases,
+			boolean privateVulnerabilityReporting,
+			boolean codeScanningDefaultSetup,
+			boolean secretScanning,
+			boolean secretScanningPushProtection,
+			boolean secretScanningNonProviderPatterns,
+			boolean secretScanningValidityChecks
+	) {
+
+		private static final SecurityFlags NONE = new SecurityFlags(
+				false,
+				false,
+				false,
+				false,
+				false,
+				false,
+				false,
+				false,
+				false
+		);
+
 	}
 
 	// ─── Drift groups

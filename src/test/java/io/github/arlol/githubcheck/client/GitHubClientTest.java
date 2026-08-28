@@ -3,6 +3,7 @@ package io.github.arlol.githubcheck.client;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.delete;
+import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -17,6 +18,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -1032,6 +1034,10 @@ class GitHubClientTest {
 		);
 
 		client.deletePages("owner", "my-repo");
+
+		verify(
+				deleteRequestedFor(urlPathEqualTo("/repos/owner/my-repo/pages"))
+		);
 	}
 
 	@Test
@@ -1041,7 +1047,12 @@ class GitHubClientTest {
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		client.deletePages("owner", "my-repo");
+		assertThatCode(() -> client.deletePages("owner", "my-repo"))
+				.doesNotThrowAnyException();
+
+		verify(
+				deleteRequestedFor(urlPathEqualTo("/repos/owner/my-repo/pages"))
+		);
 	}
 
 	// ─── updateRepository

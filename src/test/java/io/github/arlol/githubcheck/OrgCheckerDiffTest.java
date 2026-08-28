@@ -990,13 +990,6 @@ class OrgCheckerDiffTest {
 	}
 
 	@Test
-	void noDrift_noRulesetConfigured() {
-		// Actual has a ruleset, desired has none — no drift expected
-		// (now checked via DriftGroups - see OrgCheckerFixTest for equivalent
-		// coverage)
-	}
-
-	@Test
 	void noDrift_rulesetMatchesExactly() {
 		var args = defaultArgs().toBuilder()
 				.rulesets(

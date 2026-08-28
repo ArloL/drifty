@@ -16,6 +16,8 @@ import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class BranchProtectionDriftGroup extends DriftGroup {
 
+	private static final String KEY_PREFIX = "branch_protection.";
+
 	private final Map<String, Drifty.BranchProtection> desired;
 	private final Map<String, BranchProtectionResponse> actual;
 	private final GitHubClient client;
@@ -51,24 +53,7 @@ public class BranchProtectionDriftGroup extends DriftGroup {
 
 		if (actual.isEmpty()) {
 			for (var entry : desired.entrySet()) {
-				String pattern = entry.getKey();
-				var wanted = entry.getValue();
-				fixes.add(
-						new DriftFix(
-								new DriftItem.SectionMissing(
-										"branch_protection." + pattern
-								),
-								() -> {
-									client.updateBranchProtection(
-											owner,
-											repo,
-											pattern,
-											buildBranchProtectionRequest(wanted)
-									);
-									return FixResult.success();
-								}
-						)
-				);
+				fixes.add(missingFix(entry.getKey(), entry.getValue()));
 			}
 			return fixes;
 		}
@@ -81,188 +66,18 @@ public class BranchProtectionDriftGroup extends DriftGroup {
 			BranchProtectionResponse got = remainingActual.remove(pattern);
 
 			if (got == null) {
-				fixes.add(
-						new DriftFix(
-								new DriftItem.SectionMissing(
-										"branch_protection." + pattern
-								),
-								() -> {
-									client.updateBranchProtection(
-											owner,
-											repo,
-											pattern,
-											buildBranchProtectionRequest(wanted)
-									);
-									return FixResult.success();
-								}
-						)
-				);
+				fixes.add(missingFix(pattern, wanted));
 				continue;
 			}
 
-			List<DriftItem> items = new ArrayList<>();
-
-			ocompare(
-					"branch_protection." + pattern + ".enforce_admins",
-					wanted.enforceAdmins,
-					got.enforceAdmins().enabled()
-			).ifPresent(items::add);
-
-			ocompare(
-					"branch_protection." + pattern + ".required_linear_history",
-					wanted.requiredLinearHistory,
-					got.requiredLinearHistory().enabled()
-			).ifPresent(items::add);
-
-			ocompare(
-					"branch_protection." + pattern + ".allow_force_pushes",
-					wanted.allowForcePushes,
-					got.allowForcePushes().enabled()
-			).ifPresent(items::add);
-
-			ocompare(
-					"branch_protection." + pattern
-							+ ".require_conversation_resolution",
-					wanted.requireConversationResolution,
-					got.requiredConversationResolution() != null
-							&& got.requiredConversationResolution().enabled()
-			).ifPresent(items::add);
-
-			ocompare(
-					"branch_protection." + pattern
-							+ ".required_status_checks.strict",
-					false,
-					got.requiredStatusChecks() != null
-							&& got.requiredStatusChecks().strict()
-			).ifPresent(items::add);
-
-			ocompare(
-					"branch_protection." + pattern + ".required_status_checks",
-					desiredStatusChecks(wanted),
-					extractActualStatusChecks(got)
-			).ifPresent(items::add);
-
-			var rpr = got.requiredPullRequestReviews();
-			if (rpr == null) {
-				if (wanted.dismissStaleReviews || wanted.requireCodeOwnerReviews
-						|| wanted.requiredApprovingReviewCount != null
-						|| wanted.requireLastPushApproval != null) {
-					items.add(
-							new DriftItem.SectionMissing(
-									"branch_protection." + pattern
-											+ ".required_pull_request_reviews"
-							)
-					);
-				}
-			} else {
-				ocompare(
-						"branch_protection." + pattern
-								+ ".required_pull_request_reviews.dismiss_stale_reviews",
-						wanted.dismissStaleReviews,
-						rpr.dismissStaleReviews()
-				).ifPresent(items::add);
-
-				ocompare(
-						"branch_protection." + pattern
-								+ ".required_pull_request_reviews.require_code_owner_reviews",
-						wanted.requireCodeOwnerReviews,
-						rpr.requireCodeOwnerReviews()
-				).ifPresent(items::add);
-
-				Integer wantCount = wanted.requiredApprovingReviewCount != null
-						? wanted.requiredApprovingReviewCount.intValue()
-						: null;
-				Integer actualCount = rpr.requiredApprovingReviewCount();
-				if ((wantCount == null && actualCount != null)
-						|| (wantCount != null
-								&& !wantCount.equals(actualCount))) {
-					items.add(
-							new DriftItem.FieldMismatch(
-									"branch_protection." + pattern
-											+ ".required_pull_request_reviews.required_approving_review_count",
-									wantCount,
-									actualCount
-							)
-					);
-				}
-
-				Boolean wantLastPush = wanted.requireLastPushApproval;
-				Boolean actualLastPush = rpr.requireLastPushApproval();
-				if ((wantLastPush == null && actualLastPush != null
-						&& actualLastPush)
-						|| (wantLastPush != null
-								&& !wantLastPush.equals(actualLastPush))) {
-					items.add(
-							new DriftItem.FieldMismatch(
-									"branch_protection." + pattern
-											+ ".required_pull_request_reviews.require_last_push_approval",
-									wantLastPush,
-									actualLastPush
-							)
-					);
-				}
-			}
-
-			var restrictions = got.restrictions();
-			if (restrictions == null) {
-				if (!wanted.users.isEmpty() || !wanted.teams.isEmpty()
-						|| !wanted.apps.isEmpty()) {
-					items.add(
-							new DriftItem.SectionMissing(
-									"branch_protection." + pattern
-											+ ".restrictions"
-							)
-					);
-				}
-			} else {
-				Set<String> actualUsers = restrictions.users()
-						.stream()
-						.map(SimpleUser::login)
-						.collect(Collectors.toSet());
-				ocompare(
-						"branch_protection." + pattern + ".restrictions.users",
-						wanted.users,
-						actualUsers
-				).ifPresent(items::add);
-
-				Set<String> actualTeams = restrictions.teams()
-						.stream()
-						.map(BranchProtectionResponse.Restrictions.Team::slug)
-						.collect(Collectors.toSet());
-				ocompare(
-						"branch_protection." + pattern + ".restrictions.teams",
-						wanted.teams,
-						actualTeams
-				).ifPresent(items::add);
-
-				Set<String> actualApps = restrictions.apps()
-						.stream()
-						.map(BranchProtectionResponse.Restrictions.App::slug)
-						.collect(Collectors.toSet());
-				ocompare(
-						"branch_protection." + pattern + ".restrictions.apps",
-						wanted.apps,
-						actualApps
-				).ifPresent(items::add);
-			}
-
+			List<DriftItem> items = compareProtection(pattern, wanted, got);
 			if (!items.isEmpty()) {
-				fixes.add(new DriftFix(items, () -> {
-					client.updateBranchProtection(
-							owner,
-							repo,
-							pattern,
-							buildBranchProtectionRequest(wanted)
-					);
-					return FixResult.success();
-				}));
+				fixes.add(new DriftFix(items, updateAction(pattern, wanted)));
 			}
 		}
 
 		for (var actualName : remainingActual.keySet()) {
-			var item = new DriftItem.SectionExtra(
-					"branch_protection." + actualName
-			);
+			var item = new DriftItem.SectionExtra(KEY_PREFIX + actualName);
 			fixes.add(new DriftFix(item, () -> {
 				client.deleteBranchProtection(owner, repo, actualName);
 				return FixResult.success();
@@ -270,6 +85,233 @@ public class BranchProtectionDriftGroup extends DriftGroup {
 		}
 
 		return fixes;
+	}
+
+	private DriftFix missingFix(
+			String pattern,
+			Drifty.BranchProtection wanted
+	) {
+		return new DriftFix(
+				new DriftItem.SectionMissing(KEY_PREFIX + pattern),
+				updateAction(pattern, wanted)
+		);
+	}
+
+	private DriftFix.FixAction updateAction(
+			String pattern,
+			Drifty.BranchProtection wanted
+	) {
+		return () -> {
+			client.updateBranchProtection(
+					owner,
+					repo,
+					pattern,
+					buildBranchProtectionRequest(wanted)
+			);
+			return FixResult.success();
+		};
+	}
+
+	private List<DriftItem> compareProtection(
+			String pattern,
+			Drifty.BranchProtection wanted,
+			BranchProtectionResponse got
+	) {
+		List<DriftItem> items = new ArrayList<>();
+
+		ocompare(
+				key(pattern, ".enforce_admins"),
+				wanted.enforceAdmins,
+				got.enforceAdmins().enabled()
+		).ifPresent(items::add);
+
+		ocompare(
+				key(pattern, ".required_linear_history"),
+				wanted.requiredLinearHistory,
+				got.requiredLinearHistory().enabled()
+		).ifPresent(items::add);
+
+		ocompare(
+				key(pattern, ".allow_force_pushes"),
+				wanted.allowForcePushes,
+				got.allowForcePushes().enabled()
+		).ifPresent(items::add);
+
+		ocompare(
+				key(pattern, ".require_conversation_resolution"),
+				wanted.requireConversationResolution,
+				got.requiredConversationResolution() != null
+						&& got.requiredConversationResolution().enabled()
+		).ifPresent(items::add);
+
+		ocompare(
+				key(pattern, ".required_status_checks.strict"),
+				false,
+				got.requiredStatusChecks() != null
+						&& got.requiredStatusChecks().strict()
+		).ifPresent(items::add);
+
+		ocompare(
+				key(pattern, ".required_status_checks"),
+				desiredStatusChecks(wanted),
+				extractActualStatusChecks(got)
+		).ifPresent(items::add);
+
+		comparePullRequestReviews(
+				pattern,
+				wanted,
+				got.requiredPullRequestReviews(),
+				items
+		);
+		compareRestrictions(pattern, wanted, got.restrictions(), items);
+
+		return items;
+	}
+
+	private static void comparePullRequestReviews(
+			String pattern,
+			Drifty.BranchProtection wanted,
+			BranchProtectionResponse.RequiredPullRequestReviews rpr,
+			List<DriftItem> items
+	) {
+		if (rpr == null) {
+			if (wantsPullRequestReviews(wanted)) {
+				items.add(
+						new DriftItem.SectionMissing(
+								key(pattern, ".required_pull_request_reviews")
+						)
+				);
+			}
+			return;
+		}
+
+		ocompare(
+				key(
+						pattern,
+						".required_pull_request_reviews.dismiss_stale_reviews"
+				),
+				wanted.dismissStaleReviews,
+				rpr.dismissStaleReviews()
+		).ifPresent(items::add);
+
+		ocompare(
+				key(
+						pattern,
+						".required_pull_request_reviews.require_code_owner_reviews"
+				),
+				wanted.requireCodeOwnerReviews,
+				rpr.requireCodeOwnerReviews()
+		).ifPresent(items::add);
+
+		compareApprovingReviewCount(pattern, wanted, rpr, items);
+		compareLastPushApproval(pattern, wanted, rpr, items);
+	}
+
+	private static void compareApprovingReviewCount(
+			String pattern,
+			Drifty.BranchProtection wanted,
+			BranchProtectionResponse.RequiredPullRequestReviews rpr,
+			List<DriftItem> items
+	) {
+		Integer wantCount = wanted.requiredApprovingReviewCount != null
+				? wanted.requiredApprovingReviewCount.intValue()
+				: null;
+		Integer actualCount = rpr.requiredApprovingReviewCount();
+		boolean drifted = wantCount == null ? actualCount != null
+				: !wantCount.equals(actualCount);
+		if (drifted) {
+			items.add(
+					new DriftItem.FieldMismatch(
+							key(
+									pattern,
+									".required_pull_request_reviews.required_approving_review_count"
+							),
+							wantCount,
+							actualCount
+					)
+			);
+		}
+	}
+
+	private static void compareLastPushApproval(
+			String pattern,
+			Drifty.BranchProtection wanted,
+			BranchProtectionResponse.RequiredPullRequestReviews rpr,
+			List<DriftItem> items
+	) {
+		Boolean wantLastPush = wanted.requireLastPushApproval;
+		Boolean actualLastPush = rpr.requireLastPushApproval();
+		boolean drifted = wantLastPush == null
+				? Boolean.TRUE.equals(actualLastPush)
+				: !wantLastPush.equals(actualLastPush);
+		if (drifted) {
+			items.add(
+					new DriftItem.FieldMismatch(
+							key(
+									pattern,
+									".required_pull_request_reviews.require_last_push_approval"
+							),
+							wantLastPush,
+							actualLastPush
+					)
+			);
+		}
+	}
+
+	private static void compareRestrictions(
+			String pattern,
+			Drifty.BranchProtection wanted,
+			BranchProtectionResponse.Restrictions restrictions,
+			List<DriftItem> items
+	) {
+		if (restrictions == null) {
+			if (wantsRestrictions(wanted)) {
+				items.add(
+						new DriftItem.SectionMissing(
+								key(pattern, ".restrictions")
+						)
+				);
+			}
+			return;
+		}
+
+		Set<String> actualUsers = restrictions.users()
+				.stream()
+				.map(SimpleUser::login)
+				.collect(Collectors.toSet());
+		ocompare(key(pattern, ".restrictions.users"), wanted.users, actualUsers)
+				.ifPresent(items::add);
+
+		Set<String> actualTeams = restrictions.teams()
+				.stream()
+				.map(BranchProtectionResponse.Restrictions.Team::slug)
+				.collect(Collectors.toSet());
+		ocompare(key(pattern, ".restrictions.teams"), wanted.teams, actualTeams)
+				.ifPresent(items::add);
+
+		Set<String> actualApps = restrictions.apps()
+				.stream()
+				.map(BranchProtectionResponse.Restrictions.App::slug)
+				.collect(Collectors.toSet());
+		ocompare(key(pattern, ".restrictions.apps"), wanted.apps, actualApps)
+				.ifPresent(items::add);
+	}
+
+	private static boolean wantsPullRequestReviews(
+			Drifty.BranchProtection wanted
+	) {
+		return wanted.dismissStaleReviews || wanted.requireCodeOwnerReviews
+				|| wanted.requiredApprovingReviewCount != null
+				|| wanted.requireLastPushApproval != null;
+	}
+
+	private static boolean wantsRestrictions(Drifty.BranchProtection wanted) {
+		return !wanted.users.isEmpty() || !wanted.teams.isEmpty()
+				|| !wanted.apps.isEmpty();
+	}
+
+	private static String key(String pattern, String suffix) {
+		return KEY_PREFIX + pattern + suffix;
 	}
 
 	private static Set<StatusCheck> desiredStatusChecks(
