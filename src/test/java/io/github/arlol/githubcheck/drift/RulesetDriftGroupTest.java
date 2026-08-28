@@ -3,7 +3,7 @@ package io.github.arlol.githubcheck.drift;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.delete;
 import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
@@ -130,12 +130,21 @@ class RulesetDriftGroupTest {
 		verify(
 				postRequestedFor(urlEqualTo("/repos/owner/repo/rulesets"))
 						.withRequestBody(
-								matchingJsonPath("$.bypass_actors[0].actor_id")
-						)
-						.withRequestBody(
-								matchingJsonPath(
-										"$.bypass_actors[?(@.actor_type == 'Team')]"
-								)
+								// equalToJson rather than matchingJsonPath:
+								// the latter's pattern class has no
+								// reachability metadata, so it throws in the
+								// native test image.
+								equalToJson("""
+										{
+											"bypass_actors": [
+												{
+													"actor_id": 5,
+													"actor_type": "Team",
+													"bypass_mode": "always"
+												}
+											]
+										}
+										""", true, true)
 						)
 		);
 	}
