@@ -1055,6 +1055,87 @@ class GitHubClientTest {
 		);
 	}
 
+	// ─── environments
+	// ───────────────────────────────────────────────────────────
+
+	@Test
+	void createOrUpdateEnvironment_201() throws Exception {
+		stubFor(
+				put(
+						urlEqualTo("/repos/owner/my-repo/environments/prod")
+				).willReturn(
+						aResponse().withStatus(201)
+								.withHeader("Content-Type", "application/json")
+								.withBody("""
+										{"name": "prod", "wait_timer": 5}
+										""")
+				)
+		);
+
+		var env = client.createOrUpdateEnvironment(
+				"owner",
+				"my-repo",
+				"prod",
+				new EnvironmentUpdateRequest(5, null, null)
+		);
+
+		assertThat(env.name()).isEqualTo("prod");
+		verify(
+				putRequestedFor(
+						urlEqualTo("/repos/owner/my-repo/environments/prod")
+				).withRequestBody(equalToJson("{\"wait_timer\":5}"))
+		);
+	}
+
+	@Test
+	void createOrUpdateEnvironment_errorStatus() {
+		stubFor(
+				put(urlEqualTo("/repos/owner/my-repo/environments/prod"))
+						.willReturn(aResponse().withStatus(422))
+		);
+
+		assertThatThrownBy(
+				() -> client.createOrUpdateEnvironment(
+						"owner",
+						"my-repo",
+						"prod",
+						new EnvironmentUpdateRequest(5, null, null)
+				)
+		).isInstanceOf(GitHubApiException.class)
+				.hasMessageContaining("HTTP 422");
+	}
+
+	// ─── deleteRuleset
+	// ──────────────────────────────────────────────────────────
+
+	@Test
+	void deleteRuleset_204() throws Exception {
+		stubFor(
+				delete(urlEqualTo("/repos/owner/my-repo/rulesets/7"))
+						.willReturn(aResponse().withStatus(204))
+		);
+
+		client.deleteRuleset("owner", "my-repo", 7L);
+
+		verify(
+				deleteRequestedFor(
+						urlEqualTo("/repos/owner/my-repo/rulesets/7")
+				)
+		);
+	}
+
+	@Test
+	void deleteRuleset_errorStatus() {
+		stubFor(
+				delete(urlEqualTo("/repos/owner/my-repo/rulesets/7"))
+						.willReturn(aResponse().withStatus(404))
+		);
+
+		assertThatThrownBy(() -> client.deleteRuleset("owner", "my-repo", 7L))
+				.isInstanceOf(GitHubApiException.class)
+				.hasMessageContaining("deleting ruleset 7");
+	}
+
 	// ─── updateRepository
 	// ──────────────────────────────────────────────────
 

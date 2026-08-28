@@ -43,6 +43,210 @@ class BranchProtectionDriftGroupTest {
 		);
 	}
 
+	/**
+	 * Builds a response whose review and conversation-resolution blocks the
+	 * test controls; everything else matches {@link #matchingResponse}.
+	 */
+	private static BranchProtectionResponse responseWithReviews(
+			String branch,
+			boolean conversationResolution,
+			BranchProtectionResponse.RequiredPullRequestReviews reviews
+	) {
+		return new BranchProtectionResponse(
+				null,
+				null,
+				new BranchProtectionResponse.EnforceAdmins(null, false),
+				new BranchProtectionResponse.RequiredLinearHistory(false),
+				new BranchProtectionResponse.AllowForcePushes(false),
+				null,
+				null,
+				new BranchProtectionResponse.RequiredConversationResolution(
+						conversationResolution
+				),
+				new BranchProtectionResponse.RequiredStatusChecks(
+						null,
+						null,
+						false,
+						List.of(),
+						null,
+						null
+				),
+				reviews,
+				null,
+				branch,
+				null,
+				null,
+				null,
+				null
+		);
+	}
+
+	@Test
+	void detectsConversationResolutionDrift() {
+		var desired = RepositoryArgs.create("owner", "repo")
+				.branchProtections(
+						BranchProtectionArgs.builder("main")
+								.requireConversationResolution(true)
+								.build()
+				)
+				.build();
+		var group = new BranchProtectionDriftGroup(
+				ToDrifty.repository(desired),
+				Map.of("main", responseWithReviews("main", false, null)),
+				null,
+				"owner",
+				"repo"
+		);
+
+		assertThat(messages(group)).containsExactly(
+				"branch_protection.main.require_conversation_resolution: "
+						+ "want=true got=false"
+		);
+	}
+
+	@Test
+	void noDrift_whenApprovingReviewCountMatches() {
+		var desired = RepositoryArgs.create("owner", "repo")
+				.branchProtections(
+						BranchProtectionArgs.builder("main")
+								.requiredApprovingReviewCount(2)
+								.requireLastPushApproval(true)
+								.build()
+				)
+				.build();
+		var group = new BranchProtectionDriftGroup(
+				ToDrifty.repository(desired),
+				Map.of(
+						"main",
+						responseWithReviews(
+								"main",
+								false,
+								new BranchProtectionResponse.RequiredPullRequestReviews(
+										null,
+										false,
+										false,
+										2,
+										true
+								)
+						)
+				),
+				null,
+				"owner",
+				"repo"
+		);
+
+		assertThat(group.detect()).isEmpty();
+	}
+
+	@Test
+	void detectsApprovingReviewCountAndLastPushApprovalDrift() {
+		var desired = RepositoryArgs.create("owner", "repo")
+				.branchProtections(
+						BranchProtectionArgs.builder("main")
+								.requiredApprovingReviewCount(2)
+								.requireLastPushApproval(true)
+								.build()
+				)
+				.build();
+		var group = new BranchProtectionDriftGroup(
+				ToDrifty.repository(desired),
+				Map.of(
+						"main",
+						responseWithReviews(
+								"main",
+								false,
+								new BranchProtectionResponse.RequiredPullRequestReviews(
+										null,
+										false,
+										false,
+										1,
+										false
+								)
+						)
+				),
+				null,
+				"owner",
+				"repo"
+		);
+
+		assertThat(messages(group)).contains(
+				"branch_protection.main.required_pull_request_reviews."
+						+ "required_approving_review_count: want=2 got=1",
+				"branch_protection.main.required_pull_request_reviews."
+						+ "require_last_push_approval: want=true got=false"
+		);
+	}
+
+	/**
+	 * With nothing desired, GitHub reporting last-push approval as on is drift;
+	 * reporting it as off or absent is not.
+	 */
+	@Test
+	void unwantedLastPushApproval_isDriftOnlyWhenEnabled() {
+		var desired = RepositoryArgs.create("owner", "repo")
+				.branchProtections(
+						BranchProtectionArgs.builder("main")
+								.dismissStaleReviews(true)
+								.build()
+				)
+				.build();
+
+		var enabled = new BranchProtectionDriftGroup(
+				ToDrifty.repository(desired),
+				Map.of(
+						"main",
+						responseWithReviews(
+								"main",
+								false,
+								new BranchProtectionResponse.RequiredPullRequestReviews(
+										null,
+										true,
+										false,
+										null,
+										true
+								)
+						)
+				),
+				null,
+				"owner",
+				"repo"
+		);
+		assertThat(messages(enabled)).containsExactly(
+				"branch_protection.main.required_pull_request_reviews."
+						+ "require_last_push_approval: want=null got=true"
+		);
+
+		var absent = new BranchProtectionDriftGroup(
+				ToDrifty.repository(desired),
+				Map.of(
+						"main",
+						responseWithReviews(
+								"main",
+								false,
+								new BranchProtectionResponse.RequiredPullRequestReviews(
+										null,
+										true,
+										false,
+										null,
+										null
+								)
+						)
+				),
+				null,
+				"owner",
+				"repo"
+		);
+		assertThat(absent.detect()).isEmpty();
+	}
+
+	private static List<String> messages(BranchProtectionDriftGroup group) {
+		return group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.map(DriftItem::message)
+				.toList();
+	}
+
 	@Test
 	void noDrift_whenBothEmpty() {
 		var desired = RepositoryArgs.create("owner", "repo").build();
