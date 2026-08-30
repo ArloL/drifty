@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.RecordComponent;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,8 +43,8 @@ class ActualStateBoundaryTest {
 
 	@Test
 	void repositoryStateExposesRulesetsAndProtectionsAsDriftyTypes() {
-		assertThat(responseTypesIn(componentTypes(RepositoryState.class)))
-				.as("RepositoryState components that are GitHub response types")
+		assertThat(responseTypesHeldBy(RepositoryState.class))
+				.as("RepositoryState fields that are GitHub response types")
 				.doesNotContain(
 						"RulesetDetailsResponse",
 						"BranchProtectionResponse"
@@ -54,7 +53,10 @@ class ActualStateBoundaryTest {
 
 	/**
 	 * The response types a class keeps as state, including the ones hidden
-	 * inside collection and map type arguments.
+	 * inside collection and map type arguments. Read from declared fields
+	 * rather than record components: a record's fields are its components, and
+	 * {@code getRecordComponents} needs reflection metadata the native image
+	 * does not carry, so this test would pass on the JVM and fail natively.
 	 */
 	private static List<String> responseTypesHeldBy(Class<?> type) {
 		var types = new ArrayList<Type>();
@@ -62,14 +64,6 @@ class ActualStateBoundaryTest {
 			types.add(field.getGenericType());
 		}
 		return responseTypesIn(types);
-	}
-
-	private static List<Type> componentTypes(Class<?> recordType) {
-		var types = new ArrayList<Type>();
-		for (RecordComponent component : recordType.getRecordComponents()) {
-			types.add(component.getGenericType());
-		}
-		return types;
 	}
 
 	private static List<String> responseTypesIn(List<Type> types) {

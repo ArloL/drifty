@@ -42,7 +42,9 @@ repositories {
 
 ### Org/Account Targeting
 
-The target org or personal account is set via the `owner` field on each repository in the config file. There is no CLI argument for it. To manage multiple orgs, run the tool multiple times with different config files. Multi-org support within a single invocation is a future consideration.
+The target org or personal account is set via the `owner` field on each repository in the config file. There is no CLI argument for it.
+
+A single config may name more than one owner. drifty lists the repositories of each distinct `owner` it finds and checks each repository under the owner its own entry declares, so repository names only have to be unique within an owner.
 
 ### Archived Repos
 
@@ -407,7 +409,6 @@ The tool is run **on-demand** (e.g. via `workflow_dispatch`). No scheduled cron 
 These are explicitly out of scope for the initial version but acknowledged as potential additions:
 
 - **Org-level rulesets** — manage rulesets at the org level (full CRUD, same as repo-level). Repo-level first.
-- **Multi-org support** — manage multiple orgs in a single invocation with per-org config blocks.
 - **GraphQL for bulk reads** — REST first, profile and optimize later.
 - **Collaborator/team access management** — out of scope for now, may be added later.
 - **Custom properties** — manage GitHub custom property values per repo (org-level definitions assumed to exist).
