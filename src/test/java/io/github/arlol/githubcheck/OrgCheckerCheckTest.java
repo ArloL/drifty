@@ -175,10 +175,12 @@ class OrgCheckerCheckTest {
 	) {
 		PrintStream original = System.out;
 		var captured = new ByteArrayOutputStream();
-		try {
-			System.setOut(
-					new PrintStream(captured, true, StandardCharsets.UTF_8)
-			);
+		try (var out = new PrintStream(
+				captured,
+				true,
+				StandardCharsets.UTF_8
+		)) {
+			System.setOut(out);
 			checker.printReport(result);
 		} finally {
 			System.setOut(original);
