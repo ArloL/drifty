@@ -152,9 +152,8 @@ class OrgCheckerFetchStateTest {
 		assertThat(state.secretScanningValidityChecks()).isTrue();
 
 		assertThat(state.branchProtections()).containsOnlyKeys("main");
-		assertThat(
-				state.branchProtections().get("main").enforceAdmins().enabled()
-		).isTrue();
+		assertThat(state.branchProtections().get("main").enforceAdmins())
+				.isTrue();
 		assertThat(state.rulesets()).singleElement()
 				.satisfies(r -> assertThat(r.name()).isEqualTo("main-rules"));
 		assertThat(state.pages()).isPresent();

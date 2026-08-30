@@ -40,6 +40,9 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
+import io.github.arlol.githubcheck.ActualTypes;
+import io.github.arlol.githubcheck.actual.ActualBranchProtection;
+import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -1535,7 +1538,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of("main", driftedBp),
+				Map.of("main", ActualTypes.branchProtection(driftedBp)),
 				List.of(),
 				Map.of(),
 				parse(
@@ -1609,7 +1612,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of("main", driftedBp),
+				Map.of("main", ActualTypes.branchProtection(driftedBp)),
 				List.of(),
 				Map.of(),
 				parse(
@@ -1689,7 +1692,7 @@ class OrgCheckerFixTest {
 				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
 				true,
 				false,
-				Map.of("main", driftedBp),
+				Map.of("main", ActualTypes.branchProtection(driftedBp)),
 				List.of(),
 				Map.of(),
 				parse(
@@ -1767,9 +1770,11 @@ class OrgCheckerFixTest {
 				false,
 				Map.of(
 						"main",
-						parse(
-								GOOD_BRANCH_PROTECTION_JSON,
-								BranchProtectionResponse.class
+						ActualTypes.branchProtection(
+								parse(
+										GOOD_BRANCH_PROTECTION_JSON,
+										BranchProtectionResponse.class
+								)
 						)
 				),
 				List.of(),
@@ -1986,7 +1991,7 @@ class OrgCheckerFixTest {
 						GOOD_WORKFLOW_PERMISSIONS_JSON,
 						WorkflowPermissions.class
 				),
-				List.of(actualRuleset),
+				List.of(ActualTypes.ruleset(actualRuleset)),
 				Optional.empty(),
 				Map.of(),
 				false,
@@ -2070,7 +2075,7 @@ class OrgCheckerFixTest {
 						GOOD_WORKFLOW_PERMISSIONS_JSON,
 						WorkflowPermissions.class
 				),
-				List.of(actualRuleset),
+				List.of(ActualTypes.ruleset(actualRuleset)),
 				Optional.empty(),
 				Map.of(),
 				false,

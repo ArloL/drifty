@@ -5,12 +5,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-import io.github.arlol.githubcheck.client.BranchProtectionResponse;
+import io.github.arlol.githubcheck.actual.ActualBranchProtection;
+import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
-import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
@@ -21,11 +21,11 @@ public record RepositoryState(
 		RepositoryDetailsResponse details,
 		boolean vulnerabilityAlerts,
 		boolean automatedSecurityFixes,
-		Map<String, BranchProtectionResponse> branchProtections,
+		Map<String, ActualBranchProtection> branchProtections,
 		List<Secret> actionSecrets,
 		Map<String, List<Secret>> environmentSecrets,
 		WorkflowPermissions workflowPermissions,
-		List<RulesetDetailsResponse> rulesets,
+		List<ActualRuleset> rulesets,
 		Optional<PagesResponse> pages,
 		Map<String, EnvironmentDetailsResponse> environmentDetails,
 		boolean immutableReleases,

@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Test;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
+import io.github.arlol.githubcheck.ActualTypes;
+import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.client.GitHubClient;
 
 import io.github.arlol.githubcheck.client.Rule;
@@ -42,29 +44,31 @@ class RulesetDriftGroupTest {
 		client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
 	}
 
-	private static RulesetDetailsResponse matchingResponse(String name) {
-		return new RulesetDetailsResponse(
-				1L,
-				name,
-				RulesetTarget.BRANCH,
-				RulesetEnforcement.ACTIVE,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				new RulesetDetailsResponse.Conditions(
-						new RulesetDetailsResponse.Conditions.RefName(
-								List.of(),
-								List.of()
+	private static ActualRuleset matchingResponse(String name) {
+		return ActualTypes.ruleset(
+				new RulesetDetailsResponse(
+						1L,
+						name,
+						RulesetTarget.BRANCH,
+						RulesetEnforcement.ACTIVE,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						new RulesetDetailsResponse.Conditions(
+								new RulesetDetailsResponse.Conditions.RefName(
+										List.of(),
+										List.of()
+								),
+								null,
+								null,
+								null
 						),
-						null,
-						null,
-						null
-				),
-				List.of()
+						List.of()
+				)
 		);
 	}
 
@@ -148,33 +152,35 @@ class RulesetDriftGroupTest {
 		);
 	}
 
-	private static RulesetDetailsResponse responseWith(
+	private static ActualRuleset responseWith(
 			String name,
 			List<RulesetDetailsResponse.BypassActor> bypassActors,
 			List<Rule> rules
 	) {
-		return new RulesetDetailsResponse(
-				1L,
-				name,
-				RulesetTarget.BRANCH,
-				RulesetEnforcement.ACTIVE,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				bypassActors,
-				new RulesetDetailsResponse.Conditions(
-						new RulesetDetailsResponse.Conditions.RefName(
-								List.of(),
-								List.of()
+		return ActualTypes.ruleset(
+				new RulesetDetailsResponse(
+						1L,
+						name,
+						RulesetTarget.BRANCH,
+						RulesetEnforcement.ACTIVE,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						bypassActors,
+						new RulesetDetailsResponse.Conditions(
+								new RulesetDetailsResponse.Conditions.RefName(
+										List.of(),
+										List.of()
+								),
+								null,
+								null,
+								null
 						),
-						null,
-						null,
-						null
-				),
-				rules
+						rules
+				)
 		);
 	}
 
@@ -512,7 +518,7 @@ class RulesetDriftGroupTest {
 		);
 		var group = new RulesetDriftGroup(
 				ToDrifty.repository(desired).rulesets,
-				List.of(actual),
+				List.of(ActualTypes.ruleset(actual)),
 				null,
 				new RepoRef("owner", "repo")
 		);

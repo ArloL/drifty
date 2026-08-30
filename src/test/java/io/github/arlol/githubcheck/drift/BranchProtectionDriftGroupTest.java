@@ -7,6 +7,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import io.github.arlol.githubcheck.ActualTypes;
+import io.github.arlol.githubcheck.actual.ActualBranchProtection;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.testsupport.BranchProtectionArgs;
@@ -16,31 +18,35 @@ import io.github.arlol.githubcheck.testsupport.StatusCheckArgs;
 
 class BranchProtectionDriftGroupTest {
 
-	private static BranchProtectionResponse matchingResponse(String branch) {
-		return new BranchProtectionResponse(
-				null,
-				null,
-				new BranchProtectionResponse.EnforceAdmins(null, false),
-				new BranchProtectionResponse.RequiredLinearHistory(false),
-				new BranchProtectionResponse.AllowForcePushes(false),
-				null,
-				null,
-				null,
-				new BranchProtectionResponse.RequiredStatusChecks(
+	private static ActualBranchProtection matchingResponse(String branch) {
+		return ActualTypes.branchProtection(
+				new BranchProtectionResponse(
 						null,
 						null,
-						false,
-						List.of(),
+						new BranchProtectionResponse.EnforceAdmins(null, false),
+						new BranchProtectionResponse.RequiredLinearHistory(
+								false
+						),
+						new BranchProtectionResponse.AllowForcePushes(false),
+						null,
+						null,
+						null,
+						new BranchProtectionResponse.RequiredStatusChecks(
+								null,
+								null,
+								false,
+								List.of(),
+								null,
+								null
+						),
+						null,
+						null,
+						branch,
+						null,
+						null,
 						null,
 						null
-				),
-				null,
-				null,
-				branch,
-				null,
-				null,
-				null,
-				null
+				)
 		);
 	}
 
@@ -48,37 +54,41 @@ class BranchProtectionDriftGroupTest {
 	 * Builds a response whose review and conversation-resolution blocks the
 	 * test controls; everything else matches {@link #matchingResponse}.
 	 */
-	private static BranchProtectionResponse responseWithReviews(
+	private static ActualBranchProtection responseWithReviews(
 			String branch,
 			boolean conversationResolution,
 			BranchProtectionResponse.RequiredPullRequestReviews reviews
 	) {
-		return new BranchProtectionResponse(
-				null,
-				null,
-				new BranchProtectionResponse.EnforceAdmins(null, false),
-				new BranchProtectionResponse.RequiredLinearHistory(false),
-				new BranchProtectionResponse.AllowForcePushes(false),
-				null,
-				null,
-				new BranchProtectionResponse.RequiredConversationResolution(
-						conversationResolution
-				),
-				new BranchProtectionResponse.RequiredStatusChecks(
+		return ActualTypes.branchProtection(
+				new BranchProtectionResponse(
 						null,
 						null,
-						false,
-						List.of(),
+						new BranchProtectionResponse.EnforceAdmins(null, false),
+						new BranchProtectionResponse.RequiredLinearHistory(
+								false
+						),
+						new BranchProtectionResponse.AllowForcePushes(false),
+						null,
+						null,
+						new BranchProtectionResponse.RequiredConversationResolution(
+								conversationResolution
+						),
+						new BranchProtectionResponse.RequiredStatusChecks(
+								null,
+								null,
+								false,
+								List.of(),
+								null,
+								null
+						),
+						reviews,
+						null,
+						branch,
+						null,
+						null,
 						null,
 						null
-				),
-				reviews,
-				null,
-				branch,
-				null,
-				null,
-				null,
-				null
+				)
 		);
 	}
 
