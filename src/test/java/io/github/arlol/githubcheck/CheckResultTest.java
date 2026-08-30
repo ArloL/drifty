@@ -54,4 +54,112 @@ class CheckResultTest {
 		assertThat(r.fixPreview()).isEmpty();
 	}
 
+	// ─── Fix reporting
+	// ──────────────────────────────────────────────────
+
+	@Test
+	void fixReport_rendersFixedWithoutAReason() {
+		var report = new CheckResult.FixReport(
+				"vulnerability_alerts.enabled",
+				true,
+				null
+		);
+		assertThat(report.message())
+				.isEqualTo("vulnerability_alerts.enabled: FIXED");
+	}
+
+	@Test
+	void fixReport_rendersFailedWithItsReason() {
+		var report = new CheckResult.FixReport(
+				"immutable_releases.enabled",
+				false,
+				"HTTP 500"
+		);
+		assertThat(report.message())
+				.isEqualTo("immutable_releases.enabled: FAILED (HTTP 500)");
+	}
+
+	@Test
+	void fixed_isOkWhenNothingWasLeftUnfixed() {
+		var r = RepoCheckResult.fixed(
+				"a",
+				List.of(),
+				List.of(new CheckResult.FixReport("topics", true, null))
+		);
+		assertThat(r.status()).isEqualTo(CheckResult.Status.OK);
+		assertThat(r.diffs()).isEmpty();
+	}
+
+	@Test
+	void fixed_isDriftWhenSomethingRemains() {
+		var r = RepoCheckResult.fixed(
+				"a",
+				List.of("topics missing: [java]"),
+				List.of(new CheckResult.FixReport("topics", false, "HTTP 403"))
+		);
+		assertThat(r.status()).isEqualTo(CheckResult.Status.DRIFT);
+		assertThat(r.diffs()).containsExactly("topics missing: [java]");
+	}
+
+	@Test
+	void fixFailures_collectsFailuresAcrossReposAndNamesEach() {
+		var result = new CheckResult(
+				List.of(
+						RepoCheckResult.fixed(
+								"a",
+								List.of("x"),
+								List.of(
+										new CheckResult.FixReport(
+												"topics",
+												true,
+												null
+										),
+										new CheckResult.FixReport(
+												"pages.build_type",
+												false,
+												"HTTP 403"
+										)
+								)
+						),
+						RepoCheckResult.fixed(
+								"b",
+								List.of("y"),
+								List.of(
+										new CheckResult.FixReport(
+												"archived",
+												false,
+												"HTTP 500"
+										)
+								)
+						),
+						RepoCheckResult.ok("c")
+				)
+		);
+
+		assertThat(result.fixFailures()).containsExactly(
+				"a: pages.build_type: FAILED (HTTP 403)",
+				"b: archived: FAILED (HTTP 500)"
+		);
+	}
+
+	@Test
+	void fixFailures_isEmptyWhenEveryFixSucceeded() {
+		var result = new CheckResult(
+				List.of(
+						RepoCheckResult.fixed(
+								"a",
+								List.of(),
+								List.of(
+										new CheckResult.FixReport(
+												"topics",
+												true,
+												null
+										)
+								)
+						)
+				)
+		);
+		assertThat(result.fixFailures()).isEmpty();
+	}
+
 }

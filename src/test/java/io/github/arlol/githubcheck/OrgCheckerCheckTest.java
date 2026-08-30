@@ -4,6 +4,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.patch;
+import static com.github.tomakehurst.wiremock.client.WireMock.put;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
@@ -11,6 +13,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -92,6 +97,93 @@ class OrgCheckerCheckTest {
 		assertThat(result.repos()).hasSize(2);
 		assertThat(result.missingCount()).isZero();
 		assertThat(result.unknownCount()).isZero();
+	}
+
+	/**
+	 * In fix mode the report is a FIXED/FAILED line per setting, and every
+	 * failure has to say why — SPEC.md's per-setting fix results and its
+	 * end-of-run failure summary.
+	 */
+	@Test
+	void fixModeReportsEachSettingAsFixedOrFailedWithAReason(
+			WireMockRuntimeInfo wm
+	) throws Exception {
+		stubOwner("alpha", "one");
+		stubRepoSubResources();
+		stubFor(
+				patch(urlPathMatching("/repos/[^/]+/[^/]+"))
+						.willReturn(okJson("{}"))
+		);
+		stubFor(
+				put(urlPathMatching("/repos/[^/]+/[^/]+/vulnerability-alerts"))
+						.willReturn(aResponse().withStatus(500))
+		);
+
+		var fixer = new OrgChecker(
+				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
+				true
+		);
+
+		CheckResult result = fixer
+				.check(desired(List.of(entry("alpha", "one"))));
+
+		var reports = result.repos().getFirst().fixReports();
+		assertThat(reports).isNotEmpty();
+		assertThat(reports).anyMatch(CheckResult.FixReport::fixed);
+
+		// The one write that failed is reported as such, with the HTTP status.
+		assertThat(result.fixFailures()).singleElement().satisfies(failure -> {
+			assertThat(failure).startsWith("one: vulnerability_alerts.enabled:")
+					.contains("FAILED")
+					.contains("500");
+		});
+		assertThat(result.hasDrift()).as("a failed fix leaves the repo drifted")
+				.isTrue();
+	}
+
+	@Test
+	void printReportShowsFixResultsAndSummarisesFailures(WireMockRuntimeInfo wm)
+			throws Exception {
+		stubOwner("alpha", "one");
+		stubRepoSubResources();
+		stubFor(
+				patch(urlPathMatching("/repos/[^/]+/[^/]+"))
+						.willReturn(okJson("{}"))
+		);
+		stubFor(
+				put(urlPathMatching("/repos/[^/]+/[^/]+/vulnerability-alerts"))
+						.willReturn(aResponse().withStatus(500))
+		);
+
+		var fixer = new OrgChecker(
+				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
+				true
+		);
+		CheckResult result = fixer
+				.check(desired(List.of(entry("alpha", "one"))));
+
+		String report = capturePrintReport(fixer, result);
+
+		assertThat(report).contains(": FIXED")
+				.contains("vulnerability_alerts.enabled: FAILED")
+				.contains("=== Failed fixes (1) ===");
+	}
+
+	private static String capturePrintReport(
+			OrgChecker checker,
+			CheckResult result
+	) {
+		PrintStream original = System.out;
+		var captured = new ByteArrayOutputStream();
+		try {
+			System.setOut(
+					new PrintStream(captured, true, StandardCharsets.UTF_8)
+			);
+			checker.printReport(result);
+		} finally {
+			System.setOut(original);
+		}
+		return captured.toString(StandardCharsets.UTF_8);
 	}
 
 	private static RepositoryArgs entry(String owner, String name) {
