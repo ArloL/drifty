@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import io.github.arlol.githubcheck.PklTypes;
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.PagesCreateRequest;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.PagesUpdateRequest;
@@ -23,18 +24,17 @@ public class PagesDriftGroup extends DriftGroup {
 	private final String repo;
 
 	public PagesDriftGroup(
-			Drifty.Repository desired,
+			Drifty.Pages desired,
 			Optional<PagesResponse> actual,
 			GitHubClient client,
-			String owner,
-			String repo
+			RepoRef ref
 	) {
-		this.desiredEnabled = desired.pages != null;
-		this.desired = desiredEnabled ? desired.pages : null;
+		this.desiredEnabled = desired != null;
+		this.desired = desired;
 		this.actual = actual;
 		this.client = client;
-		this.owner = owner;
-		this.repo = repo;
+		this.owner = ref.owner();
+		this.repo = ref.name();
 	}
 
 	@Override

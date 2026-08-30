@@ -17,15 +17,16 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 
 /**
- * Covers {@link OrgChecker#fetchState(RepositorySummaryResponse)}, which fans
- * out across the whole read side of the GitHub API. The three cases are the
- * three shapes that fan-out takes: a public repository (everything is fetched),
- * a private one (branch protections are skipped) and an archived one (GitHub
- * does not expose the security settings, so they all read false).
+ * Covers {@link OrgChecker#fetchState}, which fans out across the whole read
+ * side of the GitHub API. The three cases are the three shapes that fan-out
+ * takes: a public repository (everything is fetched), a private one (branch
+ * protections are skipped) and an archived one (GitHub does not expose the
+ * security settings, so they all read false).
  */
 @WireMockTest
 class OrgCheckerFetchStateTest {
@@ -67,12 +68,14 @@ class OrgCheckerFetchStateTest {
 			"allow_update_branch": false
 			""";
 
+	private static final RepoRef REF = new RepoRef("owner", "repo");
+
 	private OrgChecker checker;
 
 	@BeforeEach
 	void setUp(WireMockRuntimeInfo wm) {
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
-		checker = new OrgChecker(client, "owner");
+		checker = new OrgChecker(client, false);
 	}
 
 	@Test
@@ -134,7 +137,8 @@ class OrgCheckerFetchStateTest {
 										"""))
 		);
 
-		RepositoryState state = checker.fetchState(summary(false, "public"));
+		RepositoryState state = checker
+				.fetchState(REF, summary(false, "public"));
 
 		assertThat(state.name()).isEqualTo("repo");
 		assertThat(state.vulnerabilityAlerts()).isTrue();
@@ -181,7 +185,8 @@ class OrgCheckerFetchStateTest {
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		RepositoryState state = checker.fetchState(summary(false, "private"));
+		RepositoryState state = checker
+				.fetchState(REF, summary(false, "private"));
 
 		assertThat(state.branchProtections()).isEmpty();
 		assertThat(state.rulesets()).isEmpty();
@@ -204,7 +209,8 @@ class OrgCheckerFetchStateTest {
 				""");
 		stubStandardEndpoints();
 
-		RepositoryState state = checker.fetchState(summary(true, "public"));
+		RepositoryState state = checker
+				.fetchState(REF, summary(true, "public"));
 
 		// None of the security endpoints are stubbed: reaching any of them
 		// would fail the request, so passing proves they are all skipped.
@@ -250,7 +256,8 @@ class OrgCheckerFetchStateTest {
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		RepositoryState state = checker.fetchState(summary(false, "private"));
+		RepositoryState state = checker
+				.fetchState(REF, summary(false, "private"));
 
 		assertThat(state.immutableReleases()).isFalse();
 	}

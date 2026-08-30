@@ -8,6 +8,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.testsupport.BranchProtectionArgs;
 import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
 import io.github.arlol.githubcheck.testsupport.ToDrifty;
@@ -91,11 +92,10 @@ class BranchProtectionDriftGroupTest {
 				)
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).branchProtections,
 				Map.of("main", responseWithReviews("main", false, null)),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		assertThat(messages(group)).containsExactly(
@@ -115,7 +115,7 @@ class BranchProtectionDriftGroupTest {
 				)
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).branchProtections,
 				Map.of(
 						"main",
 						responseWithReviews(
@@ -131,8 +131,7 @@ class BranchProtectionDriftGroupTest {
 						)
 				),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		assertThat(group.detect()).isEmpty();
@@ -149,7 +148,7 @@ class BranchProtectionDriftGroupTest {
 				)
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).branchProtections,
 				Map.of(
 						"main",
 						responseWithReviews(
@@ -165,8 +164,7 @@ class BranchProtectionDriftGroupTest {
 						)
 				),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		assertThat(messages(group)).contains(
@@ -192,7 +190,7 @@ class BranchProtectionDriftGroupTest {
 				.build();
 
 		var enabled = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).branchProtections,
 				Map.of(
 						"main",
 						responseWithReviews(
@@ -208,8 +206,7 @@ class BranchProtectionDriftGroupTest {
 						)
 				),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 		assertThat(messages(enabled)).containsExactly(
 				"branch_protection.main.required_pull_request_reviews."
@@ -217,7 +214,7 @@ class BranchProtectionDriftGroupTest {
 		);
 
 		var absent = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).branchProtections,
 				Map.of(
 						"main",
 						responseWithReviews(
@@ -233,8 +230,7 @@ class BranchProtectionDriftGroupTest {
 						)
 				),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 		assertThat(absent.detect()).isEmpty();
 	}
@@ -251,11 +247,10 @@ class BranchProtectionDriftGroupTest {
 	void noDrift_whenBothEmpty() {
 		var desired = RepositoryArgs.create("owner", "repo").build();
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).branchProtections,
 				Map.of(),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		assertThat(group.detect()).isEmpty();
@@ -267,11 +262,10 @@ class BranchProtectionDriftGroupTest {
 				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).branchProtections,
 				Map.of(),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -290,11 +284,10 @@ class BranchProtectionDriftGroupTest {
 	void detectsExtraBranchProtection() {
 		var desired = RepositoryArgs.create("owner", "repo").build();
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).branchProtections,
 				Map.of("main", matchingResponse("main")),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -314,11 +307,10 @@ class BranchProtectionDriftGroupTest {
 				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).branchProtections,
 				Map.of("main", matchingResponse("main")),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		assertThat(group.detect()).isEmpty();
@@ -334,11 +326,10 @@ class BranchProtectionDriftGroupTest {
 				)
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).branchProtections,
 				Map.of("main", matchingResponse("main")),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -365,11 +356,10 @@ class BranchProtectionDriftGroupTest {
 				)
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).branchProtections,
 				Map.of("main", matchingResponse("main")),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -396,11 +386,10 @@ class BranchProtectionDriftGroupTest {
 				)
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).branchProtections,
 				Map.of("main", matchingResponse("main")),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -422,11 +411,10 @@ class BranchProtectionDriftGroupTest {
 				.branchProtections(BranchProtectionArgs.builder("main").build())
 				.build();
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).branchProtections,
 				Map.of("release", matchingResponse("release")),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()

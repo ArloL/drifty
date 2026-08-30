@@ -117,7 +117,7 @@ class OrgCheckerDiffTest {
 
 	@BeforeEach
 	void setUp() {
-		checker = new OrgChecker((GitHubClient) null, "owner");
+		checker = new OrgChecker((GitHubClient) null, false);
 	}
 
 	private Map<DriftGroup, List<DriftFix>> computeGroupDrifts(

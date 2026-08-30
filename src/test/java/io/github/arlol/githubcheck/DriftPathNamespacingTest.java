@@ -128,7 +128,7 @@ class DriftPathNamespacingTest {
 	 * pages) are configured but absent.
 	 */
 	private static List<DriftGroup> driftGroups() {
-		var checker = new OrgChecker((String) null, "owner");
+		var checker = new OrgChecker((String) null, false);
 
 		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
 				.description("wanted")

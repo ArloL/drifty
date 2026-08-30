@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.client.WorkflowPermissions.DefaultWorkflowPermissions;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
 import io.github.arlol.githubcheck.testsupport.ToDrifty;
 
@@ -22,11 +23,11 @@ class WorkflowPermissionsDriftGroupTest {
 				true
 		);
 		var group = new WorkflowPermissionsDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).defaultWorkflowPermissions,
+				ToDrifty.repository(desired).canApprovePullRequestReviews,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -49,11 +50,11 @@ class WorkflowPermissionsDriftGroupTest {
 				false
 		);
 		var group = new WorkflowPermissionsDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).defaultWorkflowPermissions,
+				ToDrifty.repository(desired).canApprovePullRequestReviews,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -87,11 +88,11 @@ class WorkflowPermissionsDriftGroupTest {
 				false
 		);
 		var group = new WorkflowPermissionsDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).defaultWorkflowPermissions,
+				ToDrifty.repository(desired).canApprovePullRequestReviews,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -120,11 +121,11 @@ class WorkflowPermissionsDriftGroupTest {
 				false
 		);
 		var group = new WorkflowPermissionsDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).defaultWorkflowPermissions,
+				ToDrifty.repository(desired).canApprovePullRequestReviews,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()

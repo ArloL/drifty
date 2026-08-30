@@ -3,6 +3,7 @@ package io.github.arlol.githubcheck.drift;
 import java.util.List;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.RepoRef;
 
 public class TopicsDriftGroup extends DriftGroup {
 
@@ -16,14 +17,13 @@ public class TopicsDriftGroup extends DriftGroup {
 			List<String> desired,
 			List<String> actual,
 			GitHubClient client,
-			String owner,
-			String repo
+			RepoRef ref
 	) {
 		this.desired = List.copyOf(desired);
 		this.actual = List.copyOf(actual);
 		this.client = client;
-		this.owner = owner;
-		this.repo = repo;
+		this.owner = ref.owner();
+		this.repo = ref.name();
 	}
 
 	@Override

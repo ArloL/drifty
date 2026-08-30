@@ -69,7 +69,7 @@ public class GitHubCheck {
 
 		long startTime = System.currentTimeMillis();
 
-		var checker = new OrgChecker(token, "ArloL", fix, githubSecrets, state);
+		var checker = new OrgChecker(token, fix, githubSecrets, state);
 		CheckResult result = checker.check(repos);
 		checker.printReport(result);
 

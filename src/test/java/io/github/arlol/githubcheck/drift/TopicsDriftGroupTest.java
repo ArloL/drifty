@@ -6,13 +6,20 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import io.github.arlol.githubcheck.client.RepoRef;
+
 class TopicsDriftGroupTest {
 
 	private static TopicsDriftGroup group(
 			List<String> desired,
 			List<String> actual
 	) {
-		return new TopicsDriftGroup(desired, actual, null, "owner", "repo");
+		return new TopicsDriftGroup(
+				desired,
+				actual,
+				null,
+				new RepoRef("owner", "repo")
+		);
 	}
 
 	@Test

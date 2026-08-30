@@ -4,11 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import io.github.arlol.githubcheck.client.RepoRef;
+
 class ArchivedDriftGroupTest {
 
 	@Test
 	void noDrift_whenBothNotArchived() {
-		var group = new ArchivedDriftGroup(false, false, null, "owner", "repo");
+		var group = new ArchivedDriftGroup(
+				false,
+				false,
+				null,
+				new RepoRef("owner", "repo")
+		);
 		var fixes = group.detect();
 		assertThat(fixes).hasSize(1);
 		assertThat(fixes.getFirst().items()).isEmpty();
@@ -16,7 +23,12 @@ class ArchivedDriftGroupTest {
 
 	@Test
 	void noDrift_whenBothArchived() {
-		var group = new ArchivedDriftGroup(true, true, null, "owner", "repo");
+		var group = new ArchivedDriftGroup(
+				true,
+				true,
+				null,
+				new RepoRef("owner", "repo")
+		);
 		var fixes = group.detect();
 		assertThat(fixes).hasSize(1);
 		assertThat(fixes.getFirst().items()).isEmpty();
@@ -24,7 +36,12 @@ class ArchivedDriftGroupTest {
 
 	@Test
 	void detectsDrift_whenDesiredArchivedActualNot() {
-		var group = new ArchivedDriftGroup(true, false, null, "owner", "repo");
+		var group = new ArchivedDriftGroup(
+				true,
+				false,
+				null,
+				new RepoRef("owner", "repo")
+		);
 		var items = group.detect()
 				.stream()
 				.flatMap(f -> f.items().stream())
@@ -38,7 +55,12 @@ class ArchivedDriftGroupTest {
 
 	@Test
 	void detectsDrift_whenActualArchivedDesiredNot() {
-		var group = new ArchivedDriftGroup(false, true, null, "owner", "repo");
+		var group = new ArchivedDriftGroup(
+				false,
+				true,
+				null,
+				new RepoRef("owner", "repo")
+		);
 		var items = group.detect()
 				.stream()
 				.flatMap(f -> f.items().stream())

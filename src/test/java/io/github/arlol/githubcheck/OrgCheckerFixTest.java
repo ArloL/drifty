@@ -137,7 +137,7 @@ class OrgCheckerFixTest {
 	@BeforeEach
 	void setUp(WireMockRuntimeInfo wm) {
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
-		checker = new OrgChecker(client, "owner", true);
+		checker = new OrgChecker(client, true);
 	}
 
 	/**
@@ -170,7 +170,7 @@ class OrgCheckerFixTest {
 			Map<String, String> secrets
 	) {
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
-		return new OrgChecker(client, "owner", true, secrets);
+		return new OrgChecker(client, true, secrets);
 	}
 
 	private static <T> T parse(String json, Class<T> type) {

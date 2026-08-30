@@ -19,6 +19,7 @@ import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesResponse;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
@@ -57,99 +58,105 @@ import io.github.arlol.githubcheck.state.DriftyState;
 public class OrgChecker {
 
 	private final GitHubClient client;
-	private final String org;
 	private final boolean fix;
 	private final Map<String, String> githubSecrets;
 	private final DriftyState state;
 
-	public OrgChecker(String token, String org) {
-		this(new GitHubClient(token), org, false, Map.of(), new DriftyState());
-	}
-
-	public OrgChecker(String token, String org, boolean fix) {
-		this(new GitHubClient(token), org, fix, Map.of(), new DriftyState());
+	public OrgChecker(String token, boolean fix) {
+		this(new GitHubClient(token), fix, Map.of(), new DriftyState());
 	}
 
 	public OrgChecker(
 			String token,
-			String org,
-			boolean fix,
-			Map<String, String> githubSecrets
-	) {
-		this(
-				new GitHubClient(token),
-				org,
-				fix,
-				githubSecrets,
-				new DriftyState()
-		);
-	}
-
-	public OrgChecker(
-			String token,
-			String org,
 			boolean fix,
 			Map<String, String> githubSecrets,
 			DriftyState state
 	) {
-		this(new GitHubClient(token), org, fix, githubSecrets, state);
+		this(new GitHubClient(token), fix, githubSecrets, state);
 	}
 
-	OrgChecker(GitHubClient client, String org) {
-		this(client, org, false, Map.of(), new DriftyState());
-	}
-
-	OrgChecker(GitHubClient client, String org, boolean fix) {
-		this(client, org, fix, Map.of(), new DriftyState());
+	OrgChecker(GitHubClient client, boolean fix) {
+		this(client, fix, Map.of(), new DriftyState());
 	}
 
 	OrgChecker(
 			GitHubClient client,
-			String org,
 			boolean fix,
 			Map<String, String> githubSecrets
 	) {
-		this(client, org, fix, githubSecrets, new DriftyState());
+		this(client, fix, githubSecrets, new DriftyState());
 	}
 
 	OrgChecker(
 			GitHubClient client,
-			String org,
 			boolean fix,
 			Map<String, String> githubSecrets,
 			DriftyState state
 	) {
 		this.client = client;
-		this.org = org;
 		this.fix = fix;
 		this.githubSecrets = githubSecrets;
 		this.state = state;
 	}
 
+	/**
+	 * Checks every repository the config declares, under the owner the config
+	 * declares it under.
+	 * <p>
+	 * The owner is a field on each {@code Repository} in {@code drifty.pkl}, as
+	 * SPEC.md describes. It used to be ignored in favour of a hardcoded
+	 * literal, which meant editing the config's owner had no effect and a
+	 * second owner could not be reached at all.
+	 */
 	public CheckResult check(List<Drifty.Repository> repositories)
 			throws IOException, InterruptedException, ExecutionException {
-		System.out.println("Fetching repo list for org: " + org);
-		List<RepositorySummaryResponse> summaries = client.listOrgRepos(org);
-		System.out.printf(
-				"Found %d repos. Fetching details in parallel...%n",
-				summaries.size()
-		);
+		// Repository names are only unique within an owner.
+		Map<RepoRef, Drifty.Repository> desiredByRef = repositories.stream()
+				.collect(
+						Collectors.toMap(
+								r -> new RepoRef(r.owner, r.name),
+								r -> r,
+								(a, _) -> a,
+								LinkedHashMap::new
+						)
+				);
+
+		List<String> owners = repositories.stream()
+				.map(r -> r.owner)
+				.distinct()
+				.toList();
 
 		long startFetch = System.currentTimeMillis();
 
-		Map<String, Drifty.Repository> desiredByName = repositories.stream()
-				.collect(Collectors.toMap(r -> r.name, r -> r));
+		Map<RepoRef, RepositorySummaryResponse> found = new LinkedHashMap<>();
+		for (String owner : owners) {
+			System.out.println("Fetching repo list for owner: " + owner);
+			for (RepositorySummaryResponse summary : client
+					.listOrgRepos(owner)) {
+				found.put(new RepoRef(owner, summary.name()), summary);
+			}
+		}
+		System.out.printf(
+				"Found %d repos. Fetching details in parallel...%n",
+				found.size()
+		);
 
 		List<CheckResult.RepoCheckResult> results = new ArrayList<>();
 
 		try (ExecutorService executor = Executors
 				.newVirtualThreadPerTaskExecutor()) {
-			List<Future<CheckResult.RepoCheckResult>> futures = summaries
+			List<Future<CheckResult.RepoCheckResult>> futures = found.entrySet()
 					.stream()
 					.map(
-							summary -> executor.submit(
-									() -> checkOne(summary, desiredByName)
-							)
+							entry -> executor
+									.submit(
+											() -> checkOne(
+													entry.getKey(),
+													entry.getValue(),
+													desiredByRef
+															.get(entry.getKey())
+											)
+									)
 					)
 					.toList();
 			for (Future<CheckResult.RepoCheckResult> f : futures) {
@@ -157,13 +164,11 @@ public class OrgChecker {
 			}
 		}
 
-		// Repos declared in config but not found in the org
-		Set<String> foundNames = summaries.stream()
-				.map(RepositorySummaryResponse::name)
-				.collect(Collectors.toSet());
-		repositories.stream()
-				.filter(r -> !foundNames.contains(r.name))
-				.map(r -> CheckResult.RepoCheckResult.missing(r.name))
+		// Repos declared in config but not found under their owner
+		desiredByRef.keySet()
+				.stream()
+				.filter(ref -> !found.containsKey(ref))
+				.map(ref -> CheckResult.RepoCheckResult.missing(ref.name()))
 				.forEach(results::add);
 
 		double fetchSeconds = (System.currentTimeMillis() - startFetch)
@@ -174,16 +179,16 @@ public class OrgChecker {
 	}
 
 	private CheckResult.RepoCheckResult checkOne(
+			RepoRef ref,
 			RepositorySummaryResponse summary,
-			Map<String, Drifty.Repository> desiredByName
+			Drifty.Repository desired
 	) {
-		String name = summary.name();
-		Drifty.Repository desired = desiredByName.get(name);
+		String name = ref.name();
 		if (desired == null) {
 			return CheckResult.RepoCheckResult.unknown(name);
 		}
 		try {
-			RepositoryState state = fetchState(summary);
+			RepositoryState state = fetchState(ref, summary);
 
 			Map<DriftGroup, List<DriftFix>> groupDrifts = computeGroupDrifts(
 					state,
@@ -258,18 +263,20 @@ public class OrgChecker {
 	// ─── Fetch
 	// ──────────────────────────────────────────────────────────────
 
-	RepositoryState fetchState(RepositorySummaryResponse summary)
+	RepositoryState fetchState(RepoRef ref, RepositorySummaryResponse summary)
 			throws IOException, InterruptedException {
-		String name = summary.name();
+		String org = ref.owner();
+		String name = ref.name();
 		boolean archived = summary.archived();
 
 		var details = client.getRepo(org, name);
 
 		SecurityFlags security = archived ? SecurityFlags.NONE
-				: fetchSecurityFlags(name);
+				: fetchSecurityFlags(org, name);
 
 		Map<String, BranchProtectionResponse> branchProtections = fetchBranchProtections(
 				summary,
+				org,
 				name,
 				archived
 		);
@@ -291,7 +298,7 @@ public class OrgChecker {
 		WorkflowPermissions wfPerms = client.getWorkflowPermissions(org, name);
 
 		List<RulesetDetailsResponse> rulesets = archived ? List.of()
-				: fetchRulesets(name);
+				: fetchRulesets(org, name);
 
 		Optional<PagesResponse> pages = archived ? Optional.empty()
 				: client.getPages(org, name);
@@ -315,7 +322,7 @@ public class OrgChecker {
 		);
 	}
 
-	private SecurityFlags fetchSecurityFlags(String name) {
+	private SecurityFlags fetchSecurityFlags(String org, String name) {
 		boolean vulnAlerts = client.getVulnerabilityAlerts(org, name);
 		boolean automatedSecurityFixes = client
 				.getAutomatedSecurityFixes(org, name);
@@ -336,6 +343,7 @@ public class OrgChecker {
 
 	private Map<String, BranchProtectionResponse> fetchBranchProtections(
 			RepositorySummaryResponse summary,
+			String org,
 			String name,
 			boolean archived
 	) {
@@ -350,7 +358,10 @@ public class OrgChecker {
 		return branchProtections;
 	}
 
-	private List<RulesetDetailsResponse> fetchRulesets(String name) {
+	private List<RulesetDetailsResponse> fetchRulesets(
+			String org,
+			String name
+	) {
 		var rulesets = new ArrayList<RulesetDetailsResponse>();
 		for (var rs : client.listRulesets(org, name)) {
 			rulesets.add(client.getRuleset(org, name, rs.id()));
@@ -401,6 +412,8 @@ public class OrgChecker {
 			RepositoryState actual,
 			Drifty.Repository desired
 	) {
+		var ref = new RepoRef(desired.owner, actual.summary().name());
+
 		if (desired.archived) {
 			// When archiving (or already archived): only check archived state,
 			// skip all other groups since settings don't matter for archived
@@ -410,8 +423,7 @@ public class OrgChecker {
 							true,
 							actual.summary().archived(),
 							client,
-							org,
-							actual.summary().name()
+							ref
 					)
 			);
 		}
@@ -427,8 +439,7 @@ public class OrgChecker {
 						false,
 						actual.summary().archived(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 
@@ -437,8 +448,7 @@ public class OrgChecker {
 						desired,
 						actual.details(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
@@ -448,203 +458,179 @@ public class OrgChecker {
 								? actual.details().topics()
 								: List.of(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new WorkflowPermissionsDriftGroup(
-						desired,
+						desired.defaultWorkflowPermissions,
+						desired.canApprovePullRequestReviews,
 						actual.workflowPermissions(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
-				new PagesDriftGroup(
-						desired,
-						actual.pages(),
-						client,
-						org,
-						actual.summary().name()
-				)
+				new PagesDriftGroup(desired.pages, actual.pages(), client, ref)
 		);
 
 		// Environment config
 		groups.add(
 				new EnvironmentConfigDriftGroup(
-						desired,
+						desired.environments,
 						actual.environmentDetails(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 
 		// Secrets
 		groups.add(
 				new ActionSecretsDriftGroup(
-						desired,
+						desired.actionsSecrets,
 						actual.actionSecrets(),
 						githubSecrets,
 						state,
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new EnvironmentSecretsDriftGroup(
-						desired,
+						desired.environments,
 						actual.environmentSecrets(),
 						githubSecrets,
 						state,
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 
 		// Security micro-groups
 		groups.add(
 				new VulnerabilityAlertsDriftGroup(
-						desired,
+						desired.vulnerabilityAlerts,
 						actual.vulnerabilityAlerts(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new AutomatedSecurityFixesDriftGroup(
-						desired,
+						desired.automatedSecurityFixes,
 						actual.automatedSecurityFixes(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new ImmutableReleasesDriftGroup(
-						desired,
+						desired.immutableReleases,
 						actual.immutableReleases(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new SecretScanningDriftGroup(
-						desired,
+						desired.secretScanning,
 						actual.secretScanning(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new SecretScanningPushProtectionDriftGroup(
-						desired,
+						desired.secretScanningPushProtection,
 						actual.secretScanningPushProtection(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new PrivateVulnerabilityReportingDriftGroup(
-						desired,
+						desired.privateVulnerabilityReporting,
 						actual.privateVulnerabilityReporting(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new CodeScanningDefaultSetupDriftGroup(
-						desired,
+						desired.codeScanningDefaultSetup,
 						actual.codeScanningDefaultSetup(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new SecretScanningNonProviderPatternsDriftGroup(
-						desired,
+						desired.secretScanningNonProviderPatterns,
 						actual.secretScanningNonProviderPatterns(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new SecretScanningValidityChecksDriftGroup(
-						desired,
+						desired.secretScanningValidityChecks,
 						actual.secretScanningValidityChecks(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new AdvancedSecurityDriftGroup(
-						desired,
+						desired.advancedSecurity,
 						actual.advancedSecurity(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new SecretScanningAiDetectionDriftGroup(
-						desired,
+						desired.secretScanningAiDetection,
 						actual.secretScanningAiDetection(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new SecretScanningDelegatedAlertDismissalDriftGroup(
-						desired,
+						desired.secretScanningDelegatedAlertDismissal,
 						actual.secretScanningDelegatedAlertDismissal(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 		groups.add(
 				new SecretScanningDelegatedBypassDriftGroup(
-						desired,
+						desired.secretScanningDelegatedBypass,
+						desired.secretScanningDelegatedBypassReviewers,
 						actual.secretScanningDelegatedBypass(),
 						actual.bypassReviewers(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 
 		// Branch protection
 		groups.add(
 				new BranchProtectionDriftGroup(
-						desired,
+						desired.branchProtections,
 						actual.branchProtections(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 
 		// Rulesets
 		groups.add(
 				new RulesetDriftGroup(
-						desired,
+						desired.rulesets,
 						actual.rulesets(),
 						client,
-						org,
-						actual.summary().name()
+						ref
 				)
 		);
 

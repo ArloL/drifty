@@ -123,7 +123,7 @@ class SecurityFlagSourceTest {
 				.secretScanningPushProtection(true)
 				.build();
 
-		List<String> paths = new OrgChecker((String) null, "owner")
+		List<String> paths = new OrgChecker((String) null, false)
 				.createDriftGroups(state, ToDrifty.repository(desired))
 				.stream()
 				.filter(group -> group.name().equals(groupName))

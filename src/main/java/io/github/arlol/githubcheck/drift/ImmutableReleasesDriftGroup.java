@@ -3,7 +3,7 @@ package io.github.arlol.githubcheck.drift;
 import java.util.List;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
-import io.github.arlol.githubcheck.pkl.Drifty;
+import io.github.arlol.githubcheck.client.RepoRef;
 
 public class ImmutableReleasesDriftGroup extends DriftGroup {
 
@@ -14,17 +14,16 @@ public class ImmutableReleasesDriftGroup extends DriftGroup {
 	private final String repo;
 
 	public ImmutableReleasesDriftGroup(
-			Drifty.Repository desired,
+			boolean desired,
 			boolean actual,
 			GitHubClient client,
-			String owner,
-			String repo
+			RepoRef ref
 	) {
-		this.desired = desired.immutableReleases;
+		this.desired = desired;
 		this.actual = actual;
 		this.client = client;
-		this.owner = owner;
-		this.repo = repo;
+		this.owner = ref.owner();
+		this.repo = ref.name();
 	}
 
 	@Override

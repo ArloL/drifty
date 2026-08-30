@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.PagesBuildType;
 import io.github.arlol.githubcheck.client.PagesResponse;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.testsupport.PagesArgs;
 import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
 import io.github.arlol.githubcheck.testsupport.ToDrifty;
@@ -34,11 +35,10 @@ class PagesDriftGroupTest {
 				)
 		);
 		var group = new PagesDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).pages,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -54,11 +54,10 @@ class PagesDriftGroupTest {
 		var desired = RepositoryArgs.create("owner", "repo").pages().build();
 		Optional<PagesResponse> actual = Optional.empty();
 		var group = new PagesDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).pages,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -93,11 +92,10 @@ class PagesDriftGroupTest {
 				)
 		);
 		var group = new PagesDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).pages,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -134,11 +132,10 @@ class PagesDriftGroupTest {
 				)
 		);
 		var group = new PagesDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).pages,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -177,11 +174,10 @@ class PagesDriftGroupTest {
 				)
 		);
 		var group = new PagesDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).pages,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -214,11 +210,10 @@ class PagesDriftGroupTest {
 				)
 		);
 		var group = new PagesDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).pages,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()

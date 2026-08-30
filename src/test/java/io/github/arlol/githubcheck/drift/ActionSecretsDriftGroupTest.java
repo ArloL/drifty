@@ -8,6 +8,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.Secret;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
 import io.github.arlol.githubcheck.testsupport.ToDrifty;
 import io.github.arlol.githubcheck.state.DriftyState;
@@ -40,13 +41,12 @@ class ActionSecretsDriftGroupTest {
 				.actionsSecrets(desiredSecrets.toArray(String[]::new))
 				.build();
 		return new ActionSecretsDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).actionsSecrets,
 				actualSecrets,
 				secretValues,
 				state,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 	}
 

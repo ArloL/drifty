@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
@@ -26,17 +27,16 @@ public class RulesetDriftGroup extends DriftGroup {
 	private final String repo;
 
 	public RulesetDriftGroup(
-			Drifty.Repository desired,
+			Map<String, Drifty.Ruleset> desired,
 			List<RulesetDetailsResponse> actual,
 			GitHubClient client,
-			String owner,
-			String repo
+			RepoRef ref
 	) {
-		this.desired = Map.copyOf(desired.rulesets);
+		this.desired = Map.copyOf(desired);
 		this.actual = List.copyOf(actual);
 		this.client = client;
-		this.owner = owner;
-		this.repo = repo;
+		this.owner = ref.owner();
+		this.repo = ref.name();
 	}
 
 	@Override
