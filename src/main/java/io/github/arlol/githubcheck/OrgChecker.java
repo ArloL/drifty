@@ -192,6 +192,15 @@ public class OrgChecker {
 					desired
 			);
 
+			if (fix) {
+				FixOutcome outcome = applyFixes(name, groupDrifts);
+				return CheckResult.RepoCheckResult.fixed(
+						name,
+						render(outcome.unfixedItems()),
+						fixReports(outcome)
+				);
+			}
+
 			List<String> diffs = groupDrifts.values()
 					.stream()
 					.flatMap(List::stream)
@@ -199,11 +208,6 @@ public class OrgChecker {
 					.map(DriftItem::message)
 					.collect(Collectors.toCollection(ArrayList::new));
 
-			if (fix) {
-				diffs = applyFixes(name, diffs, groupDrifts);
-				return diffs.isEmpty() ? CheckResult.RepoCheckResult.ok(name)
-						: CheckResult.RepoCheckResult.drift(name, diffs);
-			}
 			if (diffs.isEmpty()) {
 				return CheckResult.RepoCheckResult.ok(name);
 			}
@@ -219,6 +223,38 @@ public class OrgChecker {
 		} catch (IOException e) {
 			return CheckResult.RepoCheckResult.error(name, e.getMessage());
 		}
+	}
+
+	private static List<String> render(List<DriftItem> items) {
+		return items.stream().map(DriftItem::message).toList();
+	}
+
+	/**
+	 * One FIXED/FAILED line per drift item, in the order the fixes ran.
+	 */
+	private static List<CheckResult.FixReport> fixReports(FixOutcome outcome) {
+		var reports = new ArrayList<CheckResult.FixReport>();
+		outcome.fixed()
+				.forEach(
+						item -> reports.add(
+								new CheckResult.FixReport(
+										item.path(),
+										true,
+										null
+								)
+						)
+				);
+		outcome.unfixed()
+				.forEach(
+						unfixed -> reports.add(
+								new CheckResult.FixReport(
+										unfixed.item().path(),
+										false,
+										unfixed.reason()
+								)
+						)
+				);
+		return reports;
 	}
 
 	// ─── Fetch
@@ -704,38 +740,85 @@ public class OrgChecker {
 	// ─── Fix
 	// ──────────────────────────────────────────────────────────────
 
-	List<String> applyFixes(
+	/**
+	 * What a fix run achieved for one repository: the items it resolved, and
+	 * the ones it did not together with why.
+	 */
+	record FixOutcome(
+			List<DriftItem> fixed,
+			List<FixResult.Unfixed> unfixed
+	) {
+
+		FixOutcome {
+			fixed = List.copyOf(fixed);
+			unfixed = List.copyOf(unfixed);
+		}
+
+		List<DriftItem> unfixedItems() {
+			return unfixed.stream().map(FixResult.Unfixed::item).toList();
+		}
+
+	}
+
+	/**
+	 * Runs every fix and accounts for the result per drift item.
+	 * <p>
+	 * Accounting is by item, not by rendered message. Messages are built for
+	 * people and are not unique — before drift paths were namespaced, thirteen
+	 * groups rendered the same {@code "enabled: want=true got=false"}, and
+	 * subtracting them with {@code List.removeAll} deleted every equal line, so
+	 * one successful fix erased twelve other settings' drift including failed
+	 * ones. Working from the items themselves removes that whole class of bug
+	 * rather than relying on the paths staying distinct.
+	 */
+	FixOutcome applyFixes(
 			String name,
-			List<String> diffs,
 			Map<DriftGroup, List<DriftFix>> groupDrifts
 	) {
-		List<String> remaining = new ArrayList<>(diffs);
+		var fixed = new ArrayList<DriftItem>();
+		var unfixed = new ArrayList<FixResult.Unfixed>();
+
 		for (var fixes : groupDrifts.values()) {
 			for (var driftFix : fixes) {
-				var msgs = driftFix.items()
-						.stream()
-						.map(DriftItem::message)
-						.toList();
-				if (msgs.isEmpty()) {
+				if (driftFix.items().isEmpty()) {
 					continue;
 				}
 				FixResult fixResult;
 				try {
 					fixResult = driftFix.fix().execute();
 				} catch (RuntimeException e) {
+					// The fix blew up, so nothing it covered got fixed.
+					String reason = e.getMessage() == null
+							? e.getClass().getSimpleName()
+							: e.getMessage();
+					driftFix.items()
+							.forEach(
+									item -> unfixed.add(
+											new FixResult.Unfixed(item, reason)
+									)
+							);
 					continue;
 				}
-				var unfixedMsgs = fixResult.unfixedItems()
+				var unfixedByItem = fixResult.unfixedItems()
 						.stream()
-						.map(DriftItem::message)
-						.collect(Collectors.toSet());
-				var fixedMsgs = msgs.stream()
-						.filter(m -> !unfixedMsgs.contains(m))
-						.toList();
-				remaining.removeAll(fixedMsgs);
+						.collect(
+								Collectors.toMap(
+										FixResult.Unfixed::item,
+										u -> u,
+										(a, _) -> a
+								)
+						);
+				for (DriftItem item : driftFix.items()) {
+					FixResult.Unfixed u = unfixedByItem.get(item);
+					if (u == null) {
+						fixed.add(item);
+					} else {
+						unfixed.add(u);
+					}
+				}
 			}
 		}
-		return remaining;
+		return new FixOutcome(fixed, unfixed);
 	}
 
 	// ─── Report
@@ -749,11 +832,21 @@ public class OrgChecker {
 
 		for (CheckResult.RepoCheckResult r : sorted) {
 			switch (r.status()) {
-			case OK -> System.out.printf("[OK]      %s%n", r.name());
+			case OK -> {
+				System.out.printf("[OK]      %s%n", r.name());
+				printFixReports(r);
+			}
 			case DRIFT -> {
 				System.out.printf("[DRIFT]   %s:%n", r.name());
-				r.diffs()
-						.forEach(d -> System.out.printf("            %s%n", d));
+				if (r.fixReports().isEmpty()) {
+					r.diffs()
+							.forEach(
+									d -> System.out
+											.printf("            %s%n", d)
+							);
+				} else {
+					printFixReports(r);
+				}
 				if (!r.fixPreview().isEmpty()) {
 					System.out.printf(
 							"  Would fix: %s%n",
@@ -780,6 +873,21 @@ public class OrgChecker {
 		System.out.printf("Errored:        %d%n", result.errorCount());
 		System.out.printf("Unknown:        %d%n", result.unknownCount());
 		System.out.printf("Missing:        %d%n", result.missingCount());
+
+		List<String> failures = result.fixFailures();
+		if (!failures.isEmpty()) {
+			System.out.println();
+			System.out.printf("=== Failed fixes (%d) ===%n", failures.size());
+			failures.forEach(f -> System.out.printf("  %s%n", f));
+		}
+	}
+
+	private static void printFixReports(CheckResult.RepoCheckResult r) {
+		r.fixReports()
+				.forEach(
+						report -> System.out
+								.printf("            %s%n", report.message())
+				);
 	}
 
 }

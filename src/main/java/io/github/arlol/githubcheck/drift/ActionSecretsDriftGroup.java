@@ -62,7 +62,15 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 		for (Secret secret : actual.values()) {
 			if (!desired.contains(secret.name())) {
 				var item = new DriftItem.SectionExtra(secret.name());
-				fixes.add(new DriftFix(item, () -> new FixResult(item)));
+				fixes.add(
+						new DriftFix(
+								item,
+								() -> FixResult.unfixed(
+										item,
+										"drifty does not delete secrets it did not create"
+								)
+						)
+				);
 			}
 		}
 
@@ -97,9 +105,13 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 			}
 		}
 		return new DriftFix(driftItem, () -> {
-			var value = secretValues.get(repo + "-" + secretName);
+			var key = repo + "-" + secretName;
+			var value = secretValues.get(key);
 			if (value == null) {
-				return new FixResult(driftItem);
+				return FixResult.unfixed(
+						driftItem,
+						"no value for " + key + " in DRIFTY_GITHUB_SECRETS"
+				);
 			}
 			client.createOrUpdateActionSecret(owner, repo, secretName, value);
 			Secret updated = client.getActionSecret(owner, repo, secretName);

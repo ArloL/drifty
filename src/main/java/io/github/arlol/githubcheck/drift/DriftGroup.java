@@ -48,14 +48,25 @@ public abstract class DriftGroup {
 	 */
 	private DriftFix.FixAction namespaced(DriftFix.FixAction action) {
 		return () -> new FixResult(
-				namespaceAll(action.execute().unfixedItems())
+				action.execute()
+						.unfixedItems()
+						.stream()
+						.map(
+								unfixed -> new FixResult.Unfixed(
+										namespaced(unfixed.item()),
+										unfixed.reason()
+								)
+						)
+						.toList()
 		);
 	}
 
 	private List<DriftItem> namespaceAll(List<DriftItem> items) {
-		return items.stream()
-				.map(item -> item.withPath(namespaced(item.path())))
-				.toList();
+		return items.stream().map(this::namespaced).toList();
+	}
+
+	private DriftItem namespaced(DriftItem item) {
+		return item.withPath(namespaced(item.path()));
 	}
 
 	private String namespaced(String path) {

@@ -71,7 +71,15 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 					var item = new DriftItem.SectionExtra(
 							envName + ".secrets." + secret.name()
 					);
-					fixes.add(new DriftFix(item, () -> new FixResult(item)));
+					fixes.add(
+							new DriftFix(
+									item,
+									() -> FixResult.unfixed(
+											item,
+											"drifty does not delete secrets it did not create"
+									)
+							)
+					);
 				}
 			}
 		}
@@ -113,10 +121,13 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 			}
 		}
 		return new DriftFix(driftItem, () -> {
-			var value = secretValues
-					.get(repo + "-" + envName + "-" + secretName);
+			var key = repo + "-" + envName + "-" + secretName;
+			var value = secretValues.get(key);
 			if (value == null) {
-				return new FixResult(driftItem);
+				return FixResult.unfixed(
+						driftItem,
+						"no value for " + key + " in DRIFTY_GITHUB_SECRETS"
+				);
 			}
 			client.createOrUpdateEnvironmentSecret(
 					owner,

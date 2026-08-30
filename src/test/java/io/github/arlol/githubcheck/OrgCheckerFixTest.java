@@ -137,6 +137,21 @@ class OrgCheckerFixTest {
 		checker = new OrgChecker(client, "owner", true);
 	}
 
+	/**
+	 * Runs the fixes and renders whatever stayed unfixed, which is what these
+	 * tests assert on.
+	 */
+	private static List<String> unfixedMessages(
+			OrgChecker checker,
+			Map<DriftGroup, List<DriftFix>> groupDrifts
+	) {
+		return checker.applyFixes("repo", groupDrifts)
+				.unfixedItems()
+				.stream()
+				.map(DriftItem::message)
+				.toList();
+	}
+
 	private Map<DriftGroup, List<DriftFix>> computeGroupDrifts(
 			RepositoryState actual,
 			RepositoryArgs desired
@@ -234,8 +249,7 @@ class OrgCheckerFixTest {
 				state,
 				RepositoryArgs.create("owner", "repo").build()
 		);
-		List<String> remaining = checker
-				.applyFixes("repo", List.of(), groupDrifts);
+		List<String> remaining = unfixedMessages(checker, groupDrifts);
 		assertThat(remaining).isEmpty();
 		verify(0, patchRequestedFor(urlEqualTo("/repos/owner/repo")));
 		verify(0, putRequestedFor(urlEqualTo("/repos/owner/repo/topics")));
@@ -256,14 +270,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -288,14 +295,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -344,14 +344,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -406,14 +399,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -488,14 +474,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(stateWithBadVuln, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -556,13 +535,7 @@ class OrgCheckerFixTest {
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -635,14 +608,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -693,14 +659,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -750,14 +709,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -788,14 +740,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -839,14 +784,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -889,14 +827,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -939,14 +870,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -989,14 +913,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1036,14 +953,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1086,14 +996,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1143,14 +1046,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1212,14 +1108,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1277,14 +1166,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1341,14 +1223,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1398,14 +1273,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1457,14 +1325,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1488,14 +1349,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1551,14 +1405,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1595,14 +1442,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1645,14 +1485,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1720,14 +1553,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1801,14 +1627,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1888,14 +1707,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1928,14 +1740,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -1984,14 +1789,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -2022,14 +1820,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -2099,14 +1890,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -2213,14 +1997,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(putRequestedFor(urlEqualTo("/repos/owner/repo/rulesets/42")));
@@ -2304,14 +2081,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(0, postRequestedFor(urlEqualTo("/repos/owner/repo/rulesets")));
@@ -2371,14 +2141,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -2432,14 +2195,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -2496,14 +2252,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -2525,14 +2274,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(0, postRequestedFor(urlEqualTo("/repos/owner/repo/pages")));
@@ -2587,14 +2329,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -2652,14 +2387,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -2716,14 +2444,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -2803,14 +2524,7 @@ class OrgCheckerFixTest {
 						.repository(desired)
 		);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = localChecker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(localChecker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -2856,14 +2570,7 @@ class OrgCheckerFixTest {
 						.repository(desired)
 		);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = localChecker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(localChecker, groupDrifts);
 
 		assertThat(remaining).anyMatch(
 				d -> d.contains("action_secrets") && d.contains("missing")
@@ -2951,14 +2658,7 @@ class OrgCheckerFixTest {
 						.repository(desired)
 		);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = localChecker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(localChecker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -2985,14 +2685,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -3036,14 +2729,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).isEmpty();
 		verify(
@@ -3100,19 +2786,87 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var messages = groupDrifts.values()
-				.stream()
-				.flatMap(List::stream)
-				.flatMap(f -> f.items().stream())
-				.map(DriftItem::message)
-				.toList();
-
-		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+		var remaining = unfixedMessages(checker, groupDrifts);
 
 		assertThat(remaining).as(
 				"the immutable-releases fix returned 500, so its drift must survive"
 		).hasSize(1);
 		assertThat(remaining.getFirst()).contains("immutable_releases");
+	}
+
+	/**
+	 * SPEC.md promises "FAILED with reason" per setting. A fix that throws must
+	 * therefore surface why, not just leave the drift unexplained.
+	 */
+	@Test
+	void apiFailureIsReportedWithItsReason() throws Exception {
+		stubFor(
+				put(urlEqualTo("/repos/owner/repo/immutable-releases"))
+						.willReturn(WireMock.aResponse().withStatus(500))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
+				.immutableReleases(true)
+				.build();
+
+		var groupDrifts = computeGroupDrifts(goodPublicState(), desired);
+		var outcome = checker.applyFixes("repo", groupDrifts);
+
+		assertThat(outcome.fixed()).isEmpty();
+		assertThat(outcome.unfixed()).singleElement().satisfies(unfixed -> {
+			assertThat(unfixed.item().path())
+					.isEqualTo("immutable_releases.enabled");
+			assertThat(unfixed.reason()).contains("500");
+		});
+	}
+
+	/**
+	 * A secret with no value in DRIFTY_GITHUB_SECRETS is unfixable rather than
+	 * failed, and must say so.
+	 */
+	@Test
+	void unfixableSecretIsReportedWithItsReason(WireMockRuntimeInfo wm)
+			throws Exception {
+		var localChecker = checkerWithSecrets(wm, Map.of());
+
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
+				.actionsSecrets("PAT")
+				.build();
+
+		var groupDrifts = localChecker.computeGroupDrifts(
+				goodPublicState(),
+				ToDrifty.repository(desired)
+		);
+		var outcome = localChecker.applyFixes("repo", groupDrifts);
+
+		assertThat(outcome.unfixed()).singleElement().satisfies(unfixed -> {
+			assertThat(unfixed.item().path()).isEqualTo("action_secrets.PAT");
+			assertThat(unfixed.reason()).contains("DRIFTY_GITHUB_SECRETS")
+					.contains("repo-PAT");
+		});
+	}
+
+	/**
+	 * A successful fix reports the items it resolved, so the report can print
+	 * FIXED per setting rather than merely omitting them.
+	 */
+	@Test
+	void successfulFixReportsWhatItFixed() throws Exception {
+		stubFor(
+				put(urlEqualTo("/repos/owner/repo/immutable-releases"))
+						.willReturn(WireMock.aResponse().withStatus(204))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
+				.immutableReleases(true)
+				.build();
+
+		var groupDrifts = computeGroupDrifts(goodPublicState(), desired);
+		var outcome = checker.applyFixes("repo", groupDrifts);
+
+		assertThat(outcome.unfixed()).isEmpty();
+		assertThat(outcome.fixed().stream().map(DriftItem::path))
+				.containsExactly("immutable_releases.enabled");
 	}
 
 }
