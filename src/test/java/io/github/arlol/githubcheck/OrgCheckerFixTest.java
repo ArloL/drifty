@@ -18,6 +18,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -2733,6 +2736,73 @@ class OrgCheckerFixTest {
 				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
 						.withRequestBody(equalToJson("{\"archived\": false}"))
 		);
+	}
+
+	/**
+	 * Every other fix fails against an archived repository, so unarchiving has
+	 * to happen first. That must be a property of the fix run, not of the order
+	 * the drift groups happen to be iterated in — so this hands applyFixes a
+	 * map that deliberately puts the archive group last.
+	 */
+	@Test
+	void unarchiveRunsBeforeOtherFixesWhateverTheIterationOrder()
+			throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+		);
+
+		// Wants the repo active and the description changed, so both the
+		// archive group and the repo-settings group have work to do.
+		var desired = RepositoryArgs.create("owner", "repo")
+				.description("a new description")
+				.build();
+		var state = new RepositoryState(
+				"repo",
+				parse(
+						"{\"name\": \"repo\", \"archived\": true, \"visibility\": \"public\"}",
+						RepositorySummaryResponse.class
+				),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				true,
+				false,
+				Map.of(),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(),
+				false,
+				false,
+				false
+		);
+
+		var groupDrifts = computeGroupDrifts(state, desired);
+		assertThat(groupDrifts.keySet().stream().map(DriftGroup::name)).as(
+				"both groups must have drifted for this test to mean anything"
+		).contains("archived", "repo_settings");
+
+		checker.applyFixes("repo", reversed(groupDrifts));
+
+		var patches = WireMock
+				.findAll(patchRequestedFor(urlEqualTo("/repos/owner/repo")));
+		assertThat(patches).hasSizeGreaterThanOrEqualTo(2);
+		assertThat(patches.getFirst().getBodyAsString())
+				.as("unarchiving must be the first write")
+				.contains("\"archived\":false");
+	}
+
+	private static Map<DriftGroup, List<DriftFix>> reversed(
+			Map<DriftGroup, List<DriftFix>> groupDrifts
+	) {
+		var entries = new ArrayList<>(groupDrifts.entrySet());
+		Collections.reverse(entries);
+		var reversed = new LinkedHashMap<DriftGroup, List<DriftFix>>();
+		entries.forEach(e -> reversed.put(e.getKey(), e.getValue()));
+		return reversed;
 	}
 
 	/**

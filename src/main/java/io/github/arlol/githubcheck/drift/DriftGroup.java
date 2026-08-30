@@ -13,6 +13,20 @@ public abstract class DriftGroup {
 	public abstract String name();
 
 	/**
+	 * Whether this group's fix has to run before every other group's.
+	 * <p>
+	 * Only unarchiving needs this: GitHub rejects writes to an archived
+	 * repository, so every other fix would fail. Saying it here keeps the
+	 * requirement next to the group that has it, instead of leaving it to hold
+	 * by accident across three methods — a list built in the right order, an
+	 * insertion-ordered map, and a sequential loop — any of which could be
+	 * changed without knowing the other two depended on it.
+	 */
+	public boolean runsBeforeOtherFixes() {
+		return false;
+	}
+
+	/**
 	 * Detects drift for this group. Paths are relative to the group: return
 	 * {@code "enabled"}, not {@code "vulnerability_alerts.enabled"}, and the
 	 * empty string for a group that has a single unnamed setting. Namespacing
