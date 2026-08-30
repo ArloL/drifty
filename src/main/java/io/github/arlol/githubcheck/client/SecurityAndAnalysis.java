@@ -24,6 +24,16 @@ public record SecurityAndAnalysis(
 		return new Builder();
 	}
 
+	/**
+	 * Whether a security toggle is on. GitHub omits the whole block for some
+	 * repositories and individual toggles for others, and both mean "off" —
+	 * which is why this is the single place that decides it.
+	 */
+	public static boolean isEnabled(StatusObject statusObject) {
+		return statusObject != null
+				&& statusObject.status() == StatusObject.Status.ENABLED;
+	}
+
 	public static final class Builder {
 
 		private StatusObject secretScanning;

@@ -13,7 +13,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
@@ -24,7 +23,6 @@ import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.Secret;
-import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.drift.ActionSecretsDriftGroup;
@@ -268,7 +266,7 @@ public class OrgChecker {
 		var details = client.getRepo(org, name);
 
 		SecurityFlags security = archived ? SecurityFlags.NONE
-				: fetchSecurityFlags(name, details.securityAndAnalysis());
+				: fetchSecurityFlags(name);
 
 		Map<String, BranchProtectionResponse> branchProtections = fetchBranchProtections(
 				summary,
@@ -313,18 +311,11 @@ public class OrgChecker {
 				envDetails,
 				security.immutableReleases(),
 				security.privateVulnerabilityReporting(),
-				security.codeScanningDefaultSetup(),
-				security.secretScanning(),
-				security.secretScanningPushProtection(),
-				security.secretScanningNonProviderPatterns(),
-				security.secretScanningValidityChecks()
+				security.codeScanningDefaultSetup()
 		);
 	}
 
-	private SecurityFlags fetchSecurityFlags(
-			String name,
-			SecurityAndAnalysis sa
-	) {
+	private SecurityFlags fetchSecurityFlags(String name) {
 		boolean vulnAlerts = client.getVulnerabilityAlerts(org, name);
 		boolean automatedSecurityFixes = client
 				.getAutomatedSecurityFixes(org, name);
@@ -339,19 +330,8 @@ public class OrgChecker {
 				immutableReleases.isPresent()
 						&& immutableReleases.orElseThrow().enabled(),
 				privateVulnerabilityReporting,
-				codeScanningDefaultSetup,
-				sa != null && isEnabled(sa.secretScanning()),
-				sa != null && isEnabled(sa.secretScanningPushProtection()),
-				sa != null && isEnabled(sa.secretScanningNonProviderPatterns()),
-				sa != null && isEnabled(sa.secretScanningValidityChecks())
+				codeScanningDefaultSetup
 		);
-	}
-
-	private static boolean isEnabled(
-			SecurityAndAnalysis.StatusObject statusObject
-	) {
-		return statusObject != null && statusObject
-				.status() == SecurityAndAnalysis.StatusObject.Status.ENABLED;
 	}
 
 	private Map<String, BranchProtectionResponse> fetchBranchProtections(
@@ -387,18 +367,10 @@ public class OrgChecker {
 			boolean automatedSecurityFixes,
 			boolean immutableReleases,
 			boolean privateVulnerabilityReporting,
-			boolean codeScanningDefaultSetup,
-			boolean secretScanning,
-			boolean secretScanningPushProtection,
-			boolean secretScanningNonProviderPatterns,
-			boolean secretScanningValidityChecks
+			boolean codeScanningDefaultSetup
 	) {
 
 		private static final SecurityFlags NONE = new SecurityFlags(
-				false,
-				false,
-				false,
-				false,
 				false,
 				false,
 				false,
@@ -423,31 +395,6 @@ public class OrgChecker {
 			}
 		}
 		return groupDrifts;
-	}
-
-	private static boolean securityFlag(
-			RepositoryState actual,
-			Function<SecurityAndAnalysis, SecurityAndAnalysis.StatusObject> getter
-	) {
-		var sa = actual.details().securityAndAnalysis();
-		if (sa == null) {
-			return false;
-		}
-		var statusObject = getter.apply(sa);
-		return statusObject != null && statusObject
-				.status() == SecurityAndAnalysis.StatusObject.Status.ENABLED;
-	}
-
-	private static List<SecurityAndAnalysis.BypassReviewer> bypassReviewers(
-			RepositoryState actual
-	) {
-		var sa = actual.details().securityAndAnalysis();
-		if (sa == null || sa.secretScanningDelegatedBypassOptions() == null
-				|| sa.secretScanningDelegatedBypassOptions()
-						.reviewers() == null) {
-			return List.of();
-		}
-		return sa.secretScanningDelegatedBypassOptions().reviewers();
 	}
 
 	List<DriftGroup> createDriftGroups(
@@ -591,17 +538,7 @@ public class OrgChecker {
 		groups.add(
 				new SecretScanningDriftGroup(
 						desired,
-						actual.details().securityAndAnalysis() != null
-								&& actual.details()
-										.securityAndAnalysis()
-										.secretScanning() != null
-								&& SecurityAndAnalysis.StatusObject.Status.ENABLED
-										.equals(
-												actual.details()
-														.securityAndAnalysis()
-														.secretScanning()
-														.status()
-										),
+						actual.secretScanning(),
 						client,
 						org,
 						actual.summary().name()
@@ -610,17 +547,7 @@ public class OrgChecker {
 		groups.add(
 				new SecretScanningPushProtectionDriftGroup(
 						desired,
-						actual.details().securityAndAnalysis() != null
-								&& actual.details()
-										.securityAndAnalysis()
-										.secretScanningPushProtection() != null
-								&& SecurityAndAnalysis.StatusObject.Status.ENABLED
-										.equals(
-												actual.details()
-														.securityAndAnalysis()
-														.secretScanningPushProtection()
-														.status()
-										),
+						actual.secretScanningPushProtection(),
 						client,
 						org,
 						actual.summary().name()
@@ -665,10 +592,7 @@ public class OrgChecker {
 		groups.add(
 				new AdvancedSecurityDriftGroup(
 						desired,
-						securityFlag(
-								actual,
-								SecurityAndAnalysis::advancedSecurity
-						),
+						actual.advancedSecurity(),
 						client,
 						org,
 						actual.summary().name()
@@ -677,10 +601,7 @@ public class OrgChecker {
 		groups.add(
 				new SecretScanningAiDetectionDriftGroup(
 						desired,
-						securityFlag(
-								actual,
-								SecurityAndAnalysis::secretScanningAiDetection
-						),
+						actual.secretScanningAiDetection(),
 						client,
 						org,
 						actual.summary().name()
@@ -689,10 +610,7 @@ public class OrgChecker {
 		groups.add(
 				new SecretScanningDelegatedAlertDismissalDriftGroup(
 						desired,
-						securityFlag(
-								actual,
-								SecurityAndAnalysis::secretScanningDelegatedAlertDismissal
-						),
+						actual.secretScanningDelegatedAlertDismissal(),
 						client,
 						org,
 						actual.summary().name()
@@ -701,11 +619,8 @@ public class OrgChecker {
 		groups.add(
 				new SecretScanningDelegatedBypassDriftGroup(
 						desired,
-						securityFlag(
-								actual,
-								SecurityAndAnalysis::secretScanningDelegatedBypass
-						),
-						bypassReviewers(actual),
+						actual.secretScanningDelegatedBypass(),
+						actual.bypassReviewers(),
 						client,
 						org,
 						actual.summary().name()

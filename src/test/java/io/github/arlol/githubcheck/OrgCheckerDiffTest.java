@@ -321,10 +321,6 @@ class OrgCheckerDiffTest {
 					environmentDetails,
 					immutableReleases,
 					false,
-					false,
-					false,
-					false,
-					false,
 					false
 			);
 		}

@@ -213,7 +213,13 @@ class OrgCheckerFetchStateTest {
 		assertThat(state.immutableReleases()).isFalse();
 		assertThat(state.privateVulnerabilityReporting()).isFalse();
 		assertThat(state.codeScanningDefaultSetup()).isFalse();
-		assertThat(state.secretScanning()).isFalse();
+
+		// The secret-scanning toggles ride along on the repository response,
+		// which is fetched for archived repos too, so they report what it says
+		// rather than being zeroed. Zeroing them made an archived repo that
+		// config wants unarchived report drift on settings that were already
+		// correct.
+		assertThat(state.secretScanning()).isTrue();
 		assertThat(state.secretScanningPushProtection()).isFalse();
 		assertThat(state.secretScanningNonProviderPatterns()).isFalse();
 		assertThat(state.secretScanningValidityChecks()).isFalse();

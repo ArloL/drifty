@@ -1396,10 +1396,6 @@ class OrgCheckerFixTest {
 				Map.of(),
 				false,
 				false,
-				false,
-				false,
-				false,
-				false,
 				false
 		);
 
