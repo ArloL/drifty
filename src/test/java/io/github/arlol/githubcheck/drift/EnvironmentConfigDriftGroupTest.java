@@ -107,7 +107,8 @@ class EnvironmentConfigDriftGroupTest {
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
 		var drift = (DriftItem.FieldMismatch) items.getFirst();
-		assertThat(drift.path()).isEqualTo("environment.production.wait_timer");
+		assertThat(drift.path())
+				.isEqualTo("environment_config.production.wait_timer");
 		assertThat(drift.wanted()).isEqualTo(30);
 		assertThat(drift.got()).isEqualTo(10);
 	}
@@ -149,14 +150,14 @@ class EnvironmentConfigDriftGroupTest {
 				i -> i instanceof DriftItem.FieldMismatch
 						&& ((DriftItem.FieldMismatch) i).path()
 								.equals(
-										"environment.production.deployment_branch_policy.protected_branches"
+										"environment_config.production.deployment_branch_policy.protected_branches"
 								)
 		);
 		assertThat(items).anyMatch(
 				i -> i instanceof DriftItem.FieldMismatch
 						&& ((DriftItem.FieldMismatch) i).path()
 								.equals(
-										"environment.production.deployment_branch_policy.custom_branch_policies"
+										"environment_config.production.deployment_branch_policy.custom_branch_policies"
 								)
 		);
 	}
@@ -185,7 +186,7 @@ class EnvironmentConfigDriftGroupTest {
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.SectionMissing.class);
 		var drift = (DriftItem.SectionMissing) items.getFirst();
-		assertThat(drift.path()).isEqualTo("environment.production");
+		assertThat(drift.path()).isEqualTo("environment_config.production");
 	}
 
 }

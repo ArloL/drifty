@@ -45,7 +45,7 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftFix> detect() {
+	protected List<DriftFix> detectDrift() {
 		var fixes = new ArrayList<DriftFix>();
 
 		for (var entry : desired.entrySet()) {
@@ -69,8 +69,7 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 			for (Secret secret : actualSecrets) {
 				if (!wantEnv.secrets.contains(secret.name())) {
 					var item = new DriftItem.SectionExtra(
-							"environment." + envName + ".secrets."
-									+ secret.name()
+							envName + ".secrets." + secret.name()
 					);
 					fixes.add(new DriftFix(item, () -> new FixResult(item)));
 				}
@@ -85,7 +84,7 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 			String envName,
 			Map<String, Secret> actualByName
 	) {
-		var path = "environment." + envName + ".secrets." + secretName;
+		var path = envName + ".secrets." + secretName;
 		Secret actualSecret = actualByName.get(secretName);
 		DriftItem driftItem;
 		if (actualSecret == null) {

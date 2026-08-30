@@ -48,8 +48,9 @@ class SecretScanningNonProviderPatternsDriftGroupTest {
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
-		assertThat(items.getFirst().message())
-				.isEqualTo("enabled: want=true got=false");
+		assertThat(items.getFirst().message()).isEqualTo(
+				"secret_scanning_non_provider_patterns.enabled: want=true got=false"
+		);
 	}
 
 }

@@ -48,8 +48,9 @@ class EnvironmentSecretsDriftGroupTest {
 
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst()).isInstanceOf(DriftItem.SectionExtra.class);
-		assertThat(items.getFirst().path())
-				.isEqualTo("environment.production.secrets.EXTRA_SECRET");
+		assertThat(items.getFirst().path()).isEqualTo(
+				"environment_secrets.production.secrets.EXTRA_SECRET"
+		);
 	}
 
 	@Test
@@ -76,7 +77,7 @@ class EnvironmentSecretsDriftGroupTest {
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.SecretMissingBaseline.class);
 		assertThat(items.getFirst().message()).isEqualTo(
-				"environment.production.secrets.DB_PASS: exists but has no "
+				"environment_secrets.production.secrets.DB_PASS: exists but has no "
 						+ "recorded baseline (--fix pushes the configured value)"
 		);
 	}
@@ -101,8 +102,9 @@ class EnvironmentSecretsDriftGroupTest {
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.SectionMissing.class);
-		assertThat(items.getFirst().message())
-				.isEqualTo("environment.production.secrets.DB_PASS: missing");
+		assertThat(items.getFirst().message()).isEqualTo(
+				"environment_secrets.production.secrets.DB_PASS: missing"
+		);
 	}
 
 	@Test
@@ -131,11 +133,15 @@ class EnvironmentSecretsDriftGroupTest {
 		assertThat(items).hasSize(2);
 		assertThat(items).anyMatch(
 				i -> i instanceof DriftItem.SecretMissingBaseline && i.path()
-						.equals("environment.production.secrets.DB_PASS")
+						.equals(
+								"environment_secrets.production.secrets.DB_PASS"
+						)
 		);
 		assertThat(items).anyMatch(
 				i -> i instanceof DriftItem.SectionExtra && i.path()
-						.equals("environment.production.secrets.STALE_KEY")
+						.equals(
+								"environment_secrets.production.secrets.STALE_KEY"
+						)
 		);
 	}
 
@@ -160,11 +166,15 @@ class EnvironmentSecretsDriftGroupTest {
 		assertThat(items).hasSize(2);
 		assertThat(items).anyMatch(
 				i -> i instanceof DriftItem.SectionMissing && i.path()
-						.equals("environment.staging.secrets.STAGING_KEY")
+						.equals(
+								"environment_secrets.staging.secrets.STAGING_KEY"
+						)
 		);
 		assertThat(items).anyMatch(
 				i -> i instanceof DriftItem.SectionMissing && i.path()
-						.equals("environment.production.secrets.PROD_KEY")
+						.equals(
+								"environment_secrets.production.secrets.PROD_KEY"
+						)
 		);
 	}
 
@@ -262,7 +272,7 @@ class EnvironmentSecretsDriftGroupTest {
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.SecretValueChanged.class);
 		assertThat(items.getFirst().message()).isEqualTo(
-				"environment.production.secrets.DB_PASS: "
+				"environment_secrets.production.secrets.DB_PASS: "
 						+ "config value changed since last push"
 		);
 	}

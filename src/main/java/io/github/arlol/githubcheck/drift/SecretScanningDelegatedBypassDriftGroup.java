@@ -45,7 +45,7 @@ public class SecretScanningDelegatedBypassDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftFix> detect() {
+	protected List<DriftFix> detectDrift() {
 		var items = new ArrayList<DriftItem>(
 				compare("enabled", desiredEnabled, actualEnabled)
 		);

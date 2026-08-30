@@ -43,22 +43,21 @@ public class PagesDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftFix> detect() {
+	protected List<DriftFix> detectDrift() {
 		if (!desiredEnabled) {
 			return List.of();
 		}
 
 		if (actual.isEmpty()) {
-			return List.of(
-					new DriftFix(new DriftItem.SectionMissing("pages"), () -> {
+			return List
+					.of(new DriftFix(new DriftItem.SectionMissing(""), () -> {
 						client.createPages(
 								owner,
 								repo,
 								buildPagesCreateRequest(desired)
 						);
 						return FixResult.success();
-					})
-			);
+					}));
 		}
 
 		PagesResponse p = actual.orElseThrow();

@@ -12,7 +12,55 @@ public abstract class DriftGroup {
 
 	public abstract String name();
 
-	public abstract List<DriftFix> detect();
+	/**
+	 * Detects drift for this group. Paths are relative to the group: return
+	 * {@code "enabled"}, not {@code "vulnerability_alerts.enabled"}, and the
+	 * empty string for a group that has a single unnamed setting. Namespacing
+	 * happens once, in {@link #detect()}.
+	 */
+	protected abstract List<DriftFix> detectDrift();
+
+	/**
+	 * Detects drift and namespaces every item under {@link #name()}.
+	 * <p>
+	 * A path is the identity of a drifted setting: it is what the report shows
+	 * and what fix accounting matches on. Namespacing here — rather than in
+	 * each of the two dozen groups — is what guarantees that two groups can
+	 * never claim the same path, which they previously did: thirteen groups
+	 * each emitted the bare path {@code "enabled"}.
+	 */
+	public final List<DriftFix> detect() {
+		return detectDrift().stream()
+				.map(
+						fix -> new DriftFix(
+								namespaceAll(fix.items()),
+								namespaced(fix.fix())
+						)
+				)
+				.toList();
+	}
+
+	/**
+	 * Namespaces the items a fix reports back as unfixed. A group builds those
+	 * from the same relative paths it uses in {@link #detectDrift()}, so
+	 * without this they would not match the items the fix was attached to, and
+	 * an unfixed item would be mistaken for a fixed one.
+	 */
+	private DriftFix.FixAction namespaced(DriftFix.FixAction action) {
+		return () -> new FixResult(
+				namespaceAll(action.execute().unfixedItems())
+		);
+	}
+
+	private List<DriftItem> namespaceAll(List<DriftItem> items) {
+		return items.stream()
+				.map(item -> item.withPath(namespaced(item.path())))
+				.toList();
+	}
+
+	private String namespaced(String path) {
+		return path == null || path.isEmpty() ? name() : name() + "." + path;
+	}
 
 	protected static List<DriftItem> compare(
 			String path,

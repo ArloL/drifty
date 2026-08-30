@@ -49,7 +49,7 @@ class ImmutableReleasesDriftGroupTest {
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
 		assertThat(items.getFirst().message())
-				.isEqualTo("enabled: want=true got=false");
+				.isEqualTo("immutable_releases.enabled: want=true got=false");
 	}
 
 }

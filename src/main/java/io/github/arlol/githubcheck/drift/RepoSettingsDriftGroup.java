@@ -38,7 +38,7 @@ public class RepoSettingsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftFix> detect() {
+	protected List<DriftFix> detectDrift() {
 		var items = combine(
 				compare(
 						"description",

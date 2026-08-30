@@ -19,8 +19,6 @@ import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class RulesetDriftGroup extends DriftGroup {
 
-	private static final String KEY_PREFIX = "ruleset.";
-
 	private final Map<String, Drifty.Ruleset> desired;
 	private final List<RulesetDetailsResponse> actual;
 	private final GitHubClient client;
@@ -47,7 +45,7 @@ public class RulesetDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftFix> detect() {
+	protected List<DriftFix> detectDrift() {
 		var fixes = new ArrayList<DriftFix>();
 
 		if (desired.isEmpty() && actual.isEmpty()) {
@@ -76,9 +74,7 @@ public class RulesetDriftGroup extends DriftGroup {
 			if (got == null) {
 				fixes.add(
 						new DriftFix(
-								new DriftItem.SectionMissing(
-										KEY_PREFIX + rName
-								),
+								new DriftItem.SectionMissing(rName),
 								() -> {
 									client.createRuleset(
 											owner,
@@ -116,13 +112,10 @@ public class RulesetDriftGroup extends DriftGroup {
 	}
 
 	private DriftFix deleteExtraFix(RulesetDetailsResponse extra) {
-		return new DriftFix(
-				new DriftItem.SectionExtra(KEY_PREFIX + extra.name()),
-				() -> {
-					client.deleteRuleset(owner, repo, extra.id());
-					return FixResult.success();
-				}
-		);
+		return new DriftFix(new DriftItem.SectionExtra(extra.name()), () -> {
+			client.deleteRuleset(owner, repo, extra.id());
+			return FixResult.success();
+		});
 	}
 
 	private List<DriftItem> compareRuleset(
@@ -346,7 +339,7 @@ public class RulesetDriftGroup extends DriftGroup {
 	}
 
 	private static String key(String rName, String suffix) {
-		return KEY_PREFIX + rName + suffix;
+		return rName + suffix;
 	}
 
 	private Map<RulesetRuleType, Rule> buildRulesByType(

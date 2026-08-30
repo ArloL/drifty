@@ -16,8 +16,6 @@ import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class BranchProtectionDriftGroup extends DriftGroup {
 
-	private static final String KEY_PREFIX = "branch_protection.";
-
 	private final Map<String, Drifty.BranchProtection> desired;
 	private final Map<String, BranchProtectionResponse> actual;
 	private final GitHubClient client;
@@ -44,7 +42,7 @@ public class BranchProtectionDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftFix> detect() {
+	protected List<DriftFix> detectDrift() {
 		var fixes = new ArrayList<DriftFix>();
 
 		if (desired.isEmpty() && actual.isEmpty()) {
@@ -77,7 +75,7 @@ public class BranchProtectionDriftGroup extends DriftGroup {
 		}
 
 		for (var actualName : remainingActual.keySet()) {
-			var item = new DriftItem.SectionExtra(KEY_PREFIX + actualName);
+			var item = new DriftItem.SectionExtra(actualName);
 			fixes.add(new DriftFix(item, () -> {
 				client.deleteBranchProtection(owner, repo, actualName);
 				return FixResult.success();
@@ -92,7 +90,7 @@ public class BranchProtectionDriftGroup extends DriftGroup {
 			Drifty.BranchProtection wanted
 	) {
 		return new DriftFix(
-				new DriftItem.SectionMissing(KEY_PREFIX + pattern),
+				new DriftItem.SectionMissing(pattern),
 				updateAction(pattern, wanted)
 		);
 	}
@@ -311,7 +309,7 @@ public class BranchProtectionDriftGroup extends DriftGroup {
 	}
 
 	private static String key(String pattern, String suffix) {
-		return KEY_PREFIX + pattern + suffix;
+		return pattern + suffix;
 	}
 
 	private static Set<StatusCheck> desiredStatusChecks(

@@ -35,7 +35,7 @@ public class SecretScanningAiDetectionDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftFix> detect() {
+	protected List<DriftFix> detectDrift() {
 		var items = compare("enabled", desired, actual);
 		return List.of(new DriftFix(items, () -> {
 			var sa = SecurityAndAnalysis.builder()

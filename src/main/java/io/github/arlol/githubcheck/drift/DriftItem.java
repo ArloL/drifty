@@ -11,6 +11,13 @@ public sealed interface DriftItem {
 
 	String message();
 
+	/**
+	 * Returns a copy of this item under {@code newPath}. {@link DriftGroup}
+	 * uses it to namespace every item under the group that produced it, so a
+	 * path identifies one setting across the whole run.
+	 */
+	DriftItem withPath(String newPath);
+
 	record FieldMismatch(
 			String path,
 			Object wanted,
@@ -20,6 +27,11 @@ public sealed interface DriftItem {
 		@Override
 		public String message() {
 			return path + ": want=" + wanted + " got=" + got;
+		}
+
+		@Override
+		public DriftItem withPath(String newPath) {
+			return new FieldMismatch(newPath, wanted, got);
 		}
 
 	}
@@ -55,6 +67,11 @@ public sealed interface DriftItem {
 			return list;
 		}
 
+		@Override
+		public DriftItem withPath(String newPath) {
+			return new SetDrift(newPath, missing, extra);
+		}
+
 	}
 
 	record SectionMissing(
@@ -64,6 +81,11 @@ public sealed interface DriftItem {
 		@Override
 		public String message() {
 			return path + ": missing";
+		}
+
+		@Override
+		public DriftItem withPath(String newPath) {
+			return new SectionMissing(newPath);
 		}
 
 	}
@@ -77,6 +99,11 @@ public sealed interface DriftItem {
 			return path + ": extra (should not exist)";
 		}
 
+		@Override
+		public DriftItem withPath(String newPath) {
+			return new SectionExtra(newPath);
+		}
+
 	}
 
 	record SecretMissingBaseline(
@@ -87,6 +114,11 @@ public sealed interface DriftItem {
 		public String message() {
 			return path
 					+ ": exists but has no recorded baseline (--fix pushes the configured value)";
+		}
+
+		@Override
+		public DriftItem withPath(String newPath) {
+			return new SecretMissingBaseline(newPath);
 		}
 
 	}
@@ -103,6 +135,15 @@ public sealed interface DriftItem {
 					+ recordedUpdatedAt + ", now " + actualUpdatedAt + ")";
 		}
 
+		@Override
+		public DriftItem withPath(String newPath) {
+			return new SecretChanged(
+					newPath,
+					recordedUpdatedAt,
+					actualUpdatedAt
+			);
+		}
+
 	}
 
 	record SecretValueChanged(
@@ -112,6 +153,11 @@ public sealed interface DriftItem {
 		@Override
 		public String message() {
 			return path + ": config value changed since last push";
+		}
+
+		@Override
+		public DriftItem withPath(String newPath) {
+			return new SecretValueChanged(newPath);
 		}
 
 	}

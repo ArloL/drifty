@@ -33,8 +33,8 @@ public class ArchivedDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftFix> detect() {
-		var items = compare("archived", desiredArchived, actualArchived);
+	protected List<DriftFix> detectDrift() {
+		var items = compare("", desiredArchived, actualArchived);
 		return List.of(new DriftFix(items, () -> {
 			client.updateRepository(
 					owner,

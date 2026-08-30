@@ -128,7 +128,7 @@ class RepoSettingsDriftGroupTest {
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
 		var mismatch = (DriftItem.FieldMismatch) items.getFirst();
-		assertThat(mismatch.path()).isEqualTo("description");
+		assertThat(mismatch.path()).isEqualTo("repo_settings.description");
 		assertThat(mismatch.wanted()).isEqualTo("Desired description");
 		assertThat(mismatch.got()).isEqualTo("A great project");
 	}
@@ -146,7 +146,7 @@ class RepoSettingsDriftGroupTest {
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
 		var mismatch = (DriftItem.FieldMismatch) items.getFirst();
-		assertThat(mismatch.path()).isEqualTo("visibility");
+		assertThat(mismatch.path()).isEqualTo("repo_settings.visibility");
 	}
 
 	@Test
@@ -160,7 +160,7 @@ class RepoSettingsDriftGroupTest {
 				.toList();
 		assertThat(items).hasSize(1);
 		var mismatch = (DriftItem.FieldMismatch) items.getFirst();
-		assertThat(mismatch.path()).isEqualTo("default_branch");
+		assertThat(mismatch.path()).isEqualTo("repo_settings.default_branch");
 	}
 
 	@Test
@@ -256,7 +256,7 @@ class RepoSettingsDriftGroupTest {
 				.toList();
 		assertThat(items).hasSize(1);
 		var mismatch = (DriftItem.FieldMismatch) items.getFirst();
-		assertThat(mismatch.path()).isEqualTo("has_issues");
+		assertThat(mismatch.path()).isEqualTo("repo_settings.has_issues");
 	}
 
 	@Test
@@ -336,7 +336,7 @@ class RepoSettingsDriftGroupTest {
 				.toList();
 		assertThat(items).hasSize(1);
 		var mismatch = (DriftItem.FieldMismatch) items.getFirst();
-		assertThat(mismatch.path()).isEqualTo("allow_forking");
+		assertThat(mismatch.path()).isEqualTo("repo_settings.allow_forking");
 	}
 
 	@Test
@@ -354,9 +354,9 @@ class RepoSettingsDriftGroupTest {
 		assertThat(items).allMatch(i -> i instanceof DriftItem.FieldMismatch);
 		assertThat(items.stream().map(DriftItem::path))
 				.containsExactlyInAnyOrder(
-						"description",
-						"has_issues",
-						"has_projects"
+						"repo_settings.description",
+						"repo_settings.has_issues",
+						"repo_settings.has_projects"
 				);
 	}
 
