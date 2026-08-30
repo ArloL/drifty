@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modularity Review — drifty</title>
+<style>
+  :root {
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+    --max-width: 820px;
+  }
+
+  :root[data-theme="light"] {
+    --bg: #ffffff;
+    --bg-secondary: #f6f8fa;
+    --bg-tertiary: #eef1f5;
+    --text: #1a1a1a;
+    --text-secondary: #4a5568;
+    --text-muted: #718096;
+    --border: #e2e8f0;
+    --accent: #2b6cb0;
+    --accent-light: #ebf4ff;
+    --severity-critical: #c53030;
+    --severity-critical-bg: #fff5f5;
+    --severity-significant: #c05621;
+    --severity-significant-bg: #fffaf0;
+    --severity-minor: #2b6cb0;
+    --severity-minor-bg: #ebf8ff;
+    --table-stripe: #f7fafc;
+    --link: #2b6cb0;
+    --link-hover: #1a4971;
+    --shadow: rgba(0, 0, 0, 0.06);
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #1a1a1a;
+    --bg-secondary: #242424;
+    --bg-tertiary: #2e2e2e;
+    --text: #e2e2e2;
+    --text-secondary: #a0a0a0;
+    --text-muted: #717171;
+    --border: #333333;
+    --accent: #b0b0b0;
+    --accent-light: #2a2a2a;
+    --severity-critical: #fc8181;
+    --severity-critical-bg: #2d1b1b;
+    --severity-significant: #f6ad55;
+    --severity-significant-bg: #2d2415;
+    --severity-minor: #a0a0a0;
+    --severity-minor-bg: #282828;
+    --table-stripe: #222222;
+    --link: #e0c97f;
+    --link-hover: #f0dca0;
+    --shadow: rgba(0, 0, 0, 0.2);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    margin: 0;
+    padding: 2rem 1.5rem;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  .container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: var(--text);
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    z-index: 100;
+  }
+
+  .theme-toggle:hover {
+    background: var(--bg-tertiary);
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem 0;
+    color: var(--text);
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 2.5rem 0 1rem 0;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1.8rem 0 0.6rem 0;
+    color: var(--text);
+  }
+
+  p {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary);
+  }
+
+  a {
+    color: var(--link);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+  }
+
+  a:hover {
+    color: var(--link-hover);
+    border-bottom-color: var(--link-hover);
+  }
+
+  /* Metadata */
+  .meta {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .meta strong {
+    color: var(--text-secondary);
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+  }
+
+  th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  td {
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  tr:nth-child(even) td {
+    background: var(--table-stripe);
+  }
+
+  /* Severity badges */
+  .severity {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.15rem 0.6rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .severity-critical {
+    color: var(--severity-critical);
+    background: var(--severity-critical-bg);
+  }
+
+  .severity-significant {
+    color: var(--severity-significant);
+    background: var(--severity-significant-bg);
+  }
+
+  .severity-minor {
+    color: var(--severity-minor);
+    background: var(--severity-minor-bg);
+  }
+
+  /* Issue cards */
+  .issue {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 1px 3px var(--shadow);
+  }
+
+  .issue h2 {
+    margin-top: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .issue h3 {
+    font-size: 1rem;
+  }
+
+  .issue-meta {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+
+  /* Lists */
+  ul, ol {
+    padding-left: 1.5rem;
+    color: var(--text-secondary);
+  }
+
+  li {
+    margin-bottom: 0.35rem;
+  }
+
+  /* Code */
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--bg-tertiary);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+  }
+
+  /* Horizontal rule */
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 3rem 0 1.5rem 0;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .footer a {
+    color: var(--text-muted);
+    border-bottom-color: var(--border);
+  }
+
+  .footer a:hover {
+    color: var(--link);
+  }
+
+  /* Print */
+  @media print {
+    .theme-toggle { display: none; }
+    body { padding: 0; }
+    .issue { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+  <span id="theme-icon"></span>
+</button>
+
+<div class="container">
+  <h1>Modularity Review</h1>
+<p class="meta"><strong>Scope</strong>: Entire codebase — <code>src/main/java/io/github/arlol/githubcheck</code> (CLI, orchestration, 24 drift groups, GitHub REST client, state store) plus <code>config/drifty.pkl</code> and <code>src/test/.../testsupport</code><br><strong>Date</strong>: 2026-08-30</p>
+<h2>Executive Summary</h2>
+<p>drifty compares the actual configuration of GitHub repositories against a desired state declared in Pkl, reports the difference, and with <code>--fix</code> reconciles it. The overall shape is sound: the project has a genuine <a href="https://coupling.dev/posts/related-topics/domain-driven-design/">anti-corruption layer</a> between config and client types (<code>PklTypes</code>), a value-returning fix contract (<code>DriftFix</code> / <code>FixResult</code>), and a per-setting decomposition that has so far made adding settings cheap — the maintainer reports no pain to date. <strong>The most important finding is that the contract between the 24 drift groups and the orchestrator is a rendered human-readable string, and this is not a stylistic concern: it is currently causing failed fixes to be reported as successes.</strong> Thirteen groups emit the byte-identical drift message <code>enabled: want=true got=false</code>, and <code>OrgChecker.applyFixes</code> subtracts fixed items from the report with <code>List.removeAll</code>, which removes every equal element — so one successful security fix erases the drift lines of twelve other settings, including ones whose fix threw.</p>
+<p>Two further imbalances are latent rather than active, but the stated direction — more managed settings, multi-org support, and GraphQL bulk reads — is precisely what will detonate them. GitHub REST response records are threaded unchanged through <code>RepositoryState</code> into every drift group, so a GraphQL read path cannot be introduced without touching all 24; and the repository owner is declared per-repo in config, ignored, and replaced by a <code>"ArloL"</code> literal that each of the 24 groups stores its own copy of.</p>
+<h2>Coupling Overview Table</h2>
+<p>Level of abstraction analysed: <strong>packages within a single deployable</strong>. Per the model's <a href="https://coupling.dev/posts/core-concepts/balance/">fractal geometry</a>, the highest distance available here is the cross-package boundary; the GitHub API is a separate system (highest distance overall), and the <code>main</code> ↔ <code>test</code> source-root boundary sits between the two.</p>
+<table>
+<thead><tr><th>Integration</th><th><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Strength</a></th><th><a href="https://coupling.dev/posts/dimensions-of-coupling/distance/">Distance</a></th><th><a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/">Volatility</a></th><th><a href="https://coupling.dev/posts/core-concepts/balance/">Balanced?</a></th></tr></thead>
+<tbody>
+<tr><td><code>drift/*DriftGroup</code> → <code>OrgChecker</code> (fix accounting via <code>DriftItem::message</code>)</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a>, implicit</td><td>High (cross-package; effect only visible against live GitHub)</td><td>High — every new setting adds a group</td><td><strong>No — Critical</strong></td></tr>
+<tr><td><code>client/*Response</code> → <code>RepositoryState</code> → all 24 groups</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a> (of the <em>transport</em> representation)</td><td>High (cross-package + external system)</td><td>High — GraphQL reads planned, API surface growing</td><td><strong>No — Critical</strong></td></tr>
+<tr><td>Owner/org identity: <code>Drifty.Repository.owner</code> / <code>OrgChecker.org</code> / <code>"ArloL"</code> literal</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a>, duplicated + contradictory</td><td>High (CLI → orchestrator → 24 group constructors)</td><td>High — multi-org confirmed planned</td><td><strong>No — Significant</strong></td></tr>
+<tr><td><code>createDriftGroups</code> → <code>computeGroupDrifts</code> → <code>applyFixes</code> (archived-must-run-first)</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a>, implicit (<a href="https://coupling.dev/posts/related-topics/connascence/">connascence of execution order</a>)</td><td>Medium (same class, but failure surfaces only at runtime)</td><td>Medium — <code>applyFixes</code> is the natural place to parallelise</td><td><strong>No — Significant</strong></td></tr>
+<tr><td><code>Drifty.Repository</code> aggregate → 21 of 24 groups</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a></td><td>Medium (cross-package, generated + additive)</td><td>High — schema grows with every setting</td><td><strong>No — Minor</strong></td></tr>
+<tr><td>"is this security flag enabled" rule, encoded 3× in <code>OrgChecker</code></td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a>, duplicated</td><td>Low (same class)</td><td>Medium</td><td><strong>No — Minor</strong></td></tr>
+<tr><td>8 groups → <code>PATCH /repos/{owner}/{repo}</code> (shared remote resource)</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a>, with an undocumented assumption</td><td>High (external system)</td><td>High</td><td>Yes, tolerable — see note below</td></tr>
+<tr><td><code>drift/*DriftGroup</code> → <code>GitHubClient</code> (typed facade)</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a></td><td>High (cross-package + external system)</td><td>High</td><td>Yes — low strength offsets high distance</td></tr>
+<tr><td><code>PklTypes</code>: <code>Drifty.*</code> enums → <code>client</code> enums</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a></td><td>Medium</td><td>Medium</td><td>Yes — this is the pattern to replicate</td></tr>
+<tr><td><code>state/DriftyState</code> ↔ secret groups (virtual threads)</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a></td><td>Low (same process, guarded by <code>ConcurrentHashMap</code>)</td><td>Low — supporting subdomain</td><td>Yes</td></tr>
+<tr><td><code>testsupport/*Args</code> + <code>ToDrifty</code> → <code>Drifty.*</code></td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a>, duplicated (1,930 LOC shadow schema)</td><td>Medium (<code>main</code> ↔ <code>test</code> source roots)</td><td>High</td><td>No, but consequence of Issue 5 — not a separate defect</td></tr>
+</tbody></table>
+<p><strong>Note on the shared <code>PATCH</code> endpoint.</strong> Eight groups (<code>RepoSettings</code>, <code>Archived</code>, and six security toggles) each build their own <code>RepositoryUpdateRequest</code> and write the same GitHub resource. This looked like a clobbering hazard, so it was checked: both <code>RepositoryUpdateRequest</code> and <code>SecurityAndAnalysis</code> carry <code>@JsonInclude(NON_NULL)</code>, so each request transmits only its own field and GitHub merges them. The coupling is real but currently benign — its cost is eight sequential round-trips where one would do, and an assumption about GitHub's merge semantics that appears nowhere in the code. Per the <a href="https://coupling.dev/posts/core-concepts/balance/">balance rule</a> this does not warrant restructuring; a one-line comment recording the assumption would.</p>
+<div class="issue">
+<h2>Issue: Fix accounting is keyed on rendered display strings</h2>
+<p class="issue-meta"><strong>Integration</strong>: <code>drift/*DriftGroup</code> → <code>OrgChecker.applyFixes</code> &nbsp;<span class="severity severity-critical">Critical</span></p>
+<h3>Knowledge Leakage</h3>
+<p>The <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">integration contract</a> between the drift groups and the orchestrator is <code>DriftItem::message</code> — a string built for human eyes. <code>OrgChecker.checkOne</code> flattens every group's items into a <code>List&lt;String&gt;</code>, and <code>applyFixes</code> then removes the ones it believes were fixed with <code>remaining.removeAll(fixedMsgs)</code>.</p>
+<p>What leaks is identity. A <code>DriftItem</code> carries a <code>path</code> and typed <code>wanted</code>/<code>got</code> values, but all of that is discarded at the boundary and the presentation format becomes the join key. The groups have no idea their rendered output is load-bearing, and nothing in the code says so — this is <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">functional coupling in its implicit form</a>, and specifically <a href="https://coupling.dev/posts/related-topics/connascence/">connascence of value</a> mediated through a display string.</p>
+<p>The keys are not unique. Thirteen groups call <code>compare("enabled", desired, actual)</code> — <code>AdvancedSecurity</code>, <code>AutomatedSecurityFixes</code>, <code>CodeScanningDefaultSetup</code>, <code>ImmutableReleases</code>, <code>PrivateVulnerabilityReporting</code>, <code>SecretScanning</code>, <code>SecretScanningAiDetection</code>, <code>SecretScanningDelegatedAlertDismissal</code>, <code>SecretScanningDelegatedBypass</code>, <code>SecretScanningNonProviderPatterns</code>, <code>SecretScanningPushProtection</code>, <code>SecretScanningValidityChecks</code>, <code>VulnerabilityAlerts</code> — each producing exactly <code>enabled: want=true got=false</code>. The group's own <code>name()</code> never reaches the message.</p>
+<h3>Complexity Impact</h3>
+<p>This is <a href="https://coupling.dev/posts/core-concepts/complexity/">complexity</a> in the Cynefin sense: the outcome of a fix run cannot be predicted from the code, only observed. Running the real classes confirms it:</p>
+<pre><code>vulnerability_alerts message: "enabled: want=true got=false"
+immutable_releases   message: "enabled: want=true got=false"
+
+diffs before fix (2): [enabled: want=true got=false, enabled: want=true got=false]
+remaining after fix (0): []
+
+immutable_releases fix THREW, yet remaining is EMPTY -&gt; repo reported [OK]</code></pre>
+<p><code>ArrayList.removeAll</code> removes <em>every</em> element equal to the argument, so the first successful fix deletes all thirteen identical lines. Two consequences follow. In fix mode, a group whose fix throws is silently reported as fixed — <code>applyFixes</code> catches <code>RuntimeException</code> with a bare <code>continue</code>, and the item it should have left behind has already been removed by a sibling. The repo prints <code>[OK]</code> and drifty exits 0. In check mode, the report prints <code>enabled: want=true got=false</code> up to thirteen times with nothing to distinguish which setting is which.</p>
+<p>The second half of the same thin contract is that <code>FixResult</code> can only say <em>whether</em> an item was fixed, never <em>why not</em>. <code>SPEC.md</code> promises "diffs are replaced with per-setting fix results (FIXED or FAILED with reason)" and "Report all failures at the end". Neither is implemented, and neither can be while the contract carries no failure channel.</p>
+<p>The cognitive load is the giveaway: to predict what one drift group's fix will report, a reader must hold the group's message format, the message formats of twelve unrelated groups, <code>List.removeAll</code>'s multiset semantics, and the <code>continue</code> in the exception handler — well past the 4±1 working-memory budget that <a href="https://coupling.dev/posts/core-concepts/modularity/">modular design</a> exists to respect.</p>
+<h3>Cascading Changes</h3>
+<p>Every new boolean setting — the confirmed direction of travel — adds a fourteenth, fifteenth colliding key, widening the blast radius at zero visible cost. Changing a message format for readability (adding the setting name, say) silently <em>fixes</em> the collision, so a cosmetic edit changes reconciliation behaviour. Conversely, factoring two groups' shared wording into a constant silently <em>creates</em> new collisions. Any change to <code>DriftItem.message()</code> is a change to fix accounting, and nothing in the type system, tests, or comments records that.</p>
+<p>Because the effect only manifests against a live GitHub repo where one fix succeeds and another fails, the distance between cause and observable symptom is maximal: the defect is invisible in unit tests, which exercise groups in isolation.</p>
+<h3>Recommended Improvement</h3>
+<p>Reduce <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">integration strength</a> by making the contract explicit and identity-bearing, rather than reducing distance (co-locating groups with the orchestrator would be a step backwards).</p>
+<ol><li><strong>Stop using strings as identity.</strong> Have <code>checkOne</code> keep <code>List&lt;DriftItem&gt;</code> and have <code>applyFixes</code> subtract by item identity, not by rendered text. Render to strings once, in <code>printReport</code>, at the edge where display actually happens.</li><li><strong>Make paths unique.</strong> Prefix each group's paths with its <code>name()</code> — <code>vulnerability_alerts.enabled</code>, <code>advanced_security.enabled</code>. Cheap, and it fixes the check-mode report at the same time. Enforce it with a test asserting that the union of all paths produced by <code>createDriftGroups</code> has no duplicates; that test is what stops setting fourteen from reintroducing the bug.</li><li><strong>Widen <code>FixResult</code> to carry failure reasons.</strong> Replace the bare <code>continue</code> with a recorded failure, so the <code>--fix</code> output and the end-of-run summary that <code>SPEC.md</code> specifies become implementable.</li></ol>
+<p><strong>Trade-off</strong>: steps 1 and 3 change signatures that every drift-group test touches, so this is a mechanical edit across ~24 test files. That is real work, and it buys back the guarantee that a <code>[OK]</code> line means the repository is actually reconciled — which is the tool's entire value proposition. Step 2 alone is a few hours and removes the demonstrated defect; steps 1 and 3 prevent its return in a different form.</p>
+</div>
+<div class="issue">
+<h2>Issue: GitHub REST response types are the domain model</h2>
+<p class="issue-meta"><strong>Integration</strong>: <code>client/*Response</code> → <code>RepositoryState</code> → all 24 drift groups &nbsp;<span class="severity severity-critical">Critical</span></p>
+<h3>Knowledge Leakage</h3>
+<p><code>RepositoryState</code> is a 19-field record made almost entirely of transport types: <code>RepositorySummaryResponse</code>, <code>RepositoryDetailsResponse</code>, <code>BranchProtectionResponse</code>, <code>RulesetDetailsResponse</code>, <code>EnvironmentDetailsResponse</code>, <code>PagesResponse</code>, <code>WorkflowPermissions</code>, <code>Secret</code>. These flow unchanged into the drift groups, which then navigate GitHub's wire shape directly — <code>RulesetDriftGroup</code> walks <code>got.conditions().refName().include()</code>, builds a <code>Map&lt;RulesetRuleType, Rule&gt;</code> by pattern-matching on GitHub's rule union, and reaches into <code>rsc.parameters().requiredStatusChecks()</code>.</p>
+<p>The shared knowledge is therefore not "what a ruleset means to drifty" but "how GitHub's REST API happens to serialise a ruleset in version 2026-03-10". That is <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">model coupling</a> to a representation drifty does not own and cannot version.</p>
+<p>The asymmetry is striking, and it is the strongest evidence that the fix is known to the project already: on the <em>desired</em> side, <code>PklTypes</code> is a textbook <a href="https://coupling.dev/posts/related-topics/domain-driven-design/">anti-corruption layer</a> translating every Pkl enum into a client enum, with a class comment explaining exactly why. On the <em>actual</em> side there is no equivalent — the wire format goes straight through.</p>
+<h3>Complexity Impact</h3>
+<p><code>client/</code> is a <a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/">generic subdomain</a>: talking to GitHub's REST API is a solved problem with no competitive advantage. The model is explicit that generic subdomains have low <em>functional</em> volatility but that <em>implementation</em> volatility must be assessed separately — and here it is high and confirmed, because GraphQL bulk reads are planned. This is exactly the case where the model prescribes a strong integration contract to encapsulate provider-specific knowledge.</p>
+<p>Without one, "how do we read repository state" is not a decision localised in <code>client/</code> and <code>OrgChecker.fetchState()</code>; it is a fact known by all 24 drift groups. A reader assessing the cost of the GraphQL migration cannot answer from the client package alone — they must read every group to find out which wire fields are touched.</p>
+<h3>Cascading Changes</h3>
+<ul><li><strong>GraphQL bulk reads.</strong> GraphQL returns a different shape from REST. Because comparison logic is written against REST records, a GraphQL path means either rebuilding the REST DTOs from GraphQL responses (keeping the coupling, paying an ongoing translation tax) or editing all 24 groups. Neither is a <code>client/</code>-local change — which is the definition of unbalanced coupling at high distance.</li><li><strong>GitHub API version bumps.</strong> The version is pinned in one place (<code>X-GitHub-Api-Version: 2026-03-10</code>) but the <em>consequences</em> of moving it are spread across every group that navigates a response.</li><li><strong>Read-strategy changes generally.</strong> <code>fetchState()</code> fetches everything for every repo regardless of what config declares, with N+1 patterns in <code>fetchRulesets</code> and <code>fetchBranchProtections</code>. Making fetching conditional on the desired config is a natural optimisation, and it is currently an <code>OrgChecker</code> change that risks handing groups a partially-populated <code>RepositoryState</code> with no type-level signal.</li></ul>
+<h3>Recommended Improvement</h3>
+<p>Reduce strength by introducing the missing half of a translation layer the project already has on the other side.</p>
+<ol><li><strong>Give the actual side drifty-owned types</strong>, mirroring what <code>PklTypes</code> does for the desired side. <code>RepositoryState</code> becomes a record of drifty's own vocabulary rather than of GitHub's serialisation, with translation from <code>*Response</code> records happening once, at the <code>client/</code> boundary.</li><li><strong>Start where the leakage is deepest and most volatile</strong>: <code>RulesetDriftGroup</code> (663 LOC) and <code>BranchProtectionDriftGroup</code> (415 LOC) hold most of the wire-shape navigation between them. Converting those two captures the large majority of the exposure. The boolean security groups already receive plain <code>boolean</code>s and need nothing.</li><li><strong>Do not decompose further.</strong> The client is already a well-formed facade at the right distance; the problem is that it hands out its internals, not where it sits.</li></ol>
+<p><strong>Trade-off</strong>: this adds a translation layer and a second set of types to keep current, which is real duplication and will feel like ceremony while REST remains the only read path. It is worth doing before the GraphQL work rather than during it: done first, the migration is contained in <code>client/</code>; done during, it is a change to every drift group made under the pressure of a working feature. If GraphQL were dropped from the roadmap, the honest assessment would be that low implementation volatility neutralises this imbalance and it could be left alone.</p>
+</div>
+<div class="issue">
+<h2>Issue: Repository owner is declared in config, ignored, and hardcoded</h2>
+<p class="issue-meta"><strong>Integration</strong>: <code>config/drifty.pkl</code> → <code>GitHubCheck</code> → <code>OrgChecker</code> → 24 drift group constructors &nbsp;<span class="severity severity-significant">Significant</span></p>
+<h3>Knowledge Leakage</h3>
+<p>The identity of the account being managed exists in three places that do not agree:</p>
+<ul><li><code>config/drifty.pkl</code> declares <code>owner: String</code> as a required field on every <code>Repository</code>, and <code>config/ArloL.pkl</code> sets it.</li><li><code>GitHubCheck.java:72</code> ignores that and passes a literal: <code>new OrgChecker(token, "ArloL", fix, githubSecrets, state)</code>.</li><li><code>OrgChecker</code> holds a single <code>org</code> field, calls <code>client.listOrgRepos(org)</code> once, and threads <code>org</code> into all 24 group constructors, each of which stores its own <code>owner</code> copy.</li></ul>
+<p><code>Drifty.Repository.owner</code> is never read by production code. This is <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">duplicated functional knowledge</a> in its most dangerous form — the same fact stated twice, with only one copy actually consulted. <code>SPEC.md</code> describes the config field as the mechanism ("The target org or personal account is set via the <code>owner</code> field on each repository in the config file. There is no CLI argument for it"), so the specification and the implementation disagree.</p>
+<h3>Complexity Impact</h3>
+<p>Today the effect is contained because there is exactly one owner and the literal happens to match. The cognitive cost is a reader's false confidence: <code>config/ArloL.pkl</code> looks like it controls targeting, and editing <code>owner</code> there produces no effect and no error. A repo listed under a different owner would be silently looked up under <code>ArloL</code> and reported <code>MISSING</code>.</p>
+<h3>Cascading Changes</h3>
+<p>Multi-org support is confirmed as planned, and it is the change this coupling makes expensive. It currently requires touching: <code>GitHubCheck</code> (drop the literal), <code>OrgChecker</code>'s <code>org</code> field and all eight of its constructors, <code>check()</code>'s single <code>listOrgRepos</code> call and its <code>desiredByName</code> map (repository names are only unique <em>within</em> an owner — <code>Collectors.toMap(r -&gt; r.name, ...)</code> will throw on a duplicate name across two orgs), and the constructor of every one of the 24 drift groups, because each caches <code>owner</code> independently.</p>
+<p>The last part is the coupling cost proper: owner is not passed <em>through</em> the system, it is <em>copied into</em> 24 places, so widening it from one value to many is a 24-file edit rather than a one-type edit.</p>
+<h3>Recommended Improvement</h3>
+<ol><li><strong>Delete the literal and read the config.</strong> Group <code>repositories</code> by <code>owner</code> in <code>check()</code> and iterate owners; key <code>desiredByName</code> on <code>(owner, name)</code>. This alone makes <code>SPEC.md</code> true and is worth doing independently of multi-org.</li><li><strong>Replace the loose <code>String owner, String repo</code> pair with a single <code>RepoRef(String owner, String name)</code> value object.</strong> Twenty-four constructors currently take two positionally-adjacent strings of the same type — an argument-order swap compiles cleanly and fails at runtime. One parameter of a distinct type removes both the duplication and that hazard, and future multi-org work then changes one type, not 24 signatures.</li></ol>
+<p><strong>Trade-off</strong>: step 2 touches every drift group and its tests — mechanical but broad. Doing it while there is one owner is considerably cheaper than doing it as part of the multi-org feature, and it converts multi-org from a cross-cutting change into a localised one.</p>
+</div>
+<div class="issue">
+<h2>Issue: Fix ordering is an implicit contract across three methods</h2>
+<p class="issue-meta"><strong>Integration</strong>: <code>createDriftGroups</code> → <code>computeGroupDrifts</code> → <code>applyFixes</code> &nbsp;<span class="severity severity-significant">Significant</span></p>
+<h3>Knowledge Leakage</h3>
+<p><code>ArchivedDriftGroup</code> must run before every other fix, because GitHub rejects writes to an archived repository. The rule is recorded only in a comment:</p>
+<blockquote><p>Always first: when actual.archived=true, unarchive must run before any other fix (other fixes fail on archived repos).</p></blockquote>
+<p>Three independent implementation choices must hold for it to be true: <code>createDriftGroups</code> returns a <code>List</code> with the archive group first; <code>computeGroupDrifts</code> accumulates into a <code>LinkedHashMap</code> (insertion-ordered); and <code>applyFixes</code> iterates <code>groupDrifts.values()</code> sequentially. Each is a reasonable local decision, and none of the three sites states that another depends on it. This is <a href="https://coupling.dev/posts/related-topics/connascence/">connascence of execution order</a> — implicit <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">functional coupling</a> spread across three methods.</p>
+<h3>Complexity Impact</h3>
+<p>The failure mode is silent and remote. Switching <code>computeGroupDrifts</code> to a <code>HashMap</code> — an edit that looks like a trivial cleanup and passes every existing test — breaks reconciliation for archived repositories only, only in <code>--fix</code> mode, only against a live repo. Combined with Issue 1, the resulting failures would not even be reported.</p>
+<h3>Cascading Changes</h3>
+<p><code>check()</code> already fans out per repository on virtual threads, so parallelising fixes <em>within</em> a repository is the obvious next optimisation, and it is precisely what silently violates this invariant. Any future group with its own ordering requirement (a setting that must be enabled before another can be configured — plausible as the security surface grows) has nowhere to express it except by adding another comment and hoping.</p>
+<h3>Recommended Improvement</h3>
+<p>Make the ordering a property of the type rather than of three call sites. Either:</p>
+<ul><li>add an ordering hint to <code>DriftGroup</code> (a <code>priority()</code> or a <code>runsFirst()</code> predicate) that <code>computeGroupDrifts</code> sorts on, so the requirement lives next to the group that has it; or</li><li>treat unarchiving as an explicit <strong>phase</strong> in <code>applyFixes</code> — run the archive group, then the rest — which states the dependency in the orchestration code where a reader looking to parallelise will actually see it.</li></ul>
+<p>The second is simpler and expresses the real constraint (there is one prerequisite, not a general priority scheme). Add a test that asserts fixes on an archived repo unarchive first.</p>
+<p><strong>Trade-off</strong>: a phase split makes <code>applyFixes</code> slightly less uniform. That is the point — the uniformity is currently a lie that a reader has to discover from a comment.</p>
+</div>
+<div class="issue">
+<h2>Issue: Whole config aggregate passed to groups that read one field</h2>
+<p class="issue-meta"><strong>Integration</strong>: <code>pkl/Drifty.Repository</code> → 21 of 24 drift groups &nbsp;<span class="severity severity-minor">Minor</span></p>
+<h3>Knowledge Leakage</h3>
+<p>Twenty-one of the 24 groups take the entire <code>Drifty.Repository</code> aggregate. Eleven of those read exactly one field: <code>VulnerabilityAlertsDriftGroup</code> uses only <code>desired.vulnerabilityAlerts</code>, <code>AdvancedSecurityDriftGroup</code> only <code>desired.advancedSecurity</code>, and so on. Each such group depends on the shape of the whole desired-state model to consume one boolean — <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">model coupling</a> where <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">contract coupling</a> would suffice.</p>
+<p>The codebase already contains the counter-example: <code>TopicsDriftGroup</code> takes <code>List&lt;String&gt; desired</code> and <code>ArchivedDriftGroup</code> takes <code>boolean desiredArchived</code>. Both are narrower, simpler, and testable without constructing anything.</p>
+<h3>Complexity Impact</h3>
+<p>Low, and this is deliberately ranked Minor. The Pkl type is generated and grows additively, so new fields do not break consumers, and the maintainer reports that adding settings has been cheap. The real cost is displaced rather than absent: because a group cannot be exercised without a full <code>Drifty.Repository</code>, the test suite carries <code>testsupport/</code> — 1,930 LOC of hand-written <code>*Args</code> builders plus <code>ToDrifty</code>, a second expression of the Pkl schema that must be extended field-by-field alongside it. That shadow model is a <em>consequence</em> of this coupling, not an independent defect.</p>
+<h3>Cascading Changes</h3>
+<p>Adding a setting means: <code>drifty.pkl</code>, a <code>DriftGroup</code>, <code>GitHubClient</code>, request/response records, a <code>RepositoryArgs</code> record component, a <code>ToDrifty</code> mapping line, and two test files. Nothing there is hard, which is why it has not hurt — but the <code>testsupport</code> half of that list exists only because groups take the aggregate.</p>
+<h3>Recommended Improvement</h3>
+<p>Narrow the constructors opportunistically rather than as a campaign. When a boolean group is next touched, change it to take the <code>boolean</code> it actually reads, as <code>TopicsDriftGroup</code> already does — <code>OrgChecker.createDriftGroups</code> is the single call site, so each conversion is a two-line change. Once a group takes primitives, its test constructs primitives, and the corresponding <code>RepositoryArgs</code> surface stops being needed.</p>
+<p><strong>Trade-off</strong>: doing this wholesale is churn with no functional payoff, and the current design is not causing pain. Doing it incrementally costs nothing and steadily shrinks the shadow model. If the aggregate is retained deliberately — it does keep <code>createDriftGroups</code> uniform — that is a defensible choice; the observation to keep is that <code>testsupport</code>'s size is the price of it, so the two decisions should be made together.</p>
+</div>
+<div class="issue">
+<h2>Issue: One rule, three encodings, two dead fields</h2>
+<p class="issue-meta"><strong>Integration</strong>: <code>OrgChecker.fetchSecurityFlags</code> / <code>OrgChecker.securityFlag</code> / <code>OrgChecker.createDriftGroups</code> &nbsp;<span class="severity severity-minor">Minor</span></p>
+<h3>Knowledge Leakage</h3>
+<p>"Is this security flag enabled" — meaning <code>securityAndAnalysis != null &amp;&amp; x != null &amp;&amp; x.status() == ENABLED</code> — is written three times in one class:</p>
+<ul><li><code>isEnabled(StatusObject)</code>, used by <code>fetchSecurityFlags</code> to populate <code>RepositoryState</code>;</li><li><code>securityFlag(RepositoryState, Function&lt;...&gt;)</code>, used for four of the groups;</li><li>inline null-chains at lines 562 and 581, used for <code>SecretScanningDriftGroup</code> and <code>SecretScanningPushProtectionDriftGroup</code>.</li></ul>
+<p>The third encoding has already caused drift within the file: because those two groups re-derive the value inline, <code>RepositoryState.secretScanning</code> and <code>RepositoryState.secretScanningPushProtection</code> are computed by <code>fetchSecurityFlags</code> and then <strong>never read</strong> — zero references each, while the sibling fields <code>secretScanningNonProviderPatterns</code> and <code>secretScanningValidityChecks</code> have one apiece. Two fields of the state record are dead, and the inconsistency is invisible without grepping.</p>
+<h3>Complexity Impact</h3>
+<p>Modest, because <a href="https://coupling.dev/posts/dimensions-of-coupling/distance/">distance is low</a> — all three encodings live in one file, so a change is cheap to make in all of them. High strength at low distance is <a href="https://coupling.dev/posts/core-concepts/balance/">high cohesion</a>, which the model treats as balanced. The problem is not cost of change but <em>consistency</em> of change: three copies can be updated to disagree, and one already has diverged into disuse.</p>
+<h3>Cascading Changes</h3>
+<p>If GitHub changes how a flag's absence is represented (a new status value, or <code>security_and_analysis</code> omitted for some repo type), the handling must land in three places. The two dead fields make it plausible that a reader fixes <code>fetchSecurityFlags</code>, sees the state field populated correctly, and never notices the two groups reading a stale inline expression.</p>
+<h3>Recommended Improvement</h3>
+<p>Collapse to one encoding: have <code>createDriftGroups</code> pass <code>actual.secretScanning()</code> and <code>actual.secretScanningPushProtection()</code> — the fields already populated for exactly this purpose — instead of the inline chains, and express <code>securityFlag</code> in terms of <code>isEnabled</code>. The four remaining <code>securityFlag(...)</code> call sites read flags not carried on <code>RepositoryState</code>; either add them to <code>SecurityFlags</code> for uniformity, or leave them, but do not keep a third form.</p>
+<p><strong>Trade-off</strong>: essentially none. This is a localised cleanup with no interface change, and it makes the two dead fields either live or removable.</p>
+</div>
+<h2>What Is Working</h2>
+<p>Worth recording, because these are the patterns the recommendations above ask to extend rather than replace:</p>
+<ul><li><strong><code>PklTypes</code> is a proper anti-corruption layer</strong> between the config model and the client enums, with a class comment explaining its purpose. Issue 2 is essentially "do this on the other side too".</li><li><strong><code>GitHubClient</code> is a real facade</strong>: typed request/response records, one method per endpoint, rate limiting handled centrally. Low strength against the highest available distance — <a href="https://coupling.dev/posts/core-concepts/balance/">balanced</a>.</li><li><strong><code>DriftFix</code> / <code>FixResult</code> is the right <em>shape</em> of contract</strong> — detection returns a value that carries its own remediation, so groups compose without the orchestrator knowing what they do. Issue 1 is about what that contract carries, not its design.</li><li><strong>Concurrency is handled correctly</strong>: per-repo fan-out on virtual threads, with <code>DriftyState</code> guarded by <code>ConcurrentHashMap</code> and a synchronised <code>hash()</code>.</li><li><strong>The state file is well-scoped</strong> — it stores the minimum that cannot be recovered from the API (secret <code>updated_at</code> plus a salted hash), is versioned, and is only written in <code>--fix</code> mode, exactly as specified.</li></ul>
+<hr>
+<p class="footer"><em>This analysis was performed using the <a href="https://coupling.dev">Balanced Coupling</a> model by <a href="https://vladikk.com">Vlad Khononov</a>.</em></p>
+</div>
+
+<script>
+  function getDefaultTheme() {
+    const hour = new Date().getHours();
+    return (hour >= 7 && hour < 19) ? 'light' : 'dark';
+  }
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('modularity-review-theme', theme);
+    document.getElementById('theme-icon').textContent = theme === 'light' ? '☾' : '☀';
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    setTheme(current === 'light' ? 'dark' : 'light');
+  }
+
+  const saved = localStorage.getItem('modularity-review-theme');
+  setTheme(saved || getDefaultTheme());
+</script>
+</body>
+</html>
