@@ -418,11 +418,10 @@ public class OrgChecker {
 
 		var groups = new ArrayList<DriftGroup>();
 
-		// Always first: when actual.archived=true, unarchive must run before
-		// any
-		// other fix (other fixes fail on archived repos). When
-		// actual.archived=false,
-		// detect() returns empty and computeGroupDrifts skips it.
+		// When actual.archived=false this detects nothing and
+		// computeGroupDrifts skips it. When it does drift, applyFixes runs it
+		// before the rest — see DriftGroup.runsBeforeOtherFixes(); its
+		// position in this list is not what guarantees that.
 		groups.add(
 				new ArchivedDriftGroup(
 						false,
@@ -693,7 +692,19 @@ public class OrgChecker {
 		var fixed = new ArrayList<DriftItem>();
 		var unfixed = new ArrayList<FixResult.Unfixed>();
 
-		for (var fixes : groupDrifts.values()) {
+		// Prerequisites first — unarchiving, today — because GitHub rejects
+		// writes to an archived repository and every other fix would fail.
+		var ordered = new ArrayList<List<DriftFix>>();
+		groupDrifts.entrySet()
+				.stream()
+				.filter(e -> e.getKey().runsBeforeOtherFixes())
+				.forEach(e -> ordered.add(e.getValue()));
+		groupDrifts.entrySet()
+				.stream()
+				.filter(e -> !e.getKey().runsBeforeOtherFixes())
+				.forEach(e -> ordered.add(e.getValue()));
+
+		for (var fixes : ordered) {
 			for (var driftFix : fixes) {
 				if (driftFix.items().isEmpty()) {
 					continue;

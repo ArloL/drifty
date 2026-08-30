@@ -33,6 +33,11 @@ public class ArchivedDriftGroup extends DriftGroup {
 	}
 
 	@Override
+	public boolean runsBeforeOtherFixes() {
+		return true;
+	}
+
+	@Override
 	protected List<DriftFix> detectDrift() {
 		var items = compare("", desiredArchived, actualArchived);
 		return List.of(new DriftFix(items, () -> {
