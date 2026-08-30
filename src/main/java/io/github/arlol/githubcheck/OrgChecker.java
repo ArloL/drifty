@@ -15,14 +15,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import io.github.arlol.githubcheck.client.BranchProtectionResponse;
+import io.github.arlol.githubcheck.actual.ActualBranchProtection;
+import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
-import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.pkl.Drifty;
@@ -274,7 +274,7 @@ public class OrgChecker {
 		SecurityFlags security = archived ? SecurityFlags.NONE
 				: fetchSecurityFlags(org, name);
 
-		Map<String, BranchProtectionResponse> branchProtections = fetchBranchProtections(
+		Map<String, ActualBranchProtection> branchProtections = fetchBranchProtections(
 				summary,
 				org,
 				name,
@@ -297,7 +297,7 @@ public class OrgChecker {
 
 		WorkflowPermissions wfPerms = client.getWorkflowPermissions(org, name);
 
-		List<RulesetDetailsResponse> rulesets = archived ? List.of()
+		List<ActualRuleset> rulesets = archived ? List.of()
 				: fetchRulesets(org, name);
 
 		Optional<PagesResponse> pages = archived ? Optional.empty()
@@ -341,30 +341,32 @@ public class OrgChecker {
 		);
 	}
 
-	private Map<String, BranchProtectionResponse> fetchBranchProtections(
+	private Map<String, ActualBranchProtection> fetchBranchProtections(
 			RepositorySummaryResponse summary,
 			String org,
 			String name,
 			boolean archived
 	) {
-		Map<String, BranchProtectionResponse> branchProtections = new HashMap<>();
+		Map<String, ActualBranchProtection> branchProtections = new HashMap<>();
 		if (archived || RepositoryVisibility.PUBLIC != summary.visibility()) {
 			return branchProtections;
 		}
 		for (var branch : client.getBranches(org, name, true)) {
 			var bp = client.getBranchProtection(org, name, branch.name());
-			branchProtections.put(branch.name(), bp.orElseThrow());
+			branchProtections.put(
+					branch.name(),
+					ActualTypes.branchProtection(bp.orElseThrow())
+			);
 		}
 		return branchProtections;
 	}
 
-	private List<RulesetDetailsResponse> fetchRulesets(
-			String org,
-			String name
-	) {
-		var rulesets = new ArrayList<RulesetDetailsResponse>();
+	private List<ActualRuleset> fetchRulesets(String org, String name) {
+		var rulesets = new ArrayList<ActualRuleset>();
 		for (var rs : client.listRulesets(org, name)) {
-			rulesets.add(client.getRuleset(org, name, rs.id()));
+			rulesets.add(
+					ActualTypes.ruleset(client.getRuleset(org, name, rs.id()))
+			);
 		}
 		return rulesets;
 	}

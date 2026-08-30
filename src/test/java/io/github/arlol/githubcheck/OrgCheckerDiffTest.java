@@ -18,6 +18,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.github.arlol.githubcheck.actual.ActualRuleset;
+import io.github.arlol.githubcheck.ActualTypes;
+import io.github.arlol.githubcheck.actual.ActualBranchProtection;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -177,12 +180,12 @@ class OrgCheckerDiffTest {
 		private boolean automatedSecurityFixes = false;
 		private String branchProtectionJson = GOOD_BRANCH_PROTECTION_JSON;
 		private boolean hasBranchProtection = true;
-		private Map<String, BranchProtectionResponse> extraBranchProtections = Map
+		private Map<String, ActualBranchProtection> extraBranchProtections = Map
 				.of();
 		private List<Secret> actionSecrets = List.of();
 		private Map<String, List<Secret>> environmentSecrets = Map.of();
 		private String workflowPermissionsJson = GOOD_WORKFLOW_PERMISSIONS_JSON;
-		private List<RulesetDetailsResponse> rulesets = List.of();
+		private List<ActualRuleset> rulesets = List.of();
 		private Optional<PagesResponse> pages = Optional.empty();
 		private Map<String, EnvironmentDetailsResponse> environmentDetails = Map
 				.of();
@@ -224,20 +227,24 @@ class OrgCheckerDiffTest {
 		}
 
 		StateBuilder branchProtections(BranchProtectionArgs... bps) {
-			var map = new java.util.HashMap<String, BranchProtectionResponse>();
+			var map = new java.util.HashMap<String, ActualBranchProtection>();
 			if (hasBranchProtection) {
 				map.put(
 						"main",
-						parse(
-								branchProtectionJson,
-								BranchProtectionResponse.class
+						ActualTypes.branchProtection(
+								parse(
+										branchProtectionJson,
+										BranchProtectionResponse.class
+								)
 						)
 				);
 			}
 			for (var bp : bps) {
 				map.put(
 						bp.pattern(),
-						parse("{}", BranchProtectionResponse.class)
+						ActualTypes.branchProtection(
+								parse("{}", BranchProtectionResponse.class)
+						)
 				);
 			}
 			this.extraBranchProtections = Map.copyOf(map);
@@ -272,7 +279,7 @@ class OrgCheckerDiffTest {
 			return this;
 		}
 
-		StateBuilder rulesets(List<RulesetDetailsResponse> rulesets) {
+		StateBuilder rulesets(List<ActualRuleset> rulesets) {
 			this.rulesets = rulesets;
 			return this;
 		}
@@ -295,13 +302,15 @@ class OrgCheckerDiffTest {
 		}
 
 		RepositoryState build() {
-			var bpMap = new java.util.HashMap<String, BranchProtectionResponse>();
+			var bpMap = new java.util.HashMap<String, ActualBranchProtection>();
 			if (hasBranchProtection) {
 				bpMap.put(
 						"main",
-						parse(
-								branchProtectionJson,
-								BranchProtectionResponse.class
+						ActualTypes.branchProtection(
+								parse(
+										branchProtectionJson,
+										BranchProtectionResponse.class
+								)
 						)
 				);
 			}
@@ -908,7 +917,7 @@ class OrgCheckerDiffTest {
 		};
 	}
 
-	private static RulesetDetailsResponse rulesetWithRules(
+	private static ActualRuleset rulesetWithRules(
 			String name,
 			RulesetRuleType... ruleTypes
 	) {
@@ -926,24 +935,26 @@ class OrgCheckerDiffTest {
 		for (RulesetRuleType type : ruleTypes) {
 			rules.add(ruleFromType(type));
 		}
-		return new RulesetDetailsResponse(
-				1L,
-				name,
-				RulesetTarget.BRANCH,
-				RulesetEnforcement.ACTIVE,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				conditions,
-				rules
+		return ActualTypes.ruleset(
+				new RulesetDetailsResponse(
+						1L,
+						name,
+						RulesetTarget.BRANCH,
+						RulesetEnforcement.ACTIVE,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						conditions,
+						rules
+				)
 		);
 	}
 
-	private static RulesetDetailsResponse rulesetWithStatusChecks(
+	private static ActualRuleset rulesetWithStatusChecks(
 			String name,
 			String... contexts
 	) {
@@ -961,26 +972,28 @@ class OrgCheckerDiffTest {
 		for (String ctx : contexts) {
 			checks.add(new Rule.StatusCheck(ctx, null));
 		}
-		return new RulesetDetailsResponse(
-				1L,
-				name,
-				RulesetTarget.BRANCH,
-				RulesetEnforcement.ACTIVE,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				conditions,
-				List.of(
-						new Rule.RequiredLinearHistory(),
-						new Rule.NonFastForward(),
-						new Rule.RequiredStatusChecks(
-								new Rule.RequiredStatusChecks.Parameters(
-										checks,
-										false
+		return ActualTypes.ruleset(
+				new RulesetDetailsResponse(
+						1L,
+						name,
+						RulesetTarget.BRANCH,
+						RulesetEnforcement.ACTIVE,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						conditions,
+						List.of(
+								new Rule.RequiredLinearHistory(),
+								new Rule.NonFastForward(),
+								new Rule.RequiredStatusChecks(
+										new Rule.RequiredStatusChecks.Parameters(
+												checks,
+												false
+										)
 								)
 						)
 				)
@@ -1217,7 +1230,9 @@ class OrgCheckerDiffTest {
 						)
 				)
 		);
-		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
+		var state = new StateBuilder()
+				.rulesets(List.of(ActualTypes.ruleset(actualRuleset)))
+				.build();
 		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
@@ -1282,7 +1297,9 @@ class OrgCheckerDiffTest {
 						)
 				)
 		);
-		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
+		var state = new StateBuilder()
+				.rulesets(List.of(ActualTypes.ruleset(actualRuleset)))
+				.build();
 		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
@@ -1331,7 +1348,9 @@ class OrgCheckerDiffTest {
 				conditions,
 				List.of()
 		);
-		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
+		var state = new StateBuilder()
+				.rulesets(List.of(ActualTypes.ruleset(actualRuleset)))
+				.build();
 		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
@@ -1389,7 +1408,9 @@ class OrgCheckerDiffTest {
 						)
 				)
 		);
-		var state = new StateBuilder().rulesets(List.of(actualRuleset)).build();
+		var state = new StateBuilder()
+				.rulesets(List.of(ActualTypes.ruleset(actualRuleset)))
+				.build();
 		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
