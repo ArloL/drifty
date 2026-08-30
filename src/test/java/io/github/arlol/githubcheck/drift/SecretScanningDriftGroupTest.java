@@ -49,7 +49,7 @@ class SecretScanningDriftGroupTest {
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
 		assertThat(items.getFirst().message())
-				.isEqualTo("enabled: want=true got=false");
+				.isEqualTo("secret_scanning.enabled: want=true got=false");
 	}
 
 }

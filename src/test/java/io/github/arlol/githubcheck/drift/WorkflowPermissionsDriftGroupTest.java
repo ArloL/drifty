@@ -65,7 +65,7 @@ class WorkflowPermissionsDriftGroupTest {
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
 		var drift = (DriftItem.FieldMismatch) items.getFirst();
-		assertThat(drift.path()).isEqualTo("default");
+		assertThat(drift.path()).isEqualTo("workflow_permissions.default");
 		assertThat(drift.wanted()).isEqualTo(DefaultWorkflowPermissions.WRITE);
 		assertThat(drift.got()).isEqualTo(DefaultWorkflowPermissions.READ);
 	}
@@ -103,7 +103,8 @@ class WorkflowPermissionsDriftGroupTest {
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
 		var drift = (DriftItem.FieldMismatch) items.getFirst();
-		assertThat(drift.path()).isEqualTo("can_approve_prs");
+		assertThat(drift.path())
+				.isEqualTo("workflow_permissions.can_approve_prs");
 		assertThat(drift.wanted()).isEqualTo(true);
 		assertThat(drift.got()).isEqualTo(false);
 	}

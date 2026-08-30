@@ -3053,4 +3053,66 @@ class OrgCheckerFixTest {
 		);
 	}
 
+	/**
+	 * Two independent settings drift the same way, so they render identical
+	 * messages. One fix succeeds and the other fails; the failed one must stay
+	 * in the report. Subtracting fixed items by rendered string lets the
+	 * successful fix erase the failed one's drift.
+	 */
+	@Test
+	void failedFixIsNotErasedBySuccessfulFixOfAnotherSetting()
+			throws Exception {
+		stubFor(
+				put(urlEqualTo("/repos/owner/repo/vulnerability-alerts"))
+						.willReturn(WireMock.aResponse().withStatus(204))
+		);
+		stubFor(
+				put(urlEqualTo("/repos/owner/repo/immutable-releases"))
+						.willReturn(WireMock.aResponse().withStatus(500))
+		);
+
+		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
+				.vulnerabilityAlerts(true)
+				.immutableReleases(true)
+				.build();
+
+		// Both flags are off on GitHub, so both groups detect drift.
+		var state = new RepositoryState(
+				"repo",
+				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
+				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				false,
+				false,
+				Map.of(),
+				List.of(),
+				Map.of(),
+				parse(
+						GOOD_WORKFLOW_PERMISSIONS_JSON,
+						WorkflowPermissions.class
+				),
+				List.of(),
+				Optional.empty(),
+				Map.of(),
+				false,
+				false,
+				false
+		);
+
+		var groupDrifts = computeGroupDrifts(state, desired);
+
+		var messages = groupDrifts.values()
+				.stream()
+				.flatMap(List::stream)
+				.flatMap(f -> f.items().stream())
+				.map(DriftItem::message)
+				.toList();
+
+		var remaining = checker.applyFixes("repo", messages, groupDrifts);
+
+		assertThat(remaining).as(
+				"the immutable-releases fix returned 500, so its drift must survive"
+		).hasSize(1);
+		assertThat(remaining.getFirst()).contains("immutable_releases");
+	}
+
 }

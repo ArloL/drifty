@@ -109,7 +109,7 @@ class PagesDriftGroupTest {
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
 		var drift = (DriftItem.FieldMismatch) items.getFirst();
-		assertThat(drift.path()).isEqualTo("build_type");
+		assertThat(drift.path()).isEqualTo("pages.build_type");
 		assertThat(drift.wanted()).isEqualTo("workflow");
 		assertThat(drift.got()).isEqualTo("legacy");
 	}
@@ -150,7 +150,7 @@ class PagesDriftGroupTest {
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
 		var drift = (DriftItem.FieldMismatch) items.getFirst();
-		assertThat(drift.path()).isEqualTo("https_enforced");
+		assertThat(drift.path()).isEqualTo("pages.https_enforced");
 		assertThat(drift.wanted()).isEqualTo(true);
 		assertThat(drift.got()).isEqualTo(false);
 	}

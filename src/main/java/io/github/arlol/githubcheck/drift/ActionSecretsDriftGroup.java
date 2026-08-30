@@ -49,7 +49,7 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public List<DriftFix> detect() {
+	protected List<DriftFix> detectDrift() {
 		var fixes = new ArrayList<DriftFix>();
 
 		for (String secretName : desired) {
@@ -61,9 +61,7 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 
 		for (Secret secret : actual.values()) {
 			if (!desired.contains(secret.name())) {
-				var item = new DriftItem.SectionExtra(
-						"action_secrets." + secret.name()
-				);
+				var item = new DriftItem.SectionExtra(secret.name());
 				fixes.add(new DriftFix(item, () -> new FixResult(item)));
 			}
 		}
@@ -72,7 +70,7 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 	}
 
 	private DriftFix secretDriftFix(String secretName) {
-		var path = "action_secrets." + secretName;
+		var path = secretName;
 		Secret actualSecret = actual.get(secretName);
 		DriftItem driftItem;
 		if (actualSecret == null) {

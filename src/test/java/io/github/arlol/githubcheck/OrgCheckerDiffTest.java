@@ -461,7 +461,8 @@ class OrgCheckerDiffTest {
 				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
-		assertThat(groupDriftMessages).contains("default: want=WRITE got=READ");
+		assertThat(groupDriftMessages)
+				.contains("workflow_permissions.default: want=WRITE got=READ");
 	}
 
 	@Test
@@ -479,8 +480,9 @@ class OrgCheckerDiffTest {
 				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
-		assertThat(groupDriftMessages)
-				.contains("can_approve_prs: want=true got=false");
+		assertThat(groupDriftMessages).contains(
+				"workflow_permissions.can_approve_prs: want=true got=false"
+		);
 	}
 
 	// ─── Branch protection drift (tested via groupDrifts)
@@ -839,7 +841,7 @@ class OrgCheckerDiffTest {
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).containsExactly(
-				"environment.production.secrets.TF_GITHUB_TOKEN: exists but "
+				"environment_secrets.production.secrets.TF_GITHUB_TOKEN: exists but "
 						+ "has no recorded baseline (--fix pushes the configured value)"
 		);
 	}
@@ -1046,7 +1048,7 @@ class OrgCheckerDiffTest {
 				.flatMap(f -> f.items().stream())
 				.map(DriftItem::message)
 				.toList();
-		assertThat(messages).contains("ruleset.main-branch-rules: missing");
+		assertThat(messages).contains("rulesets.main-branch-rules: missing");
 	}
 
 	@Test
@@ -1070,7 +1072,7 @@ class OrgCheckerDiffTest {
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
-				"ruleset.main-branch-rules.required_linear_history: want=true got=false"
+				"rulesets.main-branch-rules.required_linear_history: want=true got=false"
 		);
 	}
 
@@ -1095,7 +1097,7 @@ class OrgCheckerDiffTest {
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
-				"ruleset.main-branch-rules.no_force_pushes: want=true got=false"
+				"rulesets.main-branch-rules.no_force_pushes: want=true got=false"
 		);
 	}
 
@@ -1128,7 +1130,7 @@ class OrgCheckerDiffTest {
 				.toList();
 		assertThat(messages).anyMatch(
 				d -> d.contains(
-						"ruleset.main-branch-rules.required_status_checks"
+						"rulesets.main-branch-rules.required_status_checks"
 				) && d.contains("missing") && d.contains("zizmor")
 		);
 	}
@@ -1167,7 +1169,7 @@ class OrgCheckerDiffTest {
 				.toList();
 		assertThat(messages).anyMatch(
 				d -> d.contains(
-						"ruleset.main-branch-rules.required_status_checks"
+						"rulesets.main-branch-rules.required_status_checks"
 				) && d.contains("extra") && d.contains("unexpected-check")
 		);
 	}
@@ -1228,7 +1230,7 @@ class OrgCheckerDiffTest {
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
-				"ruleset.main-branch-rules.required_review_count: want=2 got=1"
+				"rulesets.main-branch-rules.required_review_count: want=2 got=1"
 		);
 	}
 
@@ -1342,7 +1344,7 @@ class OrgCheckerDiffTest {
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
-				"ruleset.main-branch-rules.required_code_scanning missing: [CodeQL]"
+				"rulesets.main-branch-rules.required_code_scanning missing: [CodeQL]"
 		);
 	}
 
@@ -1400,7 +1402,7 @@ class OrgCheckerDiffTest {
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
-				"ruleset.main-branch-rules.required_code_scanning extra: [CodeQL]"
+				"rulesets.main-branch-rules.required_code_scanning extra: [CodeQL]"
 		);
 	}
 

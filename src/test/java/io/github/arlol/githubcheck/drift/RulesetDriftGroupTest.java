@@ -248,7 +248,7 @@ class RulesetDriftGroupTest {
 		assertThat(items).singleElement()
 				.satisfies(
 						item -> assertThat(item.message()).contains(
-								"ruleset.ci.update_allows_fetch_and_merge"
+								"rulesets.ci.update_allows_fetch_and_merge"
 						)
 				);
 	}
@@ -349,7 +349,7 @@ class RulesetDriftGroupTest {
 		assertThat(items).singleElement()
 				.satisfies(
 						item -> assertThat(item.message())
-								.contains("ruleset.ci.bypass_actors")
+								.contains("rulesets.ci.bypass_actors")
 				);
 	}
 
@@ -386,7 +386,7 @@ class RulesetDriftGroupTest {
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst()).isInstanceOf(DriftItem.SectionExtra.class);
 		assertThat(items.getFirst().message())
-				.isEqualTo("ruleset.ci: extra (should not exist)");
+				.isEqualTo("rulesets.ci: extra (should not exist)");
 	}
 
 	@Test
@@ -410,7 +410,8 @@ class RulesetDriftGroupTest {
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.SectionMissing.class);
-		assertThat(items.getFirst().message()).isEqualTo("ruleset.ci: missing");
+		assertThat(items.getFirst().message())
+				.isEqualTo("rulesets.ci: missing");
 	}
 
 	@Test
@@ -454,7 +455,7 @@ class RulesetDriftGroupTest {
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst()).isInstanceOf(DriftItem.SetDrift.class);
 		var drift = (DriftItem.SetDrift) items.getFirst();
-		assertThat(drift.path()).isEqualTo("ruleset.ci.include_patterns");
+		assertThat(drift.path()).isEqualTo("rulesets.ci.include_patterns");
 		assertThat(drift.missing()).hasSize(1);
 		assertThat(drift.message()).contains("refs/heads/main");
 	}
@@ -485,7 +486,7 @@ class RulesetDriftGroupTest {
 		assertThat(items.getFirst())
 				.isInstanceOf(DriftItem.FieldMismatch.class);
 		assertThat(items.getFirst().message()).isEqualTo(
-				"ruleset.ci.required_linear_history: want=true got=false"
+				"rulesets.ci.required_linear_history: want=true got=false"
 		);
 	}
 
@@ -558,7 +559,8 @@ class RulesetDriftGroupTest {
 		assertThat(items).hasSize(1);
 		assertThat(items.getFirst()).isInstanceOf(DriftItem.SetDrift.class);
 		var drift = (DriftItem.SetDrift) items.getFirst();
-		assertThat(drift.path()).isEqualTo("ruleset.ci.required_status_checks");
+		assertThat(drift.path())
+				.isEqualTo("rulesets.ci.required_status_checks");
 		assertThat(drift.missing()).hasSize(1);
 	}
 
