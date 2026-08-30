@@ -196,7 +196,7 @@ public class OrgChecker {
 			);
 
 			if (fix) {
-				FixOutcome outcome = applyFixes(name, groupDrifts);
+				FixOutcome outcome = applyFixes(groupDrifts);
 				return CheckResult.RepoCheckResult.fixed(
 						name,
 						render(outcome.unfixedItems()),
@@ -673,66 +673,87 @@ public class OrgChecker {
 	 * ones. Working from the items themselves removes that whole class of bug
 	 * rather than relying on the paths staying distinct.
 	 */
-	FixOutcome applyFixes(
-			String name,
-			Map<DriftGroup, List<DriftFix>> groupDrifts
-	) {
+	FixOutcome applyFixes(Map<DriftGroup, List<DriftFix>> groupDrifts) {
 		var fixed = new ArrayList<DriftItem>();
 		var unfixed = new ArrayList<FixResult.Unfixed>();
 
-		// Prerequisites first — unarchiving, today — because GitHub rejects
-		// writes to an archived repository and every other fix would fail.
-		var ordered = new ArrayList<List<DriftFix>>();
-		groupDrifts.entrySet()
-				.stream()
-				.filter(e -> e.getKey().runsBeforeOtherFixes())
-				.forEach(e -> ordered.add(e.getValue()));
-		groupDrifts.entrySet()
-				.stream()
-				.filter(e -> !e.getKey().runsBeforeOtherFixes())
-				.forEach(e -> ordered.add(e.getValue()));
-
-		for (var fixes : ordered) {
-			for (var driftFix : fixes) {
-				if (driftFix.items().isEmpty()) {
-					continue;
-				}
-				FixResult fixResult;
-				try {
-					fixResult = driftFix.fix().execute();
-				} catch (RuntimeException e) {
-					// The fix blew up, so nothing it covered got fixed.
-					String reason = e.getMessage() == null
-							? e.getClass().getSimpleName()
-							: e.getMessage();
-					driftFix.items()
-							.forEach(
-									item -> unfixed.add(
-											new FixResult.Unfixed(item, reason)
-									)
-							);
-					continue;
-				}
-				var unfixedByItem = fixResult.unfixedItems()
-						.stream()
-						.collect(
-								Collectors.toMap(
-										FixResult.Unfixed::item,
-										u -> u,
-										(a, _) -> a
-								)
-						);
-				for (DriftItem item : driftFix.items()) {
-					FixResult.Unfixed u = unfixedByItem.get(item);
-					if (u == null) {
-						fixed.add(item);
-					} else {
-						unfixed.add(u);
-					}
-				}
+		for (DriftFix driftFix : prerequisitesFirst(groupDrifts)) {
+			if (!driftFix.items().isEmpty()) {
+				apply(driftFix, fixed, unfixed);
 			}
 		}
 		return new FixOutcome(fixed, unfixed);
+	}
+
+	/**
+	 * Every fix to run, with the groups that declare themselves prerequisites
+	 * ahead of the rest — unarchiving, today, because GitHub rejects writes to
+	 * an archived repository and every other fix would fail.
+	 */
+	private static List<DriftFix> prerequisitesFirst(
+			Map<DriftGroup, List<DriftFix>> groupDrifts
+	) {
+		var ordered = new ArrayList<DriftFix>();
+		groupDrifts.entrySet()
+				.stream()
+				.filter(e -> e.getKey().runsBeforeOtherFixes())
+				.forEach(e -> ordered.addAll(e.getValue()));
+		groupDrifts.entrySet()
+				.stream()
+				.filter(e -> !e.getKey().runsBeforeOtherFixes())
+				.forEach(e -> ordered.addAll(e.getValue()));
+		return ordered;
+	}
+
+	/** Runs one fix and records each of its items as fixed or not. */
+	private static void apply(
+			DriftFix driftFix,
+			List<DriftItem> fixed,
+			List<FixResult.Unfixed> unfixed
+	) {
+		Map<DriftItem, FixResult.Unfixed> unfixedByItem;
+		try {
+			unfixedByItem = byItem(driftFix.fix().execute());
+		} catch (RuntimeException e) {
+			// The fix blew up, so nothing it covered got fixed.
+			unfixed.addAll(allUnfixed(driftFix, reason(e)));
+			return;
+		}
+		for (DriftItem item : driftFix.items()) {
+			FixResult.Unfixed u = unfixedByItem.get(item);
+			if (u == null) {
+				fixed.add(item);
+			} else {
+				unfixed.add(u);
+			}
+		}
+	}
+
+	private static Map<DriftItem, FixResult.Unfixed> byItem(FixResult result) {
+		return result.unfixedItems()
+				.stream()
+				.collect(
+						Collectors.toMap(
+								FixResult.Unfixed::item,
+								u -> u,
+								(a, _) -> a
+						)
+				);
+	}
+
+	private static List<FixResult.Unfixed> allUnfixed(
+			DriftFix driftFix,
+			String reason
+	) {
+		return driftFix.items()
+				.stream()
+				.map(item -> new FixResult.Unfixed(item, reason))
+				.toList();
+	}
+
+	private static String reason(RuntimeException e) {
+		return e.getMessage() == null ? e.getClass().getSimpleName()
+				: e.getMessage();
 	}
 
 	// ─── Report

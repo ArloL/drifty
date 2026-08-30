@@ -151,7 +151,7 @@ class OrgCheckerFixTest {
 			OrgChecker checker,
 			Map<DriftGroup, List<DriftFix>> groupDrifts
 	) {
-		return checker.applyFixes("repo", groupDrifts)
+		return checker.applyFixes(groupDrifts)
 				.unfixedItems()
 				.stream()
 				.map(DriftItem::message)
@@ -2790,7 +2790,7 @@ class OrgCheckerFixTest {
 				"both groups must have drifted for this test to mean anything"
 		).contains("archived", "repo_settings");
 
-		checker.applyFixes("repo", reversed(groupDrifts));
+		checker.applyFixes(reversed(groupDrifts));
 
 		var patches = WireMock
 				.findAll(patchRequestedFor(urlEqualTo("/repos/owner/repo")));
@@ -2881,7 +2881,7 @@ class OrgCheckerFixTest {
 				.build();
 
 		var groupDrifts = computeGroupDrifts(goodPublicState(), desired);
-		var outcome = checker.applyFixes("repo", groupDrifts);
+		var outcome = checker.applyFixes(groupDrifts);
 
 		assertThat(outcome.fixed()).isEmpty();
 		assertThat(outcome.unfixed()).singleElement().satisfies(unfixed -> {
@@ -2908,7 +2908,7 @@ class OrgCheckerFixTest {
 				goodPublicState(),
 				ToDrifty.repository(desired)
 		);
-		var outcome = localChecker.applyFixes("repo", groupDrifts);
+		var outcome = localChecker.applyFixes(groupDrifts);
 
 		assertThat(outcome.unfixed()).singleElement().satisfies(unfixed -> {
 			assertThat(unfixed.item().path()).isEqualTo("action_secrets.PAT");
@@ -2933,7 +2933,7 @@ class OrgCheckerFixTest {
 				.build();
 
 		var groupDrifts = computeGroupDrifts(goodPublicState(), desired);
-		var outcome = checker.applyFixes("repo", groupDrifts);
+		var outcome = checker.applyFixes(groupDrifts);
 
 		assertThat(outcome.unfixed()).isEmpty();
 		assertThat(outcome.fixed().stream().map(DriftItem::path))
