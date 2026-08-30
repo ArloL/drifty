@@ -10,23 +10,47 @@ public record CheckResult(
 		repos = List.copyOf(repos);
 	}
 
+	/**
+	 * The outcome of one attempted fix, as SPEC.md's "FIXED or FAILED with
+	 * reason" per-setting output.
+	 *
+	 * @param path   the drift path the fix covered
+	 * @param fixed  whether it succeeded
+	 * @param reason why it did not, {@code null} when it did
+	 */
+	public record FixReport(
+			String path,
+			boolean fixed,
+			String reason
+	) {
+
+		public String message() {
+			return fixed ? path + ": FIXED"
+					: path + ": FAILED (" + reason + ")";
+		}
+
+	}
+
 	public record RepoCheckResult(
 			String name,
 			Status status,
 			List<String> diffs,
 			List<String> fixPreview,
+			List<FixReport> fixReports,
 			String error
 	) {
 
 		public RepoCheckResult {
 			diffs = List.copyOf(diffs);
 			fixPreview = List.copyOf(fixPreview);
+			fixReports = List.copyOf(fixReports);
 		}
 
 		public static RepoCheckResult ok(String name) {
 			return new RepoCheckResult(
 					name,
 					Status.OK,
+					List.of(),
 					List.of(),
 					List.of(),
 					null
@@ -47,6 +71,26 @@ public record CheckResult(
 					Status.DRIFT,
 					diffs,
 					fixPreview,
+					List.of(),
+					null
+			);
+		}
+
+		/**
+		 * The result of a {@code --fix} run: OK when nothing was left unfixed,
+		 * DRIFT otherwise, carrying a FIXED/FAILED line per setting either way.
+		 */
+		public static RepoCheckResult fixed(
+				String name,
+				List<String> remainingDiffs,
+				List<FixReport> fixReports
+		) {
+			return new RepoCheckResult(
+					name,
+					remainingDiffs.isEmpty() ? Status.OK : Status.DRIFT,
+					remainingDiffs,
+					List.of(),
+					fixReports,
 					null
 			);
 		}
@@ -55,6 +99,7 @@ public record CheckResult(
 			return new RepoCheckResult(
 					name,
 					Status.ERROR,
+					List.of(),
 					List.of(),
 					List.of(),
 					error
@@ -67,6 +112,7 @@ public record CheckResult(
 					Status.UNKNOWN,
 					List.of(),
 					List.of(),
+					List.of(),
 					null
 			);
 		}
@@ -75,6 +121,7 @@ public record CheckResult(
 			return new RepoCheckResult(
 					name,
 					Status.MISSING,
+					List.of(),
 					List.of(),
 					List.of(),
 					null
@@ -109,6 +156,24 @@ public record CheckResult(
 
 	public boolean hasDrift() {
 		return driftCount() > 0 || errorCount() > 0 || missingCount() > 0;
+	}
+
+	/**
+	 * Every failed fix across all repositories, for the end-of-run summary
+	 * SPEC.md requires.
+	 */
+	public List<String> fixFailures() {
+		return repos.stream()
+				.flatMap(
+						repo -> repo.fixReports()
+								.stream()
+								.filter(report -> !report.fixed())
+								.map(
+										report -> repo.name() + ": "
+												+ report.message()
+								)
+				)
+				.toList();
 	}
 
 }
