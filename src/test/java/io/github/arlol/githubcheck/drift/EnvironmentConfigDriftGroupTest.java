@@ -8,6 +8,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
 import io.github.arlol.githubcheck.testsupport.ToDrifty;
 
@@ -21,11 +22,10 @@ class EnvironmentConfigDriftGroupTest {
 				new EnvironmentDetailsResponse("production", List.of(), null)
 		);
 		var group = new EnvironmentConfigDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).environments,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -56,11 +56,10 @@ class EnvironmentConfigDriftGroupTest {
 				)
 		);
 		var group = new EnvironmentConfigDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).environments,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -91,11 +90,10 @@ class EnvironmentConfigDriftGroupTest {
 				)
 		);
 		var group = new EnvironmentConfigDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).environments,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -133,11 +131,10 @@ class EnvironmentConfigDriftGroupTest {
 				)
 		);
 		var group = new EnvironmentConfigDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).environments,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -170,11 +167,10 @@ class EnvironmentConfigDriftGroupTest {
 		var actual = Map.<String, EnvironmentDetailsResponse>of();
 
 		var group = new EnvironmentConfigDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).environments,
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()

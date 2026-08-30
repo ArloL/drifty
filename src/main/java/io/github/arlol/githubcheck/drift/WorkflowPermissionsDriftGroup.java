@@ -4,29 +4,32 @@ import java.util.List;
 
 import io.github.arlol.githubcheck.PklTypes;
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class WorkflowPermissionsDriftGroup extends DriftGroup {
 
-	private final Drifty.Repository desired;
+	private final Drifty.WorkflowPermissions desiredPermissions;
+	private final boolean desiredCanApprove;
 	private final WorkflowPermissions actual;
 	private final GitHubClient client;
 	private final String owner;
 	private final String repo;
 
 	public WorkflowPermissionsDriftGroup(
-			Drifty.Repository desired,
+			Drifty.WorkflowPermissions desiredPermissions,
+			boolean desiredCanApprove,
 			WorkflowPermissions actual,
 			GitHubClient client,
-			String owner,
-			String repo
+			RepoRef ref
 	) {
-		this.desired = desired;
+		this.desiredPermissions = desiredPermissions;
+		this.desiredCanApprove = desiredCanApprove;
 		this.actual = actual;
 		this.client = client;
-		this.owner = owner;
-		this.repo = repo;
+		this.owner = ref.owner();
+		this.repo = ref.name();
 	}
 
 	@Override
@@ -39,14 +42,12 @@ public class WorkflowPermissionsDriftGroup extends DriftGroup {
 		var items = combine(
 				compare(
 						"default",
-						PklTypes.workflowPermissions(
-								desired.defaultWorkflowPermissions
-						),
+						PklTypes.workflowPermissions(desiredPermissions),
 						actual.defaultWorkflowPermissions()
 				),
 				compare(
 						"can_approve_prs",
-						desired.canApprovePullRequestReviews,
+						desiredCanApprove,
 						actual.canApprovePullRequestReviews()
 				)
 		);
@@ -55,10 +56,8 @@ public class WorkflowPermissionsDriftGroup extends DriftGroup {
 					owner,
 					repo,
 					new WorkflowPermissions(
-							PklTypes.workflowPermissions(
-									desired.defaultWorkflowPermissions
-							),
-							desired.canApprovePullRequestReviews
+							PklTypes.workflowPermissions(desiredPermissions),
+							desiredCanApprove
 					)
 			);
 			return FixResult.success();

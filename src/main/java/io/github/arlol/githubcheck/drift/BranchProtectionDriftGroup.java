@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import io.github.arlol.githubcheck.client.BranchProtectionRequest;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.SimpleUser;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
@@ -23,17 +24,16 @@ public class BranchProtectionDriftGroup extends DriftGroup {
 	private final String repo;
 
 	public BranchProtectionDriftGroup(
-			Drifty.Repository desired,
+			Map<String, Drifty.BranchProtection> desired,
 			Map<String, BranchProtectionResponse> actual,
 			GitHubClient client,
-			String owner,
-			String repo
+			RepoRef ref
 	) {
-		this.desired = Map.copyOf(desired.branchProtections);
+		this.desired = Map.copyOf(desired);
 		this.actual = Map.copyOf(actual);
 		this.client = client;
-		this.owner = owner;
-		this.repo = repo;
+		this.owner = ref.owner();
+		this.repo = ref.name();
 	}
 
 	@Override

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
@@ -22,21 +23,20 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 	private final String repo;
 
 	public EnvironmentSecretsDriftGroup(
-			Drifty.Repository desired,
+			Map<String, Drifty.Environment> desired,
 			Map<String, List<Secret>> actual,
 			Map<String, String> secretValues,
 			DriftyState state,
 			GitHubClient client,
-			String owner,
-			String repo
+			RepoRef ref
 	) {
-		this.desired = Map.copyOf(desired.environments);
+		this.desired = Map.copyOf(desired);
 		this.actual = Map.copyOf(actual);
 		this.secretValues = Map.copyOf(secretValues);
 		this.state = state;
 		this.client = client;
-		this.owner = owner;
-		this.repo = repo;
+		this.owner = ref.owner();
+		this.repo = ref.name();
 	}
 
 	@Override

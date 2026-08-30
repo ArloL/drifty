@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
 import io.github.arlol.githubcheck.testsupport.ToDrifty;
 
@@ -15,11 +16,10 @@ class SecretScanningPushProtectionDriftGroupTest {
 				.secretScanningPushProtection(true)
 				.build();
 		var group = new SecretScanningPushProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).secretScanningPushProtection,
 				true,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var fixes = group.detect();
@@ -33,11 +33,10 @@ class SecretScanningPushProtectionDriftGroupTest {
 				.secretScanningPushProtection(true)
 				.build();
 		var group = new SecretScanningPushProtectionDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).secretScanningPushProtection,
 				false,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()

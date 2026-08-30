@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis.BypassReviewer;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis.BypassReviewer.ReviewerType;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
 import io.github.arlol.githubcheck.testsupport.ToDrifty;
 import io.github.arlol.githubcheck.testsupport.SecretScanningBypassReviewerArgs;
@@ -26,12 +27,14 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 				)
 				.build();
 		var group = new SecretScanningDelegatedBypassDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).secretScanningDelegatedBypass,
+				ToDrifty.repository(
+						desired
+				).secretScanningDelegatedBypassReviewers,
 				true,
 				List.of(new BypassReviewer(7L, ReviewerType.TEAM)),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var fixes = group.detect();
@@ -45,12 +48,14 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 				.secretScanningDelegatedBypass(true)
 				.build();
 		var group = new SecretScanningDelegatedBypassDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).secretScanningDelegatedBypass,
+				ToDrifty.repository(
+						desired
+				).secretScanningDelegatedBypassReviewers,
 				false,
 				List.of(),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -78,12 +83,14 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 				)
 				.build();
 		var group = new SecretScanningDelegatedBypassDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).secretScanningDelegatedBypass,
+				ToDrifty.repository(
+						desired
+				).secretScanningDelegatedBypassReviewers,
 				true,
 				List.of(new BypassReviewer(9L, ReviewerType.ROLE)),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		var items = group.detect()
@@ -101,12 +108,14 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 				.secretScanningDelegatedBypass(false)
 				.build();
 		var group = new SecretScanningDelegatedBypassDriftGroup(
-				ToDrifty.repository(desired),
+				ToDrifty.repository(desired).secretScanningDelegatedBypass,
+				ToDrifty.repository(
+						desired
+				).secretScanningDelegatedBypassReviewers,
 				false,
 				List.of(new BypassReviewer(9L, ReviewerType.ROLE)),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 
 		assertThat(group.detect().getFirst().items()).isEmpty();

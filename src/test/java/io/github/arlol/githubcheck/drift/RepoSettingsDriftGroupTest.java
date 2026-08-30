@@ -14,6 +14,7 @@ import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.SquashMergeCommitMessage;
 import io.github.arlol.githubcheck.client.SquashMergeCommitTitle;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
 import io.github.arlol.githubcheck.testsupport.ToDrifty;
 
@@ -103,8 +104,7 @@ class RepoSettingsDriftGroupTest {
 				ToDrifty.repository(desired),
 				actual,
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		);
 	}
 
@@ -199,8 +199,7 @@ class RepoSettingsDriftGroupTest {
 				ToDrifty.repository(desired),
 				parseDetails(json),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		).detect().stream().flatMap(f -> f.items().stream()).toList();
 		assertThat(items).isEmpty();
 	}
@@ -241,8 +240,7 @@ class RepoSettingsDriftGroupTest {
 				ToDrifty.repository(desired),
 				parseDetails(json),
 				null,
-				"owner",
-				"repo"
+				new RepoRef("owner", "repo")
 		).detect().stream().flatMap(f -> f.items().stream()).toList();
 		assertThat(items).isEmpty();
 	}

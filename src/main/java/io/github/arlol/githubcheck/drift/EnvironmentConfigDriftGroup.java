@@ -7,6 +7,7 @@ import java.util.Map;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.EnvironmentUpdateRequest;
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class EnvironmentConfigDriftGroup extends DriftGroup {
@@ -18,17 +19,16 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 	private final String repo;
 
 	public EnvironmentConfigDriftGroup(
-			Drifty.Repository desired,
+			Map<String, Drifty.Environment> desired,
 			Map<String, EnvironmentDetailsResponse> actual,
 			GitHubClient client,
-			String owner,
-			String repo
+			RepoRef ref
 	) {
-		this.desired = Map.copyOf(desired.environments);
+		this.desired = Map.copyOf(desired);
 		this.actual = Map.copyOf(actual);
 		this.client = client;
-		this.owner = owner;
-		this.repo = repo;
+		this.owner = ref.owner();
+		this.repo = ref.name();
 	}
 
 	@Override

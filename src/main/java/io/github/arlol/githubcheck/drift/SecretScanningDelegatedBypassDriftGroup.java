@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis.BypassReviewer;
@@ -23,20 +24,20 @@ public class SecretScanningDelegatedBypassDriftGroup extends DriftGroup {
 	private final String repo;
 
 	public SecretScanningDelegatedBypassDriftGroup(
-			Drifty.Repository desired,
+			boolean desiredEnabled,
+			List<Drifty.SecretScanningBypassReviewer> desiredReviewers,
 			boolean actualEnabled,
 			List<BypassReviewer> actualReviewers,
 			GitHubClient client,
-			String owner,
-			String repo
+			RepoRef ref
 	) {
-		this.desiredEnabled = desired.secretScanningDelegatedBypass;
+		this.desiredEnabled = desiredEnabled;
 		this.actualEnabled = actualEnabled;
-		this.desiredReviewers = desired.secretScanningDelegatedBypassReviewers;
+		this.desiredReviewers = List.copyOf(desiredReviewers);
 		this.actualReviewers = List.copyOf(actualReviewers);
 		this.client = client;
-		this.owner = owner;
-		this.repo = repo;
+		this.owner = ref.owner();
+		this.repo = ref.name();
 	}
 
 	@Override

@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import io.github.arlol.githubcheck.PklTypes;
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
 import io.github.arlol.githubcheck.client.SimpleUser;
@@ -22,14 +23,13 @@ public class RepoSettingsDriftGroup extends DriftGroup {
 			Drifty.Repository desired,
 			RepositoryDetailsResponse actual,
 			GitHubClient client,
-			String org,
-			String name
+			RepoRef ref
 	) {
 		this.desired = desired;
 		this.actual = actual;
 		this.client = client;
-		this.org = org;
-		this.name = name;
+		this.org = ref.owner();
+		this.name = ref.name();
 	}
 
 	@Override
