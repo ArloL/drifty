@@ -534,11 +534,11 @@
 				<plugin>
 					<groupId>org.graalvm.buildtools</groupId>
 					<artifactId>native-maven-plugin</artifactId>
-					<version>1.1.6</version>
+					<version>1.1.10</version>
 					<extensions>true</extensions>
 					<dependencies>
 						<!--
-							1.1.6 calls org.apache.maven.shared.utils.logging.MessageUtils
+							1.1.10 calls org.apache.maven.shared.utils.logging.MessageUtils
 							but no longer gets maven-shared-utils from the Maven core
 							classpath, so the test/compile goals fail with
 							NoClassDefFoundError unless we add it to the plugin classpath.
