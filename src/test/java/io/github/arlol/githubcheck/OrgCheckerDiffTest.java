@@ -1389,4 +1389,57 @@ class OrgCheckerDiffTest {
 		);
 	}
 
+	@Test
+	void unmanagedGroup_producesNoDrift() {
+		RepositoryState actual = new StateBuilder()
+				.actionSecretNames("SOMEONE_ELSES_TOKEN")
+				.build();
+
+		assertThat(computeGroupDrifts(actual, defaultDesired()).keySet())
+				.extracting(DriftGroup::name)
+				.contains(Drifty.GroupName.ACTION_SECRETS);
+
+		var desired = defaultDesired().withManaged(
+				new Drifty.Managed(
+						Drifty.ManageMode.ALL_EXCEPT,
+						List.of(Drifty.GroupName.ACTION_SECRETS)
+				)
+		);
+
+		assertThat(computeGroupDrifts(actual, desired).keySet())
+				.extracting(DriftGroup::name)
+				.doesNotContain(Drifty.GroupName.ACTION_SECRETS);
+	}
+
+	@Test
+	void onlyMode_buildsJustTheNamedGroups() {
+		RepositoryState actual = new StateBuilder().build();
+		var desired = defaultDesired().withManaged(
+				new Drifty.Managed(
+						Drifty.ManageMode.ONLY,
+						List.of(Drifty.GroupName.REPO_SETTINGS)
+				)
+		);
+
+		assertThat(checker.createDriftGroups(actual, desired))
+				.extracting(DriftGroup::name)
+				.containsExactly(Drifty.GroupName.REPO_SETTINGS);
+	}
+
+	@Test
+	void archivedShortCircuit_respectsTheMode() {
+		RepositoryState actual = new StateBuilder().detailsOverride("""
+				{"archived": true}
+				""").build();
+		var desired = defaultDesired().withArchived(true)
+				.withManaged(
+						new Drifty.Managed(
+								Drifty.ManageMode.ALL_EXCEPT,
+								List.of(Drifty.GroupName.ARCHIVED)
+						)
+				);
+
+		assertThat(checker.createDriftGroups(actual, desired)).isEmpty();
+	}
+
 }

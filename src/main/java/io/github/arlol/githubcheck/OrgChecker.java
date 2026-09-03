@@ -38,6 +38,7 @@ import io.github.arlol.githubcheck.drift.CodeScanningDefaultSetupDriftGroup;
 import io.github.arlol.githubcheck.drift.DriftFix;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
+import io.github.arlol.githubcheck.drift.ManagedGroups;
 import io.github.arlol.githubcheck.drift.EnvironmentConfigDriftGroup;
 import io.github.arlol.githubcheck.drift.EnvironmentSecretsDriftGroup;
 import io.github.arlol.githubcheck.drift.FixResult;
@@ -445,18 +446,22 @@ public class OrgChecker {
 	) {
 		var ref = new RepoRef(desired.owner, actual.name());
 		ActualSecurityAndAnalysis security = actual.securityAndAnalysis();
+		ManagedGroups managed = ManagedGroups.of(desired.managed);
 
 		if (desired.archived) {
 			// When archiving (or already archived): only check archived state,
 			// skip all other groups since settings don't matter for archived
 			// repos.
-			return List.of(
-					new ArchivedDriftGroup(
-							true,
-							actual.repository().archived(),
-							client,
-							ref
-					)
+			return onlyManaged(
+					List.of(
+							new ArchivedDriftGroup(
+									true,
+									actual.repository().archived(),
+									client,
+									ref
+							)
+					),
+					managed
 			);
 		}
 
@@ -664,7 +669,21 @@ public class OrgChecker {
 				)
 		);
 
-		return groups;
+		return onlyManaged(groups, managed);
+	}
+
+	/**
+	 * Drops the groups this repository does not manage.
+	 * <p>
+	 * One filter over the finished list, rather than a check at each of the two
+	 * dozen {@code groups.add} calls: a group added later is filtered without
+	 * its author having to know this feature exists.
+	 */
+	private static List<DriftGroup> onlyManaged(
+			List<DriftGroup> groups,
+			ManagedGroups managed
+	) {
+		return groups.stream().filter(g -> managed.manages(g.name())).toList();
 	}
 
 	// ─── Fix
