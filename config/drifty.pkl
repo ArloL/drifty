@@ -47,6 +47,15 @@ typealias GroupName =
   | "vulnerability_alerts"
   | "workflow_permissions"
 
+typealias ManageMode = "all_except" | "only"
+
+/// Which drift groups drifty manages for a repository. The default manages
+/// everything: mode "all_except" with nothing excluded.
+class Managed {
+  mode: ManageMode = "all_except"
+  groups: Listing<GroupName> = new {}
+}
+
 class SecretScanningBypassReviewer {
   reviewerId: Int
   reviewerType: SecretScanningBypassReviewerType
@@ -138,6 +147,7 @@ class Environment {
 class Repository {
   owner: String
   name: String
+  managed: Managed = new {}
   archived: Boolean = false
   description: String = ""
   homepageUrl: String = ""
