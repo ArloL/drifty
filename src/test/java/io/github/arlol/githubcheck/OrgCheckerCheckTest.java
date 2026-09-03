@@ -160,6 +160,23 @@ class OrgCheckerCheckTest {
 				.contains("=== Failed fixes (1) ===");
 	}
 
+	@Test
+	void printReportNamesUnmanagedGroups() {
+		var result = new CheckResult(
+				List.of(
+						CheckResult.RepoCheckResult
+								.ok("repo", List.of("action_secrets"))
+				)
+		);
+
+		String output = capturePrintReport(
+				new OrgChecker((GitHubClient) null, false),
+				result
+		);
+
+		assertThat(output).contains("Unmanaged: action_secrets");
+	}
+
 	private static String capturePrintReport(
 			OrgChecker checker,
 			CheckResult result

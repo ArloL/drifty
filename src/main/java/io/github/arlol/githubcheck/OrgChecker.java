@@ -192,11 +192,13 @@ public class OrgChecker {
 			return CheckResult.RepoCheckResult.unknown(name);
 		}
 		try {
-			RepositoryState state = fetchState(
-					ref,
-					summary,
-					ManagedGroups.of(desired.managed)
-			);
+			ManagedGroups managed = ManagedGroups.of(desired.managed);
+			List<String> unmanaged = managed.unmanaged()
+					.stream()
+					.map(Drifty.GroupName::toString)
+					.toList();
+
+			RepositoryState state = fetchState(ref, summary, managed);
 
 			Map<DriftGroup, List<DriftFix>> groupDrifts = computeGroupDrifts(
 					state,
@@ -220,14 +222,15 @@ public class OrgChecker {
 					.collect(Collectors.toCollection(ArrayList::new));
 
 			if (diffs.isEmpty()) {
-				return CheckResult.RepoCheckResult.ok(name);
+				return CheckResult.RepoCheckResult.ok(name, unmanaged);
 			}
 			// In check mode, preview which groups --fix would act on.
 			List<String> fixPreview = groupDrifts.keySet()
 					.stream()
 					.map(group -> group.name().toString())
 					.toList();
-			return CheckResult.RepoCheckResult.drift(name, diffs, fixPreview);
+			return CheckResult.RepoCheckResult
+					.drift(name, diffs, fixPreview, unmanaged);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			return CheckResult.RepoCheckResult.error(name, e.getMessage());
@@ -862,6 +865,7 @@ public class OrgChecker {
 			switch (r.status()) {
 			case OK -> {
 				System.out.printf("[OK]      %s%n", r.name());
+				printUnmanaged(r);
 				printFixReports(r);
 			}
 			case DRIFT -> {
@@ -881,6 +885,7 @@ public class OrgChecker {
 							String.join(", ", r.fixPreview())
 					);
 				}
+				printUnmanaged(r);
 			}
 			case ERROR ->
 				System.out.printf("[ERROR]   %s: %s%n", r.name(), r.error());
@@ -907,6 +912,20 @@ public class OrgChecker {
 			System.out.println();
 			System.out.printf("=== Failed fixes (%d) ===%n", failures.size());
 			failures.forEach(f -> System.out.printf("  %s%n", f));
+		}
+	}
+
+	/**
+	 * Names the groups, not their values: an unmanaged group's actual values
+	 * were never fetched, and fetching them to print would undo the point of
+	 * declaring it unmanaged.
+	 */
+	private static void printUnmanaged(CheckResult.RepoCheckResult r) {
+		if (!r.unmanaged().isEmpty()) {
+			System.out.printf(
+					"  Unmanaged: %s%n",
+					String.join(", ", r.unmanaged())
+			);
 		}
 	}
 

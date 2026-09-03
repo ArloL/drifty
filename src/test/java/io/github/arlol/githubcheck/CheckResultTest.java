@@ -162,4 +162,19 @@ class CheckResultTest {
 		assertThat(result.fixFailures()).isEmpty();
 	}
 
+	@Test
+	void okCarriesUnmanagedGroups() {
+		var result = CheckResult.RepoCheckResult
+				.ok("repo", List.of("action_secrets", "rulesets"));
+
+		assertThat(result.unmanaged())
+				.containsExactly("action_secrets", "rulesets");
+	}
+
+	@Test
+	void unmanagedDefaultsToEmpty() {
+		assertThat(CheckResult.RepoCheckResult.ok("repo").unmanaged())
+				.isEmpty();
+	}
+
 }
