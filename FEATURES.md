@@ -253,3 +253,19 @@ Also fixed here: `OrgChecker.fetchRulesets` now drops rulesets whose
 defaults to true, and `RulesetSourceType` was parsed but read nowhere, so
 `RulesetDriftGroup` reported every org ruleset as `extra (should not exist)` and
 `--fix` issued a repo-scoped DELETE that endpoint cannot serve.
+
+## ~~35. Write the State File Only When It Has Something to State~~ DONE
+
+Implemented: `StateStore.save` no longer writes unconditionally. It returns
+early when `DriftyState.isEmpty()` — no repository holds a secret record — so a
+`--fix` run over a config with no managed secrets, or one that pushes nothing,
+creates no `drifty-state.json` at all. Otherwise it serializes to a byte array
+and skips the write when the existing file already holds exactly those bytes,
+so a repeat `--fix` does not touch the file's mtime.
+
+A salt generated during the run does not count as content: it is only
+meaningful next to the hashes it produced, and with no record persisted the
+next run is free to generate a different one. `isEmpty()` is `@JsonIgnore`d
+because `DriftyState` is serialized with field visibility `ANY`, which leaves
+Jackson's default public-getter detection in place — an `isX()` method would
+otherwise be written into the file as a field.
