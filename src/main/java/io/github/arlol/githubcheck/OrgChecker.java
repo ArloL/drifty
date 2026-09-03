@@ -192,7 +192,11 @@ public class OrgChecker {
 			return CheckResult.RepoCheckResult.unknown(name);
 		}
 		try {
-			RepositoryState state = fetchState(ref, summary);
+			RepositoryState state = fetchState(
+					ref,
+					summary,
+					ManagedGroups.of(desired.managed)
+			);
 
 			Map<DriftGroup, List<DriftFix>> groupDrifts = computeGroupDrifts(
 					state,
@@ -267,8 +271,11 @@ public class OrgChecker {
 	// ─── Fetch
 	// ──────────────────────────────────────────────────────────────
 
-	RepositoryState fetchState(RepoRef ref, RepositorySummaryResponse summary)
-			throws IOException, InterruptedException {
+	RepositoryState fetchState(
+			RepoRef ref,
+			RepositorySummaryResponse summary,
+			ManagedGroups managed
+	) throws IOException, InterruptedException {
 		String org = ref.owner();
 		String name = ref.name();
 		boolean archived = summary.archived();
@@ -276,37 +283,58 @@ public class OrgChecker {
 		var details = client.getRepo(org, name);
 
 		SecurityFlags security = archived ? SecurityFlags.NONE
-				: fetchSecurityFlags(org, name);
+				: fetchSecurityFlags(org, name, managed);
 
-		Map<String, ActualBranchProtection> branchProtections = fetchBranchProtections(
-				summary,
-				org,
-				name,
-				archived
-		);
+		Map<String, ActualBranchProtection> branchProtections = managed
+				.manages(Drifty.GroupName.BRANCH_PROTECTION)
+						? fetchBranchProtections(summary, org, name, archived)
+						: Map.of();
 
-		List<ActualSecret> secrets = secrets(
-				client.getActionSecrets(org, name)
-		);
+		List<ActualSecret> secrets = managed
+				.manages(Drifty.GroupName.ACTION_SECRETS)
+						? secrets(client.getActionSecrets(org, name))
+						: List.of();
 
+		// One listing serves two groups, so it runs when either wants it; the
+		// per-environment secret call only when environment_secrets does.
 		Map<String, ActualEnvironment> environments = new LinkedHashMap<>();
 		Map<String, List<ActualSecret>> envSecrets = new LinkedHashMap<>();
-		for (EnvironmentDetailsResponse env : client
-				.getEnvironments(org, name)) {
-			environments.put(env.name(), ActualTypes.environment(env));
-			envSecrets.put(
-					env.name(),
-					secrets(client.getEnvironmentSecrets(org, name, env.name()))
-			);
+		boolean wantEnvConfig = managed
+				.manages(Drifty.GroupName.ENVIRONMENT_CONFIG);
+		boolean wantEnvSecrets = managed
+				.manages(Drifty.GroupName.ENVIRONMENT_SECRETS);
+		if (wantEnvConfig || wantEnvSecrets) {
+			for (EnvironmentDetailsResponse env : client
+					.getEnvironments(org, name)) {
+				environments.put(env.name(), ActualTypes.environment(env));
+				if (wantEnvSecrets) {
+					envSecrets.put(
+							env.name(),
+							secrets(
+									client.getEnvironmentSecrets(
+											org,
+											name,
+											env.name()
+									)
+							)
+					);
+				}
+			}
 		}
 
-		var workflowPermissions = ActualTypes
-				.workflowPermissions(client.getWorkflowPermissions(org, name));
+		var workflowPermissions = managed
+				.manages(Drifty.GroupName.WORKFLOW_PERMISSIONS)
+						? ActualTypes.workflowPermissions(
+								client.getWorkflowPermissions(org, name)
+						)
+						: null;
 
-		List<ActualRuleset> rulesets = archived ? List.of()
-				: fetchRulesets(org, name);
+		List<ActualRuleset> rulesets = archived
+				|| !managed.manages(Drifty.GroupName.RULESETS) ? List.of()
+						: fetchRulesets(org, name);
 
-		var pages = archived ? Optional.<PagesResponse>empty()
+		var pages = archived || !managed.manages(Drifty.GroupName.PAGES)
+				? Optional.<PagesResponse>empty()
 				: client.getPages(org, name);
 
 		return new RepositoryState(
@@ -332,20 +360,38 @@ public class OrgChecker {
 		return responses.stream().map(ActualTypes::secret).toList();
 	}
 
-	private SecurityFlags fetchSecurityFlags(String org, String name) {
-		boolean vulnAlerts = client.getVulnerabilityAlerts(org, name);
-		boolean automatedSecurityFixes = client
-				.getAutomatedSecurityFixes(org, name);
-		var immutableReleases = client.getImmutableReleases(org, name);
-		boolean privateVulnerabilityReporting = client
-				.getPrivateVulnerabilityReporting(org, name);
-		boolean codeScanningDefaultSetup = client
-				.getCodeScanningDefaultSetup(org, name);
+	/**
+	 * Each flag is its own request, so each is guarded by its own group. Java's
+	 * {@code &&} short-circuits, which is what keeps an unmanaged flag from
+	 * sending one.
+	 */
+	private SecurityFlags fetchSecurityFlags(
+			String org,
+			String name,
+			ManagedGroups managed
+	) {
+		boolean vulnAlerts = managed
+				.manages(Drifty.GroupName.VULNERABILITY_ALERTS)
+				&& client.getVulnerabilityAlerts(org, name);
+		boolean automatedSecurityFixes = managed
+				.manages(Drifty.GroupName.AUTOMATED_SECURITY_FIXES)
+				&& client.getAutomatedSecurityFixes(org, name);
+		boolean immutableReleases = false;
+		if (managed.manages(Drifty.GroupName.IMMUTABLE_RELEASES)) {
+			var response = client.getImmutableReleases(org, name);
+			immutableReleases = response.isPresent()
+					&& response.orElseThrow().enabled();
+		}
+		boolean privateVulnerabilityReporting = managed
+				.manages(Drifty.GroupName.PRIVATE_VULNERABILITY_REPORTING)
+				&& client.getPrivateVulnerabilityReporting(org, name);
+		boolean codeScanningDefaultSetup = managed
+				.manages(Drifty.GroupName.CODE_SCANNING_DEFAULT_SETUP)
+				&& client.getCodeScanningDefaultSetup(org, name);
 		return new SecurityFlags(
 				vulnAlerts,
 				automatedSecurityFixes,
-				immutableReleases.isPresent()
-						&& immutableReleases.orElseThrow().enabled(),
+				immutableReleases,
 				privateVulnerabilityReporting,
 				codeScanningDefaultSetup
 		);
