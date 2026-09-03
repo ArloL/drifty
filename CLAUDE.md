@@ -38,6 +38,21 @@ status.
 - **Eight groups PATCH the same `/repos/{owner}/{repo}` resource.** Each
   request carries only its own fields because `RepositoryUpdateRequest` is
   all nullable wrappers under `NON_NULL`; keep it that way.
+- **`RepoSettingsDriftGroup` sends only the fields that drifted.** Its
+  `Setting` table pairs each comparison with the builder call that writes it,
+  and the PATCH is built from the drifted entries alone. Building the body
+  from `desired` instead is the shape to avoid: it sent `allow_forking` on
+  every org-owned repository, and an org with
+  `members_can_fork_private_repositories` off answers that field with a 422
+  even when it already holds the wanted value, failing a description change
+  over a setting that had not drifted. A `Setting` with a null `write` is
+  reported but never sent — `visibility` is the only one, per SPEC.md.
+- **A rejected PATCH is not a failed PATCH.** GitHub applies the fields it
+  accepts and rejects the rest, so a 422 attributes to no field. When a
+  multi-field request fails, `RepoSettingsDriftGroup` re-sends each field on
+  its own and reports only the ones that fail again. Collapsing that back to
+  "the request threw, so nothing was fixed" is what made a run report every
+  setting unfixed after GitHub had already changed most of them.
 - `./mvnw test` also builds and runs the native test image when GraalVM is
   the JDK. Iterate with `-DskipNativeTests`, run the full thing once before
   pushing.
