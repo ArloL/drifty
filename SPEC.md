@@ -52,6 +52,35 @@ Repos marked `archived=true` in config are only checked for being archived. All 
 
 If a repo is configured as `archived=true` but is currently active, `--fix` will archive it.
 
+### Partial Management
+
+A repo declares which drift groups drifty manages, through the `managed` field on the Pkl `Repository`. Two modes:
+
+```pkl
+// strict, minus the groups someone else owns
+(foreignOrgRepo) { managed { mode = "all_except"; groups { "action_secrets"; "rulesets" } } }
+
+// partial: manage only these
+(foreignOrgRepo) { managed { mode = "only"; groups { "repo_settings"; "topics" } } }
+```
+
+The default is `all_except` with an empty list, so a repo that declares nothing is checked exactly as it would be without the field.
+
+Group names come from the `GroupName` typealias in `config/drifty.pkl`, which lists every group drifty can check. A name outside that union fails at config-eval time — a typo that silently left a group unmanaged is the dangerous failure here, so the union is what prevents it rather than a runtime check.
+
+An unmanaged group is not fetched, not compared, and not fixed. Skipping only the comparison would still send the request, and a repo in an org someone else administers — the case this exists for — is where those requests return 403.
+
+The report names unmanaged groups but not their values:
+
+```
+[OK]      repo-a
+  Unmanaged: action_secrets, rulesets
+```
+
+Printing values would require fetching them, which is what the skipped requests avoid. `--fix` output omits the line: it reports what was applied, and groups nobody touched say nothing about that.
+
+An archived repo whose `archived` group is unmanaged is checked for nothing at all — the archived short-circuit passes through the same filter, which is what declaring that group unmanaged asks for.
+
 ### Missing Repos
 
 If a repo is listed in config but does not exist on GitHub, it is reported as `MISSING` and causes a non-zero exit code. drifty does not create repos — it only manages settings of existing repos.
@@ -221,6 +250,8 @@ Repo-level rulesets managed via the `rulesets` mapping (keyed by ruleset name) o
 | Required code scanning | Yes | Yes |
 
 **Extra rulesets:** Rulesets that exist on the repo but are not in config are reported as drift. `--fix` deletes them.
+
+**Org-level rulesets are excluded.** The listing endpoint's `includes_parents` defaults to true, so rulesets inherited from the org arrive alongside the repo's own. They are not the repo's to reconcile — the repo endpoint cannot delete one — so drifty drops them before comparing.
 
 ### Required Status Checks
 
