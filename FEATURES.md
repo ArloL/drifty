@@ -46,7 +46,10 @@ Implemented: `EnvironmentArgs` extended with `waitTimer`, `deploymentBranchPolic
 
 ## ~~10. Owner as CLI Argument~~ DROPPED
 
-Per spec update: the owner is hardcoded in the config code. No CLI argument needed.
+Per spec: the owner is the `owner` field on each repository in the config.
+`OrgChecker.check()` lists the repositories of each distinct owner it finds and
+checks every repository under the owner its own entry declares, so one config
+can span several owners. No CLI argument needed.
 
 ## ~~11. Configurable Repo Groups with Defaults~~ DONE
 

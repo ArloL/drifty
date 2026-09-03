@@ -6,16 +6,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 
 public class ActionSecretsDriftGroup extends DriftGroup {
 
 	private final List<String> desired;
-	private final Map<String, Secret> actual;
+	private final Map<String, ActualSecret> actual;
 	private final Map<String, String> secretValues;
 	private final DriftyState state;
 	private final GitHubClient client;
@@ -24,15 +24,15 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 
 	public ActionSecretsDriftGroup(
 			List<String> desired,
-			List<Secret> actual,
+			List<ActualSecret> actual,
 			Map<String, String> secretValues,
 			DriftyState state,
 			GitHubClient client,
 			RepoRef ref
 	) {
 		this.desired = List.copyOf(desired);
-		var byName = new LinkedHashMap<String, Secret>();
-		for (Secret secret : actual) {
+		var byName = new LinkedHashMap<String, ActualSecret>();
+		for (ActualSecret secret : actual) {
 			byName.put(secret.name(), secret);
 		}
 		this.actual = Map.copyOf(byName);
@@ -59,7 +59,7 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 			}
 		}
 
-		for (Secret secret : actual.values()) {
+		for (ActualSecret secret : actual.values()) {
 			if (!desired.contains(secret.name())) {
 				var item = new DriftItem.SectionExtra(secret.name());
 				fixes.add(
@@ -79,7 +79,7 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 
 	private DriftFix secretDriftFix(String secretName) {
 		var path = secretName;
-		Secret actualSecret = actual.get(secretName);
+		ActualSecret actualSecret = actual.get(secretName);
 		DriftItem driftItem;
 		if (actualSecret == null) {
 			driftItem = new DriftItem.SectionMissing(path);
@@ -114,7 +114,7 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 				);
 			}
 			client.createOrUpdateActionSecret(owner, repo, secretName, value);
-			Secret updated = client.getActionSecret(owner, repo, secretName);
+			var updated = client.getActionSecret(owner, repo, secretName);
 			state.recordActionSecret(
 					repo,
 					secretName,

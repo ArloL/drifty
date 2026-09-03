@@ -1,0 +1,14 @@
+// One instance of every configurable type, with nothing set beyond what the
+// schema requires. Tests start from these and change single properties with
+// the generated `withX` methods, so a new schema field needs no test-side
+// builder: it arrives here with the default `config/drifty.pkl` gives it.
+import "../../../config/drifty.pkl" as drifty
+
+repository: drifty.Repository = new { owner = "owner"; name = "repo" }
+ruleset: drifty.Ruleset = new {}
+branchProtection: drifty.BranchProtection = new {}
+environment: drifty.Environment = new {}
+pages: drifty.Pages = new {}
+statusCheck: drifty.StatusCheck = new { context = "check" }
+codeScanningTool: drifty.CodeScanningTool = new { tool = "tool" }
+rulePattern: drifty.RulePattern = new { operator = "regex"; pattern = "pattern" }

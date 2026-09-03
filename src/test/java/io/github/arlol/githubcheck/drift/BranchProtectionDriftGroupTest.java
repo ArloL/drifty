@@ -11,10 +11,7 @@ import io.github.arlol.githubcheck.ActualTypes;
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.testsupport.BranchProtectionArgs;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
-import io.github.arlol.githubcheck.testsupport.StatusCheckArgs;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 class BranchProtectionDriftGroupTest {
 
@@ -94,15 +91,16 @@ class BranchProtectionDriftGroupTest {
 
 	@Test
 	void detectsConversationResolutionDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.branchProtections(
-						BranchProtectionArgs.builder("main")
-								.requireConversationResolution(true)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withBranchProtections(
+						Map.of(
+								"main",
+								Desired.branchProtection()
+										.withRequireConversationResolution(true)
+						)
+				);
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired).branchProtections,
+				desired.branchProtections,
 				Map.of("main", responseWithReviews("main", false, null)),
 				null,
 				new RepoRef("owner", "repo")
@@ -116,16 +114,17 @@ class BranchProtectionDriftGroupTest {
 
 	@Test
 	void noDrift_whenApprovingReviewCountMatches() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.branchProtections(
-						BranchProtectionArgs.builder("main")
-								.requiredApprovingReviewCount(2)
-								.requireLastPushApproval(true)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withBranchProtections(
+						Map.of(
+								"main",
+								Desired.branchProtection()
+										.withRequiredApprovingReviewCount(2L)
+										.withRequireLastPushApproval(true)
+						)
+				);
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired).branchProtections,
+				desired.branchProtections,
 				Map.of(
 						"main",
 						responseWithReviews(
@@ -149,16 +148,17 @@ class BranchProtectionDriftGroupTest {
 
 	@Test
 	void detectsApprovingReviewCountAndLastPushApprovalDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.branchProtections(
-						BranchProtectionArgs.builder("main")
-								.requiredApprovingReviewCount(2)
-								.requireLastPushApproval(true)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withBranchProtections(
+						Map.of(
+								"main",
+								Desired.branchProtection()
+										.withRequiredApprovingReviewCount(2L)
+										.withRequireLastPushApproval(true)
+						)
+				);
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired).branchProtections,
+				desired.branchProtections,
 				Map.of(
 						"main",
 						responseWithReviews(
@@ -191,16 +191,17 @@ class BranchProtectionDriftGroupTest {
 	 */
 	@Test
 	void unwantedLastPushApproval_isDriftOnlyWhenEnabled() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.branchProtections(
-						BranchProtectionArgs.builder("main")
-								.dismissStaleReviews(true)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withBranchProtections(
+						Map.of(
+								"main",
+								Desired.branchProtection()
+										.withDismissStaleReviews(true)
+						)
+				);
 
 		var enabled = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired).branchProtections,
+				desired.branchProtections,
 				Map.of(
 						"main",
 						responseWithReviews(
@@ -224,7 +225,7 @@ class BranchProtectionDriftGroupTest {
 		);
 
 		var absent = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired).branchProtections,
+				desired.branchProtections,
 				Map.of(
 						"main",
 						responseWithReviews(
@@ -255,9 +256,9 @@ class BranchProtectionDriftGroupTest {
 
 	@Test
 	void noDrift_whenBothEmpty() {
-		var desired = RepositoryArgs.create("owner", "repo").build();
+		var desired = Desired.repository("owner", "repo");
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired).branchProtections,
+				desired.branchProtections,
 				Map.of(),
 				null,
 				new RepoRef("owner", "repo")
@@ -268,11 +269,12 @@ class BranchProtectionDriftGroupTest {
 
 	@Test
 	void detectsMissingBranchProtection() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.branchProtections(BranchProtectionArgs.builder("main").build())
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withBranchProtections(
+						Map.of("main", Desired.branchProtection())
+				);
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired).branchProtections,
+				desired.branchProtections,
 				Map.of(),
 				null,
 				new RepoRef("owner", "repo")
@@ -292,9 +294,9 @@ class BranchProtectionDriftGroupTest {
 
 	@Test
 	void detectsExtraBranchProtection() {
-		var desired = RepositoryArgs.create("owner", "repo").build();
+		var desired = Desired.repository("owner", "repo");
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired).branchProtections,
+				desired.branchProtections,
 				Map.of("main", matchingResponse("main")),
 				null,
 				new RepoRef("owner", "repo")
@@ -313,11 +315,12 @@ class BranchProtectionDriftGroupTest {
 
 	@Test
 	void noDrift_whenBranchProtectionMatches() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.branchProtections(BranchProtectionArgs.builder("main").build())
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withBranchProtections(
+						Map.of("main", Desired.branchProtection())
+				);
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired).branchProtections,
+				desired.branchProtections,
 				Map.of("main", matchingResponse("main")),
 				null,
 				new RepoRef("owner", "repo")
@@ -328,15 +331,16 @@ class BranchProtectionDriftGroupTest {
 
 	@Test
 	void detectsEnforceAdminsDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.branchProtections(
-						BranchProtectionArgs.builder("main")
-								.enforceAdmins(true)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withBranchProtections(
+						Map.of(
+								"main",
+								Desired.branchProtection()
+										.withEnforceAdmins(true)
+						)
+				);
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired).branchProtections,
+				desired.branchProtections,
 				Map.of("main", matchingResponse("main")),
 				null,
 				new RepoRef("owner", "repo")
@@ -357,16 +361,19 @@ class BranchProtectionDriftGroupTest {
 
 	@Test
 	void detectsMissingStatusCheck() {
-		var check = StatusCheckArgs.builder().context("ci").build();
-		var desired = RepositoryArgs.create("owner", "repo")
-				.branchProtections(
-						BranchProtectionArgs.builder("main")
-								.requiredStatusChecks(check)
-								.build()
-				)
-				.build();
+		var check = Desired.statusCheck("ci");
+		var desired = Desired.repository("owner", "repo")
+				.withBranchProtections(
+						Map.of(
+								"main",
+								Desired.branchProtection()
+										.withRequiredStatusChecks(
+												List.of(check)
+										)
+						)
+				);
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired).branchProtections,
+				desired.branchProtections,
 				Map.of("main", matchingResponse("main")),
 				null,
 				new RepoRef("owner", "repo")
@@ -388,15 +395,16 @@ class BranchProtectionDriftGroupTest {
 
 	@Test
 	void detectsMissingPullRequestReviews() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.branchProtections(
-						BranchProtectionArgs.builder("main")
-								.requiredApprovingReviewCount(1)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withBranchProtections(
+						Map.of(
+								"main",
+								Desired.branchProtection()
+										.withRequiredApprovingReviewCount(1L)
+						)
+				);
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired).branchProtections,
+				desired.branchProtections,
 				Map.of("main", matchingResponse("main")),
 				null,
 				new RepoRef("owner", "repo")
@@ -417,11 +425,12 @@ class BranchProtectionDriftGroupTest {
 
 	@Test
 	void detectsMissingBranchAndExtraBranch() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.branchProtections(BranchProtectionArgs.builder("main").build())
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withBranchProtections(
+						Map.of("main", Desired.branchProtection())
+				);
 		var group = new BranchProtectionDriftGroup(
-				ToDrifty.repository(desired).branchProtections,
+				desired.branchProtections,
 				Map.of("release", matchingResponse("release")),
 				null,
 				new RepoRef("owner", "repo")

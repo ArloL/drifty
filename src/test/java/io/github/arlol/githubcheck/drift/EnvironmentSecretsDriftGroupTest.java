@@ -7,16 +7,15 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import io.github.arlol.githubcheck.client.Secret;
+import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
 import io.github.arlol.githubcheck.state.DriftyState;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 class EnvironmentSecretsDriftGroupTest {
 
-	private static Secret secret(String name, String updatedAt) {
-		return new Secret(name, "2023-01-01T00:00:00Z", updatedAt);
+	private static ActualSecret secret(String name, String updatedAt) {
+		return new ActualSecret(name, updatedAt);
 	}
 
 	private static List<DriftItem> items(EnvironmentSecretsDriftGroup group) {
@@ -28,12 +27,10 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsExtraSecret_whenNoDesiredSecrets() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("production", _ -> {
-				})
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(Map.of("production", Desired.environment()));
 		var group = new EnvironmentSecretsDriftGroup(
-				ToDrifty.repository(desired).environments,
+				desired.environments,
 				Map.of(
 						"production",
 						List.of(secret("EXTRA_SECRET", "2024-01-01T00:00:00Z"))
@@ -55,11 +52,16 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsMissingBaseline_whenSecretExistsWithoutRecordedBaseline() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("production", env -> env.secrets("DB_PASS"))
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment()
+										.withSecrets(List.of("DB_PASS"))
+						)
+				);
 		var group = new EnvironmentSecretsDriftGroup(
-				ToDrifty.repository(desired).environments,
+				desired.environments,
 				Map.of(
 						"production",
 						List.of(secret("DB_PASS", "2024-01-01T00:00:00Z"))
@@ -83,11 +85,16 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsMissingSecret() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("production", env -> env.secrets("DB_PASS"))
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment()
+										.withSecrets(List.of("DB_PASS"))
+						)
+				);
 		var group = new EnvironmentSecretsDriftGroup(
-				ToDrifty.repository(desired).environments,
+				desired.environments,
 				Map.of("production", List.of()),
 				Map.of(),
 				new DriftyState(),
@@ -107,11 +114,16 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsExtraSecret() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("production", env -> env.secrets("DB_PASS"))
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment()
+										.withSecrets(List.of("DB_PASS"))
+						)
+				);
 		var group = new EnvironmentSecretsDriftGroup(
-				ToDrifty.repository(desired).environments,
+				desired.environments,
 				Map.of(
 						"production",
 						List.of(
@@ -144,12 +156,19 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsPerItem_acrossMultipleEnvironments() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("staging", env -> env.secrets("STAGING_KEY"))
-				.environment("production", env -> env.secrets("PROD_KEY"))
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"staging",
+								Desired.environment()
+										.withSecrets(List.of("STAGING_KEY")),
+								"production",
+								Desired.environment()
+										.withSecrets(List.of("PROD_KEY"))
+						)
+				);
 		var group = new EnvironmentSecretsDriftGroup(
-				ToDrifty.repository(desired).environments,
+				desired.environments,
 				Map.of("staging", List.of(), "production", List.of()),
 				Map.of(),
 				new DriftyState(),
@@ -176,9 +195,14 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void noDrift_whenRecordedTimestampMatches() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("production", env -> env.secrets("DB_PASS"))
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment()
+										.withSecrets(List.of("DB_PASS"))
+						)
+				);
 		var state = new DriftyState();
 		state.recordEnvironmentSecret(
 				"repo",
@@ -188,7 +212,7 @@ class EnvironmentSecretsDriftGroupTest {
 				state.hash("value")
 		);
 		var group = new EnvironmentSecretsDriftGroup(
-				ToDrifty.repository(desired).environments,
+				desired.environments,
 				Map.of(
 						"production",
 						List.of(secret("DB_PASS", "2024-01-01T00:00:00Z"))
@@ -204,9 +228,14 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsSecretChanged_whenTimestampMismatch() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("production", env -> env.secrets("DB_PASS"))
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment()
+										.withSecrets(List.of("DB_PASS"))
+						)
+				);
 		var state = new DriftyState();
 		state.recordEnvironmentSecret(
 				"repo",
@@ -216,7 +245,7 @@ class EnvironmentSecretsDriftGroupTest {
 				state.hash("value")
 		);
 		var group = new EnvironmentSecretsDriftGroup(
-				ToDrifty.repository(desired).environments,
+				desired.environments,
 				Map.of(
 						"production",
 						List.of(secret("DB_PASS", "2024-06-01T00:00:00Z"))
@@ -236,9 +265,14 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsSecretValueChanged_whenConfigValueChanged() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("production", env -> env.secrets("DB_PASS"))
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment()
+										.withSecrets(List.of("DB_PASS"))
+						)
+				);
 		var state = new DriftyState();
 		state.recordEnvironmentSecret(
 				"repo",
@@ -248,7 +282,7 @@ class EnvironmentSecretsDriftGroupTest {
 				state.hash("old-value")
 		);
 		var group = new EnvironmentSecretsDriftGroup(
-				ToDrifty.repository(desired).environments,
+				desired.environments,
 				Map.of(
 						"production",
 						List.of(secret("DB_PASS", "2024-01-01T00:00:00Z"))

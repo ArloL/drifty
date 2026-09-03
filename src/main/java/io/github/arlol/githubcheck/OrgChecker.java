@@ -16,7 +16,10 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
+import io.github.arlol.githubcheck.actual.ActualEnvironment;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
+import io.github.arlol.githubcheck.actual.ActualSecret;
+import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesResponse;
@@ -24,7 +27,6 @@ import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.Secret;
-import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.drift.ActionSecretsDriftGroup;
 import io.github.arlol.githubcheck.drift.AdvancedSecurityDriftGroup;
@@ -281,45 +283,51 @@ public class OrgChecker {
 				archived
 		);
 
-		List<Secret> secrets = client.getActionSecrets(org, name);
-		List<EnvironmentDetailsResponse> environments = client
-				.getEnvironments(org, name);
+		List<ActualSecret> secrets = secrets(
+				client.getActionSecrets(org, name)
+		);
 
-		Map<String, List<Secret>> envSecrets = new LinkedHashMap<>();
-		Map<String, EnvironmentDetailsResponse> envDetails = new LinkedHashMap<>();
-		for (EnvironmentDetailsResponse env : environments) {
-			envDetails.put(env.name(), env);
+		Map<String, ActualEnvironment> environments = new LinkedHashMap<>();
+		Map<String, List<ActualSecret>> envSecrets = new LinkedHashMap<>();
+		for (EnvironmentDetailsResponse env : client
+				.getEnvironments(org, name)) {
+			environments.put(env.name(), ActualTypes.environment(env));
 			envSecrets.put(
 					env.name(),
-					client.getEnvironmentSecrets(org, name, env.name())
+					secrets(client.getEnvironmentSecrets(org, name, env.name()))
 			);
 		}
 
-		WorkflowPermissions wfPerms = client.getWorkflowPermissions(org, name);
+		var workflowPermissions = ActualTypes
+				.workflowPermissions(client.getWorkflowPermissions(org, name));
 
 		List<ActualRuleset> rulesets = archived ? List.of()
 				: fetchRulesets(org, name);
 
-		Optional<PagesResponse> pages = archived ? Optional.empty()
+		var pages = archived ? Optional.<PagesResponse>empty()
 				: client.getPages(org, name);
 
 		return new RepositoryState(
 				name,
-				summary,
-				details,
+				ActualTypes.repository(details),
+				ActualTypes.securityAndAnalysis(details),
 				security.vulnAlerts(),
 				security.automatedSecurityFixes(),
-				branchProtections,
-				secrets,
-				envSecrets,
-				wfPerms,
-				rulesets,
-				pages,
-				envDetails,
 				security.immutableReleases(),
 				security.privateVulnerabilityReporting(),
-				security.codeScanningDefaultSetup()
+				security.codeScanningDefaultSetup(),
+				branchProtections,
+				rulesets,
+				secrets,
+				environments,
+				envSecrets,
+				workflowPermissions,
+				pages.map(ActualTypes::pages)
 		);
+	}
+
+	private static List<ActualSecret> secrets(List<Secret> responses) {
+		return responses.stream().map(ActualTypes::secret).toList();
 	}
 
 	private SecurityFlags fetchSecurityFlags(String org, String name) {
@@ -341,6 +349,13 @@ public class OrgChecker {
 		);
 	}
 
+	/**
+	 * One request per protected branch, after the one that lists them. REST has
+	 * no call that returns every protection at once, so this is the shape the
+	 * read takes until GraphQL bulk reads land; when they do, this method and
+	 * {@link #fetchRulesets} are the two places to replace, since everything
+	 * downstream sees {@link ActualBranchProtection} only.
+	 */
 	private Map<String, ActualBranchProtection> fetchBranchProtections(
 			RepositorySummaryResponse summary,
 			String org,
@@ -361,6 +376,11 @@ public class OrgChecker {
 		return branchProtections;
 	}
 
+	/**
+	 * One request per ruleset, after the one that lists them: the listing
+	 * carries no rules or conditions, and REST has no bulk read for them. See
+	 * {@link #fetchBranchProtections} for what replaces both.
+	 */
 	private List<ActualRuleset> fetchRulesets(String org, String name) {
 		var rulesets = new ArrayList<ActualRuleset>();
 		for (var rs : client.listRulesets(org, name)) {
@@ -414,7 +434,8 @@ public class OrgChecker {
 			RepositoryState actual,
 			Drifty.Repository desired
 	) {
-		var ref = new RepoRef(desired.owner, actual.summary().name());
+		var ref = new RepoRef(desired.owner, actual.name());
+		ActualSecurityAndAnalysis security = actual.securityAndAnalysis();
 
 		if (desired.archived) {
 			// When archiving (or already archived): only check archived state,
@@ -423,7 +444,7 @@ public class OrgChecker {
 			return List.of(
 					new ArchivedDriftGroup(
 							true,
-							actual.summary().archived(),
+							actual.repository().archived(),
 							client,
 							ref
 					)
@@ -439,7 +460,7 @@ public class OrgChecker {
 		groups.add(
 				new ArchivedDriftGroup(
 						false,
-						actual.summary().archived(),
+						actual.repository().archived(),
 						client,
 						ref
 				)
@@ -448,7 +469,7 @@ public class OrgChecker {
 		groups.add(
 				new RepoSettingsDriftGroup(
 						desired,
-						actual.details(),
+						actual.repository(),
 						client,
 						ref
 				)
@@ -456,9 +477,7 @@ public class OrgChecker {
 		groups.add(
 				new TopicsDriftGroup(
 						desired.topics,
-						actual.details().topics() != null
-								? actual.details().topics()
-								: List.of(),
+						actual.repository().topics(),
 						client,
 						ref
 				)
@@ -480,7 +499,7 @@ public class OrgChecker {
 		groups.add(
 				new EnvironmentConfigDriftGroup(
 						desired.environments,
-						actual.environmentDetails(),
+						actual.environments(),
 						client,
 						ref
 				)
@@ -536,7 +555,7 @@ public class OrgChecker {
 		groups.add(
 				new SecretScanningDriftGroup(
 						desired.secretScanning,
-						actual.secretScanning(),
+						security.secretScanning(),
 						client,
 						ref
 				)
@@ -544,7 +563,7 @@ public class OrgChecker {
 		groups.add(
 				new SecretScanningPushProtectionDriftGroup(
 						desired.secretScanningPushProtection,
-						actual.secretScanningPushProtection(),
+						security.secretScanningPushProtection(),
 						client,
 						ref
 				)
@@ -568,7 +587,7 @@ public class OrgChecker {
 		groups.add(
 				new SecretScanningNonProviderPatternsDriftGroup(
 						desired.secretScanningNonProviderPatterns,
-						actual.secretScanningNonProviderPatterns(),
+						security.secretScanningNonProviderPatterns(),
 						client,
 						ref
 				)
@@ -576,7 +595,7 @@ public class OrgChecker {
 		groups.add(
 				new SecretScanningValidityChecksDriftGroup(
 						desired.secretScanningValidityChecks,
-						actual.secretScanningValidityChecks(),
+						security.secretScanningValidityChecks(),
 						client,
 						ref
 				)
@@ -584,7 +603,7 @@ public class OrgChecker {
 		groups.add(
 				new AdvancedSecurityDriftGroup(
 						desired.advancedSecurity,
-						actual.advancedSecurity(),
+						security.advancedSecurity(),
 						client,
 						ref
 				)
@@ -592,7 +611,7 @@ public class OrgChecker {
 		groups.add(
 				new SecretScanningAiDetectionDriftGroup(
 						desired.secretScanningAiDetection,
-						actual.secretScanningAiDetection(),
+						security.secretScanningAiDetection(),
 						client,
 						ref
 				)
@@ -600,7 +619,7 @@ public class OrgChecker {
 		groups.add(
 				new SecretScanningDelegatedAlertDismissalDriftGroup(
 						desired.secretScanningDelegatedAlertDismissal,
-						actual.secretScanningDelegatedAlertDismissal(),
+						security.secretScanningDelegatedAlertDismissal(),
 						client,
 						ref
 				)
@@ -609,8 +628,8 @@ public class OrgChecker {
 				new SecretScanningDelegatedBypassDriftGroup(
 						desired.secretScanningDelegatedBypass,
 						desired.secretScanningDelegatedBypassReviewers,
-						actual.secretScanningDelegatedBypass(),
-						actual.bypassReviewers(),
+						security.secretScanningDelegatedBypass(),
+						security.bypassReviewers(),
 						client,
 						ref
 				)

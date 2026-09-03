@@ -5,18 +5,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 class AutomatedSecurityFixesDriftGroupTest {
 
 	@Test
 	void noDriftWhenMatches() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.automatedSecurityFixes(true)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withAutomatedSecurityFixes(true);
 		var group = new AutomatedSecurityFixesDriftGroup(
-				ToDrifty.repository(desired).automatedSecurityFixes,
+				desired.automatedSecurityFixes,
 				true,
 				null,
 				new RepoRef("owner", "repo")
@@ -29,11 +27,10 @@ class AutomatedSecurityFixesDriftGroupTest {
 
 	@Test
 	void detectsDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.automatedSecurityFixes(true)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withAutomatedSecurityFixes(true);
 		var group = new AutomatedSecurityFixesDriftGroup(
-				ToDrifty.repository(desired).automatedSecurityFixes,
+				desired.automatedSecurityFixes,
 				false,
 				null,
 				new RepoRef("owner", "repo")

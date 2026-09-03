@@ -4,31 +4,47 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
+import io.github.arlol.githubcheck.actual.ActualEnvironment;
+import io.github.arlol.githubcheck.actual.ActualPages;
+import io.github.arlol.githubcheck.actual.ActualRepository;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
+import io.github.arlol.githubcheck.actual.ActualSecret;
+import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
+import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.actual.StatusCheck;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
+import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
+import io.github.arlol.githubcheck.client.PagesResponse;
+import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetRuleType;
+import io.github.arlol.githubcheck.client.Secret;
+import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.SimpleUser;
+import io.github.arlol.githubcheck.client.WorkflowPermissions;
 
 /**
  * Converts GitHub's REST responses into the {@code actual.*} types the drift
  * comparison works in — the mirror of {@link PklTypes}, which does the same for
  * the Pkl-generated configuration on the desired side.
  * <p>
- * Everything that knows how GitHub serialises a ruleset or a branch protection
- * lives here: the list of typed rule objects with their nested parameters, the
- * {@code {"enabled": bool}} wrappers, the two shapes required status checks
- * come back in, and the sections that are omitted rather than returned empty.
- * Keeping that in one place is what makes a change of read path — GraphQL bulk
- * reads, a new API version — a change to this class rather than to every drift
- * group.
+ * Everything that knows how GitHub serialises a repository, a ruleset, a branch
+ * protection, a Pages site, an environment or a secret lives here: the list of
+ * typed rule objects with their nested parameters, the {@code {"enabled":
+ * bool}} and {@code {"status": "enabled"}} wrappers, the two shapes required
+ * status checks come back in, the sections that are omitted rather than
+ * returned empty, and the {@code null}s that stand for an empty string. Keeping
+ * that in one place is what makes a change of read path — GraphQL bulk reads, a
+ * new API version — a change to this class rather than to every drift group.
  */
 public final class ActualTypes {
 
@@ -296,6 +312,165 @@ public final class ActualTypes {
 		var rulesets = new ArrayList<ActualRuleset>();
 		responses.forEach(response -> rulesets.add(ruleset(response)));
 		return rulesets;
+	}
+
+	// ─── Repository
+	// ──────────────────────────────────────────────────────────
+
+	public static ActualRepository repository(
+			RepositoryDetailsResponse response
+	) {
+		return new ActualRepository(
+				response.archived(),
+				response.owner() != null && response.owner()
+						.type() == SimpleUser.UserType.ORGANIZATION,
+				// GitHub reports an unset description or homepage as null;
+				// the config spells the same thing "".
+				Objects.toString(response.description(), ""),
+				Objects.toString(response.homepage(), ""),
+				response.visibility(),
+				response.defaultBranch(),
+				response.topics() == null ? List.of() : response.topics(),
+				response.hasIssues(),
+				response.hasProjects(),
+				response.hasWiki(),
+				response.hasDiscussions(),
+				response.isTemplate(),
+				response.allowForking(),
+				response.webCommitSignoffRequired(),
+				response.allowMergeCommit(),
+				response.allowSquashMerge(),
+				response.allowRebaseMerge(),
+				response.allowAutoMerge(),
+				response.allowUpdateBranch(),
+				response.deleteBranchOnMerge(),
+				response.squashMergeCommitTitle(),
+				response.squashMergeCommitMessage(),
+				response.mergeCommitTitle(),
+				response.mergeCommitMessage()
+		);
+	}
+
+	/**
+	 * GitHub omits the whole {@code security_and_analysis} block for some
+	 * repositories and individual toggles for others; both mean off.
+	 */
+	public static ActualSecurityAndAnalysis securityAndAnalysis(
+			RepositoryDetailsResponse response
+	) {
+		SecurityAndAnalysis sa = response.securityAndAnalysis();
+		return new ActualSecurityAndAnalysis(
+				enabled(sa, SecurityAndAnalysis::secretScanning),
+				enabled(sa, SecurityAndAnalysis::secretScanningPushProtection),
+				enabled(
+						sa,
+						SecurityAndAnalysis::secretScanningNonProviderPatterns
+				),
+				enabled(sa, SecurityAndAnalysis::secretScanningValidityChecks),
+				enabled(sa, SecurityAndAnalysis::advancedSecurity),
+				enabled(sa, SecurityAndAnalysis::secretScanningAiDetection),
+				enabled(
+						sa,
+						SecurityAndAnalysis::secretScanningDelegatedAlertDismissal
+				),
+				enabled(sa, SecurityAndAnalysis::secretScanningDelegatedBypass),
+				bypassReviewers(sa)
+		);
+	}
+
+	private static boolean enabled(
+			SecurityAndAnalysis sa,
+			Function<SecurityAndAnalysis, SecurityAndAnalysis.StatusObject> toggle
+	) {
+		return sa != null && SecurityAndAnalysis.isEnabled(toggle.apply(sa));
+	}
+
+	private static List<ActualSecurityAndAnalysis.BypassReviewer> bypassReviewers(
+			SecurityAndAnalysis sa
+	) {
+		if (sa == null || sa.secretScanningDelegatedBypassOptions() == null
+				|| sa.secretScanningDelegatedBypassOptions()
+						.reviewers() == null) {
+			return List.of();
+		}
+		return sa.secretScanningDelegatedBypassOptions()
+				.reviewers()
+				.stream()
+				.filter(r -> r.reviewerId() != null)
+				.map(
+						r -> new ActualSecurityAndAnalysis.BypassReviewer(
+								String.valueOf(r.reviewerType()),
+								r.reviewerId()
+						)
+				)
+				.toList();
+	}
+
+	// ─── Pages
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * The build type comes back as an enum but the config spells it as a
+	 * lower-case string, and sites that predate the field have none at all.
+	 */
+	public static ActualPages pages(PagesResponse response) {
+		return new ActualPages(
+				response.buildType() == null ? null
+						: response.buildType().name().toLowerCase(Locale.ROOT),
+				response.source() == null ? Optional.empty()
+						: Optional.of(
+								new ActualPages.Source(
+										response.source().branch(),
+										response.source().path()
+								)
+						),
+				response.httpsEnforced()
+		);
+	}
+
+	// ─── Environments
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * GitHub keeps the wait timer in a typed entry of the protection-rules list
+	 * and leaves the branch policy out entirely when nothing is set.
+	 */
+	public static ActualEnvironment environment(
+			EnvironmentDetailsResponse response
+	) {
+		var policy = response.deploymentBranchPolicy();
+		return new ActualEnvironment(
+				response.protectionRules()
+						.stream()
+						.filter(
+								rule -> rule
+										.type() == EnvironmentDetailsResponse.ProtectionRuleType.WAIT_TIMER
+						)
+						.map(
+								EnvironmentDetailsResponse.ProtectionRule::waitTimer
+						)
+						.filter(Objects::nonNull)
+						.findFirst()
+						.orElse(0),
+				policy != null && policy.protectedBranches(),
+				policy != null && policy.customBranchPolicies()
+		);
+	}
+
+	// ─── Secrets and workflow permissions
+	// ──────────────────────────────────────────────────────────
+
+	public static ActualSecret secret(Secret response) {
+		return new ActualSecret(response.name(), response.updatedAt());
+	}
+
+	public static ActualWorkflowPermissions workflowPermissions(
+			WorkflowPermissions response
+	) {
+		return new ActualWorkflowPermissions(
+				response.defaultWorkflowPermissions(),
+				response.canApprovePullRequestReviews()
+		);
 	}
 
 }

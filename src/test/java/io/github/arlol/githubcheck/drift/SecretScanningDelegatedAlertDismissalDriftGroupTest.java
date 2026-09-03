@@ -5,20 +5,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 class SecretScanningDelegatedAlertDismissalDriftGroupTest {
 
 	@Test
 	void noDriftWhenMatches() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.secretScanningDelegatedAlertDismissal(true)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withSecretScanningDelegatedAlertDismissal(true);
 		var group = new SecretScanningDelegatedAlertDismissalDriftGroup(
-				ToDrifty.repository(
-						desired
-				).secretScanningDelegatedAlertDismissal,
+				desired.secretScanningDelegatedAlertDismissal,
 				true,
 				null,
 				new RepoRef("owner", "repo")
@@ -31,13 +27,10 @@ class SecretScanningDelegatedAlertDismissalDriftGroupTest {
 
 	@Test
 	void detectsDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.secretScanningDelegatedAlertDismissal(true)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withSecretScanningDelegatedAlertDismissal(true);
 		var group = new SecretScanningDelegatedAlertDismissalDriftGroup(
-				ToDrifty.repository(
-						desired
-				).secretScanningDelegatedAlertDismissal,
+				desired.secretScanningDelegatedAlertDismissal,
 				false,
 				null,
 				new RepoRef("owner", "repo")

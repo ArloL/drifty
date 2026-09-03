@@ -3,6 +3,7 @@ package io.github.arlol.githubcheck.drift;
 import java.util.List;
 
 import io.github.arlol.githubcheck.PklTypes;
+import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
@@ -12,7 +13,7 @@ public class WorkflowPermissionsDriftGroup extends DriftGroup {
 
 	private final Drifty.WorkflowPermissions desiredPermissions;
 	private final boolean desiredCanApprove;
-	private final WorkflowPermissions actual;
+	private final ActualWorkflowPermissions actual;
 	private final GitHubClient client;
 	private final String owner;
 	private final String repo;
@@ -20,7 +21,7 @@ public class WorkflowPermissionsDriftGroup extends DriftGroup {
 	public WorkflowPermissionsDriftGroup(
 			Drifty.WorkflowPermissions desiredPermissions,
 			boolean desiredCanApprove,
-			WorkflowPermissions actual,
+			ActualWorkflowPermissions actual,
 			GitHubClient client,
 			RepoRef ref
 	) {

@@ -8,7 +8,6 @@ import java.util.Optional;
 
 import io.github.arlol.githubcheck.drift.DriftFix;
 import io.github.arlol.githubcheck.drift.DriftGroup;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,25 +20,20 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.ActualTypes;
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
+import io.github.arlol.githubcheck.actual.ActualEnvironment;
+import io.github.arlol.githubcheck.actual.ActualPages;
+import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
-import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
-import io.github.arlol.githubcheck.client.PagesBuildType;
-import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
-import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetRuleType;
 import io.github.arlol.githubcheck.client.RulesetTarget;
-import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
-import io.github.arlol.githubcheck.testsupport.BranchProtectionArgs;
-import io.github.arlol.githubcheck.testsupport.CodeScanningToolArgs;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.RulesetArgs;
-import io.github.arlol.githubcheck.testsupport.StatusCheckArgs;
+import io.github.arlol.githubcheck.pkl.Drifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 import io.github.arlol.githubcheck.drift.DriftItem;
 
 class OrgCheckerDiffTest {
@@ -51,14 +45,6 @@ class OrgCheckerDiffTest {
 					DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES,
 					false
 			);
-
-	private static final String GOOD_SUMMARY_JSON = """
-			{
-				"name": "repo",
-				"archived": false,
-				"visibility": "public"
-			}
-			""";
 
 	private static final String GOOD_DETAILS_JSON = """
 			{
@@ -125,9 +111,9 @@ class OrgCheckerDiffTest {
 
 	private Map<DriftGroup, List<DriftFix>> computeGroupDrifts(
 			RepositoryState actual,
-			RepositoryArgs desired
+			Drifty.Repository desired
 	) {
-		return checker.computeGroupDrifts(actual, ToDrifty.repository(desired));
+		return checker.computeGroupDrifts(actual, desired);
 	}
 
 	// ─── Helpers
@@ -156,16 +142,15 @@ class OrgCheckerDiffTest {
 		return new StateBuilder().build();
 	}
 
-	private static RepositoryArgs defaultArgs() {
-		return RepositoryArgs.create("owner", "repo")
-				.addBranchProtections(
-						BranchProtectionArgs.builder("main")
-								.enforceAdmins(true)
-								.requiredLinearHistory(true)
-								.dismissStaleReviews(true)
-								.build()
-				)
-				.build();
+	private static Drifty.Repository defaultDesired() {
+		return Desired.withBranchProtection(
+				Desired.repository("owner", "repo"),
+				"main",
+				Desired.branchProtection()
+						.withEnforceAdmins(true)
+						.withRequiredLinearHistory(true)
+						.withDismissStaleReviews(true)
+		);
 	}
 
 	/**
@@ -174,7 +159,6 @@ class OrgCheckerDiffTest {
 	 */
 	private static class StateBuilder {
 
-		private String summaryJson = GOOD_SUMMARY_JSON;
 		private String detailsJson = GOOD_DETAILS_JSON;
 		private boolean vulnerabilityAlerts = true;
 		private boolean automatedSecurityFixes = false;
@@ -182,20 +166,13 @@ class OrgCheckerDiffTest {
 		private boolean hasBranchProtection = true;
 		private Map<String, ActualBranchProtection> extraBranchProtections = Map
 				.of();
-		private List<Secret> actionSecrets = List.of();
-		private Map<String, List<Secret>> environmentSecrets = Map.of();
+		private List<ActualSecret> actionSecrets = List.of();
+		private Map<String, List<ActualSecret>> environmentSecrets = Map.of();
 		private String workflowPermissionsJson = GOOD_WORKFLOW_PERMISSIONS_JSON;
 		private List<ActualRuleset> rulesets = List.of();
-		private Optional<PagesResponse> pages = Optional.empty();
-		private Map<String, EnvironmentDetailsResponse> environmentDetails = Map
-				.of();
+		private Optional<ActualPages> pages = Optional.empty();
+		private Map<String, ActualEnvironment> environments = Map.of();
 		private boolean immutableReleases = false;
-
-		StateBuilder summaryOverride(String overridesJson) {
-			this.summaryJson = merge(this.summaryJson, overridesJson)
-					.toString();
-			return this;
-		}
 
 		StateBuilder detailsOverride(String overridesJson) {
 			this.detailsJson = merge(this.detailsJson, overridesJson)
@@ -226,7 +203,7 @@ class OrgCheckerDiffTest {
 			return this;
 		}
 
-		StateBuilder branchProtections(BranchProtectionArgs... bps) {
+		StateBuilder branchProtections(String... patterns) {
 			var map = new java.util.HashMap<String, ActualBranchProtection>();
 			if (hasBranchProtection) {
 				map.put(
@@ -239,9 +216,9 @@ class OrgCheckerDiffTest {
 						)
 				);
 			}
-			for (var bp : bps) {
+			for (var pattern : patterns) {
 				map.put(
-						bp.pattern(),
+						pattern,
 						ActualTypes.branchProtection(
 								parse("{}", BranchProtectionResponse.class)
 						)
@@ -253,7 +230,7 @@ class OrgCheckerDiffTest {
 
 		StateBuilder actionSecretNames(String... names) {
 			this.actionSecrets = java.util.Arrays.stream(names)
-					.map(n -> new Secret(n, null, null))
+					.map(n -> new ActualSecret(n, null))
 					.toList();
 			return this;
 		}
@@ -261,12 +238,12 @@ class OrgCheckerDiffTest {
 		StateBuilder environmentSecretNames(
 				Map<String, List<String>> envSecrets
 		) {
-			var converted = new java.util.LinkedHashMap<String, List<Secret>>();
+			var converted = new java.util.LinkedHashMap<String, List<ActualSecret>>();
 			envSecrets.forEach(
 					(env, names) -> converted.put(
 							env,
 							names.stream()
-									.map(n -> new Secret(n, null, null))
+									.map(n -> new ActualSecret(n, null))
 									.toList()
 					)
 			);
@@ -284,15 +261,13 @@ class OrgCheckerDiffTest {
 			return this;
 		}
 
-		StateBuilder pages(Optional<PagesResponse> pages) {
+		StateBuilder pages(Optional<ActualPages> pages) {
 			this.pages = pages;
 			return this;
 		}
 
-		StateBuilder environmentDetails(
-				Map<String, EnvironmentDetailsResponse> envDetails
-		) {
-			this.environmentDetails = envDetails;
+		StateBuilder environments(Map<String, ActualEnvironment> environments) {
+			this.environments = environments;
 			return this;
 		}
 
@@ -315,22 +290,28 @@ class OrgCheckerDiffTest {
 				);
 			}
 			bpMap.putAll(extraBranchProtections);
+			var details = parse(detailsJson, RepositoryDetailsResponse.class);
 			return new RepositoryState(
 					"repo",
-					parse(summaryJson, RepositorySummaryResponse.class),
-					parse(detailsJson, RepositoryDetailsResponse.class),
+					ActualTypes.repository(details),
+					ActualTypes.securityAndAnalysis(details),
 					vulnerabilityAlerts,
 					automatedSecurityFixes,
-					Map.copyOf(bpMap),
-					actionSecrets,
-					environmentSecrets,
-					parse(workflowPermissionsJson, WorkflowPermissions.class),
-					rulesets,
-					pages,
-					environmentDetails,
 					immutableReleases,
 					false,
-					false
+					false,
+					Map.copyOf(bpMap),
+					rulesets,
+					actionSecrets,
+					environments,
+					environmentSecrets,
+					ActualTypes.workflowPermissions(
+							parse(
+									workflowPermissionsJson,
+									WorkflowPermissions.class
+							)
+					),
+					pages
 			);
 		}
 
@@ -341,7 +322,7 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void noDrift_forCorrectPublicRepo() {
-		var groupDrifts = computeGroupDrifts(goodPublicState(), defaultArgs());
+		var groupDrifts = computeGroupDrifts(goodPublicState(), defaultDesired());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -353,7 +334,7 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void noDrift_forCorrectArchivedRepo() {
-		var state = new StateBuilder().summaryOverride("""
+		var state = new StateBuilder().detailsOverride("""
 				{"archived": true}
 				""")
 				.vulnerabilityAlerts(false)
@@ -368,7 +349,7 @@ class OrgCheckerDiffTest {
 				.build();
 		var groupDrifts = computeGroupDrifts(
 				state,
-				defaultArgs().toBuilder().archived().branchProtections().build()
+				defaultDesired().withArchived(true).withBranchProtections(Map.of())
 		);
 		var messages = groupDrifts.values()
 				.stream()
@@ -386,7 +367,7 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void archived_skipsSecurityAndBranchProtectionChecks() {
-		var state = new StateBuilder().summaryOverride("""
+		var state = new StateBuilder().detailsOverride("""
 				{"archived": true}
 				""")
 				.vulnerabilityAlerts(false)
@@ -411,7 +392,7 @@ class OrgCheckerDiffTest {
 				.build();
 		var groupDrifts = computeGroupDrifts(
 				state,
-				defaultArgs().toBuilder().archived().branchProtections().build()
+				defaultDesired().withArchived(true).withBranchProtections(Map.of())
 		);
 		var messages = groupDrifts.values()
 				.stream()
@@ -424,7 +405,7 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void drift_whenActualArchivedButDesiredNot() {
-		var state = new StateBuilder().summaryOverride("""
+		var state = new StateBuilder().detailsOverride("""
 				{"archived": true}
 				""")
 				.vulnerabilityAlerts(false)
@@ -433,7 +414,7 @@ class OrgCheckerDiffTest {
 				.build();
 		var groupDrifts = computeGroupDrifts(
 				state,
-				defaultArgs().toBuilder().branchProtections().build()
+				defaultDesired().withBranchProtections(Map.of())
 		);
 		var messages = groupDrifts.values()
 				.stream()
@@ -459,7 +440,7 @@ class OrgCheckerDiffTest {
 					"can_approve_pull_request_reviews": true
 				}
 				""").build();
-		var groupDrifts = computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultDesired());
 		var groupDriftMessages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -478,7 +459,7 @@ class OrgCheckerDiffTest {
 					"can_approve_pull_request_reviews": false
 				}
 				""").build();
-		var groupDrifts = computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultDesired());
 		var groupDriftMessages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -496,7 +477,7 @@ class OrgCheckerDiffTest {
 	@Test
 	void drift_branchProtectionMissing() {
 		var state = new StateBuilder().noBranchProtection().build();
-		var groupDrifts = computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultDesired());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -511,7 +492,7 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder().branchProtectionOverride("""
 				{"enforce_admins": {"enabled": false}}
 				""").build();
-		var groupDrifts = computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultDesired());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -528,7 +509,7 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder().branchProtectionOverride("""
 				{"required_linear_history": {"enabled": false}}
 				""").build();
-		var groupDrifts = computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultDesired());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -545,7 +526,7 @@ class OrgCheckerDiffTest {
 		var state = new StateBuilder().branchProtectionOverride("""
 				{"allow_force_pushes": {"enabled": true}}
 				""").build();
-		var groupDrifts = computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultDesired());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -576,7 +557,7 @@ class OrgCheckerDiffTest {
 								"""
 				)
 				.build();
-		var groupDrifts = computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultDesired());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -600,7 +581,7 @@ class OrgCheckerDiffTest {
 					}
 				}
 				""").build();
-		var groupDrifts = computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultDesired());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -623,7 +604,7 @@ class OrgCheckerDiffTest {
 					}
 				}
 				""").build();
-		var groupDrifts = computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultDesired());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -646,7 +627,7 @@ class OrgCheckerDiffTest {
 					}
 				}
 				""").build();
-		var groupDrifts = computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultDesired());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -665,16 +646,16 @@ class OrgCheckerDiffTest {
 					"restrictions": null
 				}
 				""").build();
-		var args = defaultArgs().toBuilder()
-				.branchProtections(
-						BranchProtectionArgs.builder("main")
-								.enforceAdmins(true)
-								.requiredLinearHistory(true)
-								.dismissStaleReviews(true)
-								.users(List.of("admin"))
-								.build()
+		var args = defaultDesired().withBranchProtections(
+				Map.of(
+						"main",
+						Desired.branchProtection()
+								.withEnforceAdmins(true)
+								.withRequiredLinearHistory(true)
+								.withDismissStaleReviews(true)
+								.withUsers(List.of("admin"))
 				)
-				.build();
+		);
 		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
@@ -700,15 +681,15 @@ class OrgCheckerDiffTest {
 					}
 				}
 				""").build();
-		var args = defaultArgs().toBuilder()
-				.branchProtections(
-						BranchProtectionArgs.builder("main")
-								.enforceAdmins(true)
-								.requiredLinearHistory(true)
-								.users(List.of("charlie"))
-								.build()
+		var args = defaultDesired().withBranchProtections(
+				Map.of(
+						"main",
+						Desired.branchProtection()
+								.withEnforceAdmins(true)
+								.withRequiredLinearHistory(true)
+								.withUsers(List.of("charlie"))
 				)
-				.build();
+		);
 		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
@@ -736,15 +717,15 @@ class OrgCheckerDiffTest {
 					}
 				}
 				""").build();
-		var args = defaultArgs().toBuilder()
-				.branchProtections(
-						BranchProtectionArgs.builder("main")
-								.enforceAdmins(true)
-								.requiredLinearHistory(true)
-								.teams(List.of("platform"))
-								.build()
+		var args = defaultDesired().withBranchProtections(
+				Map.of(
+						"main",
+						Desired.branchProtection()
+								.withEnforceAdmins(true)
+								.withRequiredLinearHistory(true)
+								.withTeams(List.of("platform"))
 				)
-				.build();
+		);
 		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
@@ -771,15 +752,15 @@ class OrgCheckerDiffTest {
 					}
 				}
 				""").build();
-		var args = defaultArgs().toBuilder()
-				.branchProtections(
-						BranchProtectionArgs.builder("main")
-								.enforceAdmins(true)
-								.requiredLinearHistory(true)
-								.apps(List.of("other-app"))
-								.build()
+		var args = defaultDesired().withBranchProtections(
+				Map.of(
+						"main",
+						Desired.branchProtection()
+								.withEnforceAdmins(true)
+								.withRequiredLinearHistory(true)
+								.withApps(List.of("other-app"))
 				)
-				.build();
+		);
 		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
 				.stream()
@@ -796,11 +777,9 @@ class OrgCheckerDiffTest {
 	@Test
 	void drift_branchProtectionExtra() {
 		var state = new StateBuilder().branchProtectionOverride("{}")
-				.branchProtections(
-						BranchProtectionArgs.builder("staging").build()
-				)
+				.branchProtections("staging")
 				.build();
-		var groupDrifts = computeGroupDrifts(state, defaultArgs());
+		var groupDrifts = computeGroupDrifts(state, defaultDesired());
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -817,24 +796,19 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void existingEnvironmentSecret_withoutBaseline_isDrift() {
-		var args = defaultArgs().toBuilder()
-				.environment(
-						"production",
-						env -> env.secrets("TF_GITHUB_TOKEN")
-				)
-				.build();
+		var args = Desired.withEnvironment(
+				defaultDesired(),
+				"production",
+				Desired.environment().withSecrets(List.of("TF_GITHUB_TOKEN"))
+		);
 		var state = new StateBuilder()
 				.environmentSecretNames(
 						Map.of("production", List.of("TF_GITHUB_TOKEN"))
 				)
-				.environmentDetails(
+				.environments(
 						Map.of(
 								"production",
-								new EnvironmentDetailsResponse(
-										"production",
-										null,
-										null
-								)
+								new ActualEnvironment(0, false, false)
 						)
 				)
 				.build();
@@ -853,7 +827,7 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void existingActionSecret_withoutBaseline_isDrift() {
-		var args = defaultArgs().toBuilder().actionsSecrets("PAT").build();
+		var args = defaultDesired().withActionsSecrets(List.of("PAT"));
 		var state = new StateBuilder().actionSecretNames("PAT").build();
 		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
@@ -873,10 +847,10 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void pages_noDrift_whenEnvironmentAndPagesPresent() {
-		var args = defaultArgs().toBuilder().pages().build();
+		var args = defaultDesired().withPages(Desired.pages());
 		var state = new StateBuilder()
 				.environmentSecretNames(Map.of("github-pages", List.of()))
-				.pages(Optional.of(goodPagesResponse()))
+				.pages(Optional.of(goodPages()))
 				.build();
 		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
@@ -888,21 +862,8 @@ class OrgCheckerDiffTest {
 		assertThat(messages).isEmpty();
 	}
 
-	private static PagesResponse goodPagesResponse() {
-		return new PagesResponse(
-				null,
-				PagesResponse.Status.BUILT,
-				null,
-				false,
-				null,
-				PagesBuildType.WORKFLOW,
-				null,
-				true,
-				null,
-				null,
-				null,
-				true
-		);
+	private static ActualPages goodPages() {
+		return new ActualPages("workflow", Optional.empty(), true);
 	}
 
 	// ─── Rulesets drift
@@ -1002,22 +963,22 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void noDrift_rulesetMatchesExactly() {
-		var args = defaultArgs().toBuilder()
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.requiredLinearHistory(true)
-								.noForcePushes(true)
-								.requiredStatusChecks(
-										StatusCheckArgs.builder()
-												.context(
+		var args = defaultDesired().withRulesets(
+				Map.of(
+						"main-branch-rules",
+						Desired.ruleset()
+								.withIncludePatterns(List.of("~DEFAULT_BRANCH"))
+								.withRequiredLinearHistory(true)
+								.withNoForcePushes(true)
+								.withRequiredStatusChecks(
+										List.of(
+												Desired.statusCheck(
 														"check-actions.required-status-check"
 												)
-												.build()
+										)
 								)
-								.build()
 				)
-				.build();
+		);
 		var state = new StateBuilder()
 				.rulesets(
 						List.of(
@@ -1042,13 +1003,13 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void drift_rulesetMissing() {
-		var args = defaultArgs().toBuilder()
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.build()
+		var args = defaultDesired().withRulesets(
+				Map.of(
+						"main-branch-rules",
+						Desired.ruleset()
+								.withIncludePatterns(List.of("~DEFAULT_BRANCH"))
 				)
-				.build();
+		);
 		var state = new StateBuilder().rulesets(List.of()).build();
 		var groupDrifts = computeGroupDrifts(state, args);
 		var messages = groupDrifts.values()
@@ -1062,14 +1023,14 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void drift_rulesetLinearHistoryMissing() {
-		var args = defaultArgs().toBuilder()
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.requiredLinearHistory(true)
-								.build()
+		var args = defaultDesired().withRulesets(
+				Map.of(
+						"main-branch-rules",
+						Desired.ruleset()
+								.withIncludePatterns(List.of("~DEFAULT_BRANCH"))
+								.withRequiredLinearHistory(true)
 				)
-				.build();
+		);
 		var state = new StateBuilder()
 				.rulesets(List.of(rulesetWithRules("main-branch-rules")))
 				.build();
@@ -1087,14 +1048,14 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void drift_rulesetNoForcePushesMissing() {
-		var args = defaultArgs().toBuilder()
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.noForcePushes(true)
-								.build()
+		var args = defaultDesired().withRulesets(
+				Map.of(
+						"main-branch-rules",
+						Desired.ruleset()
+								.withIncludePatterns(List.of("~DEFAULT_BRANCH"))
+								.withNoForcePushes(true)
 				)
-				.build();
+		);
 		var state = new StateBuilder()
 				.rulesets(List.of(rulesetWithRules("main-branch-rules")))
 				.build();
@@ -1112,21 +1073,19 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void drift_rulesetStatusCheckMissing() {
-		var args = defaultArgs().toBuilder()
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.requiredStatusChecks(
-										StatusCheckArgs.builder()
-												.context("CodeQL")
-												.build(),
-										StatusCheckArgs.builder()
-												.context("zizmor")
-												.build()
+		var args = defaultDesired().withRulesets(
+				Map.of(
+						"main-branch-rules",
+						Desired.ruleset()
+								.withIncludePatterns(List.of("~DEFAULT_BRANCH"))
+								.withRequiredStatusChecks(
+										List.of(
+												Desired.statusCheck("CodeQL"),
+												Desired.statusCheck("zizmor")
+										)
 								)
-								.build()
 				)
-				.build();
+		);
 		var state = new StateBuilder().rulesets(
 				List.of(rulesetWithStatusChecks("main-branch-rules", "CodeQL"))
 		).build();
@@ -1146,18 +1105,16 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void drift_rulesetExtraStatusCheck() {
-		var args = defaultArgs().toBuilder()
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.requiredStatusChecks(
-										StatusCheckArgs.builder()
-												.context("CodeQL")
-												.build()
+		var args = defaultDesired().withRulesets(
+				Map.of(
+						"main-branch-rules",
+						Desired.ruleset()
+								.withIncludePatterns(List.of("~DEFAULT_BRANCH"))
+								.withRequiredStatusChecks(
+										List.of(Desired.statusCheck("CodeQL"))
 								)
-								.build()
 				)
-				.build();
+		);
 		var state = new StateBuilder()
 				.rulesets(
 						List.of(
@@ -1188,14 +1145,14 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void drift_rulesetRequiredReviewCountWrong() {
-		var args = defaultArgs().toBuilder()
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.requiredReviewCount(2)
-								.build()
+		var args = defaultDesired().withRulesets(
+				Map.of(
+						"main-branch-rules",
+						Desired.ruleset()
+								.withIncludePatterns(List.of("~DEFAULT_BRANCH"))
+								.withRequiredReviewCount(2L)
 				)
-				.build();
+		);
 		var include = List.of("~DEFAULT_BRANCH");
 		var conditions = new RulesetDetailsResponse.Conditions(
 				new RulesetDetailsResponse.Conditions.RefName(
@@ -1247,19 +1204,21 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void noDrift_codeScanningMatchesExactly() {
-		var args = defaultArgs().toBuilder()
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.requiredLinearHistory(true)
-								.addRequiredCodeScanning(
-										CodeScanningToolArgs.builder()
-												.tool("CodeQL")
-												.build()
+		var args = defaultDesired().withRulesets(
+				Map.of(
+						"main-branch-rules",
+						Desired.ruleset()
+								.withIncludePatterns(List.of("~DEFAULT_BRANCH"))
+								.withRequiredLinearHistory(true)
+								.withRequiredCodeScanning(
+										List.of(
+												Desired.codeScanningTool(
+														"CodeQL"
+												)
+										)
 								)
-								.build()
 				)
-				.build();
+		);
 		var conditions = new RulesetDetailsResponse.Conditions(
 				new RulesetDetailsResponse.Conditions.RefName(
 						List.of("~DEFAULT_BRANCH"),
@@ -1312,18 +1271,20 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void drift_codeScanningMissing() {
-		var args = defaultArgs().toBuilder()
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.addRequiredCodeScanning(
-										CodeScanningToolArgs.builder()
-												.tool("CodeQL")
-												.build()
+		var args = defaultDesired().withRulesets(
+				Map.of(
+						"main-branch-rules",
+						Desired.ruleset()
+								.withIncludePatterns(List.of("~DEFAULT_BRANCH"))
+								.withRequiredCodeScanning(
+										List.of(
+												Desired.codeScanningTool(
+														"CodeQL"
+												)
+										)
 								)
-								.build()
 				)
-				.build();
+		);
 		var conditions = new RulesetDetailsResponse.Conditions(
 				new RulesetDetailsResponse.Conditions.RefName(
 						List.of("~DEFAULT_BRANCH"),
@@ -1365,13 +1326,13 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void drift_codeScanningExtraTool() {
-		var args = defaultArgs().toBuilder()
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.build()
+		var args = defaultDesired().withRulesets(
+				Map.of(
+						"main-branch-rules",
+						Desired.ruleset()
+								.withIncludePatterns(List.of("~DEFAULT_BRANCH"))
 				)
-				.build();
+		);
 		var conditions = new RulesetDetailsResponse.Conditions(
 				new RulesetDetailsResponse.Conditions.RefName(
 						List.of("~DEFAULT_BRANCH"),

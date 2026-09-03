@@ -14,16 +14,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
-import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.drift.DriftFix;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
-import io.github.arlol.githubcheck.testsupport.BranchProtectionArgs;
-import io.github.arlol.githubcheck.testsupport.PagesArgs;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.RulesetArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.pkl.Drifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 /**
  * Drift paths are the identity of a drifted setting. Two groups that emit the
@@ -42,14 +38,6 @@ class DriftPathNamespacingTest {
 					DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES,
 					false
 			);
-
-	private static final String SUMMARY_JSON = """
-			{
-				"name": "repo",
-				"archived": true,
-				"visibility": "public"
-			}
-			""";
 
 	private static final String DETAILS_JSON = """
 			{
@@ -130,67 +118,81 @@ class DriftPathNamespacingTest {
 	private static List<DriftGroup> driftGroups() {
 		var checker = new OrgChecker((String) null, false);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.description("wanted")
-				.defaultBranch("main")
-				.topics("java")
-				.actionsSecrets("PAT")
-				.environment("production", e -> e.secrets("TOKEN"))
-				.pages(PagesArgs.workflow())
-				.rulesets(
-						RulesetArgs.builder("main").noForcePushes(true).build()
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withDescription("wanted")
+				.withDefaultBranch("main")
+				.withTopics(List.of("java"))
+				.withActionsSecrets(List.of("PAT"))
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment()
+										.withSecrets(List.of("TOKEN"))
+						)
 				)
-				.branchProtections(
-						BranchProtectionArgs.builder("main")
-								.enforceAdmins(true)
-								.build()
+				.withPages(Desired.pages())
+				.withRulesets(
+						Map.of(
+								"main",
+								Desired.ruleset().withNoForcePushes(true)
+						)
 				)
-				.vulnerabilityAlerts(true)
-				.automatedSecurityFixes(true)
-				.secretScanning(true)
-				.secretScanningPushProtection(true)
-				.secretScanningValidityChecks(true)
-				.secretScanningNonProviderPatterns(true)
-				.privateVulnerabilityReporting(true)
-				.codeScanningDefaultSetup(true)
-				.advancedSecurity(true)
-				.secretScanningAiDetection(true)
-				.secretScanningDelegatedAlertDismissal(true)
-				.secretScanningDelegatedBypass(true)
-				.immutableReleases(true)
-				.hasIssues(true)
-				.hasProjects(true)
-				.hasWiki(true)
-				.allowMergeCommit(true)
-				.allowSquashMerge(true)
-				.allowRebaseMerge(true)
-				.allowAutoMerge(false)
-				.deleteBranchOnMerge(false)
-				.defaultWorkflowPermissions(
-						WorkflowPermissions.DefaultWorkflowPermissions.READ
+				.withBranchProtections(
+						Map.of(
+								"main",
+								Desired.branchProtection()
+										.withEnforceAdmins(true)
+						)
 				)
-				.canApprovePullRequestReviews(false)
-				.build();
+				.withVulnerabilityAlerts(true)
+				.withAutomatedSecurityFixes(true)
+				.withSecretScanning(true)
+				.withSecretScanningPushProtection(true)
+				.withSecretScanningValidityChecks(true)
+				.withSecretScanningNonProviderPatterns(true)
+				.withPrivateVulnerabilityReporting(true)
+				.withCodeScanningDefaultSetup(true)
+				.withAdvancedSecurity(true)
+				.withSecretScanningAiDetection(true)
+				.withSecretScanningDelegatedAlertDismissal(true)
+				.withSecretScanningDelegatedBypass(true)
+				.withImmutableReleases(true)
+				.withHasIssues(true)
+				.withHasProjects(true)
+				.withHasWiki(true)
+				.withAllowMergeCommit(true)
+				.withAllowSquashMerge(true)
+				.withAllowRebaseMerge(true)
+				.withAllowAutoMerge(false)
+				.withDeleteBranchOnMerge(false)
+				.withDefaultWorkflowPermissions(Drifty.WorkflowPermissions.READ)
+				.withCanApprovePullRequestReviews(false);
 
+		var details = parse(DETAILS_JSON, RepositoryDetailsResponse.class);
 		var actual = new RepositoryState(
 				"repo",
-				parse(SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(details),
+				ActualTypes.securityAndAnalysis(details),
+				false,
+				false,
+				false,
 				false,
 				false,
 				Map.of(),
 				List.of(),
-				Map.of(),
-				parse(WORKFLOW_PERMISSIONS_JSON, WorkflowPermissions.class),
 				List.of(),
-				Optional.empty(),
 				Map.of(),
-				false,
-				false,
-				false
+				Map.of(),
+				ActualTypes.workflowPermissions(
+						parse(
+								WORKFLOW_PERMISSIONS_JSON,
+								WorkflowPermissions.class
+						)
+				),
+				Optional.empty()
 		);
 
-		return checker.createDriftGroups(actual, ToDrifty.repository(desired));
+		return checker.createDriftGroups(actual, desired);
 	}
 
 	private static <T> T parse(String json, Class<T> type) {

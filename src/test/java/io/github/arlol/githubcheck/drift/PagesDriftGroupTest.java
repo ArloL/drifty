@@ -6,36 +6,19 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 
-import io.github.arlol.githubcheck.client.PagesBuildType;
-import io.github.arlol.githubcheck.client.PagesResponse;
+import io.github.arlol.githubcheck.actual.ActualPages;
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.testsupport.PagesArgs;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 class PagesDriftGroupTest {
 
 	@Test
 	void noDriftWhenPagesNotDesired() {
-		var desired = RepositoryArgs.create("owner", "repo").build();
-		var actual = Optional.of(
-				new PagesResponse(
-						null,
-						PagesResponse.Status.BUILT,
-						null,
-						false,
-						null,
-						PagesBuildType.WORKFLOW,
-						null,
-						true,
-						null,
-						null,
-						null,
-						true
-				)
-		);
+		var desired = Desired.repository("owner", "repo");
+		var actual = Optional
+				.of(new ActualPages("workflow", Optional.empty(), true));
 		var group = new PagesDriftGroup(
-				ToDrifty.repository(desired).pages,
+				desired.pages,
 				actual,
 				null,
 				new RepoRef("owner", "repo")
@@ -51,10 +34,11 @@ class PagesDriftGroupTest {
 
 	@Test
 	void detectsMissingPages() {
-		var desired = RepositoryArgs.create("owner", "repo").pages().build();
-		Optional<PagesResponse> actual = Optional.empty();
+		var desired = Desired.repository("owner", "repo")
+				.withPages(Desired.pages());
+		Optional<ActualPages> actual = Optional.empty();
 		var group = new PagesDriftGroup(
-				ToDrifty.repository(desired).pages,
+				desired.pages,
 				actual,
 				null,
 				new RepoRef("owner", "repo")
@@ -73,26 +57,17 @@ class PagesDriftGroupTest {
 
 	@Test
 	void detectsBuildTypeMismatch() {
-		var desired = RepositoryArgs.create("owner", "repo").pages().build(); // wants
-																			  // WORKFLOW
+		var desired = Desired.repository("owner", "repo")
+				.withPages(Desired.pages()); // wants workflow
 		var actual = Optional.of(
-				new PagesResponse(
-						null,
-						PagesResponse.Status.BUILT,
-						null,
-						false,
-						null,
-						PagesBuildType.LEGACY,
-						new PagesResponse.Source("gh-pages", "/"),
-						true,
-						null,
-						null,
-						null,
+				new ActualPages(
+						"legacy",
+						Optional.of(new ActualPages.Source("gh-pages", "/")),
 						true
 				)
 		);
 		var group = new PagesDriftGroup(
-				ToDrifty.repository(desired).pages,
+				desired.pages,
 				actual,
 				null,
 				new RepoRef("owner", "repo")
@@ -114,25 +89,17 @@ class PagesDriftGroupTest {
 
 	@Test
 	void detectsHttpsNotEnforced() {
-		var desired = RepositoryArgs.create("owner", "repo").pages().build();
+		var desired = Desired.repository("owner", "repo")
+				.withPages(Desired.pages());
 		var actual = Optional.of(
-				new PagesResponse(
-						null,
-						PagesResponse.Status.BUILT,
-						null,
-						false,
-						null,
-						PagesBuildType.WORKFLOW,
-						null,
-						true,
-						null,
-						null,
-						null,
+				new ActualPages(
+						"workflow",
+						Optional.empty(),
 						false // https_enforced is false → drift
 				)
 		);
 		var group = new PagesDriftGroup(
-				ToDrifty.repository(desired).pages,
+				desired.pages,
 				actual,
 				null,
 				new RepoRef("owner", "repo")
@@ -154,27 +121,17 @@ class PagesDriftGroupTest {
 
 	@Test
 	void detectsSourceBranchMismatch() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.pages(PagesArgs.legacy("main", "/docs"))
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withPages(Desired.legacyPages("main", "/docs"));
 		var actual = Optional.of(
-				new PagesResponse(
-						null,
-						PagesResponse.Status.BUILT,
-						null,
-						false,
-						null,
-						PagesBuildType.LEGACY,
-						new PagesResponse.Source("gh-pages", "/"),
-						true,
-						null,
-						null,
-						null,
+				new ActualPages(
+						"legacy",
+						Optional.of(new ActualPages.Source("gh-pages", "/")),
 						true
 				)
 		);
 		var group = new PagesDriftGroup(
-				ToDrifty.repository(desired).pages,
+				desired.pages,
 				actual,
 				null,
 				new RepoRef("owner", "repo")
@@ -190,27 +147,17 @@ class PagesDriftGroupTest {
 
 	@Test
 	void noDriftWhenAllMatch() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.pages(PagesArgs.legacy("main", "/docs"))
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withPages(Desired.legacyPages("main", "/docs"));
 		var actual = Optional.of(
-				new PagesResponse(
-						null,
-						PagesResponse.Status.BUILT,
-						null,
-						false,
-						null,
-						PagesBuildType.LEGACY,
-						new PagesResponse.Source("main", "/docs"),
-						true,
-						null,
-						null,
-						null,
+				new ActualPages(
+						"legacy",
+						Optional.of(new ActualPages.Source("main", "/docs")),
 						true
 				)
 		);
 		var group = new PagesDriftGroup(
-				ToDrifty.repository(desired).pages,
+				desired.pages,
 				actual,
 				null,
 				new RepoRef("owner", "repo")

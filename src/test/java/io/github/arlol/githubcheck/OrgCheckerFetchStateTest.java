@@ -146,10 +146,14 @@ class OrgCheckerFetchStateTest {
 		assertThat(state.immutableReleases()).isTrue();
 		assertThat(state.privateVulnerabilityReporting()).isTrue();
 		assertThat(state.codeScanningDefaultSetup()).isTrue();
-		assertThat(state.secretScanning()).isTrue();
-		assertThat(state.secretScanningPushProtection()).isTrue();
-		assertThat(state.secretScanningNonProviderPatterns()).isFalse();
-		assertThat(state.secretScanningValidityChecks()).isTrue();
+		assertThat(state.securityAndAnalysis().secretScanning()).isTrue();
+		assertThat(state.securityAndAnalysis().secretScanningPushProtection())
+				.isTrue();
+		assertThat(
+				state.securityAndAnalysis().secretScanningNonProviderPatterns()
+		).isFalse();
+		assertThat(state.securityAndAnalysis().secretScanningValidityChecks())
+				.isTrue();
 
 		assertThat(state.branchProtections()).containsOnlyKeys("main");
 		assertThat(state.branchProtections().get("main").enforceAdmins())
@@ -159,7 +163,7 @@ class OrgCheckerFetchStateTest {
 		assertThat(state.pages()).isPresent();
 		assertThat(state.actionSecrets()).singleElement()
 				.satisfies(s -> assertThat(s.name()).isEqualTo("TOKEN"));
-		assertThat(state.environmentDetails()).containsOnlyKeys("prod");
+		assertThat(state.environments()).containsOnlyKeys("prod");
 		assertThat(state.environmentSecrets().get("prod")).singleElement()
 				.satisfies(s -> assertThat(s.name()).isEqualTo("DEPLOY_KEY"));
 		assertThat(state.workflowPermissions().defaultWorkflowPermissions())
@@ -192,10 +196,14 @@ class OrgCheckerFetchStateTest {
 		assertThat(state.pages()).isEmpty();
 		// A repository with no security_and_analysis block reads as disabled
 		// rather than blowing up on the missing object.
-		assertThat(state.secretScanning()).isFalse();
-		assertThat(state.secretScanningPushProtection()).isFalse();
-		assertThat(state.secretScanningNonProviderPatterns()).isFalse();
-		assertThat(state.secretScanningValidityChecks()).isFalse();
+		assertThat(state.securityAndAnalysis().secretScanning()).isFalse();
+		assertThat(state.securityAndAnalysis().secretScanningPushProtection())
+				.isFalse();
+		assertThat(
+				state.securityAndAnalysis().secretScanningNonProviderPatterns()
+		).isFalse();
+		assertThat(state.securityAndAnalysis().secretScanningValidityChecks())
+				.isFalse();
 		assertThat(state.vulnerabilityAlerts()).isTrue();
 	}
 
@@ -224,17 +232,21 @@ class OrgCheckerFetchStateTest {
 		// rather than being zeroed. Zeroing them made an archived repo that
 		// config wants unarchived report drift on settings that were already
 		// correct.
-		assertThat(state.secretScanning()).isTrue();
-		assertThat(state.secretScanningPushProtection()).isFalse();
-		assertThat(state.secretScanningNonProviderPatterns()).isFalse();
-		assertThat(state.secretScanningValidityChecks()).isFalse();
+		assertThat(state.securityAndAnalysis().secretScanning()).isTrue();
+		assertThat(state.securityAndAnalysis().secretScanningPushProtection())
+				.isFalse();
+		assertThat(
+				state.securityAndAnalysis().secretScanningNonProviderPatterns()
+		).isFalse();
+		assertThat(state.securityAndAnalysis().secretScanningValidityChecks())
+				.isFalse();
 
 		assertThat(state.branchProtections()).isEmpty();
 		assertThat(state.rulesets()).isEmpty();
 		assertThat(state.pages()).isEmpty();
 		// Secrets, environments and workflow permissions are still read.
 		assertThat(state.actionSecrets()).hasSize(1);
-		assertThat(state.environmentDetails()).containsOnlyKeys("prod");
+		assertThat(state.environments()).containsOnlyKeys("prod");
 	}
 
 	@Test

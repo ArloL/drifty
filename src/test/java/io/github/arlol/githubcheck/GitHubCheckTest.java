@@ -5,8 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Map;
 
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 import org.junit.jupiter.api.Test;
 
@@ -71,15 +70,17 @@ class GitHubCheckTest {
 	@Test
 	void collectMissingSecrets_noneMissing() {
 		var repos = List.of(
-				ToDrifty.repository(
-						RepositoryArgs.create("owner", "repo")
-								.actionsSecrets("TOKEN")
-								.environment(
+				Desired.repository("owner", "repo")
+						.withActionsSecrets(List.of("TOKEN"))
+						.withEnvironments(
+								Map.of(
 										"prod",
-										env -> env.secrets("DEPLOY_KEY")
+										Desired.environment()
+												.withSecrets(
+														List.of("DEPLOY_KEY")
+												)
 								)
-								.build()
-				)
+						)
 		);
 
 		assertThat(
@@ -93,15 +94,17 @@ class GitHubCheckTest {
 	@Test
 	void collectMissingSecrets_reportsActionAndEnvironmentSecrets() {
 		var repos = List.of(
-				ToDrifty.repository(
-						RepositoryArgs.create("owner", "repo")
-								.actionsSecrets("TOKEN")
-								.environment(
+				Desired.repository("owner", "repo")
+						.withActionsSecrets(List.of("TOKEN"))
+						.withEnvironments(
+								Map.of(
 										"prod",
-										env -> env.secrets("DEPLOY_KEY")
+										Desired.environment()
+												.withSecrets(
+														List.of("DEPLOY_KEY")
+												)
 								)
-								.build()
-				)
+						)
 		);
 
 		assertThat(GitHubCheck.collectMissingSecrets(repos, Map.of()))
@@ -114,11 +117,8 @@ class GitHubCheckTest {
 	@Test
 	void reportMissingSecrets_signalsWhetherAnythingIsMissing() {
 		var repos = List.of(
-				ToDrifty.repository(
-						RepositoryArgs.create("owner", "repo")
-								.actionsSecrets("TOKEN")
-								.build()
-				)
+				Desired.repository("owner", "repo")
+						.withActionsSecrets(List.of("TOKEN"))
 		);
 
 		assertThat(GitHubCheck.reportMissingSecrets(repos, Map.of())).isTrue();

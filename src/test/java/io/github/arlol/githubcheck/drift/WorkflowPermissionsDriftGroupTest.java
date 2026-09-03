@@ -4,27 +4,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-import io.github.arlol.githubcheck.client.WorkflowPermissions;
-import io.github.arlol.githubcheck.client.WorkflowPermissions.DefaultWorkflowPermissions;
+import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.client.WorkflowPermissions.DefaultWorkflowPermissions;
+import io.github.arlol.githubcheck.pkl.Drifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 class WorkflowPermissionsDriftGroupTest {
 
 	@Test
 	void noDriftWhenBothFieldsMatch() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.defaultWorkflowPermissions(DefaultWorkflowPermissions.WRITE)
-				.canApprovePullRequestReviews(true)
-				.build();
-		var actual = new WorkflowPermissions(
+		var desired = Desired.repository("owner", "repo")
+				.withDefaultWorkflowPermissions(
+						Drifty.WorkflowPermissions.WRITE
+				)
+				.withCanApprovePullRequestReviews(true);
+		var actual = new ActualWorkflowPermissions(
 				DefaultWorkflowPermissions.WRITE,
 				true
 		);
 		var group = new WorkflowPermissionsDriftGroup(
-				ToDrifty.repository(desired).defaultWorkflowPermissions,
-				ToDrifty.repository(desired).canApprovePullRequestReviews,
+				desired.defaultWorkflowPermissions,
+				desired.canApprovePullRequestReviews,
 				actual,
 				null,
 				new RepoRef("owner", "repo")
@@ -40,18 +41,19 @@ class WorkflowPermissionsDriftGroupTest {
 
 	@Test
 	void detectsDefaultPermissionsDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.defaultWorkflowPermissions(DefaultWorkflowPermissions.WRITE)
-				.canApprovePullRequestReviews(false) // match actual to test
-													 // only one field
-				.build();
-		var actual = new WorkflowPermissions(
+		// canApprove matches actual to test only one field
+		var desired = Desired.repository("owner", "repo")
+				.withDefaultWorkflowPermissions(
+						Drifty.WorkflowPermissions.WRITE
+				)
+				.withCanApprovePullRequestReviews(false);
+		var actual = new ActualWorkflowPermissions(
 				DefaultWorkflowPermissions.READ,
 				false
 		);
 		var group = new WorkflowPermissionsDriftGroup(
-				ToDrifty.repository(desired).defaultWorkflowPermissions,
-				ToDrifty.repository(desired).canApprovePullRequestReviews,
+				desired.defaultWorkflowPermissions,
+				desired.canApprovePullRequestReviews,
 				actual,
 				null,
 				new RepoRef("owner", "repo")
@@ -73,23 +75,19 @@ class WorkflowPermissionsDriftGroupTest {
 
 	@Test
 	void detectsCanApprovePrsDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.canApprovePullRequestReviews(true)
-				.defaultWorkflowPermissions(DefaultWorkflowPermissions.READ) // match
-																			 // actual
-																			 // to
-																			 // test
-																			 // only
-																			 // one
-																			 // field
-				.build();
-		var actual = new WorkflowPermissions(
+		// defaultWorkflowPermissions matches actual to test only one field
+		var desired = Desired.repository("owner", "repo")
+				.withCanApprovePullRequestReviews(true)
+				.withDefaultWorkflowPermissions(
+						Drifty.WorkflowPermissions.READ
+				);
+		var actual = new ActualWorkflowPermissions(
 				DefaultWorkflowPermissions.READ,
 				false
 		);
 		var group = new WorkflowPermissionsDriftGroup(
-				ToDrifty.repository(desired).defaultWorkflowPermissions,
-				ToDrifty.repository(desired).canApprovePullRequestReviews,
+				desired.defaultWorkflowPermissions,
+				desired.canApprovePullRequestReviews,
 				actual,
 				null,
 				new RepoRef("owner", "repo")
@@ -112,17 +110,18 @@ class WorkflowPermissionsDriftGroupTest {
 
 	@Test
 	void detectsBothFieldsDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.defaultWorkflowPermissions(DefaultWorkflowPermissions.WRITE)
-				.canApprovePullRequestReviews(true)
-				.build();
-		var actual = new WorkflowPermissions(
+		var desired = Desired.repository("owner", "repo")
+				.withDefaultWorkflowPermissions(
+						Drifty.WorkflowPermissions.WRITE
+				)
+				.withCanApprovePullRequestReviews(true);
+		var actual = new ActualWorkflowPermissions(
 				DefaultWorkflowPermissions.READ,
 				false
 		);
 		var group = new WorkflowPermissionsDriftGroup(
-				ToDrifty.repository(desired).defaultWorkflowPermissions,
-				ToDrifty.repository(desired).canApprovePullRequestReviews,
+				desired.defaultWorkflowPermissions,
+				desired.canApprovePullRequestReviews,
 				actual,
 				null,
 				new RepoRef("owner", "repo")

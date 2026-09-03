@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
+import io.github.arlol.githubcheck.actual.ActualEnvironment;
 import io.github.arlol.githubcheck.client.EnvironmentUpdateRequest;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
@@ -13,14 +13,14 @@ import io.github.arlol.githubcheck.pkl.Drifty;
 public class EnvironmentConfigDriftGroup extends DriftGroup {
 
 	private final Map<String, Drifty.Environment> desired;
-	private final Map<String, EnvironmentDetailsResponse> actual;
+	private final Map<String, ActualEnvironment> actual;
 	private final GitHubClient client;
 	private final String owner;
 	private final String repo;
 
 	public EnvironmentConfigDriftGroup(
 			Map<String, Drifty.Environment> desired,
-			Map<String, EnvironmentDetailsResponse> actual,
+			Map<String, ActualEnvironment> actual,
 			GitHubClient client,
 			RepoRef ref
 	) {
@@ -43,7 +43,7 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 		for (var entry : desired.entrySet()) {
 			String envName = entry.getKey();
 			Drifty.Environment wantEnv = entry.getValue();
-			EnvironmentDetailsResponse actualEnv = actual.get(envName);
+			ActualEnvironment actualEnv = actual.get(envName);
 
 			if (actualEnv == null) {
 				fixes.add(
@@ -61,7 +61,7 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 				ocompare(
 						envName + ".wait_timer",
 						(int) wantEnv.waitTimer,
-						actualEnv.getWaitTimer()
+						actualEnv.waitTimer()
 				).ifPresent(items::add);
 			}
 
@@ -69,16 +69,12 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 				ocompare(
 						envName + ".deployment_branch_policy.protected_branches",
 						wantEnv.protectedBranches,
-						actualEnv.deploymentBranchPolicy() != null
-								&& actualEnv.deploymentBranchPolicy()
-										.protectedBranches()
+						actualEnv.protectedBranches()
 				).ifPresent(items::add);
 				ocompare(
 						envName + ".deployment_branch_policy.custom_branch_policies",
 						wantEnv.customBranchPolicies,
-						actualEnv.deploymentBranchPolicy() != null
-								&& actualEnv.deploymentBranchPolicy()
-										.customBranchPolicies()
+						actualEnv.customBranchPolicies()
 				).ifPresent(items::add);
 			}
 

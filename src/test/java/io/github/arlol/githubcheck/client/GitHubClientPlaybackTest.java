@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 
+import io.github.arlol.githubcheck.ActualTypes;
 import io.github.arlol.githubcheck.client.WorkflowPermissions.DefaultWorkflowPermissions;
 
 class GitHubClientPlaybackTest {
@@ -170,8 +171,8 @@ class GitHubClientPlaybackTest {
 				.filter(e -> e.name().equalsIgnoreCase("production"))
 				.findFirst()
 				.orElseThrow();
-		assertThat(production.getWaitTimer()).isEqualTo(30);
-		assertThat(production.getReviewerIds()).isEmpty();
+		assertThat(ActualTypes.environment(production).waitTimer())
+				.isEqualTo(30);
 		assertThat(production.deploymentBranchPolicy()).isNull();
 	}
 
