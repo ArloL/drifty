@@ -217,3 +217,39 @@ Implemented: Pkl is now the only configuration mechanism. The hardcoded Java con
 ## ~~33. Secret Drift Detection via State File~~ DONE
 
 Implemented: drifty keeps a JSON state file (default `drifty-state.json` next to the config file, override with `--state <path>`) recording, per managed secret, the `updated_at` timestamp it last observed and a salted SHA-256 hash of the value it last pushed. New package `io.github.arlol.githubcheck.state` holds `DriftyState` (in-memory model with `hash()`, `recordActionSecret()`/`recordEnvironmentSecret()` and nullable record lookups) and `StateStore` (load/save). `GitHubClient.getActionSecretNames()`/`getEnvironmentSecretNames()` were renamed to `getActionSecrets()`/`getEnvironmentSecrets()` returning `List<Secret>`; `getActionSecret()`/`getEnvironmentSecret()` were added to read a single secret's `updated_at` after a PUT. `RepositoryState` now carries `List<Secret>`. The secret drift groups compare the recorded timestamp and value hash: a missing timestamp baseline is `SecretMissingBaseline` ("exists but has no recorded baseline"), a timestamp mismatch is `SecretChanged` ("changed outside drifty"), a value-hash mismatch is `SecretValueChanged` ("config value changed since last push"). `--fix` only pushes drifted secrets and records the new timestamp and hash; `check` never writes the state file. This detects both out-of-band edits and secret rotation.
+
+## ~~34. Partial Management: Per-Repo Managed Drift Groups~~ DONE
+
+Implemented: each repo declares which drift groups drifty manages, via a
+`managed` field on the Pkl `Repository` — `mode = "all_except"` (the default,
+with an empty list, so existing config needs no migration) or `mode = "only"`,
+plus a `groups` listing. Group names became a `GroupName` typealias in
+`config/drifty.pkl` listing all 23 groups, so codegen emits the enum and
+`DriftGroup.name()` returns `Drifty.GroupName` instead of a `String`; generated
+enums carry their source string, so drift paths and the `Would fix:` line print
+unchanged. `DriftPathNamespacingTest` asserts the group list and the enum's
+constants match in both directions, replacing a hand-maintained mirror list.
+
+`ManagedGroups` (new, in `drift`) turns the declaration into a predicate:
+`of(Drifty.Managed)`, `all()`, `manages(GroupName)` and `unmanaged()`.
+`OrgChecker.createDriftGroups` derives it from `desired.managed` internally —
+keeping its signature, and with it 92 test call sites — and drops unmanaged
+groups in a single `onlyManaged` filter over the finished list, so a group added
+later is filtered without its author knowing the feature exists. The archived
+short-circuit passes through the same filter.
+
+`OrgChecker.fetchState` takes the `ManagedGroups` as a third parameter and
+guards each fetch, because filtering the group alone would still send its
+requests and a repo in a foreign org is where those 403. `fetchSecurityFlags`
+guards its five flags with short-circuiting `&&`. `RepositoryState.workflowPermissions`
+is null when that group is unmanaged, since it holds the response type rather
+than an `Optional` and nothing reads it once the group is filtered out.
+`CheckResult.RepoCheckResult` gained an `unmanaged` component, printed as an
+`Unmanaged:` line for OK and DRIFT repos — group names only, since their values
+were never fetched.
+
+Also fixed here: `OrgChecker.fetchRulesets` now drops rulesets whose
+`sourceType` is `ORGANIZATION`. The listing endpoint's `includes_parents`
+defaults to true, and `RulesetSourceType` was parsed but read nowhere, so
+`RulesetDriftGroup` reported every org ruleset as `extra (should not exist)` and
+`--fix` issued a repo-scoped DELETE that endpoint cannot serve.

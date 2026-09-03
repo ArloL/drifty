@@ -28,6 +28,13 @@ status.
   `Drifty.*` instances carrying `config/drifty.pkl`'s defaults; tests change
   fields with the generated `withX` methods. Do not reintroduce hand-written
   `*Args` builders — a new Pkl field needs no test-side change.
+- **A new drift group needs a `GroupName` constant.** Group names live in the
+  `GroupName` typealias in `config/drifty.pkl`, and `DriftGroup.name()` returns
+  the generated enum. `DriftPathNamespacingTest` fails a group whose constant is
+  missing, and a `Managed.groups` entry naming a group that does not exist fails
+  at config eval. If the group sends its own requests, guard them in
+  `OrgChecker.fetchState` too — filtering the group alone still sends them, and
+  a repository in someone else's org is where those return 403.
 - **Eight groups PATCH the same `/repos/{owner}/{repo}` resource.** Each
   request carries only its own fields because `RepositoryUpdateRequest` is
   all nullable wrappers under `NON_NULL`; keep it that way.

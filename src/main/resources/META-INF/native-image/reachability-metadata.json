@@ -318,6 +318,51 @@
       ]
     },
     {
+      "type": "io.github.arlol.githubcheck.RepositoryState"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualBranchProtection"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualBranchProtection$PullRequestReviews"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualBranchProtection$Restrictions"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualEnvironment"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualPages"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualPages$Source"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualRepository"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualRuleset"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualRuleset$BypassActor"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualSecret"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis$BypassReviewer"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualWorkflowPermissions"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.StatusCheck"
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.AutomatedSecurityFixesResponse",
       "methods": [
         {
@@ -408,9 +453,6 @@
       "allPublicFields": true,
       "allPublicMethods": true,
       "allPublicConstructors": true
-    },
-    {
-      "type": "io.github.arlol.githubcheck.client.BranchProtectionRequest$RequiredStatusChecks$StatusCheck[]"
     },
     {
       "type": "io.github.arlol.githubcheck.client.BranchProtectionRequest$Restrictions",
@@ -1061,6 +1103,12 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.RepoRef",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.RepositoryCreateRequest",
       "allPublicFields": true,
       "allPublicMethods": true,
@@ -1689,12 +1737,23 @@
     },
     {
       "type": "io.github.arlol.githubcheck.client.RulesetRequest$BypassActorRequest",
+      "methods": [
+        {
+          "name": "actorId",
+          "parameterTypes": []
+        },
+        {
+          "name": "actorType",
+          "parameterTypes": []
+        },
+        {
+          "name": "bypassMode",
+          "parameterTypes": []
+        }
+      ],
       "allPublicFields": true,
       "allPublicMethods": true,
       "allPublicConstructors": true
-    },
-    {
-      "type": "io.github.arlol.githubcheck.client.RulesetRequest$BypassActorRequest[]"
     },
     {
       "type": "io.github.arlol.githubcheck.client.RulesetRequest$Conditions",
@@ -1920,6 +1979,13 @@
       "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$BypassReviewer",
       "methods": [
         {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Long",
+            "io.github.arlol.githubcheck.client.SecurityAndAnalysis$BypassReviewer$ReviewerType"
+          ]
+        },
+        {
           "name": "reviewerId",
           "parameterTypes": []
         },
@@ -1939,6 +2005,12 @@
     {
       "type": "io.github.arlol.githubcheck.client.SecurityAndAnalysis$DelegatedBypassOptions",
       "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.util.List"
+          ]
+        },
         {
           "name": "reviewers",
           "parameterTypes": []
@@ -2035,6 +2107,75 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.drift.ActionSecretsDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.AdvancedSecurityDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.ArchivedDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.AutomatedSecurityFixesDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.BranchProtectionDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.CodeScanningDefaultSetupDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.EnvironmentConfigDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.EnvironmentSecretsDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.ImmutableReleasesDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.PagesDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.PrivateVulnerabilityReportingDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.RepoSettingsDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.RulesetDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.SecretScanningAiDetectionDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.SecretScanningDelegatedAlertDismissalDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.SecretScanningDelegatedBypassDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.SecretScanningDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.SecretScanningNonProviderPatternsDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.SecretScanningPushProtectionDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.SecretScanningValidityChecksDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.TopicsDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.VulnerabilityAlertsDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.WorkflowPermissionsDriftGroup"
+    },
+    {
       "type": "io.github.arlol.githubcheck.pkl.Drifty",
       "allPublicConstructors": true
     },
@@ -2107,6 +2248,27 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$GroupName",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$ManageMode",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$Managed",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.pkl.Drifty$ManageMode",
+            "java.util.List"
+          ]
+        }
+      ],
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$MergeCommitMessage",
       "allPublicConstructors": true
     },
@@ -2140,6 +2302,7 @@
           "parameterTypes": [
             "java.lang.String",
             "java.lang.String",
+            "io.github.arlol.githubcheck.pkl.Drifty$Managed",
             "boolean",
             "java.lang.String",
             "java.lang.String",
@@ -2191,6 +2354,17 @@
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$RulePattern",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "boolean",
+            "io.github.arlol.githubcheck.pkl.Drifty$PatternOperator",
+            "java.lang.String"
+          ]
+        }
+      ],
       "allPublicConstructors": true
     },
     {
@@ -2342,6 +2516,15 @@
     },
     {
       "glob": "org/pkl/core/Release.properties"
+    },
+    {
+      "glob": "org/pkl/core/errorMessages.properties"
+    },
+    {
+      "glob": "org/pkl/core/errorMessages_en.properties"
+    },
+    {
+      "glob": "org/pkl/core/errorMessages_en_US.properties"
     },
     {
       "glob": "org/pkl/core/stdlib/base.pkl"
