@@ -2,9 +2,11 @@ package io.github.arlol.githubcheck;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -271,6 +273,54 @@ class OrgCheckerFetchStateTest {
 				.fetchState(REF, summary(false, "private"));
 
 		assertThat(state.immutableReleases()).isFalse();
+	}
+
+	@Test
+	void orgLevelRulesets_areNotFetchedOrReported() throws Exception {
+		stubRepoDetails("");
+		stubSecurityEndpoints();
+		stubStandardEndpoints();
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/branches"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/rulesets"))
+						.willReturn(okJson("""
+								[
+									{
+										"id": 42,
+										"name": "repo-rules",
+										"source_type": "Repository"
+									},
+									{
+										"id": 99,
+										"name": "org-rules",
+										"source_type": "Organization"
+									}
+								]
+								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/rulesets/42"))
+						.willReturn(okJson("""
+								{"id": 42, "name": "repo-rules", "rules": []}
+								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/pages"))
+						.willReturn(aResponse().withStatus(404))
+		);
+
+		RepositoryState state = checker
+				.fetchState(REF, summary(false, "public"));
+
+		assertThat(state.rulesets()).singleElement()
+				.satisfies(r -> assertThat(r.name()).isEqualTo("repo-rules"));
+		verify(
+				0,
+				getRequestedFor(urlPathEqualTo("/repos/owner/repo/rulesets/99"))
+		);
 	}
 
 	private static RepositorySummaryResponse summary(
