@@ -54,6 +54,36 @@ class DriftyStateTest {
 	}
 
 	@Test
+	void isEmpty_isTrue_whenOnlyTheSaltWasGenerated() {
+		var state = new DriftyState();
+		state.hash("value");
+
+		assertThat(state.isEmpty()).isTrue();
+	}
+
+	@Test
+	void isEmpty_isFalse_afterRecordingAnActionSecret() {
+		var state = new DriftyState();
+		state.recordActionSecret("repo", "NAME", "2024-01-01T00:00:00Z", "abc");
+
+		assertThat(state.isEmpty()).isFalse();
+	}
+
+	@Test
+	void isEmpty_isFalse_afterRecordingAnEnvironmentSecret() {
+		var state = new DriftyState();
+		state.recordEnvironmentSecret(
+				"repo",
+				"production",
+				"NAME",
+				"2024-01-01T00:00:00Z",
+				"def"
+		);
+
+		assertThat(state.isEmpty()).isFalse();
+	}
+
+	@Test
 	void environmentSecretRecord_isNull_forUnknownEnvironment() {
 		var state = new DriftyState();
 		state.recordEnvironmentSecret(

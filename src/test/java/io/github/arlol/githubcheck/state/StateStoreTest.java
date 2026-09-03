@@ -65,6 +65,30 @@ class StateStoreTest {
 	}
 
 	@Test
+	void save_writesNoFile_whenLoadedRepositoriesHoldNoSecrets(
+			@TempDir Path dir
+	) throws Exception {
+		var source = dir.resolve("source.json");
+		Files.writeString(source, """
+				{
+				  "version": 1,
+				  "salt": "abc",
+				  "repositories": {
+				    "repo": {
+				      "action_secrets": {},
+				      "environment_secrets": { "production": {} }
+				    }
+				  }
+				}
+				""");
+		var path = dir.resolve("drifty-state.json");
+
+		store.save(path, store.load(source));
+
+		assertThat(path).doesNotExist();
+	}
+
+	@Test
 	void save_leavesFileUntouched_whenStateIsUnchanged(@TempDir Path dir)
 			throws Exception {
 		var path = dir.resolve("drifty-state.json");
@@ -82,6 +106,32 @@ class StateStoreTest {
 		store.save(path, store.load(path));
 
 		assertThat(Files.getLastModifiedTime(path)).isEqualTo(before);
+	}
+
+	@Test
+	void save_overwritesFile_whenARecordChanged(@TempDir Path dir)
+			throws Exception {
+		var path = dir.resolve("drifty-state.json");
+		var state = new DriftyState();
+		state.recordActionSecret(
+				"repo",
+				"PAT",
+				"2024-01-01T00:00:00Z",
+				state.hash("value")
+		);
+		store.save(path, state);
+
+		state.recordActionSecret(
+				"repo",
+				"PAT",
+				"2024-03-01T00:00:00Z",
+				state.hash("rotated")
+		);
+		store.save(path, state);
+
+		var record = store.load(path).actionSecretRecord("repo", "PAT");
+		assertThat(record.updatedAt()).isEqualTo("2024-03-01T00:00:00Z");
+		assertThat(record.valueHash()).isEqualTo(state.hash("rotated"));
 	}
 
 	@Test
