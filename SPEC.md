@@ -14,7 +14,7 @@ drifty loads `./drifty.pkl` from the current working directory by default. A dif
 
 #### Field Defaults
 
-The `Repository` type in `config/drifty.pkl` declares defaults that match **GitHub's defaults** for newly created repos. A minimal repo entry (just `owner` and `name`) therefore represents a repo with GitHub's out-of-the-box settings and reports no drift against a freshly created repo.
+The `Repository` type in `config/drifty.pkl` declares defaults that match **GitHub's defaults** for newly created repos. A minimal repo entry (just `name`) therefore represents a repo with GitHub's out-of-the-box settings and reports no drift against a freshly created repo.
 
 Non-default desired values (e.g. disabling merge commits, enabling auto-merge) are set in shared templates in the config file, not in the schema.
 
@@ -24,8 +24,9 @@ Repos are organized into groups that share defaults. Each group defines a `local
 
 ```pkl
 // config — grouping model
+organisation = "ArloL"
+
 local defaultRepo: Repository = new {
-  owner = "ArloL"
   allowMergeCommit = false
   allowAutoMerge = true
   deleteBranchOnMerge = true
@@ -42,9 +43,11 @@ repositories {
 
 ### Org/Account Targeting
 
-The target org or personal account is set via the `owner` field on each repository in the config file. There is no CLI argument for it.
+The target org or personal account is the module-level `organisation` property of the config file. It has no default, so a config that names no account fails at eval time rather than being checked against a guess. There is no CLI argument for it.
 
-A single config may name more than one owner. drifty lists the repositories of each distinct `owner` it finds and checks each repository under the owner its own entry declares, so repository names only have to be unique within an owner.
+A repository that lives somewhere else sets `owner` to override `organisation` for itself, so a single config can still span several accounts. drifty lists the repositories of each distinct owner it finds and checks each repository under the owner its own entry resolves to, so repository names only have to be unique within an owner.
+
+`Repository.owner` is nullable in the schema and `PklConfigLoader` fills the null ones in from `organisation`. The schema cannot default it directly: Pkl lets a class body reference a module property only when that property is `const`, and a `const` property cannot be assigned by the config that amends the schema.
 
 ### Archived Repos
 

@@ -41,30 +41,88 @@ class PklConfigLoaderTest {
 	}
 
 	@Test
+	void organisationSuppliesTheOwnerOfEveryRepository(@TempDir Path tempDir)
+			throws IOException {
+		Path config = write(tempDir, """
+				organisation = "acme"
+
+				repositories {
+				  new { name = "repo" }
+				}
+				""");
+
+		List<Drifty.Repository> repos = PklConfigLoader.load(config);
+
+		assertThat(repos).singleElement()
+				.satisfies(repo -> assertThat(repo.owner).isEqualTo("acme"));
+	}
+
+	@Test
+	void repositoryOwnerOverridesTheOrganisation(@TempDir Path tempDir)
+			throws IOException {
+		Path config = write(tempDir, """
+				organisation = "acme"
+
+				repositories {
+				  new { name = "own" }
+				  new { owner = "other"; name = "foreign" }
+				}
+				""");
+
+		List<Drifty.Repository> repos = PklConfigLoader.load(config);
+
+		assertThat(repos).extracting(repo -> repo.owner + "/" + repo.name)
+				.containsExactly("acme/own", "other/foreign");
+	}
+
+	@Test
+	void missingOrganisation_failsToEvaluate(@TempDir Path tempDir)
+			throws IOException {
+		Path config = write(tempDir, """
+				repositories {
+				  new { owner = "other"; name = "foreign" }
+				}
+				""");
+
+		assertThatThrownBy(() -> PklConfigLoader.load(config))
+				.hasMessageContaining("organisation");
+	}
+
+	@Test
 	void unknownGroupName_failsToEvaluate(@TempDir Path tempDir)
 			throws IOException {
-		// A file: URI, not a plain path: on Windows an absolute path is
-		// "D:\\a\\drifty\\config\\drifty.pkl", and Pkl rejects "\\a" as an
-		// invalid escape before it ever reaches the group name under test.
+		Path config = write(tempDir, """
+				organisation = "owner"
+
+				repositories {
+				  new {
+				    name = "repo"
+				    managed { mode = "only"; groups { "not_a_group" } }
+				  }
+				}
+				""");
+
+		assertThatThrownBy(() -> PklConfigLoader.load(config))
+				.hasMessageContaining("not_a_group");
+	}
+
+	/**
+	 * Writes a config amending the schema by file: URI, not by plain path: on
+	 * Windows an absolute path is "D:\\a\\drifty\\config\\drifty.pkl", and Pkl
+	 * rejects "\\a" as an invalid escape before it ever reaches what is under
+	 * test.
+	 */
+	private static Path write(Path tempDir, String body) throws IOException {
 		String schema = Path.of("config/drifty.pkl")
 				.toAbsolutePath()
 				.toUri()
 				.toString();
 		Path config = tempDir.resolve("drifty.pkl");
-		Files.writeString(config, """
-				amends "%s"
-
-				repositories {
-				  new {
-				    owner = "owner"
-				    name = "repo"
-				    managed { mode = "only"; groups { "not_a_group" } }
-				  }
-				}
-				""".formatted(schema));
-
-		assertThatThrownBy(() -> PklConfigLoader.load(config))
-				.hasMessageContaining("not_a_group");
+		Files.writeString(
+				config,
+				"amends \"%s\"%n%n%s".formatted(schema, body)
+		);
+		return config;
 	}
 
 }

@@ -28,6 +28,12 @@ status.
   `Drifty.*` instances carrying `config/drifty.pkl`'s defaults; tests change
   fields with the generated `withX` methods. Do not reintroduce hand-written
   `*Args` builders — a new Pkl field needs no test-side change.
+- **The target account is the module-level `organisation`, not a per-repo
+  literal.** `Repository.owner` is nullable and overrides it for a repository in
+  someone else's account; `PklConfigLoader` fills the nulls in. Do not try to
+  move that default into the schema as `owner: String = module.organisation` —
+  Pkl only lets a class body read a `const` module property, and a `const` one
+  cannot be assigned by the config that amends the schema.
 - **A new drift group needs a `GroupName` constant.** Group names live in the
   `GroupName` typealias in `config/drifty.pkl`, and `DriftGroup.name()` returns
   the generated enum. `DriftPathNamespacingTest` fails a group whose constant is

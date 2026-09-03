@@ -1,6 +1,11 @@
 /// Drifty configuration schema — desired state for GitHub repositories.
 module drifty
 
+/// The GitHub organisation or personal account this config targets. It has no
+/// default: a config that does not name an account cannot be checked against
+/// one, and guessing is worse than failing at eval time.
+organisation: String
+
 /// GitHub App ID for GitHub Actions
 githubActionsAppId: Int = 15368
 /// GitHub App ID for GitHub Advanced Security
@@ -145,7 +150,13 @@ class Environment {
 /// Desired state for a single GitHub repository.
 /// Defaults match GitHub's defaults for newly-created repos.
 class Repository {
-  owner: String
+  /// The account this repository lives under. Leave it null for the module's
+  /// `organisation`, and set it only for a repository in a different account,
+  /// which drifty lists and checks separately. Pkl cannot default it to
+  /// `organisation` here — a class body may only reference a `const` module
+  /// property, and a `const` one could not be assigned by an amending config —
+  /// so `PklConfigLoader` fills it in.
+  owner: String?
   name: String
   managed: Managed = new {}
   archived: Boolean = false

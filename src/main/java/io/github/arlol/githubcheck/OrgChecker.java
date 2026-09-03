@@ -107,10 +107,12 @@ public class OrgChecker {
 	 * Checks every repository the config declares, under the owner the config
 	 * declares it under.
 	 * <p>
-	 * The owner is a field on each {@code Repository} in {@code drifty.pkl}, as
-	 * SPEC.md describes. It used to be ignored in favour of a hardcoded
-	 * literal, which meant editing the config's owner had no effect and a
-	 * second owner could not be reached at all.
+	 * The owner reaches this method already resolved: the config names its
+	 * account once in {@code organisation} and {@code PklConfigLoader} stamps
+	 * it onto every repository that does not override {@code owner}, as SPEC.md
+	 * describes. It used to be ignored in favour of a hardcoded literal, which
+	 * meant editing the config's owner had no effect and a second owner could
+	 * not be reached at all.
 	 */
 	public CheckResult check(List<Drifty.Repository> repositories)
 			throws IOException, InterruptedException, ExecutionException {

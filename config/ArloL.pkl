@@ -1,6 +1,8 @@
 /// ArloL GitHub organization desired state.
 amends "drifty.pkl"
 
+organisation = "ArloL"
+
 // ── Shared status checks ──────────────────────────────────────────────────
 
 local checkActions = new StatusCheck {
@@ -77,7 +79,6 @@ local prCheckBranchProtection: BranchProtection = (mainBranchProtection) {
 // ── Repo templates ────────────────────────────────────────────────────────
 
 local defaultRepo: Repository = new {
-  owner = "ArloL"
   automatedSecurityFixes = true
   allowMergeCommit = false
   allowSquashMerge = false
@@ -98,7 +99,7 @@ local mainCiRepoTemplate: Repository = (defaultRepo) {
   rulesets { ["main-branch-rules"] = mainCiRuleset }
 }
 
-local archivedRepo: Repository = new { owner = "ArloL"; archived = true }
+local archivedRepo: Repository = new { archived = true }
 
 // ── Repositories ──────────────────────────────────────────────────────────
 

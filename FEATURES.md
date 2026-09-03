@@ -46,10 +46,12 @@ Implemented: `EnvironmentArgs` extended with `waitTimer`, `deploymentBranchPolic
 
 ## ~~10. Owner as CLI Argument~~ DROPPED
 
-Per spec: the owner is the `owner` field on each repository in the config.
-`OrgChecker.check()` lists the repositories of each distinct owner it finds and
-checks every repository under the owner its own entry declares, so one config
-can span several owners. No CLI argument needed.
+Per spec: the owner comes from the config's module-level `organisation`
+property, which has no default; a repository overrides it with `owner` to reach
+a different account. `PklConfigLoader` resolves the two into one owner per
+repository, and `OrgChecker.check()` lists the repositories of each distinct
+owner it finds and checks every repository under its own, so one config can
+span several owners. No CLI argument needed.
 
 ## ~~11. Configurable Repo Groups with Defaults~~ DONE
 
