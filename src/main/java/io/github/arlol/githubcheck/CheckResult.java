@@ -31,29 +31,41 @@ public record CheckResult(
 
 	}
 
+	/**
+	 * @param unmanaged the drift groups this repository leaves alone, named but
+	 *                  not valued: their actual values were never fetched, so
+	 *                  there is nothing to print for them
+	 */
 	public record RepoCheckResult(
 			String name,
 			Status status,
 			List<String> diffs,
 			List<String> fixPreview,
 			List<FixReport> fixReports,
-			String error
+			String error,
+			List<String> unmanaged
 	) {
 
 		public RepoCheckResult {
 			diffs = List.copyOf(diffs);
 			fixPreview = List.copyOf(fixPreview);
 			fixReports = List.copyOf(fixReports);
+			unmanaged = List.copyOf(unmanaged);
 		}
 
 		public static RepoCheckResult ok(String name) {
+			return ok(name, List.of());
+		}
+
+		public static RepoCheckResult ok(String name, List<String> unmanaged) {
 			return new RepoCheckResult(
 					name,
 					Status.OK,
 					List.of(),
 					List.of(),
 					List.of(),
-					null
+					null,
+					unmanaged
 			);
 		}
 
@@ -66,19 +78,32 @@ public record CheckResult(
 				List<String> diffs,
 				List<String> fixPreview
 		) {
+			return drift(name, diffs, fixPreview, List.of());
+		}
+
+		public static RepoCheckResult drift(
+				String name,
+				List<String> diffs,
+				List<String> fixPreview,
+				List<String> unmanaged
+		) {
 			return new RepoCheckResult(
 					name,
 					Status.DRIFT,
 					diffs,
 					fixPreview,
 					List.of(),
-					null
+					null,
+					unmanaged
 			);
 		}
 
 		/**
 		 * The result of a {@code --fix} run: OK when nothing was left unfixed,
 		 * DRIFT otherwise, carrying a FIXED/FAILED line per setting either way.
+		 * <p>
+		 * No unmanaged list: a fix run prints what it applied, and naming the
+		 * groups it never touched says nothing about that.
 		 */
 		public static RepoCheckResult fixed(
 				String name,
@@ -91,7 +116,8 @@ public record CheckResult(
 					remainingDiffs,
 					List.of(),
 					fixReports,
-					null
+					null,
+					List.of()
 			);
 		}
 
@@ -102,7 +128,8 @@ public record CheckResult(
 					List.of(),
 					List.of(),
 					List.of(),
-					error
+					error,
+					List.of()
 			);
 		}
 
@@ -113,7 +140,8 @@ public record CheckResult(
 					List.of(),
 					List.of(),
 					List.of(),
-					null
+					null,
+					List.of()
 			);
 		}
 
@@ -124,7 +152,8 @@ public record CheckResult(
 					List.of(),
 					List.of(),
 					List.of(),
-					null
+					null,
+					List.of()
 			);
 		}
 
