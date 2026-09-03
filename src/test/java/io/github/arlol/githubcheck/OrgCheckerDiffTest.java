@@ -322,7 +322,10 @@ class OrgCheckerDiffTest {
 
 	@Test
 	void noDrift_forCorrectPublicRepo() {
-		var groupDrifts = computeGroupDrifts(goodPublicState(), defaultDesired());
+		var groupDrifts = computeGroupDrifts(
+				goodPublicState(),
+				defaultDesired()
+		);
 		var messages = groupDrifts.values()
 				.stream()
 				.flatMap(List::stream)
@@ -349,7 +352,8 @@ class OrgCheckerDiffTest {
 				.build();
 		var groupDrifts = computeGroupDrifts(
 				state,
-				defaultDesired().withArchived(true).withBranchProtections(Map.of())
+				defaultDesired().withArchived(true)
+						.withBranchProtections(Map.of())
 		);
 		var messages = groupDrifts.values()
 				.stream()
@@ -392,7 +396,8 @@ class OrgCheckerDiffTest {
 				.build();
 		var groupDrifts = computeGroupDrifts(
 				state,
-				defaultDesired().withArchived(true).withBranchProtections(Map.of())
+				defaultDesired().withArchived(true)
+						.withBranchProtections(Map.of())
 		);
 		var messages = groupDrifts.values()
 				.stream()
