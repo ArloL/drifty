@@ -26,6 +26,7 @@ import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
+import io.github.arlol.githubcheck.client.RulesetSourceType;
 import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.drift.ActionSecretsDriftGroup;
@@ -384,6 +385,14 @@ public class OrgChecker {
 	private List<ActualRuleset> fetchRulesets(String org, String name) {
 		var rulesets = new ArrayList<ActualRuleset>();
 		for (var rs : client.listRulesets(org, name)) {
+			if (rs.sourceType() == RulesetSourceType.ORGANIZATION) {
+				// listRulesets hits /rulesets, whose includes_parents defaults
+				// to true, so org rulesets arrive here. They are not the
+				// repository's to reconcile: the repo endpoint cannot delete
+				// one, so reporting it as extra produces a fix that always
+				// fails.
+				continue;
+			}
 			rulesets.add(
 					ActualTypes.ruleset(client.getRuleset(org, name, rs.id()))
 			);
