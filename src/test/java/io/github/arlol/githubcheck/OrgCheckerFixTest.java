@@ -1,5 +1,6 @@
 package io.github.arlol.githubcheck;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.delete;
 import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
@@ -273,7 +274,7 @@ class OrgCheckerFixTest {
 	}
 
 	@Test
-	void descriptionDrift_patchesFullDesiredState() throws Exception {
+	void descriptionDrift_patchesOnlyTheDriftedField() throws Exception {
 		stubFor(
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
@@ -291,33 +292,163 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
+						.withRequestBody(equalToJson("""
+								{"description": "correct"}
+								"""))
+		);
+	}
+
+	/**
+	 * The bug this pins: {@code allow_forking} used to ride along in every
+	 * org-owned repository's PATCH. An org with
+	 * {@code members_can_fork_private_repositories} off answers that field with
+	 * a 422 even when it already holds the wanted value, which failed the whole
+	 * request over a setting that had not drifted.
+	 */
+	@Test
+	void undriftedAllowForking_staysOutOfThePatch() throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+		);
+
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withDescription("correct")
+				.withAllowForking(false);
+
+		var state = stateWithDetailsOverride("""
+				{"description": "wrong", "allow_forking": false}
+				""");
+
+		var groupDrifts = computeGroupDrifts(state, desired);
+
+		assertThat(unfixedMessages(checker, groupDrifts)).isEmpty();
+		verify(
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
+						.withRequestBody(equalToJson("""
+								{"description": "correct"}
+								"""))
+		);
+	}
+
+	/**
+	 * GitHub applies what it accepts and rejects the rest, so a 422 on a
+	 * multi-field PATCH says nothing about which field failed. A second pass
+	 * sends each field on its own: the ones GitHub takes are fixed, and only
+	 * the one it refuses is reported unfixed, with its own error as the reason.
+	 */
+	@Test
+	void patchRejectingOneField_fixesTheRestAndNamesIt() throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/owner/repo")).atPriority(5)
+						.willReturn(
+								aResponse().withStatus(422)
+										.withBody(
+												"{\"message\": \"allow_forking is disabled for this organization\"}"
+										)
+						)
+		);
+		stubFor(
+				patch(urlEqualTo("/repos/owner/repo")).atPriority(1)
+						.withRequestBody(equalToJson("""
+								{"description": "correct"}
+								"""))
+						.willReturn(okJson("{}"))
+		);
+
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withDescription("correct")
+				.withAllowForking(true);
+
+		var state = stateWithDetailsOverride("""
+				{"description": "wrong", "allow_forking": false}
+				""");
+
+		var groupDrifts = computeGroupDrifts(state, desired);
+
+		var unfixed = checker.applyFixes(groupDrifts).unfixed();
+
+		assertThat(unfixed).hasSize(1);
+		assertThat(unfixed.getFirst().item().path())
+				.isEqualTo("repo_settings.allow_forking");
+		assertThat(unfixed.getFirst().reason()).contains("422");
+
+		verify(
 				patchRequestedFor(
 						urlEqualTo("/repos/owner/repo")
 				).withRequestBody(equalToJson("""
-						{
-							"description": "correct",
-							"homepage": "",
-							"has_issues": true,
-							"has_projects": true,
-							"has_wiki": true,
-							"has_discussions": false,
-							"is_template": false,
-							"allow_forking": true,
-							"web_commit_signoff_required": false,
-							"allow_merge_commit": true,
-							"allow_squash_merge": true,
-							"allow_rebase_merge": true,
-							"allow_update_branch": false,
-							"allow_auto_merge": false,
-							"delete_branch_on_merge": false,
-							"squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
-							"squash_merge_commit_message": "COMMIT_MESSAGES",
-							"merge_commit_title": "MERGE_MESSAGE",
-							"merge_commit_message": "PR_TITLE",
-							"default_branch": "main"
-						}
+						{"description": "correct", "allow_forking": true}
 						"""))
 		);
+		verify(
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
+						.withRequestBody(equalToJson("""
+								{"description": "correct"}
+								"""))
+		);
+		verify(
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
+						.withRequestBody(equalToJson("""
+								{"allow_forking": true}
+								"""))
+		);
+		verify(3, patchRequestedFor(urlEqualTo("/repos/owner/repo")));
+	}
+
+	/**
+	 * One drifted field is already its own attribution, so a failure needs no
+	 * isolation pass — and must not cost a second request.
+	 */
+	@Test
+	void singleFieldPatchFailure_isNotRetried() throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(
+						aResponse().withStatus(422)
+								.withBody("{\"message\": \"nope\"}")
+				)
+		);
+
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withDescription("correct");
+
+		var state = stateWithDetailsOverride("""
+				{"description": "wrong"}
+				""");
+
+		var unfixed = checker.applyFixes(computeGroupDrifts(state, desired))
+				.unfixed();
+
+		assertThat(unfixed).hasSize(1);
+		assertThat(unfixed.getFirst().item().path())
+				.isEqualTo("repo_settings.description");
+		verify(1, patchRequestedFor(urlEqualTo("/repos/owner/repo")));
+	}
+
+	/**
+	 * Visibility is deliberately check-only (see SPEC.md): public to private
+	 * breaks forks, private to public exposes code. The PATCH therefore never
+	 * carries it, and the report has to say so rather than claim a fix.
+	 */
+	@Test
+	void visibilityDrift_isReportedUnfixed() throws Exception {
+		stubFor(
+				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+		);
+
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withVisibility(Drifty.Visibility.PRIVATE);
+
+		var state = stateWithDetailsOverride("""
+				{"visibility": "public"}
+				""");
+
+		var unfixed = checker.applyFixes(computeGroupDrifts(state, desired))
+				.unfixed();
+
+		assertThat(unfixed).hasSize(1);
+		assertThat(unfixed.getFirst().item().path())
+				.isEqualTo("repo_settings.visibility");
+		verify(0, patchRequestedFor(urlEqualTo("/repos/owner/repo")));
 	}
 
 	@Test
@@ -339,32 +470,13 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				patchRequestedFor(
-						urlEqualTo("/repos/owner/repo")
-				).withRequestBody(equalToJson("""
-						{
-							"description": "",
-							"homepage": "",
-							"has_issues": true,
-							"has_projects": true,
-							"has_wiki": true,
-							"has_discussions": false,
-							"is_template": false,
-							"allow_forking": true,
-							"web_commit_signoff_required": false,
-							"allow_merge_commit": true,
-							"allow_squash_merge": true,
-							"allow_rebase_merge": false,
-							"allow_update_branch": false,
-							"allow_auto_merge": false,
-							"delete_branch_on_merge": false,
-							"squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
-							"squash_merge_commit_message": "COMMIT_MESSAGES",
-							"merge_commit_title": "MERGE_MESSAGE",
-							"merge_commit_message": "PR_TITLE",
-							"default_branch": "main"
-						}
-						"""))
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
+						.withRequestBody(equalToJson("""
+								{
+									"description": "",
+									"allow_rebase_merge": false
+								}
+								"""))
 		);
 	}
 
@@ -394,32 +506,14 @@ class OrgCheckerFixTest {
 		assertThat(remaining).isEmpty();
 		verify(
 				1,
-				patchRequestedFor(
-						urlEqualTo("/repos/owner/repo")
-				).withRequestBody(equalToJson("""
-						{
-							"description": "correct",
-							"homepage": "https://example.com",
-							"has_issues": true,
-							"has_projects": true,
-							"has_wiki": true,
-							"has_discussions": false,
-							"is_template": false,
-							"allow_forking": true,
-							"web_commit_signoff_required": false,
-							"allow_merge_commit": true,
-							"allow_squash_merge": true,
-							"allow_rebase_merge": true,
-							"allow_update_branch": false,
-							"allow_auto_merge": false,
-							"delete_branch_on_merge": false,
-							"squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
-							"squash_merge_commit_message": "COMMIT_MESSAGES",
-							"merge_commit_title": "MERGE_MESSAGE",
-							"merge_commit_message": "PR_TITLE",
-							"default_branch": "main"
-						}
-						"""))
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
+						.withRequestBody(equalToJson("""
+								{
+									"description": "correct",
+									"homepage": "https://example.com",
+									"has_wiki": true
+								}
+								"""))
 		);
 	}
 
@@ -1752,32 +1846,10 @@ class OrgCheckerFixTest {
 
 		assertThat(remaining).isEmpty();
 		verify(
-				patchRequestedFor(
-						urlEqualTo("/repos/owner/repo")
-				).withRequestBody(equalToJson("""
-						{
-							"description": "correct",
-							"homepage": "",
-							"has_issues": true,
-							"has_projects": true,
-							"has_wiki": true,
-							"has_discussions": false,
-							"is_template": false,
-							"allow_forking": true,
-							"web_commit_signoff_required": false,
-							"allow_merge_commit": true,
-							"allow_squash_merge": true,
-							"allow_rebase_merge": true,
-							"allow_update_branch": false,
-							"allow_auto_merge": false,
-							"delete_branch_on_merge": false,
-							"squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
-							"squash_merge_commit_message": "COMMIT_MESSAGES",
-							"merge_commit_title": "MERGE_MESSAGE",
-							"merge_commit_message": "PR_TITLE",
-							"default_branch": "main"
-						}
-						"""))
+				patchRequestedFor(urlEqualTo("/repos/owner/repo"))
+						.withRequestBody(equalToJson("""
+								{"description": "correct"}
+								"""))
 		);
 		verify(
 				putRequestedFor(urlEqualTo("/repos/owner/repo/topics"))
