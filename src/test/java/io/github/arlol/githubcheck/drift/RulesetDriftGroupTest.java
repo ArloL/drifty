@@ -12,6 +12,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,11 +29,8 @@ import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.testsupport.BypassActorArgs;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
-import io.github.arlol.githubcheck.testsupport.RulesetArgs;
-import io.github.arlol.githubcheck.testsupport.StatusCheckArgs;
+import io.github.arlol.githubcheck.pkl.Drifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 @WireMockTest
 class RulesetDriftGroupTest {
@@ -78,9 +76,9 @@ class RulesetDriftGroupTest {
 				delete(urlEqualTo("/repos/owner/repo/rulesets/1"))
 						.willReturn(aResponse().withStatus(204))
 		);
-		var desired = RepositoryArgs.create("owner", "repo").build();
+		var desired = Desired.repository("owner", "repo");
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(matchingResponse("ci")),
 				client,
 				new RepoRef("owner", "repo")
@@ -107,21 +105,24 @@ class RulesetDriftGroupTest {
 										""")
 				)
 		);
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("ci")
-								.bypassActors(
-										new BypassActorArgs(
-												5L,
-												RulesetDetailsResponse.BypassActor.ActorType.TEAM,
-												RulesetDetailsResponse.BypassActor.BypassMode.ALWAYS
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"ci",
+								Desired.ruleset()
+										.withBypassActors(
+												List.of(
+														Desired.bypassActor(
+																5L,
+																Drifty.ActorType.TEAM,
+																Drifty.BypassMode.ALWAYS
+														)
+												)
 										)
-								)
-								.build()
-				)
-				.build();
+						)
+				);
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(),
 				client,
 				new RepoRef("owner", "repo")
@@ -186,16 +187,17 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void noDrift_whenUpdateAllowsFetchAndMergeMatches() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("ci")
-								.update(true)
-								.updateAllowsFetchAndMerge(true)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"ci",
+								Desired.ruleset()
+										.withUpdate(true)
+										.withUpdateAllowsFetchAndMerge(true)
+						)
+				);
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(
 						responseWith(
 								"ci",
@@ -216,16 +218,17 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsUpdateAllowsFetchAndMergeDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("ci")
-								.update(true)
-								.updateAllowsFetchAndMerge(true)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"ci",
+								Desired.ruleset()
+										.withUpdate(true)
+										.withUpdateAllowsFetchAndMerge(true)
+						)
+				);
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(
 						responseWith(
 								"ci",
@@ -262,16 +265,17 @@ class RulesetDriftGroupTest {
 	 */
 	@Test
 	void updateRuleWithoutParameters_readsAsNotAllowed() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("ci")
-								.update(true)
-								.updateAllowsFetchAndMerge(false)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"ci",
+								Desired.ruleset()
+										.withUpdate(true)
+										.withUpdateAllowsFetchAndMerge(false)
+						)
+				);
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(
 						responseWith("ci", null, List.of(new Rule.Update(null)))
 				),
@@ -284,21 +288,24 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void noDrift_whenBypassActorsMatch() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("ci")
-								.bypassActors(
-										new BypassActorArgs(
-												5L,
-												RulesetDetailsResponse.BypassActor.ActorType.TEAM,
-												RulesetDetailsResponse.BypassActor.BypassMode.ALWAYS
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"ci",
+								Desired.ruleset()
+										.withBypassActors(
+												List.of(
+														Desired.bypassActor(
+																5L,
+																Drifty.ActorType.TEAM,
+																Drifty.BypassMode.ALWAYS
+														)
+												)
 										)
-								)
-								.build()
-				)
-				.build();
+						)
+				);
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(
 						responseWith(
 								"ci",
@@ -321,21 +328,24 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsBypassActorDrift_whenActualHasNone() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("ci")
-								.bypassActors(
-										new BypassActorArgs(
-												5L,
-												RulesetDetailsResponse.BypassActor.ActorType.TEAM,
-												RulesetDetailsResponse.BypassActor.BypassMode.ALWAYS
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"ci",
+								Desired.ruleset()
+										.withBypassActors(
+												List.of(
+														Desired.bypassActor(
+																5L,
+																Drifty.ActorType.TEAM,
+																Drifty.BypassMode.ALWAYS
+														)
+												)
 										)
-								)
-								.build()
-				)
-				.build();
+						)
+				);
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(responseWith("ci", null, List.of())),
 				null,
 				new RepoRef("owner", "repo")
@@ -355,9 +365,9 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void noDrift_whenBothEmpty() {
-		var desired = RepositoryArgs.create("owner", "repo").build();
+		var desired = Desired.repository("owner", "repo");
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(),
 				null,
 				new RepoRef("owner", "repo")
@@ -368,9 +378,9 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsExtraRuleset() {
-		var desired = RepositoryArgs.create("owner", "repo").build();
+		var desired = Desired.repository("owner", "repo");
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(matchingResponse("ci")),
 				null,
 				new RepoRef("owner", "repo")
@@ -389,11 +399,10 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsMissingRuleset() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(RulesetArgs.builder("ci").build())
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(Map.of("ci", Desired.ruleset()));
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(),
 				null,
 				new RepoRef("owner", "repo")
@@ -413,11 +422,10 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void noDrift_whenRulesetsMatch() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(RulesetArgs.builder("ci").build())
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(Map.of("ci", Desired.ruleset()));
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(matchingResponse("ci")),
 				null,
 				new RepoRef("owner", "repo")
@@ -428,15 +436,18 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsMissingIncludePattern() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("ci")
-								.includePatterns("refs/heads/main")
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"ci",
+								Desired.ruleset()
+										.withIncludePatterns(
+												List.of("refs/heads/main")
+										)
+						)
+				);
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(matchingResponse("ci")),
 				null,
 				new RepoRef("owner", "repo")
@@ -457,15 +468,16 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsRequiredLinearHistoryDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("ci")
-								.requiredLinearHistory(true)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"ci",
+								Desired.ruleset()
+										.withRequiredLinearHistory(true)
+						)
+				);
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(matchingResponse("ci")),
 				null,
 				new RepoRef("owner", "repo")
@@ -486,13 +498,14 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void noDrift_whenRequiredLinearHistoryMatches() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("ci")
-								.requiredLinearHistory(true)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"ci",
+								Desired.ruleset()
+										.withRequiredLinearHistory(true)
+						)
+				);
 		var actual = new RulesetDetailsResponse(
 				1L,
 				"ci",
@@ -517,7 +530,7 @@ class RulesetDriftGroupTest {
 				List.of(new Rule.RequiredLinearHistory())
 		);
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(ActualTypes.ruleset(actual)),
 				null,
 				new RepoRef("owner", "repo")
@@ -528,16 +541,19 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsMissingStatusCheck() {
-		var check = StatusCheckArgs.builder().context("build").build();
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("ci")
-								.requiredStatusChecks(check)
-								.build()
-				)
-				.build();
+		var check = Desired.statusCheck("build");
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"ci",
+								Desired.ruleset()
+										.withRequiredStatusChecks(
+												List.of(check)
+										)
+						)
+				);
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(matchingResponse("ci")),
 				null,
 				new RepoRef("owner", "repo")
@@ -558,11 +574,10 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsExtraAndMissingRuleset() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(RulesetArgs.builder("new-ruleset").build())
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(Map.of("new-ruleset", Desired.ruleset()));
 		var group = new RulesetDriftGroup(
-				ToDrifty.repository(desired).rulesets,
+				desired.rulesets,
 				List.of(matchingResponse("old-ruleset")),
 				null,
 				new RepoRef("owner", "repo")

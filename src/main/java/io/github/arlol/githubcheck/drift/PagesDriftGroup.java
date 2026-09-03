@@ -1,14 +1,13 @@
 package io.github.arlol.githubcheck.drift;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 import io.github.arlol.githubcheck.PklTypes;
+import io.github.arlol.githubcheck.actual.ActualPages;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.PagesCreateRequest;
-import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.PagesUpdateRequest;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
@@ -18,14 +17,14 @@ public class PagesDriftGroup extends DriftGroup {
 
 	private final boolean desiredEnabled;
 	private final Drifty.Pages desired;
-	private final Optional<PagesResponse> actual;
+	private final Optional<ActualPages> actual;
 	private final GitHubClient client;
 	private final String owner;
 	private final String repo;
 
 	public PagesDriftGroup(
 			Drifty.Pages desired,
-			Optional<PagesResponse> actual,
+			Optional<ActualPages> actual,
 			GitHubClient client,
 			RepoRef ref
 	) {
@@ -60,28 +59,24 @@ public class PagesDriftGroup extends DriftGroup {
 					}));
 		}
 
-		PagesResponse p = actual.orElseThrow();
+		ActualPages p = actual.orElseThrow();
 
 		var items = combine(
-				compare(
-						"build_type",
-						desired.buildType,
-						p.buildType() != null
-								? p.buildType().name().toLowerCase(Locale.ROOT)
-								: null
-				),
+				compare("build_type", desired.buildType, p.buildType()),
 				BUILD_TYPE_LEGACY.equals(desired.buildType)
-						&& p.source() != null
+						&& p.source().isPresent()
 								? combine(
 										compare(
 												"source.branch",
 												desired.sourceBranch,
-												p.source().branch()
+												p.source()
+														.orElseThrow()
+														.branch()
 										),
 										compare(
 												"source.path",
 												desired.sourcePath,
-												p.source().path()
+												p.source().orElseThrow().path()
 										)
 								)
 								: List.of(),

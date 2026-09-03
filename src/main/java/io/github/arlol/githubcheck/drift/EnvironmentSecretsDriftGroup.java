@@ -6,16 +6,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 
 public class EnvironmentSecretsDriftGroup extends DriftGroup {
 
 	private final Map<String, Drifty.Environment> desired;
-	private final Map<String, List<Secret>> actual;
+	private final Map<String, List<ActualSecret>> actual;
 	private final Map<String, String> secretValues;
 	private final DriftyState state;
 	private final GitHubClient client;
@@ -24,7 +24,7 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 
 	public EnvironmentSecretsDriftGroup(
 			Map<String, Drifty.Environment> desired,
-			Map<String, List<Secret>> actual,
+			Map<String, List<ActualSecret>> actual,
 			Map<String, String> secretValues,
 			DriftyState state,
 			GitHubClient client,
@@ -52,10 +52,10 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 			String envName = entry.getKey();
 			Drifty.Environment wantEnv = entry.getValue();
 
-			List<Secret> actualSecrets = actual
+			List<ActualSecret> actualSecrets = actual
 					.getOrDefault(envName, List.of());
-			var byName = new LinkedHashMap<String, Secret>();
-			for (Secret secret : actualSecrets) {
+			var byName = new LinkedHashMap<String, ActualSecret>();
+			for (ActualSecret secret : actualSecrets) {
 				byName.put(secret.name(), secret);
 			}
 
@@ -66,7 +66,7 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 				}
 			}
 
-			for (Secret secret : actualSecrets) {
+			for (ActualSecret secret : actualSecrets) {
 				if (!wantEnv.secrets.contains(secret.name())) {
 					var item = new DriftItem.SectionExtra(
 							envName + ".secrets." + secret.name()
@@ -90,10 +90,10 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 	private DriftFix secretDriftFix(
 			String secretName,
 			String envName,
-			Map<String, Secret> actualByName
+			Map<String, ActualSecret> actualByName
 	) {
 		var path = envName + ".secrets." + secretName;
-		Secret actualSecret = actualByName.get(secretName);
+		ActualSecret actualSecret = actualByName.get(secretName);
 		DriftItem driftItem;
 		if (actualSecret == null) {
 			driftItem = new DriftItem.SectionMissing(path);
@@ -136,7 +136,7 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 					secretName,
 					value
 			);
-			Secret updated = client
+			var updated = client
 					.getEnvironmentSecret(owner, repo, envName, secretName);
 			state.recordEnvironmentSecret(
 					repo,

@@ -13,11 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
-import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.drift.DriftItem;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 /**
  * "Is this security flag enabled" must have exactly one answer.
@@ -41,14 +39,6 @@ class SecurityFlagSourceTest {
 					false
 			);
 
-	private static final String SUMMARY_JSON = """
-			{
-				"name": "repo",
-				"archived": false,
-				"visibility": "public"
-			}
-			""";
-
 	private static final String DETAILS_TEMPLATE = """
 			{
 				"name": "repo",
@@ -71,16 +61,26 @@ class SecurityFlagSourceTest {
 
 	@Test
 	void stateReportsSecretScanningAsTheResponseDoes() {
-		assertThat(state("enabled", "disabled").secretScanning()).isTrue();
-		assertThat(state("disabled", "disabled").secretScanning()).isFalse();
+		assertThat(
+				state("enabled", "disabled").securityAndAnalysis()
+						.secretScanning()
+		).isTrue();
+		assertThat(
+				state("disabled", "disabled").securityAndAnalysis()
+						.secretScanning()
+		).isFalse();
 	}
 
 	@Test
 	void stateReportsPushProtectionAsTheResponseDoes() {
-		assertThat(state("disabled", "enabled").secretScanningPushProtection())
-				.isTrue();
-		assertThat(state("disabled", "disabled").secretScanningPushProtection())
-				.isFalse();
+		assertThat(
+				state("disabled", "enabled").securityAndAnalysis()
+						.secretScanningPushProtection()
+		).isTrue();
+		assertThat(
+				state("disabled", "disabled").securityAndAnalysis()
+						.secretScanningPushProtection()
+		).isFalse();
 	}
 
 	@Test
@@ -115,16 +115,15 @@ class SecurityFlagSourceTest {
 	) {
 		RepositoryState state = state(secretScanning, pushProtection);
 		boolean stateSaysEnabled = groupName.equals("secret_scanning")
-				? state.secretScanning()
-				: state.secretScanningPushProtection();
+				? state.securityAndAnalysis().secretScanning()
+				: state.securityAndAnalysis().secretScanningPushProtection();
 
-		var desired = RepositoryArgs.create("owner", "repo")
-				.secretScanning(true)
-				.secretScanningPushProtection(true)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withSecretScanning(true)
+				.withSecretScanningPushProtection(true);
 
 		List<String> paths = new OrgChecker((String) null, false)
-				.createDriftGroups(state, ToDrifty.repository(desired))
+				.createDriftGroups(state, desired)
 				.stream()
 				.filter(group -> group.name().equals(groupName))
 				.flatMap(group -> group.detect().stream())
@@ -142,24 +141,31 @@ class SecurityFlagSourceTest {
 			String secretScanning,
 			String pushProtection
 	) {
-		String details = DETAILS_TEMPLATE
-				.formatted(secretScanning, pushProtection);
+		var details = parse(
+				DETAILS_TEMPLATE.formatted(secretScanning, pushProtection),
+				RepositoryDetailsResponse.class
+		);
 		return new RepositoryState(
 				"repo",
-				parse(SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(details, RepositoryDetailsResponse.class),
+				ActualTypes.repository(details),
+				ActualTypes.securityAndAnalysis(details),
+				false,
+				false,
+				false,
 				false,
 				false,
 				Map.of(),
 				List.of(),
-				Map.of(),
-				parse(WORKFLOW_PERMISSIONS_JSON, WorkflowPermissions.class),
 				List.of(),
-				Optional.empty(),
 				Map.of(),
-				false,
-				false,
-				false
+				Map.of(),
+				ActualTypes.workflowPermissions(
+						parse(
+								WORKFLOW_PERMISSIONS_JSON,
+								WorkflowPermissions.class
+						)
+				),
+				Optional.empty()
 		);
 	}
 

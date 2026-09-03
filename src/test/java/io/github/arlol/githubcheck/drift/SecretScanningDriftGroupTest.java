@@ -5,18 +5,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 class SecretScanningDriftGroupTest {
 
 	@Test
 	void noDriftWhenMatches() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.secretScanning(true)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withSecretScanning(true);
 		var group = new SecretScanningDriftGroup(
-				ToDrifty.repository(desired).secretScanning,
+				desired.secretScanning,
 				true,
 				null,
 				new RepoRef("owner", "repo")
@@ -29,11 +27,10 @@ class SecretScanningDriftGroupTest {
 
 	@Test
 	void detectsDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.secretScanning(true)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withSecretScanning(true);
 		var group = new SecretScanningDriftGroup(
-				ToDrifty.repository(desired).secretScanning,
+				desired.secretScanning,
 				false,
 				null,
 				new RepoRef("owner", "repo")

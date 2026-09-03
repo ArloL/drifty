@@ -25,9 +25,8 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
-import io.github.arlol.githubcheck.client.RepositoryVisibility;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.pkl.Drifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 /**
  * Covers {@link OrgChecker#check}, and in particular which account each
@@ -54,9 +53,8 @@ class OrgCheckerCheckTest {
 		stubOwner("beta", "two");
 		stubRepoSubResources();
 
-		CheckResult result = checker.check(
-				desired(List.of(entry("alpha", "one"), entry("beta", "two")))
-		);
+		CheckResult result = checker
+				.check(List.of(entry("alpha", "one"), entry("beta", "two")));
 
 		// Found under its own owner, so neither MISSING (declared but not
 		// found there) nor UNKNOWN (found but not declared).
@@ -86,12 +84,7 @@ class OrgCheckerCheckTest {
 		stubRepoSubResources();
 
 		CheckResult result = checker.check(
-				desired(
-						List.of(
-								entry("alpha", "shared"),
-								entry("beta", "shared")
-						)
-				)
+				List.of(entry("alpha", "shared"), entry("beta", "shared"))
 		);
 
 		assertThat(result.repos()).hasSize(2);
@@ -124,8 +117,7 @@ class OrgCheckerCheckTest {
 				true
 		);
 
-		CheckResult result = fixer
-				.check(desired(List.of(entry("alpha", "one"))));
+		CheckResult result = fixer.check(List.of(entry("alpha", "one")));
 
 		var reports = result.repos().getFirst().fixReports();
 		assertThat(reports).isNotEmpty();
@@ -159,8 +151,7 @@ class OrgCheckerCheckTest {
 				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
 				true
 		);
-		CheckResult result = fixer
-				.check(desired(List.of(entry("alpha", "one"))));
+		CheckResult result = fixer.check(List.of(entry("alpha", "one")));
 
 		String report = capturePrintReport(fixer, result);
 
@@ -188,16 +179,9 @@ class OrgCheckerCheckTest {
 		return captured.toString(StandardCharsets.UTF_8);
 	}
 
-	private static RepositoryArgs entry(String owner, String name) {
-		return RepositoryArgs.create(owner, name)
-				.visibility(RepositoryVisibility.PRIVATE)
-				.build();
-	}
-
-	private static List<io.github.arlol.githubcheck.pkl.Drifty.Repository> desired(
-			List<RepositoryArgs> repos
-	) {
-		return ToDrifty.repositories(repos);
+	private static Drifty.Repository entry(String owner, String name) {
+		return Desired.repository(owner, name)
+				.withVisibility(Drifty.Visibility.PRIVATE);
 	}
 
 	/** One owner with one repository, plus that repository's details. */

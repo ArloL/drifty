@@ -1,27 +1,25 @@
 package io.github.arlol.githubcheck.drift;
 
 import java.util.List;
-import java.util.Objects;
 
 import io.github.arlol.githubcheck.PklTypes;
+import io.github.arlol.githubcheck.actual.ActualRepository;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
-import io.github.arlol.githubcheck.client.SimpleUser;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class RepoSettingsDriftGroup extends DriftGroup {
 
 	private final Drifty.Repository desired;
-	private final RepositoryDetailsResponse actual;
+	private final ActualRepository actual;
 	private final GitHubClient client;
 	private final String org;
 	private final String name;
 
 	public RepoSettingsDriftGroup(
 			Drifty.Repository desired,
-			RepositoryDetailsResponse actual,
+			ActualRepository actual,
 			GitHubClient client,
 			RepoRef ref
 	) {
@@ -43,13 +41,9 @@ public class RepoSettingsDriftGroup extends DriftGroup {
 				compare(
 						"description",
 						desired.description,
-						Objects.toString(actual.description(), "")
+						actual.description()
 				),
-				compare(
-						"homepage_url",
-						desired.homepageUrl,
-						Objects.toString(actual.homepage(), "")
-				),
+				compare("homepage_url", desired.homepageUrl, actual.homepage()),
 				compare(
 						"visibility",
 						PklTypes.visibility(desired.visibility),
@@ -134,7 +128,7 @@ public class RepoSettingsDriftGroup extends DriftGroup {
 				)
 		);
 
-		if (isOrgOwned()) {
+		if (actual.organizationOwned()) {
 			items = combine(
 					items,
 					compare(
@@ -180,17 +174,12 @@ public class RepoSettingsDriftGroup extends DriftGroup {
 							)
 					)
 					.defaultBranch(desired.defaultBranch);
-			if (isOrgOwned()) {
+			if (actual.organizationOwned()) {
 				requestBuilder.allowForking(desired.allowForking);
 			}
 			client.updateRepository(org, name, requestBuilder.build());
 			return FixResult.success();
 		}));
-	}
-
-	private boolean isOrgOwned() {
-		return actual.owner() != null
-				&& actual.owner().type() == SimpleUser.UserType.ORGANIZATION;
 	}
 
 }

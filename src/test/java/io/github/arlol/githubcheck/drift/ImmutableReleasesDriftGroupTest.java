@@ -5,18 +5,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 class ImmutableReleasesDriftGroupTest {
 
 	@Test
 	void noDriftWhenMatches() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.immutableReleases(true)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withImmutableReleases(true);
 		var group = new ImmutableReleasesDriftGroup(
-				ToDrifty.repository(desired).immutableReleases,
+				desired.immutableReleases,
 				true,
 				null,
 				new RepoRef("owner", "repo")
@@ -29,11 +27,10 @@ class ImmutableReleasesDriftGroupTest {
 
 	@Test
 	void detectsDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.immutableReleases(true)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withImmutableReleases(true);
 		var group = new ImmutableReleasesDriftGroup(
-				ToDrifty.repository(desired).immutableReleases,
+				desired.immutableReleases,
 				false,
 				null,
 				new RepoRef("owner", "repo")

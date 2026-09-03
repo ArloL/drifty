@@ -2,27 +2,23 @@ package io.github.arlol.githubcheck.drift;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
+import io.github.arlol.githubcheck.actual.ActualEnvironment;
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 class EnvironmentConfigDriftGroupTest {
 
 	@Test
 	void noDriftWhenNoDesiredEnvironments() {
-		var desired = RepositoryArgs.create("owner", "repo").build();
-		var actual = Map.of(
-				"production",
-				new EnvironmentDetailsResponse("production", List.of(), null)
-		);
+		var desired = Desired.repository("owner", "repo");
+		var actual = Map
+				.of("production", new ActualEnvironment(0, false, false));
 		var group = new EnvironmentConfigDriftGroup(
-				ToDrifty.repository(desired).environments,
+				desired.environments,
 				actual,
 				null,
 				new RepoRef("owner", "repo")
@@ -38,25 +34,17 @@ class EnvironmentConfigDriftGroupTest {
 
 	@Test
 	void noDriftWhenConfigMatches() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("production", env -> env.waitTimer(30))
-				.build();
-		var actual = Map.of(
-				"production",
-				new EnvironmentDetailsResponse(
-						"production",
-						List.of(
-								new EnvironmentDetailsResponse.ProtectionRule(
-										EnvironmentDetailsResponse.ProtectionRuleType.WAIT_TIMER,
-										30,
-										null
-								)
-						),
-						null
-				)
-		);
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment().withWaitTimer(30)
+						)
+				);
+		var actual = Map
+				.of("production", new ActualEnvironment(30, false, false));
 		var group = new EnvironmentConfigDriftGroup(
-				ToDrifty.repository(desired).environments,
+				desired.environments,
 				actual,
 				null,
 				new RepoRef("owner", "repo")
@@ -72,25 +60,17 @@ class EnvironmentConfigDriftGroupTest {
 
 	@Test
 	void detectsWaitTimerDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("production", env -> env.waitTimer(30))
-				.build();
-		var actual = Map.of(
-				"production",
-				new EnvironmentDetailsResponse(
-						"production",
-						List.of(
-								new EnvironmentDetailsResponse.ProtectionRule(
-										EnvironmentDetailsResponse.ProtectionRuleType.WAIT_TIMER,
-										10,
-										null
-								)
-						),
-						null
-				)
-		);
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment().withWaitTimer(30)
+						)
+				);
+		var actual = Map
+				.of("production", new ActualEnvironment(10, false, false));
 		var group = new EnvironmentConfigDriftGroup(
-				ToDrifty.repository(desired).environments,
+				desired.environments,
 				actual,
 				null,
 				new RepoRef("owner", "repo")
@@ -113,25 +93,19 @@ class EnvironmentConfigDriftGroupTest {
 
 	@Test
 	void detectsDeploymentBranchPolicyDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment(
-						"production",
-						env -> env.deploymentBranchPolicy(true, false)
-				)
-				.build();
-		var actual = Map.of(
-				"production",
-				new EnvironmentDetailsResponse(
-						"production",
-						List.of(),
-						new EnvironmentDetailsResponse.DeploymentBranchPolicy(
-								false,
-								true
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment()
+										.withProtectedBranches(true)
+										.withCustomBranchPolicies(false)
 						)
-				)
-		);
+				);
+		var actual = Map
+				.of("production", new ActualEnvironment(0, false, true));
 		var group = new EnvironmentConfigDriftGroup(
-				ToDrifty.repository(desired).environments,
+				desired.environments,
 				actual,
 				null,
 				new RepoRef("owner", "repo")
@@ -161,13 +135,17 @@ class EnvironmentConfigDriftGroupTest {
 
 	@Test
 	void detectsMissingEnvironment() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("production", env -> env.waitTimer(30))
-				.build();
-		var actual = Map.<String, EnvironmentDetailsResponse>of();
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment().withWaitTimer(30)
+						)
+				);
+		var actual = Map.<String, ActualEnvironment>of();
 
 		var group = new EnvironmentConfigDriftGroup(
-				ToDrifty.repository(desired).environments,
+				desired.environments,
 				actual,
 				null,
 				new RepoRef("owner", "repo")

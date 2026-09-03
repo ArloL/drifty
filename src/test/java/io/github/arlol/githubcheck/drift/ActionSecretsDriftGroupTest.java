@@ -7,21 +7,20 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import io.github.arlol.githubcheck.client.Secret;
+import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
 import io.github.arlol.githubcheck.state.DriftyState;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 class ActionSecretsDriftGroupTest {
 
-	private static Secret secret(String name, String updatedAt) {
-		return new Secret(name, "2023-01-01T00:00:00Z", updatedAt);
+	private static ActualSecret secret(String name, String updatedAt) {
+		return new ActualSecret(name, updatedAt);
 	}
 
 	private static ActionSecretsDriftGroup group(
 			List<String> desiredSecrets,
-			List<Secret> actualSecrets
+			List<ActualSecret> actualSecrets
 	) {
 		return group(
 				desiredSecrets,
@@ -33,15 +32,14 @@ class ActionSecretsDriftGroupTest {
 
 	private static ActionSecretsDriftGroup group(
 			List<String> desiredSecrets,
-			List<Secret> actualSecrets,
+			List<ActualSecret> actualSecrets,
 			Map<String, String> secretValues,
 			DriftyState state
 	) {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.actionsSecrets(desiredSecrets.toArray(String[]::new))
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withActionsSecrets(desiredSecrets);
 		return new ActionSecretsDriftGroup(
-				ToDrifty.repository(desired).actionsSecrets,
+				desired.actionsSecrets,
 				actualSecrets,
 				secretValues,
 				state,

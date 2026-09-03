@@ -9,8 +9,8 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
-import io.github.arlol.githubcheck.client.SecurityAndAnalysis.BypassReviewer;
 import io.github.arlol.githubcheck.PklTypes;
+import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class SecretScanningDelegatedBypassDriftGroup extends DriftGroup {
@@ -18,7 +18,7 @@ public class SecretScanningDelegatedBypassDriftGroup extends DriftGroup {
 	private final boolean desiredEnabled;
 	private final boolean actualEnabled;
 	private final List<Drifty.SecretScanningBypassReviewer> desiredReviewers;
-	private final List<BypassReviewer> actualReviewers;
+	private final List<ActualSecurityAndAnalysis.BypassReviewer> actualReviewers;
 	private final GitHubClient client;
 	private final String owner;
 	private final String repo;
@@ -27,7 +27,7 @@ public class SecretScanningDelegatedBypassDriftGroup extends DriftGroup {
 			boolean desiredEnabled,
 			List<Drifty.SecretScanningBypassReviewer> desiredReviewers,
 			boolean actualEnabled,
-			List<BypassReviewer> actualReviewers,
+			List<ActualSecurityAndAnalysis.BypassReviewer> actualReviewers,
 			GitHubClient client,
 			RepoRef ref
 	) {
@@ -56,7 +56,7 @@ public class SecretScanningDelegatedBypassDriftGroup extends DriftGroup {
 					.map(r -> key(r.reviewerType.name(), r.reviewerId))
 					.collect(Collectors.toSet());
 			Set<String> got = actualReviewers.stream()
-					.map(r -> key(r.reviewerType().name(), r.reviewerId()))
+					.map(r -> key(r.reviewerType(), r.reviewerId()))
 					.collect(Collectors.toSet());
 			items.addAll(compare("reviewers", wanted, got));
 		}
@@ -67,7 +67,7 @@ public class SecretScanningDelegatedBypassDriftGroup extends DriftGroup {
 				saBuilder.secretScanningDelegatedBypassReviewers(
 						desiredReviewers.stream()
 								.map(
-										r -> new BypassReviewer(
+										r -> new SecurityAndAnalysis.BypassReviewer(
 												r.reviewerId,
 												PklTypes.reviewerType(
 														r.reviewerType

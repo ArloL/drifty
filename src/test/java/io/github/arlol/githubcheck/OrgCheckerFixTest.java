@@ -27,7 +27,6 @@ import java.util.Optional;
 
 import io.github.arlol.githubcheck.drift.DriftFix;
 import io.github.arlol.githubcheck.drift.DriftGroup;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,27 +40,19 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
 import io.github.arlol.githubcheck.ActualTypes;
-import io.github.arlol.githubcheck.actual.ActualBranchProtection;
-import io.github.arlol.githubcheck.actual.ActualRuleset;
+import io.github.arlol.githubcheck.actual.ActualEnvironment;
+import io.github.arlol.githubcheck.actual.ActualPages;
+import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
-import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
-import io.github.arlol.githubcheck.client.PagesBuildType;
-import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
-import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetTarget;
-import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
-import io.github.arlol.githubcheck.testsupport.BranchProtectionArgs;
-import io.github.arlol.githubcheck.testsupport.CodeScanningToolArgs;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.RulesetArgs;
-import io.github.arlol.githubcheck.testsupport.SecretScanningBypassReviewerArgs;
-import io.github.arlol.githubcheck.testsupport.StatusCheckArgs;
+import io.github.arlol.githubcheck.pkl.Drifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 import io.github.arlol.githubcheck.drift.DriftItem;
 
 @WireMockTest
@@ -74,14 +65,6 @@ class OrgCheckerFixTest {
 					DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES,
 					false
 			);
-
-	private static final String GOOD_SUMMARY_JSON = """
-			{
-				"name": "repo",
-				"archived": false,
-				"visibility": "public"
-			}
-			""";
 
 	private static final String GOOD_DETAILS_JSON = """
 			{
@@ -160,9 +143,9 @@ class OrgCheckerFixTest {
 
 	private Map<DriftGroup, List<DriftFix>> computeGroupDrifts(
 			RepositoryState actual,
-			RepositoryArgs desired
+			Drifty.Repository desired
 	) {
-		return checker.computeGroupDrifts(actual, ToDrifty.repository(desired));
+		return checker.computeGroupDrifts(actual, desired);
 	}
 
 	// ─── Helpers
@@ -195,26 +178,33 @@ class OrgCheckerFixTest {
 		}
 	}
 
+	private static RepositoryDetailsResponse goodDetails() {
+		return parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class);
+	}
+
+	private static ActualWorkflowPermissions goodWorkflowPermissions() {
+		return ActualTypes.workflowPermissions(
+				parse(GOOD_WORKFLOW_PERMISSIONS_JSON, WorkflowPermissions.class)
+		);
+	}
+
 	private static RepositoryState goodPublicState() {
 		return new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
 				false,
 				false,
-				false
+				false,
+				Map.of(),
+				List.of(),
+				List.of(),
+				Map.of(),
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 	}
 
@@ -223,25 +213,23 @@ class OrgCheckerFixTest {
 	) {
 		String mergedDetails = merge(GOOD_DETAILS_JSON, overridesJson)
 				.toString();
+		var details = parse(mergedDetails, RepositoryDetailsResponse.class);
 		return new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(mergedDetails, RepositoryDetailsResponse.class),
+				ActualTypes.repository(details),
+				ActualTypes.securityAndAnalysis(details),
 				true,
 				false,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
 				false,
 				false,
-				false
+				false,
+				Map.of(),
+				List.of(),
+				List.of(),
+				Map.of(),
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 	}
 
@@ -253,7 +241,7 @@ class OrgCheckerFixTest {
 		var state = goodPublicState();
 		var groupDrifts = computeGroupDrifts(
 				state,
-				RepositoryArgs.create("owner", "repo").build()
+				Desired.repository("owner", "repo")
 		);
 		List<String> remaining = unfixedMessages(checker, groupDrifts);
 		assertThat(remaining).isEmpty();
@@ -268,9 +256,8 @@ class OrgCheckerFixTest {
 						.willReturn(okJson("{\"names\":[\"java\"]}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.topics("java")
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withTopics(List.of("java"));
 
 		var state = goodPublicState(); // topics = []
 
@@ -291,9 +278,8 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.description("correct")
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withDescription("correct");
 
 		var state = stateWithDetailsOverride("""
 				{"description": "wrong"}
@@ -340,9 +326,8 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.allowRebaseMerge(false)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withAllowRebaseMerge(false);
 
 		var state = stateWithDetailsOverride("""
 				{"description": "wrong"}
@@ -389,10 +374,9 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.description("correct")
-				.homepageUrl("https://example.com")
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withDescription("correct")
+				.withHomepageUrl("https://example.com");
 
 		var state = stateWithDetailsOverride("""
 				{
@@ -449,9 +433,8 @@ class OrgCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.description("correct")
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withDescription("correct");
 
 		var state = stateWithDetailsOverride("""
 				{
@@ -462,20 +445,20 @@ class OrgCheckerFixTest {
 		// Also override vulnerability alerts to false
 		var stateWithBadVuln = new RepositoryState(
 				"repo",
-				state.summary(),
-				state.details(),
+				state.repository(),
+				state.securityAndAnalysis(),
+				false,
+				false,
+				false,
 				false,
 				false,
 				state.branchProtections(),
+				List.of(),
 				state.actionSecrets(),
+				Map.of(),
 				state.environmentSecrets(),
 				state.workflowPermissions(),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
-				false,
-				false,
-				false
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(stateWithBadVuln, desired);
@@ -508,9 +491,8 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.automatedSecurityFixes(true)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withAutomatedSecurityFixes(true);
 
 		var baseState = stateWithDetailsOverride(
 				"""
@@ -524,20 +506,20 @@ class OrgCheckerFixTest {
 		);
 		var state = new RepositoryState(
 				"repo",
-				baseState.summary(),
-				baseState.details(),
+				baseState.repository(),
+				baseState.securityAndAnalysis(),
+				false,
+				false,
+				false,
 				false,
 				false,
 				baseState.branchProtections(),
+				List.of(),
 				baseState.actionSecrets(),
+				Map.of(),
 				baseState.environmentSecrets(),
 				baseState.workflowPermissions(),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
-				false,
-				false,
-				false
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -587,29 +569,25 @@ class OrgCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.automatedSecurityFixes(true)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withAutomatedSecurityFixes(true);
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				false,
 				true,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
 				false,
 				false,
-				false
+				false,
+				Map.of(),
+				List.of(),
+				List.of(),
+				Map.of(),
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -638,29 +616,25 @@ class OrgCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.vulnerabilityAlerts(false)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withVulnerabilityAlerts(false);
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
 				false,
 				false,
-				false
+				false,
+				Map.of(),
+				List.of(),
+				List.of(),
+				Map.of(),
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -688,29 +662,25 @@ class OrgCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.automatedSecurityFixes(false)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withAutomatedSecurityFixes(false);
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				true,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
 				false,
 				false,
-				false
+				false,
+				Map.of(),
+				List.of(),
+				List.of(),
+				Map.of(),
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -737,10 +707,9 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.secretScanning(false)
-				.secretScanningPushProtection(false)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withSecretScanning(false)
+				.withSecretScanningPushProtection(false);
 
 		var state = goodPublicState();
 
@@ -782,9 +751,8 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.secretScanningPushProtection(false)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withSecretScanningPushProtection(false);
 
 		var state = goodPublicState();
 
@@ -815,9 +783,8 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.secretScanningValidityChecks(true)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withSecretScanningValidityChecks(true);
 
 		var state = stateWithDetailsOverride(
 				"""
@@ -858,9 +825,8 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.secretScanningNonProviderPatterns(true)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withSecretScanningNonProviderPatterns(true);
 
 		var state = stateWithDetailsOverride(
 				"""
@@ -901,9 +867,8 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.advancedSecurity(true)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withAdvancedSecurity(true);
 
 		var state = stateWithDetailsOverride(
 				"""
@@ -941,9 +906,8 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.secretScanningAiDetection(true)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withSecretScanningAiDetection(true);
 
 		var state = stateWithDetailsOverride(
 				"""
@@ -984,9 +948,8 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.secretScanningDelegatedAlertDismissal(true)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withSecretScanningDelegatedAlertDismissal(true);
 
 		var state = stateWithDetailsOverride(
 				"""
@@ -1028,15 +991,16 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.secretScanningDelegatedBypass(true)
-				.secretScanningDelegatedBypassReviewers(
-						new SecretScanningBypassReviewerArgs(
-								7L,
-								SecurityAndAnalysis.BypassReviewer.ReviewerType.TEAM
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withSecretScanningDelegatedBypass(true)
+				.withSecretScanningDelegatedBypassReviewers(
+						List.of(
+								Desired.bypassReviewer(
+										7,
+										Drifty.SecretScanningBypassReviewerType.TEAM
+								)
 						)
-				)
-				.build();
+				);
 
 		var state = stateWithDetailsOverride(
 				"""
@@ -1087,29 +1051,25 @@ class OrgCheckerFixTest {
 				).willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.privateVulnerabilityReporting(true)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withPrivateVulnerabilityReporting(true);
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
 				false,
 				false,
-				false
+				false,
+				Map.of(),
+				List.of(),
+				List.of(),
+				Map.of(),
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1145,29 +1105,25 @@ class OrgCheckerFixTest {
 				).willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.privateVulnerabilityReporting(false)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withPrivateVulnerabilityReporting(false);
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
+				true,
+				false,
+				false,
 				true,
 				false,
 				Map.of(),
 				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
 				List.of(),
-				Optional.empty(),
 				Map.of(),
-				false,
-				true,
-				false
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1202,29 +1158,25 @@ class OrgCheckerFixTest {
 				).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.codeScanningDefaultSetup(true)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withCodeScanningDefaultSetup(true);
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
 				false,
 				false,
-				false
+				false,
+				Map.of(),
+				List.of(),
+				List.of(),
+				Map.of(),
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1252,29 +1204,25 @@ class OrgCheckerFixTest {
 				).willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.codeScanningDefaultSetup(false)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withCodeScanningDefaultSetup(false);
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
 				false,
 				false,
-				true
+				true,
+				Map.of(),
+				List.of(),
+				List.of(),
+				Map.of(),
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1304,29 +1252,27 @@ class OrgCheckerFixTest {
 				).willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo").build();
+		Drifty.Repository desired = Desired.repository("owner", "repo");
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse("""
-						{
-							"default_workflow_permissions": "write",
-							"can_approve_pull_request_reviews": false
-						}
-						""", WorkflowPermissions.class),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
 				false,
 				false,
-				false
+				false,
+				Map.of(),
+				List.of(),
+				List.of(),
+				Map.of(),
+				Map.of(),
+				new ActualWorkflowPermissions(
+						WorkflowPermissions.DefaultWorkflowPermissions.WRITE,
+						false
+				),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1350,7 +1296,7 @@ class OrgCheckerFixTest {
 
 	@Test
 	void noWorkflowPermissionsDrift_noPutCall() throws Exception {
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo").build();
+		Drifty.Repository desired = Desired.repository("owner", "repo");
 		var state = goodPublicState();
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1375,34 +1321,32 @@ class OrgCheckerFixTest {
 						.willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.addBranchProtections(
-						BranchProtectionArgs.builder("main")
-								.enforceAdmins(true)
-								.requiredLinearHistory(true)
-								.build()
-				)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withBranchProtections(
+						Map.of(
+								"main",
+								Desired.branchProtection()
+										.withEnforceAdmins(true)
+										.withRequiredLinearHistory(true)
+						)
+				);
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
 				false,
 				false,
-				false
+				false,
+				Map.of(),
+				List.of(),
+				List.of(),
+				Map.of(),
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1436,9 +1380,8 @@ class OrgCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		var desired = RepositoryArgs.create("owner", "repo")
-				.immutableReleases(true)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withImmutableReleases(true);
 
 		var state = goodPublicState();
 
@@ -1462,27 +1405,24 @@ class OrgCheckerFixTest {
 				).willReturn(WireMock.noContent())
 		);
 
-		var desired = RepositoryArgs.create("owner", "repo").build();
+		var desired = Desired.repository("owner", "repo");
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
+				false,
+				true,
+				false,
 				false,
 				Map.of(),
 				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
 				List.of(),
-				Optional.empty(),
 				Map.of(),
-				true,
-				false,
-				false
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1504,14 +1444,15 @@ class OrgCheckerFixTest {
 						.willReturn(okJson("{}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.addBranchProtections(
-						BranchProtectionArgs.builder("main")
-								.enforceAdmins(true)
-								.requiredLinearHistory(true)
-								.build()
-				)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withBranchProtections(
+						Map.of(
+								"main",
+								Desired.branchProtection()
+										.withEnforceAdmins(true)
+										.withRequiredLinearHistory(true)
+						)
+				);
 
 		var driftedBp = parse(
 				"""
@@ -1534,23 +1475,20 @@ class OrgCheckerFixTest {
 		);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
+				false,
+				false,
+				false,
 				false,
 				Map.of("main", ActualTypes.branchProtection(driftedBp)),
 				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
 				List.of(),
-				Optional.empty(),
 				Map.of(),
-				false,
-				false,
-				false
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1584,16 +1522,14 @@ class OrgCheckerFixTest {
 						.willReturn(okJson("{}"))
 		);
 
-		var bpArgs = BranchProtectionArgs.builder("main")
-				.enforceAdmins(true)
-				.requiredLinearHistory(true)
-				.requiredApprovingReviewCount(1)
-				.dismissStaleReviews(true)
-				.requireCodeOwnerReviews(true)
-				.build();
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.branchProtections(bpArgs)
-				.build();
+		var bp = Desired.branchProtection()
+				.withEnforceAdmins(true)
+				.withRequiredLinearHistory(true)
+				.withRequiredApprovingReviewCount(1L)
+				.withDismissStaleReviews(true)
+				.withRequireCodeOwnerReviews(true);
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withBranchProtections(Map.of("main", bp));
 
 		var driftedBp = parse("""
 				{
@@ -1608,23 +1544,20 @@ class OrgCheckerFixTest {
 				""", BranchProtectionResponse.class);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
+				false,
+				false,
+				false,
 				false,
 				Map.of("main", ActualTypes.branchProtection(driftedBp)),
 				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
 				List.of(),
-				Optional.empty(),
 				Map.of(),
-				false,
-				false,
-				false
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1664,16 +1597,14 @@ class OrgCheckerFixTest {
 						.willReturn(okJson("{}"))
 		);
 
-		var bpArgs = BranchProtectionArgs.builder("main")
-				.enforceAdmins(true)
-				.requiredLinearHistory(true)
-				.users(List.of("admin-user", "dev-user"))
-				.teams(List.of("admins"))
-				.apps(List.of("my-app"))
-				.build();
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.branchProtections(bpArgs)
-				.build();
+		var bp = Desired.branchProtection()
+				.withEnforceAdmins(true)
+				.withRequiredLinearHistory(true)
+				.withUsers(List.of("admin-user", "dev-user"))
+				.withTeams(List.of("admins"))
+				.withApps(List.of("my-app"));
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withBranchProtections(Map.of("main", bp));
 
 		var driftedBp = parse("""
 				{
@@ -1688,23 +1619,20 @@ class OrgCheckerFixTest {
 				""", BranchProtectionResponse.class);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
+				false,
+				false,
+				false,
 				false,
 				Map.of("main", ActualTypes.branchProtection(driftedBp)),
 				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
 				List.of(),
-				Optional.empty(),
 				Map.of(),
-				false,
-				false,
-				false
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1737,7 +1665,7 @@ class OrgCheckerFixTest {
 
 	@Test
 	void noBranchProtectionDrift_noPutCall() throws Exception {
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo").build();
+		Drifty.Repository desired = Desired.repository("owner", "repo");
 		var state = goodPublicState();
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1760,13 +1688,16 @@ class OrgCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo").build();
+		Drifty.Repository desired = Desired.repository("owner", "repo");
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
+				false,
+				false,
+				false,
 				false,
 				Map.of(
 						"main",
@@ -1778,17 +1709,11 @@ class OrgCheckerFixTest {
 						)
 				),
 				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
 				List.of(),
-				Optional.empty(),
 				Map.of(),
-				false,
-				false,
-				false
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1813,10 +1738,9 @@ class OrgCheckerFixTest {
 						.willReturn(okJson("{\"names\":[\"java\"]}"))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.description("correct")
-				.topics("java")
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withDescription("correct")
+				.withTopics(List.of("java"));
 
 		var state = stateWithDetailsOverride("""
 				{"description": "wrong"}
@@ -1872,23 +1796,28 @@ class OrgCheckerFixTest {
 				)
 		);
 
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.requiredLinearHistory(true)
-								.noForcePushes(true)
-								.requiredStatusChecks(
-										StatusCheckArgs.builder()
-												.context("CodeQL")
-												.build(),
-										StatusCheckArgs.builder()
-												.context("zizmor")
-												.build()
-								)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"main-branch-rules",
+								Desired.ruleset()
+										.withIncludePatterns(
+												List.of("~DEFAULT_BRANCH")
+										)
+										.withRequiredLinearHistory(true)
+										.withNoForcePushes(true)
+										.withRequiredStatusChecks(
+												List.of(
+														Desired.statusCheck(
+																"CodeQL"
+														),
+														Desired.statusCheck(
+																"zizmor"
+														)
+												)
+										)
+						)
+				);
 
 		var state = goodPublicState(); // no rulesets
 
@@ -1942,15 +1871,18 @@ class OrgCheckerFixTest {
 						.willReturn(okJson("{\"id\": 42}"))
 		);
 
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.requiredLinearHistory(true)
-								.noForcePushes(false)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"main-branch-rules",
+								Desired.ruleset()
+										.withIncludePatterns(
+												List.of("~DEFAULT_BRANCH")
+										)
+										.withRequiredLinearHistory(true)
+										.withNoForcePushes(false)
+						)
+				);
 
 		var include = List.of("~DEFAULT_BRANCH");
 		var conditions = new RulesetDetailsResponse.Conditions(
@@ -1980,23 +1912,20 @@ class OrgCheckerFixTest {
 		);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
+				false,
+				false,
+				false,
 				Map.of(),
+				List.of(ActualTypes.ruleset(actualRuleset)),
 				List.of(),
 				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(ActualTypes.ruleset(actualRuleset)),
-				Optional.empty(),
 				Map.of(),
-				false,
-				false,
-				false
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -2048,39 +1977,41 @@ class OrgCheckerFixTest {
 				)
 		);
 
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.requiredLinearHistory(true)
-								.requiredStatusChecks(
-										StatusCheckArgs.builder()
-												.context("CodeQL")
-												.build()
-								)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"main-branch-rules",
+								Desired.ruleset()
+										.withIncludePatterns(
+												List.of("~DEFAULT_BRANCH")
+										)
+										.withRequiredLinearHistory(true)
+										.withRequiredStatusChecks(
+												List.of(
+														Desired.statusCheck(
+																"CodeQL"
+														)
+												)
+										)
+						)
+				);
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
+				false,
+				false,
+				false,
 				Map.of(),
+				List.of(ActualTypes.ruleset(actualRuleset)),
 				List.of(),
 				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(ActualTypes.ruleset(actualRuleset)),
-				Optional.empty(),
 				Map.of(),
-				false,
-				false,
-				false
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -2109,38 +2040,40 @@ class OrgCheckerFixTest {
 								"""))
 		);
 
-		var desired = RepositoryArgs.create("owner", "repo")
-				.rulesets(
-						RulesetArgs.builder("main-branch-rules")
-								.includePatterns("~DEFAULT_BRANCH")
-								.addRequiredCodeScanning(
-										CodeScanningToolArgs.builder()
-												.tool("CodeQL")
-												.build()
-								)
-								.build()
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withRulesets(
+						Map.of(
+								"main-branch-rules",
+								Desired.ruleset()
+										.withIncludePatterns(
+												List.of("~DEFAULT_BRANCH")
+										)
+										.withRequiredCodeScanning(
+												List.of(
+														Desired.codeScanningTool(
+																"CodeQL"
+														)
+												)
+										)
+						)
+				);
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
 				false,
 				false,
-				false
+				false,
+				Map.of(),
+				List.of(),
+				List.of(),
+				Map.of(),
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -2174,27 +2107,25 @@ class OrgCheckerFixTest {
 								"""))
 		);
 
-		var desired = RepositoryArgs.create("owner", "repo").pages().build();
+		var desired = Desired.repository("owner", "repo")
+				.withPages(Desired.pages());
 
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
+				false,
+				false,
+				false,
 				Map.of(),
 				List.of(),
+				List.of(),
+				Map.of(),
 				Map.of("github-pages", List.of()),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
-				false,
-				false,
-				false
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -2217,41 +2148,30 @@ class OrgCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		var desired = RepositoryArgs.create("owner", "repo").pages().build();
+		var desired = Desired.repository("owner", "repo")
+				.withPages(Desired.pages());
 
-		var actualPages = new PagesResponse(
-				null,
-				PagesResponse.Status.BUILT,
-				null,
-				false,
-				null,
-				PagesBuildType.WORKFLOW,
-				null,
-				true,
-				null,
-				null,
-				null,
+		var actualPages = new ActualPages(
+				"workflow",
+				Optional.empty(),
 				false // https_enforced is false → drift
 		);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
+				false,
+				false,
+				false,
 				Map.of(),
 				List.of(),
+				List.of(),
+				Map.of(),
 				Map.of("github-pages", List.of()),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.of(actualPages),
-				Map.of(),
-				false,
-				false,
-				false
+				goodWorkflowPermissions(),
+				Optional.of(actualPages)
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -2272,7 +2192,7 @@ class OrgCheckerFixTest {
 
 	@Test
 	void noPagesDesired_noPagesApiCall() throws Exception {
-		var desired = RepositoryArgs.create("owner", "repo").build();
+		var desired = Desired.repository("owner", "repo");
 
 		var state = goodPublicState();
 
@@ -2295,40 +2215,31 @@ class OrgCheckerFixTest {
 						.willReturn(okJson("{}"))
 		);
 
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("production", env -> env.waitTimer(30))
-				.build();
-
-		var actualEnv = new EnvironmentDetailsResponse(
-				"production",
-				List.of(
-						new EnvironmentDetailsResponse.ProtectionRule(
-								EnvironmentDetailsResponse.ProtectionRuleType.WAIT_TIMER,
-								10,
-								null
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment().withWaitTimer(30)
 						)
-				),
-				null
-		);
+				);
+
+		var actualEnv = new ActualEnvironment(10, false, false);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
+				false,
+				false,
+				false,
 				false,
 				Map.of(),
 				List.of(),
-				Map.of("production", List.of()),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
 				List.of(),
-				Optional.empty(),
 				Map.of("production", actualEnv),
-				false,
-				false,
-				false
+				Map.of("production", List.of()),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -2353,40 +2264,33 @@ class OrgCheckerFixTest {
 						.willReturn(okJson("{}"))
 		);
 
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment(
-						"production",
-						env -> env.deploymentBranchPolicy(true, false)
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment()
+										.withProtectedBranches(true)
+										.withCustomBranchPolicies(false)
+						)
+				);
 
-		var actualEnv = new EnvironmentDetailsResponse(
-				"production",
-				List.of(),
-				new EnvironmentDetailsResponse.DeploymentBranchPolicy(
-						false,
-						true
-				)
-		);
+		var actualEnv = new ActualEnvironment(0, false, true);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
+				false,
+				false,
+				false,
 				false,
 				Map.of(),
 				List.of(),
-				Map.of("production", List.of()),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
 				List.of(),
-				Optional.empty(),
 				Map.of("production", actualEnv),
-				false,
-				false,
-				false
+				Map.of("production", List.of()),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -2410,40 +2314,31 @@ class OrgCheckerFixTest {
 
 	@Test
 	void noEnvironmentConfigDrift_noEnvironmentApiCall() throws Exception {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment("production", env -> env.waitTimer(30))
-				.build();
-
-		var actualEnv = new EnvironmentDetailsResponse(
-				"production",
-				List.of(
-						new EnvironmentDetailsResponse.ProtectionRule(
-								EnvironmentDetailsResponse.ProtectionRuleType.WAIT_TIMER,
-								30,
-								null
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment().withWaitTimer(30)
 						)
-				),
-				null
-		);
+				);
+
+		var actualEnv = new ActualEnvironment(30, false, false);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
+				false,
+				false,
+				false,
 				false,
 				Map.of(),
 				List.of(),
-				Map.of("production", List.of()),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
 				List.of(),
-				Optional.empty(),
 				Map.of("production", actualEnv),
-				false,
-				false,
-				false
+				Map.of("production", List.of()),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -2500,33 +2395,25 @@ class OrgCheckerFixTest {
 		);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
 				false,
 				false,
-				false
+				false,
+				Map.of(),
+				List.of(),
+				List.of(),
+				Map.of(),
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
-		var desired = RepositoryArgs.create("owner", "repo")
-				.actionsSecrets("PAT")
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withActionsSecrets(List.of("PAT"));
 
-		var groupDrifts = localChecker.computeGroupDrifts(
-				state,
-				io.github.arlol.githubcheck.testsupport.ToDrifty
-						.repository(desired)
-		);
+		var groupDrifts = localChecker.computeGroupDrifts(state, desired);
 
 		var remaining = unfixedMessages(localChecker, groupDrifts);
 
@@ -2546,33 +2433,25 @@ class OrgCheckerFixTest {
 		var localChecker = checkerWithSecrets(wm, Map.of());
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
 				false,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
 				false,
 				false,
-				false
+				false,
+				Map.of(),
+				List.of(),
+				List.of(),
+				Map.of(),
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
-		var desired = RepositoryArgs.create("owner", "repo")
-				.actionsSecrets("PAT")
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withActionsSecrets(List.of("PAT"));
 
-		var groupDrifts = localChecker.computeGroupDrifts(
-				state,
-				io.github.arlol.githubcheck.testsupport.ToDrifty
-						.repository(desired)
-		);
+		var groupDrifts = localChecker.computeGroupDrifts(state, desired);
 
 		var remaining = unfixedMessages(localChecker, groupDrifts);
 
@@ -2628,39 +2507,31 @@ class OrgCheckerFixTest {
 		);
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
+				false,
+				false,
+				false,
 				false,
 				Map.of(),
 				List.of(),
-				Map.of("production", List.of()),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
 				List.of(),
-				Optional.empty(),
-				Map.of(
-						"production",
-						parse("{}", EnvironmentDetailsResponse.class)
-				),
-				false,
-				false,
-				false
+				Map.of("production", new ActualEnvironment(0, false, false)),
+				Map.of("production", List.of()),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
-		var desired = RepositoryArgs.create("owner", "repo")
-				.environment(
-						"production",
-						env -> env.secrets("TF_GITHUB_TOKEN")
-				)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withEnvironments(
+						Map.of(
+								"production",
+								Desired.environment()
+										.withSecrets(List.of("TF_GITHUB_TOKEN"))
+						)
+				);
 
-		var groupDrifts = localChecker.computeGroupDrifts(
-				state,
-				io.github.arlol.githubcheck.testsupport.ToDrifty
-						.repository(desired)
-		);
+		var groupDrifts = localChecker.computeGroupDrifts(state, desired);
 
 		var remaining = unfixedMessages(localChecker, groupDrifts);
 
@@ -2684,7 +2555,7 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		var desired = RepositoryArgs.create("owner", "repo").archived().build();
+		var desired = Desired.repository("owner", "repo").withArchived(true);
 		var state = goodPublicState(); // not archived
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -2705,31 +2576,10 @@ class OrgCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		var desired = RepositoryArgs.create("owner", "repo").build(); // not
-																	  // archived
-		var state = new RepositoryState(
-				"repo",
-				parse(
-						"{\"name\": \"repo\", \"archived\": true, \"visibility\": \"public\"}",
-						RepositorySummaryResponse.class
-				),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
-				true,
-				false,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
-				false,
-				false,
-				false
-		);
+		var desired = Desired.repository("owner", "repo"); // not archived
+		var state = stateWithDetailsOverride("""
+				{"archived": true}
+				""");
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
@@ -2758,32 +2608,11 @@ class OrgCheckerFixTest {
 
 		// Wants the repo active and the description changed, so both the
 		// archive group and the repo-settings group have work to do.
-		var desired = RepositoryArgs.create("owner", "repo")
-				.description("a new description")
-				.build();
-		var state = new RepositoryState(
-				"repo",
-				parse(
-						"{\"name\": \"repo\", \"archived\": true, \"visibility\": \"public\"}",
-						RepositorySummaryResponse.class
-				),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
-				true,
-				false,
-				Map.of(),
-				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
-				List.of(),
-				Optional.empty(),
-				Map.of(),
-				false,
-				false,
-				false
-		);
+		var desired = Desired.repository("owner", "repo")
+				.withDescription("a new description");
+		var state = stateWithDetailsOverride("""
+				{"archived": true}
+				""");
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 		assertThat(groupDrifts.keySet().stream().map(DriftGroup::name)).as(
@@ -2828,31 +2657,27 @@ class OrgCheckerFixTest {
 						.willReturn(WireMock.aResponse().withStatus(500))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.vulnerabilityAlerts(true)
-				.immutableReleases(true)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withVulnerabilityAlerts(true)
+				.withImmutableReleases(true);
 
 		// Both flags are off on GitHub, so both groups detect drift.
 		var state = new RepositoryState(
 				"repo",
-				parse(GOOD_SUMMARY_JSON, RepositorySummaryResponse.class),
-				parse(GOOD_DETAILS_JSON, RepositoryDetailsResponse.class),
+				ActualTypes.repository(goodDetails()),
+				ActualTypes.securityAndAnalysis(goodDetails()),
+				false,
+				false,
+				false,
 				false,
 				false,
 				Map.of(),
 				List.of(),
-				Map.of(),
-				parse(
-						GOOD_WORKFLOW_PERMISSIONS_JSON,
-						WorkflowPermissions.class
-				),
 				List.of(),
-				Optional.empty(),
 				Map.of(),
-				false,
-				false,
-				false
+				Map.of(),
+				goodWorkflowPermissions(),
+				Optional.empty()
 		);
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -2876,9 +2701,8 @@ class OrgCheckerFixTest {
 						.willReturn(WireMock.aResponse().withStatus(500))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.immutableReleases(true)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withImmutableReleases(true);
 
 		var groupDrifts = computeGroupDrifts(goodPublicState(), desired);
 		var outcome = checker.applyFixes(groupDrifts);
@@ -2900,14 +2724,11 @@ class OrgCheckerFixTest {
 			throws Exception {
 		var localChecker = checkerWithSecrets(wm, Map.of());
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.actionsSecrets("PAT")
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withActionsSecrets(List.of("PAT"));
 
-		var groupDrifts = localChecker.computeGroupDrifts(
-				goodPublicState(),
-				ToDrifty.repository(desired)
-		);
+		var groupDrifts = localChecker
+				.computeGroupDrifts(goodPublicState(), desired);
 		var outcome = localChecker.applyFixes(groupDrifts);
 
 		assertThat(outcome.unfixed()).singleElement().satisfies(unfixed -> {
@@ -2928,9 +2749,8 @@ class OrgCheckerFixTest {
 						.willReturn(WireMock.aResponse().withStatus(204))
 		);
 
-		RepositoryArgs desired = RepositoryArgs.create("owner", "repo")
-				.immutableReleases(true)
-				.build();
+		Drifty.Repository desired = Desired.repository("owner", "repo")
+				.withImmutableReleases(true);
 
 		var groupDrifts = computeGroupDrifts(goodPublicState(), desired);
 		var outcome = checker.applyFixes(groupDrifts);

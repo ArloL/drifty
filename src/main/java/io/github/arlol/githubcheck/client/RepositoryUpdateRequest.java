@@ -2,6 +2,17 @@ package io.github.arlol.githubcheck.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+/**
+ * Body of {@code PATCH /repos/{owner}/{repo}}.
+ * <p>
+ * Eight drift groups write this one resource — repository settings, archived,
+ * and six security toggles — and each sends its own request. That only works
+ * because every field here is a nullable wrapper and {@code NON_NULL} drops the
+ * unset ones ({@link SecurityAndAnalysis} does the same for its toggles), so
+ * each request carries just the fields its group manages and GitHub leaves the
+ * rest as they are. Make a field primitive, or drop the annotation, and every
+ * group's fix silently resets the others' settings.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record RepositoryUpdateRequest(
 		Boolean archived,

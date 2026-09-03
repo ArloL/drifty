@@ -6,12 +6,27 @@ import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
-import io.github.arlol.githubcheck.drift.BranchProtectionDriftGroup;
-import io.github.arlol.githubcheck.drift.RulesetDriftGroup;
+import io.github.arlol.githubcheck.actual.ActualRepository;
+import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
+import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
+import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.MergeCommitMessage;
+import io.github.arlol.githubcheck.client.MergeCommitTitle;
+import io.github.arlol.githubcheck.client.RepoRef;
+import io.github.arlol.githubcheck.client.RepositoryVisibility;
+import io.github.arlol.githubcheck.client.SquashMergeCommitMessage;
+import io.github.arlol.githubcheck.client.SquashMergeCommitTitle;
+import io.github.arlol.githubcheck.client.WorkflowPermissions;
+import io.github.arlol.githubcheck.drift.DriftGroup;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 /**
  * The GitHub REST response records describe a wire format drifty does not own
@@ -20,74 +35,147 @@ import io.github.arlol.githubcheck.drift.RulesetDriftGroup;
  * the read path — for GraphQL bulk reads, say — stops being a change to the
  * client package.
  * <p>
- * {@code PklTypes} already translates the desired side of the comparison into
- * types drifty owns. These tests pin the same boundary on the actual side for
- * the two groups where the leakage ran deepest: between them,
- * {@link RulesetDriftGroup} and {@link BranchProtectionDriftGroup} held most of
- * the wire-shape navigation in the codebase.
+ * {@code PklTypes} translates the desired side of the comparison into types
+ * drifty owns; {@code ActualTypes} does the same for the actual side. These
+ * tests pin that boundary for every drift group and for the state they read
+ * from: the only client types allowed past it are the facade itself, the
+ * repository reference, and the enums that spell GitHub's contract values,
+ * which both sides of a comparison meet in.
  */
 class ActualStateBoundaryTest {
 
 	private static final String CLIENT_PACKAGE = "io.github.arlol.githubcheck.client";
 
+	private static final Set<Class<?>> ALLOWED = Set
+			.of(GitHubClient.class, RepoRef.class);
+
 	@Test
-	void rulesetGroupHoldsNoGitHubResponseTypes() {
-		assertThat(responseTypesHeldBy(RulesetDriftGroup.class)).isEmpty();
+	void noDriftGroupHoldsGitHubResponseTypes() {
+		var offenders = new ArrayList<String>();
+		for (DriftGroup group : driftGroups()) {
+			for (String type : clientTypesHeldBy(group.getClass())) {
+				offenders.add(
+						group.getClass().getSimpleName() + " holds " + type
+				);
+			}
+		}
+		assertThat(offenders).isEmpty();
 	}
 
 	@Test
-	void branchProtectionGroupHoldsNoGitHubResponseTypes() {
-		assertThat(responseTypesHeldBy(BranchProtectionDriftGroup.class))
+	void repositoryStateHoldsNoGitHubResponseTypes() {
+		assertThat(clientTypesHeldBy(RepositoryState.class))
+				.as("client types reachable from RepositoryState's fields")
 				.isEmpty();
 	}
 
-	@Test
-	void repositoryStateExposesRulesetsAndProtectionsAsDriftyTypes() {
-		assertThat(responseTypesHeldBy(RepositoryState.class))
-				.as("RepositoryState fields that are GitHub response types")
-				.doesNotContain(
-						"RulesetDetailsResponse",
-						"BranchProtectionResponse"
-				);
+	/**
+	 * Every group the orchestrator would build; the fixture's values do not
+	 * matter.
+	 */
+	private static List<DriftGroup> driftGroups() {
+		return new OrgChecker((String) null, false).createDriftGroups(
+				new RepositoryState(
+						"repo",
+						new ActualRepository(
+								false,
+								false,
+								"",
+								"",
+								RepositoryVisibility.PUBLIC,
+								"main",
+								List.of(),
+								true,
+								true,
+								true,
+								false,
+								false,
+								true,
+								false,
+								true,
+								true,
+								true,
+								false,
+								false,
+								false,
+								SquashMergeCommitTitle.COMMIT_OR_PR_TITLE,
+								SquashMergeCommitMessage.COMMIT_MESSAGES,
+								MergeCommitTitle.MERGE_MESSAGE,
+								MergeCommitMessage.PR_TITLE
+						),
+						new ActualSecurityAndAnalysis(
+								false,
+								false,
+								false,
+								false,
+								false,
+								false,
+								false,
+								false,
+								List.of()
+						),
+						false,
+						false,
+						false,
+						false,
+						false,
+						Map.of(),
+						List.of(),
+						List.of(),
+						Map.of(),
+						Map.of(),
+						new ActualWorkflowPermissions(
+								WorkflowPermissions.DefaultWorkflowPermissions.WRITE,
+								true
+						),
+						Optional.empty()
+				),
+				Desired.repository("owner", "repo")
+		);
 	}
 
 	/**
-	 * The response types a class keeps as state, including the ones hidden
-	 * inside collection and map type arguments. Read from declared fields
+	 * The client types a class keeps as state, other than the allowed ones:
+	 * looked for in its fields, inside collection and map type arguments, and
+	 * inside any {@code actual.*} record it holds. Read from declared fields
 	 * rather than record components: a record's fields are its components, and
 	 * {@code getRecordComponents} needs reflection metadata the native image
 	 * does not carry, so this test would pass on the JVM and fail natively.
 	 */
-	private static List<String> responseTypesHeldBy(Class<?> type) {
-		var types = new ArrayList<Type>();
-		for (Field field : type.getDeclaredFields()) {
-			types.add(field.getGenericType());
-		}
-		return responseTypesIn(types);
-	}
-
-	private static List<String> responseTypesIn(List<Type> types) {
+	private static List<String> clientTypesHeldBy(Class<?> type) {
 		var found = new ArrayList<String>();
-		types.forEach(type -> collectResponseTypes(type, found));
+		collect(type, found, new HashSet<>());
 		return found;
 	}
 
-	private static void collectResponseTypes(Type type, List<String> found) {
+	private static void collect(
+			Type type,
+			List<String> found,
+			Set<Class<?>> visited
+	) {
 		switch (type) {
 		case Class<?> c -> {
-			if (c.getName().startsWith(CLIENT_PACKAGE)
-					&& c.getSimpleName().endsWith("Response")) {
+			if (!visited.add(c)) {
+				return;
+			}
+			if (c.getName().startsWith(CLIENT_PACKAGE) && !c.isEnum()
+					&& !ALLOWED.contains(c)) {
 				found.add(c.getSimpleName());
+			} else if (c.getName().startsWith("io.github.arlol.githubcheck")
+					&& !c.getName().startsWith(CLIENT_PACKAGE)) {
+				for (Field field : c.getDeclaredFields()) {
+					collect(field.getGenericType(), found, visited);
+				}
 			}
 		}
 		case ParameterizedType p -> {
-			collectResponseTypes(p.getRawType(), found);
+			collect(p.getRawType(), found, visited);
 			for (Type argument : p.getActualTypeArguments()) {
-				collectResponseTypes(argument, found);
+				collect(argument, found, visited);
 			}
 		}
 		default -> {
-			// Type variables and wildcards carry no concrete response type.
+			// Type variables and wildcards carry no concrete client type.
 		}
 		}
 	}

@@ -8,15 +8,11 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
-import io.github.arlol.githubcheck.client.MergeCommitMessage;
-import io.github.arlol.githubcheck.client.MergeCommitTitle;
-import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
-import io.github.arlol.githubcheck.client.RepositoryVisibility;
-import io.github.arlol.githubcheck.client.SquashMergeCommitMessage;
-import io.github.arlol.githubcheck.client.SquashMergeCommitTitle;
+import io.github.arlol.githubcheck.ActualTypes;
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
+import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
+import io.github.arlol.githubcheck.pkl.Drifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 class RepoSettingsDriftGroupTest {
 
@@ -63,46 +59,45 @@ class RepoSettingsDriftGroupTest {
 			}
 			""";
 
-	private RepositoryArgs desired(String description) {
-		return RepositoryArgs.create("owner", "repo")
-				.description(description)
-				.visibility(RepositoryVisibility.PUBLIC)
-				.defaultBranch("main")
-				.hasIssues(true)
-				.hasProjects(true)
-				.hasWiki(true)
-				.hasDiscussions(false)
-				.isTemplate(false)
-				.allowForking(true)
-				.webCommitSignoffRequired(false)
-				.allowMergeCommit(true)
-				.allowSquashMerge(true)
-				.allowRebaseMerge(true)
-				.allowAutoMerge(false)
-				.allowUpdateBranch(false)
-				.deleteBranchOnMerge(false)
-				.squashMergeCommitTitle(
-						SquashMergeCommitTitle.COMMIT_OR_PR_TITLE
+	private Drifty.Repository desired(String description) {
+		return Desired.repository("owner", "repo")
+				.withDescription(description)
+				.withVisibility(Drifty.Visibility.PUBLIC)
+				.withDefaultBranch("main")
+				.withHasIssues(true)
+				.withHasProjects(true)
+				.withHasWiki(true)
+				.withHasDiscussions(false)
+				.withIsTemplate(false)
+				.withAllowForking(true)
+				.withWebCommitSignoffRequired(false)
+				.withAllowMergeCommit(true)
+				.withAllowSquashMerge(true)
+				.withAllowRebaseMerge(true)
+				.withAllowAutoMerge(false)
+				.withAllowUpdateBranch(false)
+				.withDeleteBranchOnMerge(false)
+				.withSquashMergeCommitTitle(
+						Drifty.SquashMergeCommitTitle.COMMIT_OR_PR_TITLE
 				)
-				.squashMergeCommitMessage(
-						SquashMergeCommitMessage.COMMIT_MESSAGES
+				.withSquashMergeCommitMessage(
+						Drifty.SquashMergeCommitMessage.COMMIT_MESSAGES
 				)
-				.mergeCommitTitle(MergeCommitTitle.MERGE_MESSAGE)
-				.mergeCommitMessage(MergeCommitMessage.PR_TITLE)
-				.build();
+				.withMergeCommitTitle(Drifty.MergeCommitTitle.MERGE_MESSAGE)
+				.withMergeCommitMessage(Drifty.MergeCommitMessage.PR_TITLE);
 	}
 
-	private RepositoryArgs desiredFull() {
+	private Drifty.Repository desiredFull() {
 		return desired("A great project");
 	}
 
 	private RepoSettingsDriftGroup group(
-			RepositoryArgs desired,
+			Drifty.Repository desired,
 			RepositoryDetailsResponse actual
 	) {
 		return new RepoSettingsDriftGroup(
-				ToDrifty.repository(desired),
-				actual,
+				desired,
+				ActualTypes.repository(actual),
 				null,
 				new RepoRef("owner", "repo")
 		);
@@ -135,9 +130,7 @@ class RepoSettingsDriftGroupTest {
 
 	@Test
 	void detectsVisibilityMismatch() {
-		var desired = desiredFull().toBuilder()
-				.visibility(RepositoryVisibility.PRIVATE)
-				.build();
+		var desired = desiredFull().withVisibility(Drifty.Visibility.PRIVATE);
 		var items = group(desired, parseDetails(BASE_DETAILS_JSON)).detect()
 				.stream()
 				.flatMap(f -> f.items().stream())
@@ -151,9 +144,7 @@ class RepoSettingsDriftGroupTest {
 
 	@Test
 	void detectsDefaultBranchMismatch() {
-		var desired = desiredFull().toBuilder()
-				.defaultBranch("develop")
-				.build();
+		var desired = desiredFull().withDefaultBranch("develop");
 		var items = group(desired, parseDetails(BASE_DETAILS_JSON)).detect()
 				.stream()
 				.flatMap(f -> f.items().stream())
@@ -192,12 +183,10 @@ class RepoSettingsDriftGroupTest {
 					"archived": false
 				}
 				""";
-		var desired = RepositoryArgs.create("owner", "repo")
-				.description("")
-				.build();
+		var desired = Desired.repository("owner", "repo").withDescription("");
 		var items = new RepoSettingsDriftGroup(
-				ToDrifty.repository(desired),
-				parseDetails(json),
+				desired,
+				ActualTypes.repository(parseDetails(json)),
 				null,
 				new RepoRef("owner", "repo")
 		).detect().stream().flatMap(f -> f.items().stream()).toList();
@@ -233,12 +222,10 @@ class RepoSettingsDriftGroupTest {
 					"archived": false
 				}
 				""";
-		var desired = RepositoryArgs.create("owner", "repo")
-				.homepageUrl("")
-				.build();
+		var desired = Desired.repository("owner", "repo").withHomepageUrl("");
 		var items = new RepoSettingsDriftGroup(
-				ToDrifty.repository(desired),
-				parseDetails(json),
+				desired,
+				ActualTypes.repository(parseDetails(json)),
 				null,
 				new RepoRef("owner", "repo")
 		).detect().stream().flatMap(f -> f.items().stream()).toList();
@@ -247,7 +234,7 @@ class RepoSettingsDriftGroupTest {
 
 	@Test
 	void detectsHasIssuesMismatch() {
-		var desired = desiredFull().toBuilder().hasIssues(false).build();
+		var desired = desiredFull().withHasIssues(false);
 		var items = group(desired, parseDetails(BASE_DETAILS_JSON)).detect()
 				.stream()
 				.flatMap(f -> f.items().stream())
@@ -339,11 +326,9 @@ class RepoSettingsDriftGroupTest {
 
 	@Test
 	void detectsMultipleFieldMismatches() {
-		var desired = desiredFull().toBuilder()
-				.description("New description")
-				.hasIssues(false)
-				.hasProjects(false)
-				.build();
+		var desired = desiredFull().withDescription("New description")
+				.withHasIssues(false)
+				.withHasProjects(false);
 		var items = group(desired, parseDetails(BASE_DETAILS_JSON)).detect()
 				.stream()
 				.flatMap(f -> f.items().stream())

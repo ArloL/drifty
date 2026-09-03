@@ -6,33 +6,30 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import io.github.arlol.githubcheck.client.SecurityAndAnalysis.BypassReviewer;
-import io.github.arlol.githubcheck.client.SecurityAndAnalysis.BypassReviewer.ReviewerType;
+import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis.BypassReviewer;
 import io.github.arlol.githubcheck.client.RepoRef;
-import io.github.arlol.githubcheck.testsupport.RepositoryArgs;
-import io.github.arlol.githubcheck.testsupport.ToDrifty;
-import io.github.arlol.githubcheck.testsupport.SecretScanningBypassReviewerArgs;
+import io.github.arlol.githubcheck.pkl.Drifty;
+import io.github.arlol.githubcheck.testsupport.Desired;
 
 class SecretScanningDelegatedBypassDriftGroupTest {
 
 	@Test
 	void noDriftWhenStatusAndReviewersMatch() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.secretScanningDelegatedBypass(true)
-				.secretScanningDelegatedBypassReviewers(
-						new SecretScanningBypassReviewerArgs(
-								7L,
-								ReviewerType.TEAM
+		var desired = Desired.repository("owner", "repo")
+				.withSecretScanningDelegatedBypass(true)
+				.withSecretScanningDelegatedBypassReviewers(
+						List.of(
+								Desired.bypassReviewer(
+										7L,
+										Drifty.SecretScanningBypassReviewerType.TEAM
+								)
 						)
-				)
-				.build();
+				);
 		var group = new SecretScanningDelegatedBypassDriftGroup(
-				ToDrifty.repository(desired).secretScanningDelegatedBypass,
-				ToDrifty.repository(
-						desired
-				).secretScanningDelegatedBypassReviewers,
+				desired.secretScanningDelegatedBypass,
+				desired.secretScanningDelegatedBypassReviewers,
 				true,
-				List.of(new BypassReviewer(7L, ReviewerType.TEAM)),
+				List.of(new BypassReviewer("TEAM", 7L)),
 				null,
 				new RepoRef("owner", "repo")
 		);
@@ -44,14 +41,11 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 
 	@Test
 	void detectsStatusDrift() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.secretScanningDelegatedBypass(true)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withSecretScanningDelegatedBypass(true);
 		var group = new SecretScanningDelegatedBypassDriftGroup(
-				ToDrifty.repository(desired).secretScanningDelegatedBypass,
-				ToDrifty.repository(
-						desired
-				).secretScanningDelegatedBypassReviewers,
+				desired.secretScanningDelegatedBypass,
+				desired.secretScanningDelegatedBypassReviewers,
 				false,
 				List.of(),
 				null,
@@ -73,22 +67,21 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 
 	@Test
 	void detectsReviewerDriftWhenEnabled() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.secretScanningDelegatedBypass(true)
-				.secretScanningDelegatedBypassReviewers(
-						new SecretScanningBypassReviewerArgs(
-								7L,
-								ReviewerType.TEAM
+		var desired = Desired.repository("owner", "repo")
+				.withSecretScanningDelegatedBypass(true)
+				.withSecretScanningDelegatedBypassReviewers(
+						List.of(
+								Desired.bypassReviewer(
+										7L,
+										Drifty.SecretScanningBypassReviewerType.TEAM
+								)
 						)
-				)
-				.build();
+				);
 		var group = new SecretScanningDelegatedBypassDriftGroup(
-				ToDrifty.repository(desired).secretScanningDelegatedBypass,
-				ToDrifty.repository(
-						desired
-				).secretScanningDelegatedBypassReviewers,
+				desired.secretScanningDelegatedBypass,
+				desired.secretScanningDelegatedBypassReviewers,
 				true,
-				List.of(new BypassReviewer(9L, ReviewerType.ROLE)),
+				List.of(new BypassReviewer("ROLE", 9L)),
 				null,
 				new RepoRef("owner", "repo")
 		);
@@ -104,16 +97,13 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 
 	@Test
 	void ignoresReviewersWhenDisabled() {
-		var desired = RepositoryArgs.create("owner", "repo")
-				.secretScanningDelegatedBypass(false)
-				.build();
+		var desired = Desired.repository("owner", "repo")
+				.withSecretScanningDelegatedBypass(false);
 		var group = new SecretScanningDelegatedBypassDriftGroup(
-				ToDrifty.repository(desired).secretScanningDelegatedBypass,
-				ToDrifty.repository(
-						desired
-				).secretScanningDelegatedBypassReviewers,
+				desired.secretScanningDelegatedBypass,
+				desired.secretScanningDelegatedBypassReviewers,
 				false,
-				List.of(new BypassReviewer(9L, ReviewerType.ROLE)),
+				List.of(new BypassReviewer("ROLE", 9L)),
 				null,
 				new RepoRef("owner", "repo")
 		);

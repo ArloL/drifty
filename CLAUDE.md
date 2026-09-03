@@ -13,6 +13,28 @@ status.
 ./mvnw exec:java
 ```
 
+## Adding or changing a managed setting
+
+- **Drift groups never see GitHub response types.** `OrgChecker.fetchState`
+  translates every `client/*Response` into an `actual/*` record through
+  `ActualTypes` (the mirror of `PklTypes` on the desired side), and
+  `RepositoryState` holds only those. Put wire-shape knowledge — omitted
+  sections, `{"status": "enabled"}` wrappers, nulls that mean `""` — in
+  `ActualTypes`, not in a group. `ActualStateBoundaryTest` fails a group or
+  state field that holds a client type other than `GitHubClient`, `RepoRef`
+  or an enum.
+- **Test fixtures for desired state come from the schema.** `testsupport.Desired`
+  evaluates `src/test/resources/desired-defaults.pkl` once and hands out
+  `Drifty.*` instances carrying `config/drifty.pkl`'s defaults; tests change
+  fields with the generated `withX` methods. Do not reintroduce hand-written
+  `*Args` builders — a new Pkl field needs no test-side change.
+- **Eight groups PATCH the same `/repos/{owner}/{repo}` resource.** Each
+  request carries only its own fields because `RepositoryUpdateRequest` is
+  all nullable wrappers under `NON_NULL`; keep it that way.
+- `./mvnw test` also builds and runs the native test image when GraalVM is
+  the JDK. Iterate with `-DskipNativeTests`, run the full thing once before
+  pushing.
+
 ## Native-image reachability metadata
 
 The native image needs reflection/resource metadata for everything Jackson and
