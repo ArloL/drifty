@@ -34,8 +34,8 @@ public class WorkflowPermissionsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public String name() {
-		return "workflow_permissions";
+	public Drifty.GroupName name() {
+		return Drifty.GroupName.WORKFLOW_PERMISSIONS;
 	}
 
 	@Override

@@ -2617,7 +2617,7 @@ class OrgCheckerFixTest {
 		var groupDrifts = computeGroupDrifts(state, desired);
 		assertThat(groupDrifts.keySet().stream().map(DriftGroup::name)).as(
 				"both groups must have drifted for this test to mean anything"
-		).contains("archived", "repo_settings");
+		).contains(Drifty.GroupName.ARCHIVED, Drifty.GroupName.REPO_SETTINGS);
 
 		checker.applyFixes(reversed(groupDrifts));
 

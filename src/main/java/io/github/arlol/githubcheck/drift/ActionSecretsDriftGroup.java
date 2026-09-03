@@ -44,8 +44,8 @@ public class ActionSecretsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public String name() {
-		return "action_secrets";
+	public Drifty.GroupName name() {
+		return Drifty.GroupName.ACTION_SECRETS;
 	}
 
 	@Override

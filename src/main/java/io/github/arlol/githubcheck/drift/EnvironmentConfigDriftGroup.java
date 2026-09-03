@@ -32,8 +32,8 @@ public class EnvironmentConfigDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public String name() {
-		return "environment_config";
+	public Drifty.GroupName name() {
+		return Drifty.GroupName.ENVIRONMENT_CONFIG;
 	}
 
 	@Override

@@ -40,8 +40,8 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public String name() {
-		return "environment_secrets";
+	public Drifty.GroupName name() {
+		return Drifty.GroupName.ENVIRONMENT_SECRETS;
 	}
 
 	@Override

@@ -8,9 +8,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import io.github.arlol.githubcheck.pkl.Drifty;
+
 public abstract class DriftGroup {
 
-	public abstract String name();
+	public abstract Drifty.GroupName name();
 
 	/**
 	 * Whether this group's fix has to run before every other group's.
@@ -84,7 +86,8 @@ public abstract class DriftGroup {
 	}
 
 	private String namespaced(String path) {
-		return path == null || path.isEmpty() ? name() : name() + "." + path;
+		return path == null || path.isEmpty() ? name().toString()
+				: name() + "." + path;
 	}
 
 	protected static List<DriftItem> compare(

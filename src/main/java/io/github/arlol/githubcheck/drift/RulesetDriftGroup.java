@@ -40,8 +40,8 @@ public class RulesetDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public String name() {
-		return "rulesets";
+	public Drifty.GroupName name() {
+		return Drifty.GroupName.RULESETS;
 	}
 
 	@Override
