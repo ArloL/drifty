@@ -9,6 +9,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +24,8 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
+import io.github.arlol.githubcheck.drift.ManagedGroups;
+import io.github.arlol.githubcheck.pkl.Drifty;
 
 /**
  * Covers {@link OrgChecker#fetchState}, which fans out across the whole read
@@ -140,7 +144,7 @@ class OrgCheckerFetchStateTest {
 		);
 
 		RepositoryState state = checker
-				.fetchState(REF, summary(false, "public"));
+				.fetchState(REF, summary(false, "public"), ManagedGroups.all());
 
 		assertThat(state.name()).isEqualTo("repo");
 		assertThat(state.vulnerabilityAlerts()).isTrue();
@@ -190,8 +194,11 @@ class OrgCheckerFetchStateTest {
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		RepositoryState state = checker
-				.fetchState(REF, summary(false, "private"));
+		RepositoryState state = checker.fetchState(
+				REF,
+				summary(false, "private"),
+				ManagedGroups.all()
+		);
 
 		assertThat(state.branchProtections()).isEmpty();
 		assertThat(state.rulesets()).isEmpty();
@@ -219,7 +226,7 @@ class OrgCheckerFetchStateTest {
 		stubStandardEndpoints();
 
 		RepositoryState state = checker
-				.fetchState(REF, summary(true, "public"));
+				.fetchState(REF, summary(true, "public"), ManagedGroups.all());
 
 		// None of the security endpoints are stubbed: reaching any of them
 		// would fail the request, so passing proves they are all skipped.
@@ -269,8 +276,11 @@ class OrgCheckerFetchStateTest {
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		RepositoryState state = checker
-				.fetchState(REF, summary(false, "private"));
+		RepositoryState state = checker.fetchState(
+				REF,
+				summary(false, "private"),
+				ManagedGroups.all()
+		);
 
 		assertThat(state.immutableReleases()).isFalse();
 	}
@@ -313,13 +323,62 @@ class OrgCheckerFetchStateTest {
 		);
 
 		RepositoryState state = checker
-				.fetchState(REF, summary(false, "public"));
+				.fetchState(REF, summary(false, "public"), ManagedGroups.all());
 
 		assertThat(state.rulesets()).singleElement()
 				.satisfies(r -> assertThat(r.name()).isEqualTo("repo-rules"));
 		verify(
 				0,
 				getRequestedFor(urlPathEqualTo("/repos/owner/repo/rulesets/99"))
+		);
+	}
+
+	@Test
+	void unmanagedGroups_endpointsAreNeverRequested() throws Exception {
+		stubRepoDetails("");
+		stubSecurityEndpoints();
+		stubStandardEndpoints();
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/actions/secrets"))
+						.willReturn(aResponse().withStatus(403))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/rulesets"))
+						.willReturn(aResponse().withStatus(403))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/branches"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/pages"))
+						.willReturn(aResponse().withStatus(404))
+		);
+
+		ManagedGroups managed = ManagedGroups.of(
+				new Drifty.Managed(
+						Drifty.ManageMode.ALL_EXCEPT,
+						List.of(
+								Drifty.GroupName.ACTION_SECRETS,
+								Drifty.GroupName.RULESETS
+						)
+				)
+		);
+
+		RepositoryState state = checker
+				.fetchState(REF, summary(false, "public"), managed);
+
+		assertThat(state.actionSecrets()).isEmpty();
+		assertThat(state.rulesets()).isEmpty();
+		verify(
+				0,
+				getRequestedFor(
+						urlPathEqualTo("/repos/owner/repo/actions/secrets")
+				)
+		);
+		verify(
+				0,
+				getRequestedFor(urlPathEqualTo("/repos/owner/repo/rulesets"))
 		);
 	}
 

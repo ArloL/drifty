@@ -27,6 +27,10 @@ import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
  * The five booleans after {@code securityAndAnalysis} are the security features
  * GitHub serves from their own endpoints; for an archived repository they are
  * not fetched and read {@code false}.
+ * <p>
+ * {@code workflowPermissions} is null when the repository does not manage the
+ * {@code workflow_permissions} group: the response is never fetched, and the
+ * group that would read it is not built.
  */
 public record RepositoryState(
 		String name,
