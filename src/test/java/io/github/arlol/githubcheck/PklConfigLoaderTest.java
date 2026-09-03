@@ -43,7 +43,13 @@ class PklConfigLoaderTest {
 	@Test
 	void unknownGroupName_failsToEvaluate(@TempDir Path tempDir)
 			throws IOException {
-		Path schema = Path.of("config/drifty.pkl").toAbsolutePath();
+		// A file: URI, not a plain path: on Windows an absolute path is
+		// "D:\\a\\drifty\\config\\drifty.pkl", and Pkl rejects "\\a" as an
+		// invalid escape before it ever reaches the group name under test.
+		String schema = Path.of("config/drifty.pkl")
+				.toAbsolutePath()
+				.toUri()
+				.toString();
 		Path config = tempDir.resolve("drifty.pkl");
 		Files.writeString(config, """
 				amends "%s"
