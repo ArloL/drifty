@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Persistent record of what drifty last observed and pushed for each managed
@@ -41,6 +42,23 @@ public class DriftyState {
 	int version = CURRENT_VERSION;
 	String salt;
 	ConcurrentHashMap<String, RepoState> repositories = new ConcurrentHashMap<>();
+
+	/**
+	 * Whether the state holds no secret record. A salt generated during this
+	 * run does not count: nothing recorded depends on it yet, so the next run
+	 * is free to generate a different one.
+	 */
+	@JsonIgnore
+	public boolean isEmpty() {
+		return repositories.values().stream().allMatch(DriftyState::isEmpty);
+	}
+
+	private static boolean isEmpty(RepoState repoState) {
+		return repoState.actionSecrets.isEmpty()
+				&& repoState.environmentSecrets.values()
+						.stream()
+						.allMatch(Map::isEmpty);
+	}
 
 	public SecretRecord actionSecretRecord(String repo, String name) {
 		RepoState repoState = repositories.get(repo);

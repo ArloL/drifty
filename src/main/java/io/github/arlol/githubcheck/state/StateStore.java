@@ -3,6 +3,7 @@ package io.github.arlol.githubcheck.state;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -36,8 +37,22 @@ public class StateStore {
 		return state;
 	}
 
+	/**
+	 * Writes {@code state} to {@code path}, unless the file would say nothing
+	 * drifty does not already know: a state without a single secret record
+	 * creates no file at all, and a state that serializes to what the file
+	 * already holds leaves it untouched.
+	 */
 	public void save(Path path, DriftyState state) throws IOException {
-		mapper.writeValue(path.toFile(), state);
+		if (state.isEmpty()) {
+			return;
+		}
+		byte[] json = mapper.writeValueAsBytes(state);
+		if (Files.isRegularFile(path)
+				&& Arrays.equals(Files.readAllBytes(path), json)) {
+			return;
+		}
+		Files.write(path, json);
 	}
 
 }

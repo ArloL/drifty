@@ -383,9 +383,13 @@ config:
 | exists | recorded, `updated_at` match, hash mismatch | drift (`config value changed`), `--fix` re-pushes + records |
 | exists | recorded, both match | no drift (verified) |
 
-`check` (read-only) never writes the state file; only `--fix` saves it. The
-salt defeats rainbow tables and hides equal values across secrets — it does
-not make a low-entropy secret uncrackable offline.
+`check` (read-only) never writes the state file; only `--fix` saves it, and
+only when the file would say something: a run that records no secret leaves the
+file absent, and a run whose records match the file byte for byte leaves it
+untouched. A salt is not on its own worth a file — nothing recorded depends on
+it yet, so the next run may generate a different one. The salt defeats rainbow
+tables and hides equal values across secrets — it does not make a low-entropy
+secret uncrackable offline.
 
 ## Unmanaged Repos
 
