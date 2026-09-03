@@ -6,6 +6,7 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
+import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class SecretScanningAiDetectionDriftGroup extends DriftGroup {
 
@@ -29,8 +30,8 @@ public class SecretScanningAiDetectionDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public String name() {
-		return "secret_scanning_ai_detection";
+	public Drifty.GroupName name() {
+		return Drifty.GroupName.SECRET_SCANNING_AI_DETECTION;
 	}
 
 	@Override

@@ -4,6 +4,7 @@ import java.util.List;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
+import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class TopicsDriftGroup extends DriftGroup {
 
@@ -27,8 +28,8 @@ public class TopicsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public String name() {
-		return "topics";
+	public Drifty.GroupName name() {
+		return Drifty.GroupName.TOPICS;
 	}
 
 	@Override

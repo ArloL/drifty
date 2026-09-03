@@ -41,8 +41,8 @@ public class SecretScanningDelegatedBypassDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public String name() {
-		return "secret_scanning_delegated_bypass";
+	public Drifty.GroupName name() {
+		return Drifty.GroupName.SECRET_SCANNING_DELEGATED_BYPASS;
 	}
 
 	@Override

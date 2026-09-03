@@ -36,8 +36,8 @@ public class BranchProtectionDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public String name() {
-		return "branch_protection";
+	public Drifty.GroupName name() {
+		return Drifty.GroupName.BRANCH_PROTECTION;
 	}
 
 	@Override

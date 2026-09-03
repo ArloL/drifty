@@ -220,7 +220,7 @@ public class OrgChecker {
 			// In check mode, preview which groups --fix would act on.
 			List<String> fixPreview = groupDrifts.keySet()
 					.stream()
-					.map(DriftGroup::name)
+					.map(group -> group.name().toString())
 					.toList();
 			return CheckResult.RepoCheckResult.drift(name, diffs, fixPreview);
 		} catch (InterruptedException e) {

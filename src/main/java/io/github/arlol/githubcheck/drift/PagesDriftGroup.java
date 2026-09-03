@@ -37,8 +37,8 @@ public class PagesDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public String name() {
-		return "pages";
+	public Drifty.GroupName name() {
+		return Drifty.GroupName.PAGES;
 	}
 
 	@Override

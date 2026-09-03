@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.drift.DriftItem;
+import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.testsupport.Desired;
 
 /**
@@ -85,19 +86,27 @@ class SecurityFlagSourceTest {
 
 	@Test
 	void secretScanningGroupAgreesWithTheState() {
-		assertGroupAgreesWithState("secret_scanning", "enabled", "disabled");
-		assertGroupAgreesWithState("secret_scanning", "disabled", "disabled");
+		assertGroupAgreesWithState(
+				Drifty.GroupName.SECRET_SCANNING,
+				"enabled",
+				"disabled"
+		);
+		assertGroupAgreesWithState(
+				Drifty.GroupName.SECRET_SCANNING,
+				"disabled",
+				"disabled"
+		);
 	}
 
 	@Test
 	void pushProtectionGroupAgreesWithTheState() {
 		assertGroupAgreesWithState(
-				"secret_scanning_push_protection",
+				Drifty.GroupName.SECRET_SCANNING_PUSH_PROTECTION,
 				"disabled",
 				"enabled"
 		);
 		assertGroupAgreesWithState(
-				"secret_scanning_push_protection",
+				Drifty.GroupName.SECRET_SCANNING_PUSH_PROTECTION,
 				"disabled",
 				"disabled"
 		);
@@ -109,12 +118,12 @@ class SecurityFlagSourceTest {
 	 * two could disagree and this would fail.
 	 */
 	private static void assertGroupAgreesWithState(
-			String groupName,
+			Drifty.GroupName groupName,
 			String secretScanning,
 			String pushProtection
 	) {
 		RepositoryState state = state(secretScanning, pushProtection);
-		boolean stateSaysEnabled = groupName.equals("secret_scanning")
+		boolean stateSaysEnabled = groupName == Drifty.GroupName.SECRET_SCANNING
 				? state.securityAndAnalysis().secretScanning()
 				: state.securityAndAnalysis().secretScanningPushProtection();
 
@@ -125,7 +134,7 @@ class SecurityFlagSourceTest {
 		List<String> paths = new OrgChecker((String) null, false)
 				.createDriftGroups(state, desired)
 				.stream()
-				.filter(group -> group.name().equals(groupName))
+				.filter(group -> group.name() == groupName)
 				.flatMap(group -> group.detect().stream())
 				.flatMap(fix -> fix.items().stream())
 				.map(DriftItem::path)

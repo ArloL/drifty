@@ -4,6 +4,7 @@ import java.util.List;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
+import io.github.arlol.githubcheck.pkl.Drifty;
 
 public class CodeScanningDefaultSetupDriftGroup extends DriftGroup {
 
@@ -27,8 +28,8 @@ public class CodeScanningDefaultSetupDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public String name() {
-		return "code_scanning_default_setup";
+	public Drifty.GroupName name() {
+		return Drifty.GroupName.CODE_SCANNING_DEFAULT_SETUP;
 	}
 
 	@Override

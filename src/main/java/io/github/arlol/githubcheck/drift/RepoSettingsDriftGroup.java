@@ -31,8 +31,8 @@ public class RepoSettingsDriftGroup extends DriftGroup {
 	}
 
 	@Override
-	public String name() {
-		return "repo_settings";
+	public Drifty.GroupName name() {
+		return Drifty.GroupName.REPO_SETTINGS;
 	}
 
 	@Override

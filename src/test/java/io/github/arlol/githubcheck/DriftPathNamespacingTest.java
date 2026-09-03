@@ -66,12 +66,13 @@ class DriftPathNamespacingTest {
 			""";
 
 	@Test
-	void driftGroupNamesAreUnique() {
-		List<String> names = driftGroups().stream()
+	void everyGroupNameConstantHasAGroup() {
+		List<Drifty.GroupName> names = driftGroups().stream()
 				.map(DriftGroup::name)
 				.toList();
 
-		assertThat(names).doesNotHaveDuplicates();
+		assertThat(names).doesNotHaveDuplicates()
+				.containsExactlyInAnyOrder(Drifty.GroupName.values());
 	}
 
 	@Test
@@ -84,9 +85,9 @@ class DriftPathNamespacingTest {
 				for (DriftItem item : fix.items()) {
 					inspected++;
 					String path = item.path();
-					if (!path.equals(group.name())
-							&& !path.startsWith(group.name() + ".")) {
-						offenders.add(group.name() + " emitted " + path);
+					String name = group.name().toString();
+					if (!path.equals(name) && !path.startsWith(name + ".")) {
+						offenders.add(name + " emitted " + path);
 					}
 				}
 			}
