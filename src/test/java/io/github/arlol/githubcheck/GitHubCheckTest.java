@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Map;
 
+import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.testsupport.Desired;
 
 import org.junit.jupiter.api.Test;
@@ -67,25 +68,33 @@ class GitHubCheckTest {
 	// ─── collectMissingSecrets
 	// ──────────────────────────────────────────────────
 
+	private static DriftyConfig config(Drifty.Organization organization) {
+		return new DriftyConfig(Map.of("my-org", organization), Map.of());
+	}
+
+	private static DriftyConfig config(Drifty.Repository... repositories) {
+		return config(
+				Desired.organization().withRepositories(List.of(repositories))
+		);
+	}
+
+	private static Drifty.Repository repositoryWithSecrets() {
+		return Desired.repository("repo")
+				.withActionsSecrets(List.of("TOKEN"))
+				.withEnvironments(
+						Map.of(
+								"prod",
+								Desired.environment()
+										.withSecrets(List.of("DEPLOY_KEY"))
+						)
+				);
+	}
+
 	@Test
 	void collectMissingSecrets_noneMissing() {
-		var repos = List.of(
-				Desired.repository("repo")
-						.withActionsSecrets(List.of("TOKEN"))
-						.withEnvironments(
-								Map.of(
-										"prod",
-										Desired.environment()
-												.withSecrets(
-														List.of("DEPLOY_KEY")
-												)
-								)
-						)
-		);
-
 		assertThat(
 				GitHubCheck.collectMissingSecrets(
-						repos,
+						config(repositoryWithSecrets()),
 						Map.of("repo-TOKEN", "a", "repo-prod-DEPLOY_KEY", "b")
 				)
 		).isEmpty();
@@ -93,37 +102,41 @@ class GitHubCheckTest {
 
 	@Test
 	void collectMissingSecrets_reportsActionAndEnvironmentSecrets() {
-		var repos = List.of(
-				Desired.repository("repo")
-						.withActionsSecrets(List.of("TOKEN"))
-						.withEnvironments(
-								Map.of(
-										"prod",
-										Desired.environment()
-												.withSecrets(
-														List.of("DEPLOY_KEY")
-												)
-								)
-						)
+		assertThat(
+				GitHubCheck.collectMissingSecrets(
+						config(repositoryWithSecrets()),
+						Map.of()
+				)
+		).containsExactlyInAnyOrder("repo-TOKEN", "repo-prod-DEPLOY_KEY");
+	}
+
+	@Test
+	void collectMissingSecrets_reportsOrganizationSecretsUnderTheOrgPrefix() {
+		var config = config(
+				Desired.organization()
+						.withActionsSecrets(Map.of("PAT", Desired.orgSecret()))
 		);
 
-		assertThat(GitHubCheck.collectMissingSecrets(repos, Map.of()))
-				.containsExactlyInAnyOrder(
-						"repo-TOKEN",
-						"repo-prod-DEPLOY_KEY"
-				);
+		assertThat(GitHubCheck.collectMissingSecrets(config, Map.of()))
+				.containsExactly("org-my-org-PAT");
+		assertThat(
+				GitHubCheck.collectMissingSecrets(
+						config,
+						Map.of("org-my-org-PAT", "a")
+				)
+		).isEmpty();
 	}
 
 	@Test
 	void reportMissingSecrets_signalsWhetherAnythingIsMissing() {
-		var repos = List.of(
+		var config = config(
 				Desired.repository("repo").withActionsSecrets(List.of("TOKEN"))
 		);
 
-		assertThat(GitHubCheck.reportMissingSecrets(repos, Map.of())).isTrue();
+		assertThat(GitHubCheck.reportMissingSecrets(config, Map.of())).isTrue();
 		assertThat(
 				GitHubCheck
-						.reportMissingSecrets(repos, Map.of("repo-TOKEN", "a"))
+						.reportMissingSecrets(config, Map.of("repo-TOKEN", "a"))
 		).isFalse();
 	}
 

@@ -14,7 +14,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
-import io.github.arlol.githubcheck.actual.ActualOrganization;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
@@ -26,6 +25,7 @@ import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
+import io.github.arlol.githubcheck.testsupport.Actual;
 import io.github.arlol.githubcheck.testsupport.Desired;
 
 /**
@@ -112,15 +112,8 @@ class DriftPathNamespacingTest {
 				.map(DriftGroup::name)
 				.toList();
 
-		// org_settings, org_actions_permissions and org_workflow_permissions
-		// have groups so far. Task 9 lands the last one, and tightens this to
-		// OrgGroupName.values().
 		assertThat(names).doesNotHaveDuplicates()
-				.containsExactlyInAnyOrder(
-						Drifty.OrgGroupName.ORG_SETTINGS,
-						Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS,
-						Drifty.OrgGroupName.ORG_WORKFLOW_PERMISSIONS
-				);
+				.containsExactlyInAnyOrder(Drifty.OrgGroupName.values());
 	}
 
 	@Test
@@ -245,8 +238,10 @@ class DriftPathNamespacingTest {
 	}
 
 	/**
-	 * Groups built against an organization whose every managed setting differs
-	 * from the config: each string is another string, each flag is inverted.
+	 * Groups built against an organization that drifts on every managed
+	 * setting: {@link Actual#driftedOrganization()} inverts the settings, the
+	 * Actions policies answer with the other value, and the configured secret
+	 * is absent.
 	 */
 	private static List<DriftGroup<Drifty.OrgGroupName>> orgDriftGroups() {
 		var checker = new OrganizationChecker(
@@ -254,39 +249,6 @@ class DriftPathNamespacingTest {
 				false,
 				Map.of(),
 				new DriftyState()
-		);
-
-		var actual = new ActualOrganization(
-				"stale",
-				"stale",
-				"stale",
-				"stale",
-				"stale",
-				"stale",
-				"stale",
-				false,
-				false,
-				"admin",
-				false,
-				false,
-				false,
-				true,
-				false,
-				false,
-				false,
-				true,
-				true,
-				true,
-				"master",
-				true,
-				false,
-				false,
-				false,
-				true,
-				false,
-				false,
-				true,
-				true
 		);
 
 		var actionsPermissions = new ActualOrgActionsPermissions(
@@ -304,12 +266,13 @@ class DriftPathNamespacingTest {
 		return checker.createDriftGroups(
 				new OrganizationState(
 						"my-org",
-						actual,
+						Actual.driftedOrganization(),
 						actionsPermissions,
 						workflowPermissions,
 						List.of()
 				),
-				Desired.organization(),
+				Desired.organization()
+						.withActionsSecrets(Map.of("PAT", Desired.orgSecret())),
 				Map.of()
 		);
 	}

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -64,10 +65,7 @@ public class GitHubCheck {
 		var stateStore = new StateStore();
 		DriftyState state = stateStore.load(stateFile);
 
-		if (fix && reportMissingSecrets(
-				config.allRepositories(),
-				githubSecrets
-		)) {
+		if (fix && reportMissingSecrets(config, githubSecrets)) {
 			System.exit(1);
 			return;
 		}
@@ -220,11 +218,11 @@ public class GitHubCheck {
 	 * @return whether any secret value was missing
 	 */
 	static boolean reportMissingSecrets(
-			List<Drifty.Repository> repos,
+			DriftyConfig config,
 			Map<String, String> githubSecrets
 	) {
 		List<String> missingSecrets = collectMissingSecrets(
-				repos,
+				config,
 				githubSecrets
 		);
 		if (missingSecrets.isEmpty()) {
@@ -240,11 +238,21 @@ public class GitHubCheck {
 	}
 
 	static List<String> collectMissingSecrets(
-			List<Drifty.Repository> repos,
+			DriftyConfig config,
 			Map<String, String> githubSecrets
 	) {
 		var missingSecrets = new ArrayList<String>();
-		for (Drifty.Repository repo : repos) {
+		// An org secret's key carries an "org-" prefix, because the map is flat
+		// and an organization may share its name with a repository.
+		for (var org : config.organizations().entrySet()) {
+			addMissingSecrets(
+					missingSecrets,
+					githubSecrets,
+					org.getValue().actionsSecrets.keySet(),
+					"org-" + org.getKey() + "-"
+			);
+		}
+		for (Drifty.Repository repo : config.allRepositories()) {
 			addMissingSecrets(
 					missingSecrets,
 					githubSecrets,
@@ -266,7 +274,7 @@ public class GitHubCheck {
 	private static void addMissingSecrets(
 			List<String> missingSecrets,
 			Map<String, String> githubSecrets,
-			List<String> secretNames,
+			Collection<String> secretNames,
 			String keyPrefix
 	) {
 		for (String secretName : secretNames) {

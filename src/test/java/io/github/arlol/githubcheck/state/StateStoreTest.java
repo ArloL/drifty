@@ -135,6 +135,41 @@ class StateStoreTest {
 	}
 
 	@Test
+	void stateFileWithoutOrganizations_stillLoads(@TempDir Path dir)
+			throws Exception {
+		Path file = dir.resolve("drifty-state.json");
+		Files.writeString(file, """
+				{
+				  "version": 1,
+				  "salt": "abcd",
+				  "repositories": {
+				    "drifty": {
+				      "action_secrets": {
+				        "PAT": {"updated_at": "t", "value_hash": "h"}
+				      }
+				    }
+				  }
+				}
+				""");
+
+		DriftyState state = new StateStore().load(file);
+
+		assertThat(state.actionSecretRecord("drifty", "PAT")).isNotNull();
+		assertThat(state.orgActionSecretRecord("my-org", "PAT")).isNull();
+	}
+
+	@Test
+	void saveWritesOnlyOrgRecords(@TempDir Path dir) throws Exception {
+		Path file = dir.resolve("drifty-state.json");
+		var state = new DriftyState();
+		state.recordOrgActionSecret("my-org", "PAT", "t", state.hash("v"));
+
+		new StateStore().save(file, state);
+
+		assertThat(Files.readString(file)).contains("\"organizations\"");
+	}
+
+	@Test
 	void save_thenLoad_persistsSalt(@TempDir Path dir) throws Exception {
 		var path = dir.resolve("drifty-state.json");
 		var state = new DriftyState();

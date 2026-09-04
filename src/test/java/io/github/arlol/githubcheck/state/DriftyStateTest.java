@@ -84,6 +84,19 @@ class DriftyStateTest {
 	}
 
 	@Test
+	void orgAndRepoSecretsAreRecordedSeparately() {
+		var state = new DriftyState();
+		state.recordActionSecret("drifty", "PAT", "t1", "h1");
+		state.recordOrgActionSecret("my-org", "PAT", "t2", "h2");
+
+		assertThat(state.actionSecretRecord("drifty", "PAT").valueHash())
+				.isEqualTo("h1");
+		assertThat(state.orgActionSecretRecord("my-org", "PAT").valueHash())
+				.isEqualTo("h2");
+		assertThat(state.isEmpty()).isFalse();
+	}
+
+	@Test
 	void environmentSecretRecord_isNull_forUnknownEnvironment() {
 		var state = new DriftyState();
 		state.recordEnvironmentSecret(

@@ -41,6 +41,7 @@ public final class Desired {
 	private static final Drifty.RulePattern RULE_PATTERN;
 	private static final Drifty.ActionsPermissions ACTIONS_PERMISSIONS;
 	private static final Drifty.SelectedActions SELECTED_ACTIONS;
+	private static final Drifty.OrgSecret ORG_SECRET;
 
 	static {
 		try (var evaluator = ConfigEvaluator.preconfigured()) {
@@ -61,6 +62,7 @@ public final class Desired {
 					.as(Drifty.ActionsPermissions.class);
 			SELECTED_ACTIONS = root.get("selectedActions")
 					.as(Drifty.SelectedActions.class);
+			ORG_SECRET = root.get("orgSecret").as(Drifty.OrgSecret.class);
 		}
 	}
 
@@ -136,6 +138,11 @@ public final class Desired {
 	/** An Actions allow-list with GitHub's defaults. */
 	public static Drifty.SelectedActions selectedActions() {
 		return SELECTED_ACTIONS;
+	}
+
+	/** An organization secret with the default {@code private} visibility. */
+	public static Drifty.OrgSecret orgSecret() {
+		return ORG_SECRET;
 	}
 
 	public static Drifty.BypassActor bypassActor(

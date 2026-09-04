@@ -11,12 +11,15 @@ import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.OrgSecretResponse;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
+import io.github.arlol.githubcheck.client.SecretVisibility;
 import io.github.arlol.githubcheck.drift.DriftFix;
 import io.github.arlol.githubcheck.drift.DriftFixer;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
 import io.github.arlol.githubcheck.drift.ManagedGroups;
+import io.github.arlol.githubcheck.drift.OrgActionSecretsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgActionsPermissionsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgSettingsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgWorkflowPermissionsDriftGroup;
@@ -32,9 +35,9 @@ public class OrganizationChecker {
 
 	private final GitHubClient client;
 	private final boolean fix;
-	// Both are the org secrets group's, which arrives with that group: a secret
-	// value comes from DRIFTY_GITHUB_SECRETS, and the state file is what says
-	// which value drifty last wrote, since GitHub never reads one back.
+	// Both belong to the org secrets group: a secret value comes from
+	// DRIFTY_GITHUB_SECRETS, and the state file is what says which value drifty
+	// last wrote, since GitHub never reads one back.
 	private final Map<String, String> githubSecrets;
 	private final DriftyState state;
 
@@ -187,9 +190,34 @@ public class OrganizationChecker {
 		);
 	}
 
-	/** Reading the org secrets arrives with the group that compares them. */
 	private List<ActualOrgSecret> orgSecrets(String login) {
-		return List.of();
+		return client.getOrgActionSecrets(login)
+				.stream()
+				.map(
+						secret -> ActualTypes.orgSecret(
+								secret,
+								secretRepositories(login, secret)
+						)
+				)
+				.toList();
+	}
+
+	/**
+	 * The repository names behind a {@code selected} secret cost one request
+	 * each, so they are read only for the secrets that have them — the other
+	 * visibilities name no repositories at all.
+	 */
+	private List<String> secretRepositories(
+			String login,
+			OrgSecretResponse secret
+	) {
+		if (secret.visibility() != SecretVisibility.SELECTED) {
+			return List.of();
+		}
+		return client.getOrgActionSecretRepositories(login, secret.name())
+				.stream()
+				.map(RepositorySummaryResponse::name)
+				.toList();
 	}
 
 	// ─── Drift groups
@@ -237,6 +265,17 @@ public class OrganizationChecker {
 						desired.defaultWorkflowPermissions,
 						desired.canApprovePullRequestReviews,
 						actual.workflowPermissions(),
+						client,
+						actual.login()
+				)
+		);
+		groups.add(
+				new OrgActionSecretsDriftGroup(
+						desired.actionsSecrets,
+						actual.actionSecrets(),
+						repositoryIds,
+						githubSecrets,
+						state,
 						client,
 						actual.login()
 				)

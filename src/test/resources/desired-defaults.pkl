@@ -15,3 +15,4 @@ codeScanningTool: drifty.CodeScanningTool = new { tool = "tool" }
 rulePattern: drifty.RulePattern = new { operator = "regex"; pattern = "pattern" }
 actionsPermissions: drifty.ActionsPermissions = new {}
 selectedActions: drifty.SelectedActions = new {}
+orgSecret: drifty.OrgSecret = new {}

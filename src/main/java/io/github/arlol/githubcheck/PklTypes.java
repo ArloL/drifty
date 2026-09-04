@@ -11,6 +11,7 @@ import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulePatternOperator;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
+import io.github.arlol.githubcheck.client.SecretVisibility;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.SquashMergeCommitMessage;
 import io.github.arlol.githubcheck.client.SquashMergeCommitTitle;
@@ -155,6 +156,14 @@ public final class PklTypes {
 		case ALL -> ActionsEnabledRepositories.ALL;
 		case NONE -> ActionsEnabledRepositories.NONE;
 		case SELECTED -> ActionsEnabledRepositories.SELECTED;
+		};
+	}
+
+	public static SecretVisibility secretVisibility(Drifty.SecretVisibility v) {
+		return switch (v) {
+		case ALL -> SecretVisibility.ALL;
+		case PRIVATE -> SecretVisibility.PRIVATE;
+		case SELECTED -> SecretVisibility.SELECTED;
 		};
 	}
 
