@@ -12,13 +12,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
 import io.github.arlol.githubcheck.actual.ActualEnvironment;
+import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
+import io.github.arlol.githubcheck.actual.ActualOrganization;
 import io.github.arlol.githubcheck.actual.ActualPages;
 import io.github.arlol.githubcheck.actual.ActualRepository;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.actual.StatusCheck;
+import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
+import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
+import io.github.arlol.githubcheck.client.OrgActionsPermissionsResponse;
+import io.github.arlol.githubcheck.client.OrganizationResponse;
 import io.github.arlol.githubcheck.client.PagesBuildType;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
@@ -571,6 +577,66 @@ class ActualTypesTest {
 				null,
 				null
 		);
+	}
+
+	@Test
+	void organization_normalisesNullsAndMissingFlags() {
+		var response = new OrganizationResponse(
+				"my-org",
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				"read",
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				"main",
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null
+		);
+
+		ActualOrganization actual = ActualTypes.organization(response);
+
+		assertThat(actual.description()).isEmpty();
+		assertThat(actual.displayName()).isEmpty();
+		assertThat(actual.websiteUrl()).isEmpty();
+		assertThat(actual.membersCanCreatePages()).isFalse();
+		assertThat(actual.defaultRepositoryBranch()).isEqualTo("main");
+	}
+
+	@Test
+	void orgActionsPermissions_keepsSelectedActionsOnlyWhenSelected() {
+		var response = new OrgActionsPermissionsResponse(
+				ActionsEnabledRepositories.ALL,
+				AllowedActions.ALL,
+				false
+		);
+
+		ActualOrgActionsPermissions actual = ActualTypes
+				.orgActionsPermissions(response, null);
+
+		assertThat(actual.selectedActions()).isNull();
+		assertThat(actual.shaPinningRequired()).isFalse();
 	}
 
 }

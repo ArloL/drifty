@@ -70,6 +70,13 @@ class ActualStateBoundaryTest {
 				.isEmpty();
 	}
 
+	@Test
+	void organizationStateHoldsNoGitHubResponseTypes() {
+		assertThat(clientTypesHeldBy(OrganizationState.class))
+				.as("client types reachable from OrganizationState's fields")
+				.isEmpty();
+	}
+
 	/**
 	 * Every group the orchestrator would build; the fixture's values do not
 	 * matter.
