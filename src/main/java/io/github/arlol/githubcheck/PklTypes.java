@@ -136,4 +136,14 @@ public final class PklTypes {
 		return MergeCommitMessage.valueOf(v.name());
 	}
 
+	/**
+	 * The wire spelling of an organization's default repository permission. A
+	 * String rather than a client enum, because GitHub's four values are read
+	 * and written as a plain field on {@code /orgs/{org}} and nothing else in
+	 * the client branches on them.
+	 */
+	public static String repositoryPermission(Drifty.RepositoryPermission p) {
+		return p.toString();
+	}
+
 }

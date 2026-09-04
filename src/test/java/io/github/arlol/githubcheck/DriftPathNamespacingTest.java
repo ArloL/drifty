@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import io.github.arlol.githubcheck.actual.ActualOrganization;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
@@ -20,6 +21,7 @@ import io.github.arlol.githubcheck.drift.DriftFix;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
 import io.github.arlol.githubcheck.pkl.Drifty;
+import io.github.arlol.githubcheck.state.DriftyState;
 import io.github.arlol.githubcheck.testsupport.Desired;
 
 /**
@@ -96,6 +98,42 @@ class DriftPathNamespacingTest {
 
 		assertThat(inspected)
 				.as("the fixture must actually drift a broad set of groups")
+				.isGreaterThan(20);
+		assertThat(offenders).isEmpty();
+	}
+
+	@Test
+	void everyOrgGroupNameConstantHasAGroup() {
+		List<Drifty.OrgGroupName> names = orgDriftGroups().stream()
+				.map(DriftGroup::name)
+				.toList();
+
+		// Only org_settings has a group so far. Task 9 lands the last of the
+		// other three, and tightens this to OrgGroupName.values().
+		assertThat(names).doesNotHaveDuplicates()
+				.containsExactlyInAnyOrder(Drifty.OrgGroupName.ORG_SETTINGS);
+	}
+
+	@Test
+	void everyOrgDriftItemPathIsNamespacedByItsGroup() {
+		var offenders = new ArrayList<String>();
+		int inspected = 0;
+
+		for (DriftGroup<Drifty.OrgGroupName> group : orgDriftGroups()) {
+			for (DriftFix fix : group.detect()) {
+				for (DriftItem item : fix.items()) {
+					inspected++;
+					String path = item.path();
+					String name = group.name().toString();
+					if (!path.equals(name) && !path.startsWith(name + ".")) {
+						offenders.add(name + " emitted " + path);
+					}
+				}
+			}
+		}
+
+		assertThat(inspected)
+				.as("the fixture must actually drift a broad set of settings")
 				.isGreaterThan(20);
 		assertThat(offenders).isEmpty();
 	}
@@ -195,6 +233,58 @@ class DriftPathNamespacingTest {
 		);
 
 		return checker.createDriftGroups(actual, desired);
+	}
+
+	/**
+	 * Groups built against an organization whose every managed setting differs
+	 * from the config: each string is another string, each flag is inverted.
+	 */
+	private static List<DriftGroup<Drifty.OrgGroupName>> orgDriftGroups() {
+		var checker = new OrganizationChecker(
+				null,
+				false,
+				Map.of(),
+				new DriftyState()
+		);
+
+		var actual = new ActualOrganization(
+				"stale",
+				"stale",
+				"stale",
+				"stale",
+				"stale",
+				"stale",
+				"stale",
+				false,
+				false,
+				"admin",
+				false,
+				false,
+				false,
+				true,
+				false,
+				false,
+				false,
+				true,
+				true,
+				true,
+				"master",
+				true,
+				false,
+				false,
+				false,
+				true,
+				false,
+				false,
+				true,
+				true
+		);
+
+		return checker.createDriftGroups(
+				new OrganizationState("my-org", actual, null, null, List.of()),
+				Desired.organization(),
+				Map.of()
+		);
 	}
 
 	private static <T> T parse(String json, Class<T> type) {

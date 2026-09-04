@@ -7,13 +7,13 @@ import java.util.Set;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
 /**
- * Which drift groups drifty manages for one repository.
+ * Which drift groups drifty manages for one repository or organization.
  * <p>
- * Consulted twice per repository, and both are load-bearing: once to decide
- * which groups to build, and once in {@code RepositoryChecker.fetchState} to
- * decide which requests to send. Skipping only the comparison would still send
- * the request, and a repository in an org someone else administers is exactly
- * where those requests return 403.
+ * Consulted twice per entity, and both are required: once to decide which
+ * groups to build, and once in the checker's {@code fetchState} to decide which
+ * requests to send. Skipping only the comparison would still send the request,
+ * and an org — or a repository in one — that someone else administers is
+ * exactly where those requests return 403.
  * <p>
  * Generic over the group-name enum, with the {@code Class<N>} token carried
  * alongside it purely because Java erases {@code N} at runtime — {@code
@@ -31,6 +31,12 @@ public final class ManagedGroups<N extends Enum<N>> {
 
 	public static ManagedGroups<Drifty.GroupName> of(Drifty.Managed managed) {
 		return of(Drifty.GroupName.class, managed.mode, managed.groups);
+	}
+
+	public static ManagedGroups<Drifty.OrgGroupName> of(
+			Drifty.OrgManaged managed
+	) {
+		return of(Drifty.OrgGroupName.class, managed.mode, managed.groups);
 	}
 
 	/**
