@@ -13,15 +13,22 @@ import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
 import io.github.arlol.githubcheck.actual.ActualEnvironment;
+import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
+import io.github.arlol.githubcheck.actual.ActualOrgSecret;
+import io.github.arlol.githubcheck.actual.ActualOrganization;
 import io.github.arlol.githubcheck.actual.ActualPages;
 import io.github.arlol.githubcheck.actual.ActualRepository;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
+import io.github.arlol.githubcheck.actual.ActualSelectedActions;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.actual.StatusCheck;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
+import io.github.arlol.githubcheck.client.OrgActionsPermissionsResponse;
+import io.github.arlol.githubcheck.client.OrgSecretResponse;
+import io.github.arlol.githubcheck.client.OrganizationResponse;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.Rule;
@@ -29,6 +36,7 @@ import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetRuleType;
 import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
+import io.github.arlol.githubcheck.client.SelectedActions;
 import io.github.arlol.githubcheck.client.SimpleUser;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 
@@ -470,6 +478,83 @@ public final class ActualTypes {
 		return new ActualWorkflowPermissions(
 				response.defaultWorkflowPermissions(),
 				response.canApprovePullRequestReviews()
+		);
+	}
+
+	// ─── Organizations
+	// ──────────────────────────────────────────────────────────
+
+	public static ActualOrganization organization(
+			OrganizationResponse response
+	) {
+		return new ActualOrganization(
+				text(response.name()),
+				text(response.description()),
+				text(response.blog()),
+				text(response.company()),
+				text(response.email()),
+				text(response.location()),
+				text(response.twitterUsername()),
+				flag(response.hasOrganizationProjects()),
+				flag(response.hasRepositoryProjects()),
+				text(response.defaultRepositoryPermission()),
+				flag(response.membersCanCreateRepositories()),
+				flag(response.membersCanCreatePublicRepositories()),
+				flag(response.membersCanCreatePrivateRepositories()),
+				flag(response.membersCanCreateInternalRepositories()),
+				flag(response.membersCanCreatePages()),
+				flag(response.membersCanCreatePublicPages()),
+				flag(response.membersCanCreatePrivatePages()),
+				flag(response.membersCanForkPrivateRepositories()),
+				flag(response.webCommitSignoffRequired()),
+				flag(response.deployKeysEnabledForRepositories()),
+				text(response.defaultRepositoryBranch()),
+				flag(response.twoFactorRequirementEnabled()),
+				flag(response.membersCanDeleteRepositories()),
+				flag(response.membersCanChangeRepoVisibility()),
+				flag(response.membersCanInviteOutsideCollaborators()),
+				flag(response.membersCanDeleteIssues()),
+				flag(response.membersCanCreateTeams()),
+				flag(response.membersCanViewDependencyInsights()),
+				flag(response.readersCanCreateDiscussions()),
+				flag(response.displayCommenterFullNameSettingEnabled())
+		);
+	}
+
+	private static String text(String value) {
+		return value == null ? "" : value;
+	}
+
+	private static boolean flag(Boolean value) {
+		return value != null && value;
+	}
+
+	public static ActualOrgActionsPermissions orgActionsPermissions(
+			OrgActionsPermissionsResponse response,
+			SelectedActions selected
+	) {
+		return new ActualOrgActionsPermissions(
+				response.enabledRepositories(),
+				response.allowedActions(),
+				flag(response.shaPinningRequired()),
+				selected == null ? null
+						: new ActualSelectedActions(
+								selected.githubOwnedAllowed(),
+								selected.verifiedAllowed(),
+								selected.patternsAllowed()
+						)
+		);
+	}
+
+	public static ActualOrgSecret orgSecret(
+			OrgSecretResponse response,
+			List<String> selectedRepositories
+	) {
+		return new ActualOrgSecret(
+				response.name(),
+				response.updatedAt(),
+				response.visibility(),
+				selectedRepositories
 		);
 	}
 
