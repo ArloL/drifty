@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -30,21 +31,20 @@ import io.github.arlol.githubcheck.testsupport.Desired;
 
 /**
  * Covers {@link RepositoryChecker#check}, and in particular which account each
- * repository is looked up under. {@code drifty.pkl} declares an {@code owner}
- * per repository and SPEC.md calls that the targeting mechanism, so a config
- * naming two owners has to reach both.
+ * repository is looked up under. {@code drifty.pkl} nests repositories under
+ * the organization or user that owns them and SPEC.md calls that the targeting
+ * mechanism, so a config naming two accounts has to reach both.
  */
 @WireMockTest
 class RepositoryCheckerCheckTest {
 
+	private GitHubClient client;
 	private RepositoryChecker checker;
 
 	@BeforeEach
 	void setUp(WireMockRuntimeInfo wm) {
-		checker = new RepositoryChecker(
-				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
-				false
-		);
+		client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
+		checker = new RepositoryChecker(client, false);
 	}
 
 	@Test
@@ -53,19 +53,21 @@ class RepositoryCheckerCheckTest {
 		stubOwner("beta", "two");
 		stubRepoSubResources();
 
-		CheckResult result = checker
-				.check(List.of(entry("alpha", "one"), entry("beta", "two")));
+		List<CheckResult.Entry> results = new ArrayList<>();
+		results.addAll(check("alpha", entry("one")));
+		results.addAll(check("beta", entry("two")));
 
 		// Found under its own owner, so neither MISSING (declared but not
 		// found there) nor UNKNOWN (found but not declared).
-		assertThat(result.repos())
+		assertThat(results)
 				.extracting(CheckResult.Entry::name, CheckResult.Entry::status)
 				.containsExactlyInAnyOrder(
 						tuple("one", CheckResult.Status.DRIFT),
 						tuple("two", CheckResult.Status.DRIFT)
 				);
-		verify(1, getRequestedFor(urlPathEqualTo("/orgs/alpha/repos")));
-		verify(1, getRequestedFor(urlPathEqualTo("/orgs/beta/repos")));
+		// The details of each repository are read under its own owner.
+		verify(1, getRequestedFor(urlPathEqualTo("/repos/alpha/one")));
+		verify(1, getRequestedFor(urlPathEqualTo("/repos/beta/two")));
 	}
 
 	/**
@@ -80,13 +82,47 @@ class RepositoryCheckerCheckTest {
 		stubOwner("beta", "shared");
 		stubRepoSubResources();
 
-		CheckResult result = checker.check(
-				List.of(entry("alpha", "shared"), entry("beta", "shared"))
-		);
+		List<CheckResult.Entry> results = new ArrayList<>();
+		results.addAll(check("alpha", entry("shared")));
+		results.addAll(check("beta", entry("shared")));
 
+		CheckResult result = CheckResult.ofRepos(results);
 		assertThat(result.repos()).hasSize(2);
 		assertThat(result.missingCount()).isZero();
 		assertThat(result.unknownCount()).isZero();
+		verify(1, getRequestedFor(urlPathEqualTo("/repos/alpha/shared")));
+		verify(1, getRequestedFor(urlPathEqualTo("/repos/beta/shared")));
+	}
+
+	/** Declared under this owner but not listed there. */
+	@Test
+	void reportsADeclaredRepositoryGitHubDoesNotListAsMissing()
+			throws Exception {
+		stubOwner("alpha", "one");
+		stubRepoSubResources();
+
+		List<CheckResult.Entry> results = check(
+				"alpha",
+				entry("one"),
+				entry("gone")
+		);
+
+		assertThat(results)
+				.extracting(CheckResult.Entry::name, CheckResult.Entry::status)
+				.contains(tuple("gone", CheckResult.Status.MISSING));
+	}
+
+	/** Listed under this owner but declared by nobody. */
+	@Test
+	void reportsAnUndeclaredRepositoryAsUnknown() throws Exception {
+		stubOwner("alpha", "one");
+		stubRepoSubResources();
+
+		List<CheckResult.Entry> results = check("alpha");
+
+		assertThat(results)
+				.extracting(CheckResult.Entry::name, CheckResult.Entry::status)
+				.containsExactly(tuple("one", CheckResult.Status.UNKNOWN));
 	}
 
 	/**
@@ -114,7 +150,13 @@ class RepositoryCheckerCheckTest {
 				true
 		);
 
-		CheckResult result = fixer.check(List.of(entry("alpha", "one")));
+		CheckResult result = CheckResult.ofRepos(
+				fixer.check(
+						"alpha",
+						client.listOrgRepos("alpha").orElseThrow(),
+						List.of(entry("one"))
+				)
+		);
 
 		var reports = result.repos().getFirst().fixReports();
 		assertThat(reports).isNotEmpty();
@@ -148,7 +190,13 @@ class RepositoryCheckerCheckTest {
 				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
 				true
 		);
-		CheckResult result = fixer.check(List.of(entry("alpha", "one")));
+		CheckResult result = CheckResult.ofRepos(
+				fixer.check(
+						"alpha",
+						client.listOrgRepos("alpha").orElseThrow(),
+						List.of(entry("one"))
+				)
+		);
 
 		String report = capturePrintReport(result);
 
@@ -184,8 +232,20 @@ class RepositoryCheckerCheckTest {
 		return captured.toString(StandardCharsets.UTF_8);
 	}
 
-	private static Drifty.Repository entry(String owner, String name) {
-		return Desired.repository(owner, name)
+	/** Checks one owner's listed repositories against what it declares. */
+	private List<CheckResult.Entry> check(
+			String owner,
+			Drifty.Repository... desired
+	) throws Exception {
+		return checker.check(
+				owner,
+				client.listOrgRepos(owner).orElseThrow(),
+				List.of(desired)
+		);
+	}
+
+	private static Drifty.Repository entry(String name) {
+		return Desired.repository(name)
 				.withVisibility(Drifty.Visibility.PRIVATE);
 	}
 

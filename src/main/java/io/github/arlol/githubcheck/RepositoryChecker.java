@@ -74,15 +74,6 @@ public class RepositoryChecker {
 		this(new GitHubClient(token), fix, Map.of(), new DriftyState());
 	}
 
-	public RepositoryChecker(
-			String token,
-			boolean fix,
-			Map<String, String> githubSecrets,
-			DriftyState state
-	) {
-		this(new GitHubClient(token), fix, githubSecrets, state);
-	}
-
 	RepositoryChecker(GitHubClient client, boolean fix) {
 		this(client, fix, Map.of(), new DriftyState());
 	}
@@ -108,63 +99,41 @@ public class RepositoryChecker {
 	}
 
 	/**
-	 * Checks every repository the config declares, under the owner the config
-	 * declares it under.
+	 * Checks one account's repositories: everything GitHub lists under
+	 * {@code owner}, compared against what the config nests under that account.
 	 * <p>
-	 * The owner is a field on each {@code Repository} in {@code drifty.pkl}, as
-	 * SPEC.md describes. It used to be ignored in favour of a hardcoded
-	 * literal, which meant editing the config's owner had no effect and a
-	 * second owner could not be reached at all.
+	 * The owner arrives as a parameter because it is the key of the config
+	 * block a repository sits in, not a field on the repository. Listing the
+	 * repositories is the caller's job too — an organization and a personal
+	 * account are listed through different endpoints.
 	 */
-	public CheckResult check(List<Drifty.Repository> repositories)
-			throws IOException, InterruptedException, ExecutionException {
-		// Repository names are only unique within an owner.
-		Map<RepoRef, Drifty.Repository> desiredByRef = repositories.stream()
+	public List<CheckResult.Entry> check(
+			String owner,
+			List<RepositorySummaryResponse> summaries,
+			List<Drifty.Repository> desired
+	) throws InterruptedException, ExecutionException {
+		Map<String, Drifty.Repository> desiredByName = desired.stream()
 				.collect(
 						Collectors.toMap(
-								r -> new RepoRef(r.owner, r.name),
+								r -> r.name,
 								r -> r,
 								(a, _) -> a,
 								LinkedHashMap::new
 						)
 				);
 
-		List<String> owners = repositories.stream()
-				.map(r -> r.owner)
-				.distinct()
-				.toList();
-
-		long startFetch = System.currentTimeMillis();
-
-		Map<RepoRef, RepositorySummaryResponse> found = new LinkedHashMap<>();
-		for (String owner : owners) {
-			System.out.println("Fetching repo list for owner: " + owner);
-			for (RepositorySummaryResponse summary : client
-					.listOrgRepos(owner)) {
-				found.put(new RepoRef(owner, summary.name()), summary);
-			}
-		}
-		System.out.printf(
-				"Found %d repos. Fetching details in parallel...%n",
-				found.size()
-		);
-
 		List<CheckResult.Entry> results = new ArrayList<>();
-
 		try (ExecutorService executor = Executors
 				.newVirtualThreadPerTaskExecutor()) {
-			List<Future<CheckResult.Entry>> futures = found.entrySet()
-					.stream()
+			List<Future<CheckResult.Entry>> futures = summaries.stream()
 					.map(
-							entry -> executor
-									.submit(
-											() -> checkOne(
-													entry.getKey(),
-													entry.getValue(),
-													desiredByRef
-															.get(entry.getKey())
-											)
+							summary -> executor.submit(
+									() -> checkOne(
+											new RepoRef(owner, summary.name()),
+											summary,
+											desiredByName.get(summary.name())
 									)
+							)
 					)
 					.toList();
 			for (Future<CheckResult.Entry> f : futures) {
@@ -172,18 +141,17 @@ public class RepositoryChecker {
 			}
 		}
 
-		// Repos declared in config but not found under their owner
-		desiredByRef.keySet()
+		// Declared in config but not listed under this owner.
+		Set<String> found = summaries.stream()
+				.map(RepositorySummaryResponse::name)
+				.collect(Collectors.toSet());
+		desiredByName.keySet()
 				.stream()
-				.filter(ref -> !found.containsKey(ref))
-				.map(ref -> CheckResult.Entry.missing(ref.name()))
+				.filter(name -> !found.contains(name))
+				.map(CheckResult.Entry::missing)
 				.forEach(results::add);
 
-		double fetchSeconds = (System.currentTimeMillis() - startFetch)
-				/ 1000.0;
-		System.out.printf("Fetch complete in %.2f seconds%n%n", fetchSeconds);
-
-		return CheckResult.ofRepos(results);
+		return List.copyOf(results);
 	}
 
 	private CheckResult.Entry checkOne(
@@ -314,7 +282,7 @@ public class RepositoryChecker {
 				: client.getPages(org, name);
 
 		return new RepositoryState(
-				name,
+				ref,
 				ActualTypes.repository(details),
 				ActualTypes.securityAndAnalysis(details),
 				security.vulnAlerts(),
@@ -466,7 +434,7 @@ public class RepositoryChecker {
 			RepositoryState actual,
 			Drifty.Repository desired
 	) {
-		var ref = new RepoRef(desired.owner, actual.name());
+		var ref = actual.ref();
 		ActualSecurityAndAnalysis security = actual.securityAndAnalysis();
 		ManagedGroups<Drifty.GroupName> managed = ManagedGroups
 				.of(desired.managed);

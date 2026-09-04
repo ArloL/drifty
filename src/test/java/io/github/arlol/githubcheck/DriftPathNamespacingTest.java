@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.drift.DriftFix;
@@ -119,7 +120,7 @@ class DriftPathNamespacingTest {
 	private static List<DriftGroup<Drifty.GroupName>> driftGroups() {
 		var checker = new RepositoryChecker((String) null, false);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withDescription("wanted")
 				.withDefaultBranch("main")
 				.withTopics(List.of("java"))
@@ -171,7 +172,7 @@ class DriftPathNamespacingTest {
 
 		var details = parse(DETAILS_JSON, RepositoryDetailsResponse.class);
 		var actual = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(details),
 				ActualTypes.securityAndAnalysis(details),
 				false,

@@ -145,7 +145,6 @@ class Environment {
 /// Desired state for a single GitHub repository.
 /// Defaults match GitHub's defaults for newly-created repos.
 class Repository {
-  owner: String
   name: String
   managed: Managed = new {}
   archived: Boolean = false
@@ -203,9 +202,23 @@ class Repository {
   environments: Mapping<String, Environment> = new {}
 }
 
-/// All repositories to manage for this org/account.
-repositories: Listing<Repository> = new {}
+/// A GitHub organization drifty manages, keyed by login in `organizations`.
+class Organization {
+  repositories: Listing<Repository> = new {}
+}
+
+/// A personal account. It owns repositories and has no org-level settings —
+/// which is why it is a separate type rather than a flag on Organization.
+class User {
+  repositories: Listing<Repository> = new {}
+}
+
+organizations: Mapping<String, Organization> = new {}
+users: Mapping<String, User> = new {}
 
 output {
-  value = new Dynamic { repositories = module.repositories }
+  value = new Dynamic {
+    organizations = module.organizations
+    users = module.users
+  }
 }

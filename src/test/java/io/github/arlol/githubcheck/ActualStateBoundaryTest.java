@@ -77,7 +77,7 @@ class ActualStateBoundaryTest {
 	private static List<DriftGroup<Drifty.GroupName>> driftGroups() {
 		return new RepositoryChecker((String) null, false).createDriftGroups(
 				new RepositoryState(
-						"repo",
+						new RepoRef("owner", "repo"),
 						new ActualRepository(
 								false,
 								false,
@@ -131,7 +131,7 @@ class ActualStateBoundaryTest {
 						),
 						Optional.empty()
 				),
-				Desired.repository("owner", "repo")
+				Desired.repository("repo")
 		);
 	}
 

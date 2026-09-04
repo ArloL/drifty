@@ -2353,6 +2353,30 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$User",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.util.List"
+          ]
+        }
+      ],
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$Organization",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.util.List"
+          ]
+        }
+      ],
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$RulePattern",
       "methods": [
         {

@@ -11,8 +11,7 @@ class AdvancedSecurityDriftGroupTest {
 
 	@Test
 	void noDriftWhenMatches() {
-		var desired = Desired.repository("owner", "repo")
-				.withAdvancedSecurity(true);
+		var desired = Desired.repository("repo").withAdvancedSecurity(true);
 		var group = new AdvancedSecurityDriftGroup(
 				desired.advancedSecurity,
 				true,
@@ -27,8 +26,7 @@ class AdvancedSecurityDriftGroupTest {
 
 	@Test
 	void detectsDrift() {
-		var desired = Desired.repository("owner", "repo")
-				.withAdvancedSecurity(true);
+		var desired = Desired.repository("repo").withAdvancedSecurity(true);
 		var group = new AdvancedSecurityDriftGroup(
 				desired.advancedSecurity,
 				false,

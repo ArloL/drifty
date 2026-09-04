@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.drift.DriftItem;
@@ -127,7 +128,7 @@ class SecurityFlagSourceTest {
 				? state.securityAndAnalysis().secretScanning()
 				: state.securityAndAnalysis().secretScanningPushProtection();
 
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withSecretScanning(true)
 				.withSecretScanningPushProtection(true);
 
@@ -155,7 +156,7 @@ class SecurityFlagSourceTest {
 				RepositoryDetailsResponse.class
 		);
 		return new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(details),
 				ActualTypes.securityAndAnalysis(details),
 				false,

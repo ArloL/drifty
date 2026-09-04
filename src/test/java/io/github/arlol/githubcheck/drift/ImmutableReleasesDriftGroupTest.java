@@ -11,8 +11,7 @@ class ImmutableReleasesDriftGroupTest {
 
 	@Test
 	void noDriftWhenMatches() {
-		var desired = Desired.repository("owner", "repo")
-				.withImmutableReleases(true);
+		var desired = Desired.repository("repo").withImmutableReleases(true);
 		var group = new ImmutableReleasesDriftGroup(
 				desired.immutableReleases,
 				true,
@@ -27,8 +26,7 @@ class ImmutableReleasesDriftGroupTest {
 
 	@Test
 	void detectsDrift() {
-		var desired = Desired.repository("owner", "repo")
-				.withImmutableReleases(true);
+		var desired = Desired.repository("repo").withImmutableReleases(true);
 		var group = new ImmutableReleasesDriftGroup(
 				desired.immutableReleases,
 				false,

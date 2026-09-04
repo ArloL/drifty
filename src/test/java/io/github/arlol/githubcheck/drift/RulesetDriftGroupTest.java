@@ -76,7 +76,7 @@ class RulesetDriftGroupTest {
 				delete(urlEqualTo("/repos/owner/repo/rulesets/1"))
 						.willReturn(aResponse().withStatus(204))
 		);
-		var desired = Desired.repository("owner", "repo");
+		var desired = Desired.repository("repo");
 		var group = new RulesetDriftGroup(
 				desired.rulesets,
 				List.of(matchingResponse("ci")),
@@ -105,7 +105,7 @@ class RulesetDriftGroupTest {
 										""")
 				)
 		);
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"ci",
@@ -187,7 +187,7 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void noDrift_whenUpdateAllowsFetchAndMergeMatches() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"ci",
@@ -218,7 +218,7 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsUpdateAllowsFetchAndMergeDrift() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"ci",
@@ -265,7 +265,7 @@ class RulesetDriftGroupTest {
 	 */
 	@Test
 	void updateRuleWithoutParameters_readsAsNotAllowed() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"ci",
@@ -288,7 +288,7 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void noDrift_whenBypassActorsMatch() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"ci",
@@ -328,7 +328,7 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsBypassActorDrift_whenActualHasNone() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"ci",
@@ -365,7 +365,7 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void noDrift_whenBothEmpty() {
-		var desired = Desired.repository("owner", "repo");
+		var desired = Desired.repository("repo");
 		var group = new RulesetDriftGroup(
 				desired.rulesets,
 				List.of(),
@@ -378,7 +378,7 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsExtraRuleset() {
-		var desired = Desired.repository("owner", "repo");
+		var desired = Desired.repository("repo");
 		var group = new RulesetDriftGroup(
 				desired.rulesets,
 				List.of(matchingResponse("ci")),
@@ -399,7 +399,7 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsMissingRuleset() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(Map.of("ci", Desired.ruleset()));
 		var group = new RulesetDriftGroup(
 				desired.rulesets,
@@ -422,7 +422,7 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void noDrift_whenRulesetsMatch() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(Map.of("ci", Desired.ruleset()));
 		var group = new RulesetDriftGroup(
 				desired.rulesets,
@@ -436,7 +436,7 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsMissingIncludePattern() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"ci",
@@ -468,7 +468,7 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsRequiredLinearHistoryDrift() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"ci",
@@ -498,7 +498,7 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void noDrift_whenRequiredLinearHistoryMatches() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"ci",
@@ -542,7 +542,7 @@ class RulesetDriftGroupTest {
 	@Test
 	void detectsMissingStatusCheck() {
 		var check = Desired.statusCheck("build");
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"ci",
@@ -574,7 +574,7 @@ class RulesetDriftGroupTest {
 
 	@Test
 	void detectsExtraAndMissingRuleset() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(Map.of("new-ruleset", Desired.ruleset()));
 		var group = new RulesetDriftGroup(
 				desired.rulesets,

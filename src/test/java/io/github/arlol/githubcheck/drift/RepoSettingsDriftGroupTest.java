@@ -60,7 +60,7 @@ class RepoSettingsDriftGroupTest {
 			""";
 
 	private Drifty.Repository desired(String description) {
-		return Desired.repository("owner", "repo")
+		return Desired.repository("repo")
 				.withDescription(description)
 				.withVisibility(Drifty.Visibility.PUBLIC)
 				.withDefaultBranch("main")
@@ -183,7 +183,7 @@ class RepoSettingsDriftGroupTest {
 					"archived": false
 				}
 				""";
-		var desired = Desired.repository("owner", "repo").withDescription("");
+		var desired = Desired.repository("repo").withDescription("");
 		var items = new RepoSettingsDriftGroup(
 				desired,
 				ActualTypes.repository(parseDetails(json)),
@@ -222,7 +222,7 @@ class RepoSettingsDriftGroupTest {
 					"archived": false
 				}
 				""";
-		var desired = Desired.repository("owner", "repo").withHomepageUrl("");
+		var desired = Desired.repository("repo").withHomepageUrl("");
 		var items = new RepoSettingsDriftGroup(
 				desired,
 				ActualTypes.repository(parseDetails(json)),

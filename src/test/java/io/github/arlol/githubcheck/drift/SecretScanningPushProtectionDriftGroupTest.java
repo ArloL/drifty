@@ -11,7 +11,7 @@ class SecretScanningPushProtectionDriftGroupTest {
 
 	@Test
 	void noDriftWhenMatches() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withSecretScanningPushProtection(true);
 		var group = new SecretScanningPushProtectionDriftGroup(
 				desired.secretScanningPushProtection,
@@ -27,7 +27,7 @@ class SecretScanningPushProtectionDriftGroupTest {
 
 	@Test
 	void detectsDrift() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withSecretScanningPushProtection(true);
 		var group = new SecretScanningPushProtectionDriftGroup(
 				desired.secretScanningPushProtection,

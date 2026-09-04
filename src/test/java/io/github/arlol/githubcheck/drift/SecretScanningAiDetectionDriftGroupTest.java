@@ -11,7 +11,7 @@ class SecretScanningAiDetectionDriftGroupTest {
 
 	@Test
 	void noDriftWhenMatches() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withSecretScanningAiDetection(true);
 		var group = new SecretScanningAiDetectionDriftGroup(
 				desired.secretScanningAiDetection,
@@ -27,7 +27,7 @@ class SecretScanningAiDetectionDriftGroupTest {
 
 	@Test
 	void detectsDrift() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withSecretScanningAiDetection(true);
 		var group = new SecretScanningAiDetectionDriftGroup(
 				desired.secretScanningAiDetection,

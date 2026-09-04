@@ -16,7 +16,7 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * <p>
  * The defaults are evaluated from the schema itself, once per JVM, rather than
  * restated here. Tests take one of these and change what they care about with
- * the generated {@code withX} methods — {@code Desired.repository("o", "r")
+ * the generated {@code withX} methods — {@code Desired.repository("r")
  * .withArchived(true)} — so adding a field to the schema adds nothing here. The
  * previous hand-written builders were a 1,900-line second copy of the schema
  * that had to be extended field by field alongside it.
@@ -61,8 +61,8 @@ public final class Desired {
 	/**
 	 * A repository with GitHub's defaults, which is what the schema declares.
 	 */
-	public static Drifty.Repository repository(String owner, String name) {
-		return REPOSITORY.withOwner(owner).withName(name);
+	public static Drifty.Repository repository(String name) {
+		return REPOSITORY.withName(name);
 	}
 
 	public static Drifty.Ruleset ruleset() {
