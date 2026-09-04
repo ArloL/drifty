@@ -65,10 +65,14 @@ status.
   GitHub rejects it on any organization outside Enterprise even when it already
   holds the wanted value. Ten of its settings have a null `write` — `GET
   /orgs/{org}` returns them and the PATCH accepts none of them.
+  `OrgSettingsDriftGroupTest.everyWritableSettingWritesTheFieldItCompared`
+  reads its cases out of the table, so a new row needs no test change and a row
+  whose builder call writes a different setting than it compared fails it.
 - **A rejected PATCH is not a failed PATCH.** GitHub applies the fields it
   accepts and rejects the rest, so a 422 attributes to no field. When a
-  multi-field request fails, `RepoSettingsDriftGroup` re-sends each field on
-  its own and reports only the ones that fail again. Collapsing that back to
+  multi-field request fails, `RepoSettingsDriftGroup` and
+  `OrgSettingsDriftGroup` re-send each field on its own and report only the
+  ones that fail again. Collapsing that back to
   "the request threw, so nothing was fixed" is what made a run report every
   setting unfixed after GitHub had already changed most of them.
 - `./mvnw test` also builds and runs the native test image when GraalVM is
