@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.Secrets;
@@ -85,62 +86,15 @@ public class GitHubCheck {
 				githubSecrets,
 				state
 		);
-		var orgEntries = new ArrayList<CheckResult.Entry>();
-		var repoEntries = new ArrayList<CheckResult.Entry>();
 		long startFetch = System.currentTimeMillis();
 
-		for (var entry : config.organizations().entrySet()) {
-			String login = entry.getKey();
-			System.out.println("Fetching repo list for organization: " + login);
-			Optional<List<RepositorySummaryResponse>> repos = client
-					.listOrgRepos(login);
-			if (repos.isEmpty()) {
-				orgEntries.add(CheckResult.Entry.missing(login));
-				entry.getValue().repositories.forEach(
-						r -> repoEntries.add(CheckResult.Entry.missing(r.name))
-				);
-				continue;
-			}
-			System.out.printf(
-					"Found %d repos. Fetching details in parallel...%n",
-					repos.orElseThrow().size()
-			);
-			// The org is checked before its repositories, and both work from
-			// the same listing: an org secret's selected repositories arrive as
-			// ids, and this is where their names are.
-			orgEntries.add(
-					orgChecker
-							.check(login, entry.getValue(), repos.orElseThrow())
-			);
-			repoEntries.addAll(
-					repoChecker.check(
-							login,
-							repos.orElseThrow(),
-							entry.getValue().repositories
-					)
-			);
-		}
-
-		for (var entry : config.users().entrySet()) {
-			String login = entry.getKey();
-			System.out.println("Fetching repo list for user: " + login);
-			List<RepositorySummaryResponse> repos = client.listUserRepos(login);
-			System.out.printf(
-					"Found %d repos. Fetching details in parallel...%n",
-					repos.size()
-			);
-			repoEntries.addAll(
-					repoChecker
-							.check(login, repos, entry.getValue().repositories)
-			);
-		}
+		CheckResult result = check(config, client, orgChecker, repoChecker);
 
 		System.out.printf(
 				"Fetch complete in %.2f seconds%n%n",
 				(System.currentTimeMillis() - startFetch) / 1000.0
 		);
 
-		CheckResult result = new CheckResult(orgEntries, repoEntries);
 		Report.print(result);
 
 		if (fix) {
@@ -152,6 +106,114 @@ public class GitHubCheck {
 				.printf("%nTotal execution time: %.2f seconds%n", totalSeconds);
 
 		System.exit(result.hasDrift() ? 1 : 0);
+	}
+
+	/**
+	 * Checks every account the config declares, organizations first.
+	 * <p>
+	 * A repository listing that fails is reported against the account it
+	 * belongs to, and the run continues with the next one. Letting the
+	 * exception out ended the whole run instead: no report for any account, and
+	 * a stack trace whose exit code 1 is the one drifty also uses for "drift
+	 * detected". The 404 is the case that was handled; 403 and 500 are the ones
+	 * a scoped token actually meets.
+	 */
+	static CheckResult check(
+			DriftyConfig config,
+			GitHubClient client,
+			OrganizationChecker orgChecker,
+			RepositoryChecker repoChecker
+	) throws InterruptedException, ExecutionException {
+		var orgEntries = new ArrayList<CheckResult.Entry>();
+		var repoEntries = new ArrayList<CheckResult.Entry>();
+
+		for (var entry : config.organizations().entrySet()) {
+			String login = entry.getKey();
+			Drifty.Organization desired = entry.getValue();
+			System.out.println("Fetching repo list for organization: " + login);
+			List<RepositorySummaryResponse> repos;
+			try {
+				Optional<List<RepositorySummaryResponse>> listed = client
+						.listOrgRepos(login);
+				if (listed.isEmpty()) {
+					orgEntries.add(CheckResult.Entry.missing(login));
+					desired.repositories.forEach(
+							r -> repoEntries
+									.add(CheckResult.Entry.missing(r.name))
+					);
+					continue;
+				}
+				repos = listed.orElseThrow();
+			} catch (GitHubApiException e) {
+				orgEntries.add(CheckResult.Entry.error(login, e.getMessage()));
+				repoEntries.addAll(
+						listingErrors(desired.repositories, e.getMessage())
+				);
+				continue;
+			}
+			System.out.printf(
+					"Found %d repos. Fetching details in parallel...%n",
+					repos.size()
+			);
+			// The org is checked before its repositories, and both work from
+			// the same listing: an org secret's selected repositories arrive as
+			// ids, and this is where their names are.
+			orgEntries.add(orgChecker.check(login, desired, repos));
+			repoEntries.addAll(
+					repoChecker.check(login, repos, desired.repositories)
+			);
+		}
+
+		for (var entry : config.users().entrySet()) {
+			String login = entry.getKey();
+			List<Drifty.Repository> desired = entry.getValue().repositories;
+			System.out.println("Fetching repo list for user: " + login);
+			List<RepositorySummaryResponse> repos;
+			try {
+				repos = client.listUserRepos(login);
+			} catch (GitHubApiException e) {
+				repoEntries.addAll(
+						userListingErrors(login, desired, e.getMessage())
+				);
+				continue;
+			}
+			System.out.printf(
+					"Found %d repos. Fetching details in parallel...%n",
+					repos.size()
+			);
+			repoEntries.addAll(repoChecker.check(login, repos, desired));
+		}
+
+		return new CheckResult(orgEntries, repoEntries);
+	}
+
+	/**
+	 * The listing failure reported against every repository the account
+	 * declares. Errors, not MISSING: missing says GitHub answered and did not
+	 * have the repository, which a listing that failed never established.
+	 */
+	private static List<CheckResult.Entry> listingErrors(
+			List<Drifty.Repository> desired,
+			String error
+	) {
+		return desired.stream()
+				.map(repo -> CheckResult.Entry.error(repo.name, error))
+				.toList();
+	}
+
+	/**
+	 * The same for a personal account, which has no entry of its own in the
+	 * report: a user block declaring no repository would leave the failure
+	 * unsaid and the run would exit 0, so the account stands in for itself.
+	 */
+	private static List<CheckResult.Entry> userListingErrors(
+			String login,
+			List<Drifty.Repository> desired,
+			String error
+	) {
+		return desired.isEmpty()
+				? List.of(CheckResult.Entry.error(login, error))
+				: listingErrors(desired, error);
 	}
 
 	static boolean handledVersion(String[] args) {
