@@ -2,6 +2,8 @@ package io.github.arlol.githubcheck;
 
 import java.util.Locale;
 
+import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
+import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.MergeCommitMessage;
 import io.github.arlol.githubcheck.client.MergeCommitTitle;
 import io.github.arlol.githubcheck.client.PagesBuildType;
@@ -144,6 +146,24 @@ public final class PklTypes {
 	 */
 	public static String repositoryPermission(Drifty.RepositoryPermission p) {
 		return p.toString();
+	}
+
+	public static ActionsEnabledRepositories enabledRepositories(
+			Drifty.ActionsEnabledRepositories r
+	) {
+		return switch (r) {
+		case ALL -> ActionsEnabledRepositories.ALL;
+		case NONE -> ActionsEnabledRepositories.NONE;
+		case SELECTED -> ActionsEnabledRepositories.SELECTED;
+		};
+	}
+
+	public static AllowedActions allowedActions(Drifty.AllowedActions a) {
+		return switch (a) {
+		case ALL -> AllowedActions.ALL;
+		case LOCAL_ONLY -> AllowedActions.LOCAL_ONLY;
+		case SELECTED -> AllowedActions.SELECTED;
+		};
 	}
 
 }

@@ -13,3 +13,5 @@ pages: drifty.Pages = new {}
 statusCheck: drifty.StatusCheck = new { context = "check" }
 codeScanningTool: drifty.CodeScanningTool = new { tool = "tool" }
 rulePattern: drifty.RulePattern = new { operator = "regex"; pattern = "pattern" }
+actionsPermissions: drifty.ActionsPermissions = new {}
+selectedActions: drifty.SelectedActions = new {}
