@@ -231,16 +231,15 @@ public class GitHubCheck {
 	/**
 	 * Network- and token-free smoke test of the two paths only the shipped
 	 * binary can get wrong, both of them reflective and so both able to lose
-	 * their native-image metadata without a single JVM test noticing:
-	 * libsodium through JNA, which crashes with {@code NoSuchMethodException}
-	 * on {@code com.sun.jna.Structure$FFIType.<init>()}, and — when a config
-	 * path is given — a full Pkl evaluation and mapping into
-	 * {@link DriftyConfig}, which ends in a
-	 * {@code ConversionException}. {@code NativeExecutableIT} runs the built
-	 * production binary with this flag, so those regressions fail the build
-	 * instead of shipping. The config is optional because a user's binary has
-	 * none of its own to read; the IT passes the project's example config. The
-	 * public key is a 32-byte all-zeros key, base64.
+	 * their native-image metadata without a single JVM test noticing: libsodium
+	 * through JNA, which crashes with {@code NoSuchMethodException} on
+	 * {@code com.sun.jna.Structure$FFIType.<init>()}, and — when a config path
+	 * is given — a full Pkl evaluation and mapping into {@link DriftyConfig},
+	 * which ends in a {@code ConversionException}. {@code NativeExecutableIT}
+	 * runs the built production binary with this flag, so those regressions
+	 * fail the build instead of shipping. The config is optional because a
+	 * user's binary has none of its own to read; the IT passes the project's
+	 * example config. The public key is a 32-byte all-zeros key, base64.
 	 */
 	static int selfTest(String configPath) {
 		String publicKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
