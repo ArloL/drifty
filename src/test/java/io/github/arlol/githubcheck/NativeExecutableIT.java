@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -47,12 +49,33 @@ class NativeExecutableIT {
 	 */
 	@Test
 	void selfTest() throws IOException, InterruptedException {
+		assertSelfTestPasses();
+	}
+
+	/**
+	 * Loading a config is the other reflection-heavy path in the shipped
+	 * binary, and it broke the same way JNA did: Pkl's mapper instantiates the
+	 * map type it is asked for reflectively, so a type without native-image
+	 * metadata ends the run with "no conversion was found" — after every JVM
+	 * test had passed. Running the real binary against the example config is
+	 * what makes that a build failure instead of a user's first command.
+	 */
+	@Test
+	void selfTestWithConfig() throws IOException, InterruptedException {
+		assertSelfTestPasses("--config", "config/example.pkl");
+	}
+
+	private static void assertSelfTestPasses(String... extraArgs)
+			throws IOException, InterruptedException {
 		String nativeExecutable = System.getProperty("native.executable");
 
-		Process process = new ProcessBuilder(
-				Path.of(nativeExecutable).toAbsolutePath().toString(),
-				"--self-test"
-		).redirectErrorStream(true).start();
+		var command = new ArrayList<String>();
+		command.add(Path.of(nativeExecutable).toAbsolutePath().toString());
+		command.add("--self-test");
+		command.addAll(List.of(extraArgs));
+
+		Process process = new ProcessBuilder(command).redirectErrorStream(true)
+				.start();
 		int exitCode = process.waitFor();
 		String output = new String(process.getInputStream().readAllBytes())
 				.strip();
@@ -60,7 +83,7 @@ class NativeExecutableIT {
 		assertEquals(
 				0,
 				exitCode,
-				() -> "native crypto self-test failed:\n" + output
+				() -> "native self-test failed: " + command + "\n" + output
 		);
 		assertEquals("self-test OK", output);
 	}

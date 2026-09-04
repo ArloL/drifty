@@ -227,7 +227,13 @@ class GitHubCheckTest {
 	 */
 	@Test
 	void selfTest_succeedsOnTheJvm() {
-		assertThat(GitHubCheck.selfTest()).isZero();
+		assertThat(GitHubCheck.selfTest(null)).isZero();
+	}
+
+	@Test
+	void selfTest_loadsTheConfigItIsGiven() {
+		assertThat(GitHubCheck.selfTest("config/example.pkl")).isZero();
+		assertThat(GitHubCheck.selfTest("config/does-not-exist.pkl")).isOne();
 	}
 
 }
