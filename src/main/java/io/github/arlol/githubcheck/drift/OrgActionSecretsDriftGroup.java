@@ -1,6 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,12 +48,16 @@ public class OrgActionSecretsDriftGroup
 			GitHubClient client,
 			String org
 	) {
-		this.desired = Map.copyOf(desired);
+		// Both maps stay insertion-ordered: Map.copyOf hands back a map whose
+		// iteration order is salted per JVM run, which would shuffle the
+		// reported secrets on every run of the same config.
+		this.desired = Collections
+				.unmodifiableMap(new LinkedHashMap<>(desired));
 		var byName = new LinkedHashMap<String, ActualOrgSecret>();
 		for (ActualOrgSecret secret : actual) {
 			byName.put(secret.name(), secret);
 		}
-		this.actual = Map.copyOf(byName);
+		this.actual = Collections.unmodifiableMap(byName);
 		this.repositoryIds = Map.copyOf(repositoryIds);
 		this.secretValues = Map.copyOf(secretValues);
 		this.state = state;
@@ -168,17 +173,23 @@ public class OrgActionSecretsDriftGroup
 			);
 		}
 		var ids = new ArrayList<Long>();
-		for (String repository : wanted.selectedRepositories) {
-			Long id = repositoryIds.get(repository);
-			// Pushing the ids that did resolve would share the secret with
-			// fewer repositories than the config asks for, and report success.
-			if (id == null) {
-				return unfixAll(
-						items,
-						"no repository " + repository + " in " + org
-				);
+		// Only a "selected" secret sends ids, so a list left behind under
+		// another visibility must not fail a push that would never have
+		// carried it.
+		if (wanted.visibility == Drifty.SecretVisibility.SELECTED) {
+			for (String repository : wanted.selectedRepositories) {
+				Long id = repositoryIds.get(repository);
+				// Pushing the ids that did resolve would share the secret with
+				// fewer repositories than the config asks for, and report
+				// success.
+				if (id == null) {
+					return unfixAll(
+							items,
+							"no repository " + repository + " in " + org
+					);
+				}
+				ids.add(id);
 			}
-			ids.add(id);
 		}
 		client.createOrUpdateOrgActionSecret(
 				org,
