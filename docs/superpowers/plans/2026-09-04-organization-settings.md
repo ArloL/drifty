@@ -1168,9 +1168,9 @@ public record OrganizationResponse(
 		Boolean hasRepositoryProjects,
 		String defaultRepositoryPermission,
 		Boolean membersCanCreateRepositories,
-		Boolean membersCanCreateInternalRepositories,
-		Boolean membersCanCreatePrivateRepositories,
 		Boolean membersCanCreatePublicRepositories,
+		Boolean membersCanCreatePrivateRepositories,
+		Boolean membersCanCreateInternalRepositories,
 		Boolean membersCanCreatePages,
 		Boolean membersCanCreatePublicPages,
 		Boolean membersCanCreatePrivatePages,
@@ -1192,6 +1192,8 @@ public record OrganizationResponse(
 ```
 
 Every field is a wrapper: GitHub omits several of them for a token without admin rights, and `FAIL_ON_NULL_FOR_PRIMITIVES` is enabled on the client's mapper.
+
+The component order matches `ActualOrganization` in Task 5 — the spec's two tables, writable settings first. Two 30-field records of the same types in different orders is a swapped pair of booleans nobody would see; keeping one order means `ActualTypes.organization` reads straight down both.
 
 `OrganizationUpdateRequest` mirrors `RepositoryUpdateRequest`: `@JsonInclude(NON_NULL)`, one nullable component per writable setting from the spec's first table, plus a `builder()` with one setter per component. Copy `RepositoryUpdateRequest`'s class javadoc, adapted: the nullability is what keeps the PATCH to the drifted settings.
 
