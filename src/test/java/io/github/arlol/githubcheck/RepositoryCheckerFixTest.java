@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import io.github.arlol.githubcheck.drift.DriftFix;
+import io.github.arlol.githubcheck.drift.DriftFixer;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -57,7 +58,7 @@ import io.github.arlol.githubcheck.testsupport.Desired;
 import io.github.arlol.githubcheck.drift.DriftItem;
 
 @WireMockTest
-class OrgCheckerFixTest {
+class RepositoryCheckerFixTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper()
 			.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
@@ -119,12 +120,12 @@ class OrgCheckerFixTest {
 			}
 			""";
 
-	private OrgChecker checker;
+	private RepositoryChecker checker;
 
 	@BeforeEach
 	void setUp(WireMockRuntimeInfo wm) {
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
-		checker = new OrgChecker(client, true);
+		checker = new RepositoryChecker(client, true);
 	}
 
 	/**
@@ -132,10 +133,10 @@ class OrgCheckerFixTest {
 	 * tests assert on.
 	 */
 	private static List<String> unfixedMessages(
-			OrgChecker checker,
+			RepositoryChecker checker,
 			Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts
 	) {
-		return checker.applyFixes(groupDrifts)
+		return DriftFixer.applyFixes(groupDrifts)
 				.unfixedItems()
 				.stream()
 				.map(DriftItem::message)
@@ -152,12 +153,12 @@ class OrgCheckerFixTest {
 	// ─── Helpers
 	// ──────────────────────────────────────────────────────────
 
-	private OrgChecker checkerWithSecrets(
+	private RepositoryChecker checkerWithSecrets(
 			WireMockRuntimeInfo wm,
 			Map<String, String> secrets
 	) {
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
-		return new OrgChecker(client, true, secrets);
+		return new RepositoryChecker(client, true, secrets);
 	}
 
 	private static <T> T parse(String json, Class<T> type) {
@@ -366,7 +367,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = computeGroupDrifts(state, desired);
 
-		var unfixed = checker.applyFixes(groupDrifts).unfixed();
+		var unfixed = DriftFixer.applyFixes(groupDrifts).unfixed();
 
 		assertThat(unfixed).hasSize(1);
 		assertThat(unfixed.getFirst().item().path())
@@ -415,7 +416,7 @@ class OrgCheckerFixTest {
 				{"description": "wrong"}
 				""");
 
-		var unfixed = checker.applyFixes(computeGroupDrifts(state, desired))
+		var unfixed = DriftFixer.applyFixes(computeGroupDrifts(state, desired))
 				.unfixed();
 
 		assertThat(unfixed).hasSize(1);
@@ -442,7 +443,7 @@ class OrgCheckerFixTest {
 				{"visibility": "public"}
 				""");
 
-		var unfixed = checker.applyFixes(computeGroupDrifts(state, desired))
+		var unfixed = DriftFixer.applyFixes(computeGroupDrifts(state, desired))
 				.unfixed();
 
 		assertThat(unfixed).hasSize(1);
@@ -2691,7 +2692,7 @@ class OrgCheckerFixTest {
 				"both groups must have drifted for this test to mean anything"
 		).contains(Drifty.GroupName.ARCHIVED, Drifty.GroupName.REPO_SETTINGS);
 
-		checker.applyFixes(reversed(groupDrifts));
+		DriftFixer.applyFixes(reversed(groupDrifts));
 
 		var patches = WireMock
 				.findAll(patchRequestedFor(urlEqualTo("/repos/owner/repo")));
@@ -2777,7 +2778,7 @@ class OrgCheckerFixTest {
 				.withImmutableReleases(true);
 
 		var groupDrifts = computeGroupDrifts(goodPublicState(), desired);
-		var outcome = checker.applyFixes(groupDrifts);
+		var outcome = DriftFixer.applyFixes(groupDrifts);
 
 		assertThat(outcome.fixed()).isEmpty();
 		assertThat(outcome.unfixed()).singleElement().satisfies(unfixed -> {
@@ -2801,7 +2802,7 @@ class OrgCheckerFixTest {
 
 		var groupDrifts = localChecker
 				.computeGroupDrifts(goodPublicState(), desired);
-		var outcome = localChecker.applyFixes(groupDrifts);
+		var outcome = DriftFixer.applyFixes(groupDrifts);
 
 		assertThat(outcome.unfixed()).singleElement().satisfies(unfixed -> {
 			assertThat(unfixed.item().path()).isEqualTo("action_secrets.PAT");
@@ -2825,7 +2826,7 @@ class OrgCheckerFixTest {
 				.withImmutableReleases(true);
 
 		var groupDrifts = computeGroupDrifts(goodPublicState(), desired);
-		var outcome = checker.applyFixes(groupDrifts);
+		var outcome = DriftFixer.applyFixes(groupDrifts);
 
 		assertThat(outcome.unfixed()).isEmpty();
 		assertThat(outcome.fixed().stream().map(DriftItem::path))

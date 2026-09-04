@@ -2,7 +2,6 @@ package io.github.arlol.githubcheck;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,12 +35,12 @@ import io.github.arlol.githubcheck.drift.AutomatedSecurityFixesDriftGroup;
 import io.github.arlol.githubcheck.drift.BranchProtectionDriftGroup;
 import io.github.arlol.githubcheck.drift.CodeScanningDefaultSetupDriftGroup;
 import io.github.arlol.githubcheck.drift.DriftFix;
+import io.github.arlol.githubcheck.drift.DriftFixer;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
 import io.github.arlol.githubcheck.drift.ManagedGroups;
 import io.github.arlol.githubcheck.drift.EnvironmentConfigDriftGroup;
 import io.github.arlol.githubcheck.drift.EnvironmentSecretsDriftGroup;
-import io.github.arlol.githubcheck.drift.FixResult;
 import io.github.arlol.githubcheck.drift.ImmutableReleasesDriftGroup;
 import io.github.arlol.githubcheck.drift.PagesDriftGroup;
 import io.github.arlol.githubcheck.drift.PrivateVulnerabilityReportingDriftGroup;
@@ -59,18 +58,23 @@ import io.github.arlol.githubcheck.drift.VulnerabilityAlertsDriftGroup;
 import io.github.arlol.githubcheck.drift.WorkflowPermissionsDriftGroup;
 import io.github.arlol.githubcheck.state.DriftyState;
 
-public class OrgChecker {
+/**
+ * Checks the repositories of one owner: fetches each one's actual state,
+ * compares it against {@code drifty.pkl}, and — in fix mode — writes the drift
+ * away.
+ */
+public class RepositoryChecker {
 
 	private final GitHubClient client;
 	private final boolean fix;
 	private final Map<String, String> githubSecrets;
 	private final DriftyState state;
 
-	public OrgChecker(String token, boolean fix) {
+	public RepositoryChecker(String token, boolean fix) {
 		this(new GitHubClient(token), fix, Map.of(), new DriftyState());
 	}
 
-	public OrgChecker(
+	public RepositoryChecker(
 			String token,
 			boolean fix,
 			Map<String, String> githubSecrets,
@@ -79,11 +83,11 @@ public class OrgChecker {
 		this(new GitHubClient(token), fix, githubSecrets, state);
 	}
 
-	OrgChecker(GitHubClient client, boolean fix) {
+	RepositoryChecker(GitHubClient client, boolean fix) {
 		this(client, fix, Map.of(), new DriftyState());
 	}
 
-	OrgChecker(
+	RepositoryChecker(
 			GitHubClient client,
 			boolean fix,
 			Map<String, String> githubSecrets
@@ -91,7 +95,7 @@ public class OrgChecker {
 		this(client, fix, githubSecrets, new DriftyState());
 	}
 
-	OrgChecker(
+	RepositoryChecker(
 			GitHubClient client,
 			boolean fix,
 			Map<String, String> githubSecrets,
@@ -145,11 +149,11 @@ public class OrgChecker {
 				found.size()
 		);
 
-		List<CheckResult.RepoCheckResult> results = new ArrayList<>();
+		List<CheckResult.Entry> results = new ArrayList<>();
 
 		try (ExecutorService executor = Executors
 				.newVirtualThreadPerTaskExecutor()) {
-			List<Future<CheckResult.RepoCheckResult>> futures = found.entrySet()
+			List<Future<CheckResult.Entry>> futures = found.entrySet()
 					.stream()
 					.map(
 							entry -> executor
@@ -163,7 +167,7 @@ public class OrgChecker {
 									)
 					)
 					.toList();
-			for (Future<CheckResult.RepoCheckResult> f : futures) {
+			for (Future<CheckResult.Entry> f : futures) {
 				results.add(f.get());
 			}
 		}
@@ -172,24 +176,24 @@ public class OrgChecker {
 		desiredByRef.keySet()
 				.stream()
 				.filter(ref -> !found.containsKey(ref))
-				.map(ref -> CheckResult.RepoCheckResult.missing(ref.name()))
+				.map(ref -> CheckResult.Entry.missing(ref.name()))
 				.forEach(results::add);
 
 		double fetchSeconds = (System.currentTimeMillis() - startFetch)
 				/ 1000.0;
 		System.out.printf("Fetch complete in %.2f seconds%n%n", fetchSeconds);
 
-		return new CheckResult(Collections.unmodifiableList(results));
+		return CheckResult.ofRepos(results);
 	}
 
-	private CheckResult.RepoCheckResult checkOne(
+	private CheckResult.Entry checkOne(
 			RepoRef ref,
 			RepositorySummaryResponse summary,
 			Drifty.Repository desired
 	) {
 		String name = ref.name();
 		if (desired == null) {
-			return CheckResult.RepoCheckResult.unknown(name);
+			return CheckResult.Entry.unknown(name);
 		}
 		try {
 			ManagedGroups<Drifty.GroupName> managed = ManagedGroups
@@ -207,11 +211,12 @@ public class OrgChecker {
 			);
 
 			if (fix) {
-				FixOutcome outcome = applyFixes(groupDrifts);
-				return CheckResult.RepoCheckResult.fixed(
+				DriftFixer.FixOutcome outcome = DriftFixer
+						.applyFixes(groupDrifts);
+				return CheckResult.Entry.fixed(
 						name,
-						render(outcome.unfixedItems()),
-						fixReports(outcome)
+						DriftFixer.render(outcome.unfixedItems()),
+						DriftFixer.fixReports(outcome)
 				);
 			}
 
@@ -223,53 +228,20 @@ public class OrgChecker {
 					.collect(Collectors.toCollection(ArrayList::new));
 
 			if (diffs.isEmpty()) {
-				return CheckResult.RepoCheckResult.ok(name, unmanaged);
+				return CheckResult.Entry.ok(name, unmanaged);
 			}
 			// In check mode, preview which groups --fix would act on.
 			List<String> fixPreview = groupDrifts.keySet()
 					.stream()
 					.map(group -> group.name().toString())
 					.toList();
-			return CheckResult.RepoCheckResult
-					.drift(name, diffs, fixPreview, unmanaged);
+			return CheckResult.Entry.drift(name, diffs, fixPreview, unmanaged);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			return CheckResult.RepoCheckResult.error(name, e.getMessage());
+			return CheckResult.Entry.error(name, e.getMessage());
 		} catch (IOException e) {
-			return CheckResult.RepoCheckResult.error(name, e.getMessage());
+			return CheckResult.Entry.error(name, e.getMessage());
 		}
-	}
-
-	private static List<String> render(List<DriftItem> items) {
-		return items.stream().map(DriftItem::message).toList();
-	}
-
-	/**
-	 * One FIXED/FAILED line per drift item, in the order the fixes ran.
-	 */
-	private static List<CheckResult.FixReport> fixReports(FixOutcome outcome) {
-		var reports = new ArrayList<CheckResult.FixReport>();
-		outcome.fixed()
-				.forEach(
-						item -> reports.add(
-								new CheckResult.FixReport(
-										item.path(),
-										true,
-										null
-								)
-						)
-				);
-		outcome.unfixed()
-				.forEach(
-						unfixed -> reports.add(
-								new CheckResult.FixReport(
-										unfixed.item().path(),
-										false,
-										unfixed.reason()
-								)
-						)
-				);
-		return reports;
 	}
 
 	// ─── Fetch
@@ -735,210 +707,6 @@ public class OrgChecker {
 			ManagedGroups<Drifty.GroupName> managed
 	) {
 		return groups.stream().filter(g -> managed.manages(g.name())).toList();
-	}
-
-	// ─── Fix
-	// ──────────────────────────────────────────────────────────────
-
-	/**
-	 * What a fix run achieved for one repository: the items it resolved, and
-	 * the ones it did not together with why.
-	 */
-	record FixOutcome(
-			List<DriftItem> fixed,
-			List<FixResult.Unfixed> unfixed
-	) {
-
-		FixOutcome {
-			fixed = List.copyOf(fixed);
-			unfixed = List.copyOf(unfixed);
-		}
-
-		List<DriftItem> unfixedItems() {
-			return unfixed.stream().map(FixResult.Unfixed::item).toList();
-		}
-
-	}
-
-	/**
-	 * Runs every fix and accounts for the result per drift item.
-	 * <p>
-	 * Accounting is by item, not by rendered message. Messages are built for
-	 * people and are not unique — before drift paths were namespaced, thirteen
-	 * groups rendered the same {@code "enabled: want=true got=false"}, and
-	 * subtracting them with {@code List.removeAll} deleted every equal line, so
-	 * one successful fix erased twelve other settings' drift including failed
-	 * ones. Working from the items themselves removes that whole class of bug
-	 * rather than relying on the paths staying distinct.
-	 */
-	FixOutcome applyFixes(
-			Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts
-	) {
-		var fixed = new ArrayList<DriftItem>();
-		var unfixed = new ArrayList<FixResult.Unfixed>();
-
-		for (DriftFix driftFix : prerequisitesFirst(groupDrifts)) {
-			if (!driftFix.items().isEmpty()) {
-				apply(driftFix, fixed, unfixed);
-			}
-		}
-		return new FixOutcome(fixed, unfixed);
-	}
-
-	/**
-	 * Every fix to run, with the groups that declare themselves prerequisites
-	 * ahead of the rest — unarchiving, today, because GitHub rejects writes to
-	 * an archived repository and every other fix would fail.
-	 */
-	private static List<DriftFix> prerequisitesFirst(
-			Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts
-	) {
-		var ordered = new ArrayList<DriftFix>();
-		groupDrifts.entrySet()
-				.stream()
-				.filter(e -> e.getKey().runsBeforeOtherFixes())
-				.forEach(e -> ordered.addAll(e.getValue()));
-		groupDrifts.entrySet()
-				.stream()
-				.filter(e -> !e.getKey().runsBeforeOtherFixes())
-				.forEach(e -> ordered.addAll(e.getValue()));
-		return ordered;
-	}
-
-	/** Runs one fix and records each of its items as fixed or not. */
-	private static void apply(
-			DriftFix driftFix,
-			List<DriftItem> fixed,
-			List<FixResult.Unfixed> unfixed
-	) {
-		Map<DriftItem, FixResult.Unfixed> unfixedByItem;
-		try {
-			unfixedByItem = byItem(driftFix.fix().execute());
-		} catch (RuntimeException e) {
-			// The fix blew up, so nothing it covered got fixed.
-			unfixed.addAll(allUnfixed(driftFix, reason(e)));
-			return;
-		}
-		for (DriftItem item : driftFix.items()) {
-			FixResult.Unfixed u = unfixedByItem.get(item);
-			if (u == null) {
-				fixed.add(item);
-			} else {
-				unfixed.add(u);
-			}
-		}
-	}
-
-	private static Map<DriftItem, FixResult.Unfixed> byItem(FixResult result) {
-		return result.unfixedItems()
-				.stream()
-				.collect(
-						Collectors.toMap(
-								FixResult.Unfixed::item,
-								u -> u,
-								(a, _) -> a
-						)
-				);
-	}
-
-	private static List<FixResult.Unfixed> allUnfixed(
-			DriftFix driftFix,
-			String reason
-	) {
-		return driftFix.items()
-				.stream()
-				.map(item -> new FixResult.Unfixed(item, reason))
-				.toList();
-	}
-
-	private static String reason(RuntimeException e) {
-		return e.getMessage() == null ? e.getClass().getSimpleName()
-				: e.getMessage();
-	}
-
-	// ─── Report
-	// ──────────────────────────────────────────────────────────────
-
-	public void printReport(CheckResult result) {
-		List<CheckResult.RepoCheckResult> sorted = result.repos()
-				.stream()
-				.sorted((a, b) -> a.name().compareToIgnoreCase(b.name()))
-				.toList();
-
-		for (CheckResult.RepoCheckResult r : sorted) {
-			switch (r.status()) {
-			case OK -> {
-				System.out.printf("[OK]      %s%n", r.name());
-				printUnmanaged(r);
-				printFixReports(r);
-			}
-			case DRIFT -> {
-				System.out.printf("[DRIFT]   %s:%n", r.name());
-				if (r.fixReports().isEmpty()) {
-					r.diffs()
-							.forEach(
-									d -> System.out
-											.printf("            %s%n", d)
-							);
-				} else {
-					printFixReports(r);
-				}
-				if (!r.fixPreview().isEmpty()) {
-					System.out.printf(
-							"  Would fix: %s%n",
-							String.join(", ", r.fixPreview())
-					);
-				}
-				printUnmanaged(r);
-			}
-			case ERROR ->
-				System.out.printf("[ERROR]   %s: %s%n", r.name(), r.error());
-			case UNKNOWN -> System.out
-					.printf("[UNKNOWN] %s: not in desired config%n", r.name());
-			case MISSING -> System.out.printf(
-					"[MISSING] %s: in config but not found in org%n",
-					r.name()
-			);
-			}
-		}
-
-		System.out.println();
-		System.out.println("=== Summary ===");
-		System.out.printf("Repos checked:  %d%n", result.repos().size());
-		System.out.printf("OK:             %d%n", result.okCount());
-		System.out.printf("Drifted:        %d%n", result.driftCount());
-		System.out.printf("Errored:        %d%n", result.errorCount());
-		System.out.printf("Unknown:        %d%n", result.unknownCount());
-		System.out.printf("Missing:        %d%n", result.missingCount());
-
-		List<String> failures = result.fixFailures();
-		if (!failures.isEmpty()) {
-			System.out.println();
-			System.out.printf("=== Failed fixes (%d) ===%n", failures.size());
-			failures.forEach(f -> System.out.printf("  %s%n", f));
-		}
-	}
-
-	/**
-	 * Names the groups, not their values: an unmanaged group's actual values
-	 * were never fetched, and fetching them to print would undo the point of
-	 * declaring it unmanaged.
-	 */
-	private static void printUnmanaged(CheckResult.RepoCheckResult r) {
-		if (!r.unmanaged().isEmpty()) {
-			System.out.printf(
-					"  Unmanaged: %s%n",
-					String.join(", ", r.unmanaged())
-			);
-		}
-	}
-
-	private static void printFixReports(CheckResult.RepoCheckResult r) {
-		r.fixReports()
-				.forEach(
-						report -> System.out
-								.printf("            %s%n", report.message())
-				);
 	}
 
 }

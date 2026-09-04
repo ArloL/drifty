@@ -75,7 +75,7 @@ class ActualStateBoundaryTest {
 	 * matter.
 	 */
 	private static List<DriftGroup<Drifty.GroupName>> driftGroups() {
-		return new OrgChecker((String) null, false).createDriftGroups(
+		return new RepositoryChecker((String) null, false).createDriftGroups(
 				new RepositoryState(
 						"repo",
 						new ActualRepository(

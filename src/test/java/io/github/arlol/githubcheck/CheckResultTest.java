@@ -6,41 +6,35 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import io.github.arlol.githubcheck.CheckResult.RepoCheckResult;
+import io.github.arlol.githubcheck.CheckResult.Entry;
 
 class CheckResultTest {
 
 	@Test
 	void missingCount_countsMissingRepos() {
-		var result = new CheckResult(
-				List.of(
-						RepoCheckResult.ok("a"),
-						RepoCheckResult.missing("b"),
-						RepoCheckResult.missing("c")
-				)
+		var result = CheckResult.ofRepos(
+				List.of(Entry.ok("a"), Entry.missing("b"), Entry.missing("c"))
 		);
 		assertThat(result.missingCount()).isEqualTo(2);
 	}
 
 	@Test
 	void hasDrift_trueWhenRepoMissing() {
-		var result = new CheckResult(
-				List.of(RepoCheckResult.ok("a"), RepoCheckResult.missing("b"))
-		);
+		var result = CheckResult
+				.ofRepos(List.of(Entry.ok("a"), Entry.missing("b")));
 		assertThat(result.hasDrift()).isTrue();
 	}
 
 	@Test
 	void hasDrift_falseWhenOnlyOkAndUnknown() {
-		var result = new CheckResult(
-				List.of(RepoCheckResult.ok("a"), RepoCheckResult.unknown("b"))
-		);
+		var result = CheckResult
+				.ofRepos(List.of(Entry.ok("a"), Entry.unknown("b")));
 		assertThat(result.hasDrift()).isFalse();
 	}
 
 	@Test
 	void drift_carriesFixPreview() {
-		var r = RepoCheckResult.drift(
+		var r = Entry.drift(
 				"a",
 				List.of("description: want=Foo got="),
 				List.of("repo_settings", "topics")
@@ -50,7 +44,7 @@ class CheckResultTest {
 
 	@Test
 	void drift_defaultsToEmptyFixPreview() {
-		var r = RepoCheckResult.drift("a", List.of("some diff"));
+		var r = Entry.drift("a", List.of("some diff"));
 		assertThat(r.fixPreview()).isEmpty();
 	}
 
@@ -81,7 +75,7 @@ class CheckResultTest {
 
 	@Test
 	void fixed_isOkWhenNothingWasLeftUnfixed() {
-		var r = RepoCheckResult.fixed(
+		var r = Entry.fixed(
 				"a",
 				List.of(),
 				List.of(new CheckResult.FixReport("topics", true, null))
@@ -92,7 +86,7 @@ class CheckResultTest {
 
 	@Test
 	void fixed_isDriftWhenSomethingRemains() {
-		var r = RepoCheckResult.fixed(
+		var r = Entry.fixed(
 				"a",
 				List.of("topics missing: [java]"),
 				List.of(new CheckResult.FixReport("topics", false, "HTTP 403"))
@@ -103,9 +97,9 @@ class CheckResultTest {
 
 	@Test
 	void fixFailures_collectsFailuresAcrossReposAndNamesEach() {
-		var result = new CheckResult(
+		var result = CheckResult.ofRepos(
 				List.of(
-						RepoCheckResult.fixed(
+						Entry.fixed(
 								"a",
 								List.of("x"),
 								List.of(
@@ -121,7 +115,7 @@ class CheckResultTest {
 										)
 								)
 						),
-						RepoCheckResult.fixed(
+						Entry.fixed(
 								"b",
 								List.of("y"),
 								List.of(
@@ -132,7 +126,7 @@ class CheckResultTest {
 										)
 								)
 						),
-						RepoCheckResult.ok("c")
+						Entry.ok("c")
 				)
 		);
 
@@ -144,9 +138,9 @@ class CheckResultTest {
 
 	@Test
 	void fixFailures_isEmptyWhenEveryFixSucceeded() {
-		var result = new CheckResult(
+		var result = CheckResult.ofRepos(
 				List.of(
-						RepoCheckResult.fixed(
+						Entry.fixed(
 								"a",
 								List.of(),
 								List.of(
@@ -164,8 +158,7 @@ class CheckResultTest {
 
 	@Test
 	void okCarriesUnmanagedGroups() {
-		var result = CheckResult.RepoCheckResult
-				.ok("repo", List.of("action_secrets", "rulesets"));
+		var result = Entry.ok("repo", List.of("action_secrets", "rulesets"));
 
 		assertThat(result.unmanaged())
 				.containsExactly("action_secrets", "rulesets");
@@ -173,8 +166,7 @@ class CheckResultTest {
 
 	@Test
 	void unmanagedDefaultsToEmpty() {
-		assertThat(CheckResult.RepoCheckResult.ok("repo").unmanaged())
-				.isEmpty();
+		assertThat(Entry.ok("repo").unmanaged()).isEmpty();
 	}
 
 }

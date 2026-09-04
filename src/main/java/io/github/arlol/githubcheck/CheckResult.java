@@ -1,13 +1,20 @@
 package io.github.arlol.githubcheck;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 public record CheckResult(
-		List<RepoCheckResult> repos
+		List<Entry> orgs,
+		List<Entry> repos
 ) {
 
 	public CheckResult {
+		orgs = List.copyOf(orgs);
 		repos = List.copyOf(repos);
+	}
+
+	public static CheckResult ofRepos(List<Entry> repos) {
+		return new CheckResult(List.of(), repos);
 	}
 
 	/**
@@ -32,11 +39,11 @@ public record CheckResult(
 	}
 
 	/**
-	 * @param unmanaged the drift groups this repository leaves alone, named but
-	 *                  not valued: their actual values were never fetched, so
-	 *                  there is nothing to print for them
+	 * @param unmanaged the drift groups this entry leaves alone, named but not
+	 *                  valued: their actual values were never fetched, so there
+	 *                  is nothing to print for them
 	 */
-	public record RepoCheckResult(
+	public record Entry(
 			String name,
 			Status status,
 			List<String> diffs,
@@ -46,19 +53,19 @@ public record CheckResult(
 			List<String> unmanaged
 	) {
 
-		public RepoCheckResult {
+		public Entry {
 			diffs = List.copyOf(diffs);
 			fixPreview = List.copyOf(fixPreview);
 			fixReports = List.copyOf(fixReports);
 			unmanaged = List.copyOf(unmanaged);
 		}
 
-		public static RepoCheckResult ok(String name) {
+		public static Entry ok(String name) {
 			return ok(name, List.of());
 		}
 
-		public static RepoCheckResult ok(String name, List<String> unmanaged) {
-			return new RepoCheckResult(
+		public static Entry ok(String name, List<String> unmanaged) {
+			return new Entry(
 					name,
 					Status.OK,
 					List.of(),
@@ -69,11 +76,11 @@ public record CheckResult(
 			);
 		}
 
-		public static RepoCheckResult drift(String name, List<String> diffs) {
+		public static Entry drift(String name, List<String> diffs) {
 			return drift(name, diffs, List.of());
 		}
 
-		public static RepoCheckResult drift(
+		public static Entry drift(
 				String name,
 				List<String> diffs,
 				List<String> fixPreview
@@ -81,13 +88,13 @@ public record CheckResult(
 			return drift(name, diffs, fixPreview, List.of());
 		}
 
-		public static RepoCheckResult drift(
+		public static Entry drift(
 				String name,
 				List<String> diffs,
 				List<String> fixPreview,
 				List<String> unmanaged
 		) {
-			return new RepoCheckResult(
+			return new Entry(
 					name,
 					Status.DRIFT,
 					diffs,
@@ -105,12 +112,12 @@ public record CheckResult(
 		 * No unmanaged list: a fix run prints what it applied, and naming the
 		 * groups it never touched says nothing about that.
 		 */
-		public static RepoCheckResult fixed(
+		public static Entry fixed(
 				String name,
 				List<String> remainingDiffs,
 				List<FixReport> fixReports
 		) {
-			return new RepoCheckResult(
+			return new Entry(
 					name,
 					remainingDiffs.isEmpty() ? Status.OK : Status.DRIFT,
 					remainingDiffs,
@@ -121,8 +128,8 @@ public record CheckResult(
 			);
 		}
 
-		public static RepoCheckResult error(String name, String error) {
-			return new RepoCheckResult(
+		public static Entry error(String name, String error) {
+			return new Entry(
 					name,
 					Status.ERROR,
 					List.of(),
@@ -133,8 +140,8 @@ public record CheckResult(
 			);
 		}
 
-		public static RepoCheckResult unknown(String name) {
-			return new RepoCheckResult(
+		public static Entry unknown(String name) {
+			return new Entry(
 					name,
 					Status.UNKNOWN,
 					List.of(),
@@ -145,8 +152,8 @@ public record CheckResult(
 			);
 		}
 
-		public static RepoCheckResult missing(String name) {
-			return new RepoCheckResult(
+		public static Entry missing(String name) {
+			return new Entry(
 					name,
 					Status.MISSING,
 					List.of(),
@@ -163,16 +170,32 @@ public record CheckResult(
 		OK, DRIFT, ERROR, UNKNOWN, MISSING
 	}
 
+	private Stream<Entry> all() {
+		return Stream.concat(orgs.stream(), repos.stream());
+	}
+
 	public long okCount() {
 		return repos.stream().filter(r -> r.status() == Status.OK).count();
+	}
+
+	public long orgOkCount() {
+		return orgs.stream().filter(r -> r.status() == Status.OK).count();
 	}
 
 	public long driftCount() {
 		return repos.stream().filter(r -> r.status() == Status.DRIFT).count();
 	}
 
+	public long orgDriftCount() {
+		return orgs.stream().filter(r -> r.status() == Status.DRIFT).count();
+	}
+
 	public long errorCount() {
 		return repos.stream().filter(r -> r.status() == Status.ERROR).count();
+	}
+
+	public long orgErrorCount() {
+		return orgs.stream().filter(r -> r.status() == Status.ERROR).count();
 	}
 
 	public long unknownCount() {
@@ -183,22 +206,30 @@ public record CheckResult(
 		return repos.stream().filter(r -> r.status() == Status.MISSING).count();
 	}
 
+	public long orgMissingCount() {
+		return orgs.stream().filter(r -> r.status() == Status.MISSING).count();
+	}
+
 	public boolean hasDrift() {
-		return driftCount() > 0 || errorCount() > 0 || missingCount() > 0;
+		return all().anyMatch(
+				entry -> entry.status() == Status.DRIFT
+						|| entry.status() == Status.ERROR
+						|| entry.status() == Status.MISSING
+		);
 	}
 
 	/**
-	 * Every failed fix across all repositories, for the end-of-run summary
-	 * SPEC.md requires.
+	 * Every failed fix across all organizations and repositories, for the
+	 * end-of-run summary SPEC.md requires.
 	 */
 	public List<String> fixFailures() {
-		return repos.stream()
+		return all()
 				.flatMap(
-						repo -> repo.fixReports()
+						entry -> entry.fixReports()
 								.stream()
 								.filter(report -> !report.fixed())
 								.map(
-										report -> repo.name() + ": "
+										report -> entry.name() + ": "
 												+ report.message()
 								)
 				)

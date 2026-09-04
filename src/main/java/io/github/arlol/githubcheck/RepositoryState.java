@@ -21,8 +21,8 @@ import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
  * response at the client boundary, the way {@link PklTypes} translates the
  * config on the desired side. That is what keeps "how GitHub serialises this"
  * out of the drift groups, so a different read path — GraphQL bulk reads, a new
- * API version — changes the translator and {@code OrgChecker.fetchState}, not
- * two dozen comparisons.
+ * API version — changes the translator and
+ * {@code RepositoryChecker.fetchState}, not two dozen comparisons.
  * <p>
  * The five booleans after {@code securityAndAnalysis} are the security features
  * GitHub serves from their own endpoints; for an archived repository they are

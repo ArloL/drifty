@@ -28,14 +28,14 @@ import io.github.arlol.githubcheck.drift.ManagedGroups;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
 /**
- * Covers {@link OrgChecker#fetchState}, which fans out across the whole read
- * side of the GitHub API. The three cases are the three shapes that fan-out
- * takes: a public repository (everything is fetched), a private one (branch
- * protections are skipped) and an archived one (GitHub does not expose the
- * security settings, so they all read false).
+ * Covers {@link RepositoryChecker#fetchState}, which fans out across the whole
+ * read side of the GitHub API. The three cases are the three shapes that
+ * fan-out takes: a public repository (everything is fetched), a private one
+ * (branch protections are skipped) and an archived one (GitHub does not expose
+ * the security settings, so they all read false).
  */
 @WireMockTest
-class OrgCheckerFetchStateTest {
+class RepositoryCheckerFetchStateTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper()
 			.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
@@ -76,12 +76,12 @@ class OrgCheckerFetchStateTest {
 
 	private static final RepoRef REF = new RepoRef("owner", "repo");
 
-	private OrgChecker checker;
+	private RepositoryChecker checker;
 
 	@BeforeEach
 	void setUp(WireMockRuntimeInfo wm) {
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
-		checker = new OrgChecker(client, false);
+		checker = new RepositoryChecker(client, false);
 	}
 
 	@Test
