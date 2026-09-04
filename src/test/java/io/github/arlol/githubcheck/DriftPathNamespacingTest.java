@@ -13,7 +13,10 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrganization;
+import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
+import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
@@ -108,10 +111,14 @@ class DriftPathNamespacingTest {
 				.map(DriftGroup::name)
 				.toList();
 
-		// Only org_settings has a group so far. Task 9 lands the last of the
-		// other three, and tightens this to OrgGroupName.values().
+		// org_settings and org_actions_permissions have groups so far. Task 9
+		// lands the last of the other two, and tightens this to
+		// OrgGroupName.values().
 		assertThat(names).doesNotHaveDuplicates()
-				.containsExactlyInAnyOrder(Drifty.OrgGroupName.ORG_SETTINGS);
+				.containsExactlyInAnyOrder(
+						Drifty.OrgGroupName.ORG_SETTINGS,
+						Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS
+				);
 	}
 
 	@Test
@@ -280,8 +287,21 @@ class DriftPathNamespacingTest {
 				true
 		);
 
+		var actionsPermissions = new ActualOrgActionsPermissions(
+				ActionsEnabledRepositories.NONE,
+				AllowedActions.LOCAL_ONLY,
+				true,
+				null
+		);
+
 		return checker.createDriftGroups(
-				new OrganizationState("my-org", actual, null, null, List.of()),
+				new OrganizationState(
+						"my-org",
+						actual,
+						actionsPermissions,
+						null,
+						List.of()
+				),
 				Desired.organization(),
 				Map.of()
 		);

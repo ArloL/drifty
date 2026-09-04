@@ -56,6 +56,9 @@ typealias OrgGroupName =
   | "org_workflow_permissions"
   | "org_action_secrets"
 
+typealias ActionsEnabledRepositories = "all" | "none" | "selected"
+typealias AllowedActions = "all" | "local_only" | "selected"
+
 typealias ManageMode = "all_except" | "only"
 
 /// Which drift groups drifty manages for a repository. The default manages
@@ -220,6 +223,23 @@ class Repository {
   environments: Mapping<String, Environment> = new {}
 }
 
+class SelectedActions {
+  githubOwnedAllowed: Boolean = true
+  verifiedAllowed: Boolean = false
+  patternsAllowed: Listing<String> = new {}
+}
+
+/// Organization Actions policy. Which repositories are selected under
+/// enabledRepositories = "selected" is not managed: drifty writes the policy
+/// value and GitHub keeps the existing selection.
+class ActionsPermissions {
+  enabledRepositories: ActionsEnabledRepositories = "all"
+  allowedActions: AllowedActions = "all"
+  shaPinningRequired: Boolean = false
+  /// Required when allowedActions = "selected"
+  selectedActions: SelectedActions?
+}
+
 /// Desired state for a GitHub organization, keyed by login in `organizations`.
 /// Defaults match GitHub's defaults for a new organization.
 class Organization {
@@ -259,6 +279,8 @@ class Organization {
   membersCanViewDependencyInsights: Boolean = true
   readersCanCreateDiscussions: Boolean = false
   displayCommenterFullNameSettingEnabled: Boolean = false
+
+  actionsPermissions: ActionsPermissions = new {}
 
   repositories: Listing<Repository> = new {}
 }

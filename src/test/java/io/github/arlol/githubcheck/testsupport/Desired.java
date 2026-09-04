@@ -39,6 +39,8 @@ public final class Desired {
 	private static final Drifty.StatusCheck STATUS_CHECK;
 	private static final Drifty.CodeScanningTool CODE_SCANNING_TOOL;
 	private static final Drifty.RulePattern RULE_PATTERN;
+	private static final Drifty.ActionsPermissions ACTIONS_PERMISSIONS;
+	private static final Drifty.SelectedActions SELECTED_ACTIONS;
 
 	static {
 		try (var evaluator = ConfigEvaluator.preconfigured()) {
@@ -55,6 +57,10 @@ public final class Desired {
 			CODE_SCANNING_TOOL = root.get("codeScanningTool")
 					.as(Drifty.CodeScanningTool.class);
 			RULE_PATTERN = root.get("rulePattern").as(Drifty.RulePattern.class);
+			ACTIONS_PERMISSIONS = root.get("actionsPermissions")
+					.as(Drifty.ActionsPermissions.class);
+			SELECTED_ACTIONS = root.get("selectedActions")
+					.as(Drifty.SelectedActions.class);
 		}
 	}
 
@@ -120,6 +126,16 @@ public final class Desired {
 			String pattern
 	) {
 		return RULE_PATTERN.withOperator(operator).withPattern(pattern);
+	}
+
+	/** An organization's Actions policy with GitHub's defaults. */
+	public static Drifty.ActionsPermissions actionsPermissions() {
+		return ACTIONS_PERMISSIONS;
+	}
+
+	/** An Actions allow-list with GitHub's defaults. */
+	public static Drifty.SelectedActions selectedActions() {
+		return SELECTED_ACTIONS;
 	}
 
 	public static Drifty.BypassActor bypassActor(
