@@ -128,6 +128,71 @@ class GitHubCheckTest {
 	}
 
 	@Test
+	void collectMissingSecrets_skipsGroupsTheRepositoryLeavesUnmanaged() {
+		var repository = repositoryWithSecrets().withManaged(
+				new Drifty.Managed(
+						Drifty.ManageMode.ALL_EXCEPT,
+						List.of(
+								Drifty.GroupName.ACTION_SECRETS,
+								Drifty.GroupName.ENVIRONMENT_SECRETS
+						)
+				)
+		);
+
+		assertThat(
+				GitHubCheck.collectMissingSecrets(config(repository), Map.of())
+		).isEmpty();
+	}
+
+	@Test
+	void collectMissingSecrets_skipsOneSecretGroupWithoutSkippingTheOther() {
+		var withoutActionSecrets = repositoryWithSecrets().withManaged(
+				new Drifty.Managed(
+						Drifty.ManageMode.ALL_EXCEPT,
+						List.of(Drifty.GroupName.ACTION_SECRETS)
+				)
+		);
+		var withoutEnvironmentSecrets = repositoryWithSecrets().withManaged(
+				new Drifty.Managed(
+						Drifty.ManageMode.ALL_EXCEPT,
+						List.of(Drifty.GroupName.ENVIRONMENT_SECRETS)
+				)
+		);
+
+		assertThat(
+				GitHubCheck.collectMissingSecrets(
+						config(withoutActionSecrets),
+						Map.of()
+				)
+		).containsExactly("repo-prod-DEPLOY_KEY");
+		assertThat(
+				GitHubCheck.collectMissingSecrets(
+						config(withoutEnvironmentSecrets),
+						Map.of()
+				)
+		).containsExactly("repo-TOKEN");
+	}
+
+	@Test
+	void collectMissingSecrets_skipsGroupsTheOrganizationLeavesUnmanaged() {
+		var config = config(
+				Desired.organization()
+						.withActionsSecrets(Map.of("PAT", Desired.orgSecret()))
+						.withManaged(
+								new Drifty.OrgManaged(
+										Drifty.ManageMode.ALL_EXCEPT,
+										List.of(
+												Drifty.OrgGroupName.ORG_ACTION_SECRETS
+										)
+								)
+						)
+		);
+
+		assertThat(GitHubCheck.collectMissingSecrets(config, Map.of()))
+				.isEmpty();
+	}
+
+	@Test
 	void reportMissingSecrets_signalsWhetherAnythingIsMissing() {
 		var config = config(
 				Desired.repository("repo").withActionsSecrets(List.of("TOKEN"))
