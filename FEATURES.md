@@ -269,3 +269,57 @@ next run is free to generate a different one. `isEmpty()` is `@JsonIgnore`d
 because `DriftyState` is serialized with field visibility `ANY`, which leaves
 Jackson's default public-getter detection in place — an `isX()` method would
 otherwise be written into the file as a field.
+
+## ~~36. Organization Settings~~ DONE
+
+Implemented: `config/drifty.pkl` grew two top-level mappings keyed by login,
+`organizations: Mapping<String, Organization>` and `users: Mapping<String,
+User>`, and `Repository.owner` went away — a repository's owner is now the key
+of the block it sits in, so a config can no longer name an owner nothing else
+declares. `User` is a separate class holding only `repositories`, which makes
+org settings on a personal account unrepresentable rather than settable and
+ignored. `config/ArloL.pkl` was replaced by `config/example.pkl`, which names
+no real account and exists so `./mvnw exec:java`, `PklConfigLoaderTest` and
+SPEC.md have a complete config to point at.
+
+Four organization drift groups, named in a new `OrgGroupName` typealias:
+`org_settings` (thirty settings from `GET /orgs/{org}`, twenty of which the
+PATCH accepts and ten of which it does not), `org_actions_permissions` (the
+policy plus the `selected-actions` allow-list, two endpoints and so two
+`DriftFix` values), `org_workflow_permissions` and `org_action_secrets`.
+`OrgManaged` mirrors `Managed` over `OrgGroupName`, so a repository group named
+in an organization's `managed` block fails at config-eval.
+
+`DriftGroup` became `DriftGroup<N extends Enum<N>>` and `ManagedGroups` became
+`ManagedGroups<N>` built from a class token, so one `detect()` namespaces both
+scopes and neither scope's group names can be used in the other. Existing
+groups changed their `extends` clause and nothing else.
+
+`OrgChecker` was renamed `RepositoryChecker` — with organizations in the
+picture, a class called `OrgChecker` that checks repositories misdirects every
+reader — and the new `OrganizationChecker` sits beside it. `GitHubCheck.main`
+lists each account's repositories once and hands the listing to both, which is
+also what lets the org secrets group turn configured repository names into the
+IDs the secrets endpoint wants. `DriftFixer` and `Report` were extracted from
+the old checker; `CheckResult` became `CheckResult(List<Entry> orgs,
+List<Entry> repos)` with `RepoCheckResult` renamed `Entry` and shared by both
+sections. Organizations never report `UNKNOWN`: enumerating every organization
+a token can see is not drift.
+
+`OrgSettingsDriftGroup` follows `RepoSettingsDriftGroup` exactly — a `Setting`
+table pairing each comparison with its builder call, a PATCH body built from
+the drifted entries alone, and a per-field re-send when a multi-field request
+is rejected. `members_can_create_internal_repositories` is the reason: GitHub
+422s it on any organization outside Enterprise, even when it already holds the
+wanted value, so a body built from the desired config would fail a description
+change over a setting that had not drifted. The ten settings the PATCH does not
+accept carry a null `write` and report as unfixed, the shape repository
+`visibility` already used.
+
+`DriftyState` gained `organizations` beside `repositories`, holding the same
+`updated_at` and salted value hash per secret. Values come from
+`DRIFTY_GITHUB_SECRETS` under `org-<org>-<secret>`; the prefix is what keeps
+the key from colliding with a repository's `<repo>-<secret>` when an
+organization and a repository share a name. The key was added without a version
+bump, and `isEmpty()` accounts for org records so a run that records only those
+still writes the file.

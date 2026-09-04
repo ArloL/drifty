@@ -27,6 +27,10 @@ organizations {
     description = "An example organization"
     membersCanCreatePages = false
     membersCanForkPrivateRepositories = true
+    actionsPermissions { allowedActions = "local_only" }
+    defaultWorkflowPermissions = "read"
+    // Value read from DRIFTY_GITHUB_SECRETS under "org-example-org-NPM_TOKEN".
+    actionsSecrets { ["NPM_TOKEN"] = new OrgSecret { visibility = "all" } }
     repositories {
       (defaultRepo) {
         name = "example-service"

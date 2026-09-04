@@ -41,7 +41,7 @@ public class OrganizationChecker {
 	private final Map<String, String> githubSecrets;
 	private final DriftyState state;
 
-	public OrganizationChecker(
+	OrganizationChecker(
 			GitHubClient client,
 			boolean fix,
 			Map<String, String> githubSecrets,

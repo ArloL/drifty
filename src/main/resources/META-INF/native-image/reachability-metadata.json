@@ -318,6 +318,9 @@
       ]
     },
     {
+      "type": "io.github.arlol.githubcheck.OrganizationState"
+    },
+    {
       "type": "io.github.arlol.githubcheck.RepositoryState"
     },
     {
@@ -331,6 +334,15 @@
     },
     {
       "type": "io.github.arlol.githubcheck.actual.ActualEnvironment"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualOrgSecret"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.actual.ActualOrganization"
     },
     {
       "type": "io.github.arlol.githubcheck.actual.ActualPages"
@@ -357,10 +369,21 @@
       "type": "io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis$BypassReviewer"
     },
     {
+      "type": "io.github.arlol.githubcheck.actual.ActualSelectedActions"
+    },
+    {
       "type": "io.github.arlol.githubcheck.actual.ActualWorkflowPermissions"
     },
     {
       "type": "io.github.arlol.githubcheck.actual.StatusCheck"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.ActionsEnabledRepositories",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.AllowedActions",
+      "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.AutomatedSecurityFixesResponse",
@@ -949,6 +972,205 @@
     },
     {
       "type": "io.github.arlol.githubcheck.client.MergeCommitTitle",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.OrgActionsPermissionsRequest",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.OrgActionsPermissionsResponse",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.client.ActionsEnabledRepositories",
+            "io.github.arlol.githubcheck.client.AllowedActions",
+            "java.lang.Boolean"
+          ]
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.OrgSecretRequest",
+      "methods": [
+        {
+          "name": "encryptedValue",
+          "parameterTypes": []
+        },
+        {
+          "name": "keyId",
+          "parameterTypes": []
+        },
+        {
+          "name": "selectedRepositoryIds",
+          "parameterTypes": []
+        },
+        {
+          "name": "visibility",
+          "parameterTypes": []
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.OrgSecretResponse",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.SecretVisibility"
+          ]
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.OrganizationResponse",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.String",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.String",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean"
+          ]
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.OrganizationUpdateRequest",
+      "methods": [
+        {
+          "name": "blog",
+          "parameterTypes": []
+        },
+        {
+          "name": "company",
+          "parameterTypes": []
+        },
+        {
+          "name": "defaultRepositoryPermission",
+          "parameterTypes": []
+        },
+        {
+          "name": "deployKeysEnabledForRepositories",
+          "parameterTypes": []
+        },
+        {
+          "name": "description",
+          "parameterTypes": []
+        },
+        {
+          "name": "email",
+          "parameterTypes": []
+        },
+        {
+          "name": "hasOrganizationProjects",
+          "parameterTypes": []
+        },
+        {
+          "name": "hasRepositoryProjects",
+          "parameterTypes": []
+        },
+        {
+          "name": "location",
+          "parameterTypes": []
+        },
+        {
+          "name": "membersCanCreateInternalRepositories",
+          "parameterTypes": []
+        },
+        {
+          "name": "membersCanCreatePages",
+          "parameterTypes": []
+        },
+        {
+          "name": "membersCanCreatePrivatePages",
+          "parameterTypes": []
+        },
+        {
+          "name": "membersCanCreatePrivateRepositories",
+          "parameterTypes": []
+        },
+        {
+          "name": "membersCanCreatePublicPages",
+          "parameterTypes": []
+        },
+        {
+          "name": "membersCanCreatePublicRepositories",
+          "parameterTypes": []
+        },
+        {
+          "name": "membersCanCreateRepositories",
+          "parameterTypes": []
+        },
+        {
+          "name": "membersCanForkPrivateRepositories",
+          "parameterTypes": []
+        },
+        {
+          "name": "name",
+          "parameterTypes": []
+        },
+        {
+          "name": "twitterUsername",
+          "parameterTypes": []
+        },
+        {
+          "name": "webCommitSignoffRequired",
+          "parameterTypes": []
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.OrganizationUpdateRequest$Builder",
       "allPublicConstructors": true
     },
     {
@@ -1900,6 +2122,10 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.SecretVisibility",
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.Secrets",
       "allPublicConstructors": true
     },
@@ -2043,6 +2269,22 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.SelectedActions",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean",
+            "boolean",
+            "java.util.List"
+          ]
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.SimpleUser",
       "methods": [
         {
@@ -2134,6 +2376,18 @@
       "type": "io.github.arlol.githubcheck.drift.ImmutableReleasesDriftGroup"
     },
     {
+      "type": "io.github.arlol.githubcheck.drift.OrgActionSecretsDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.OrgActionsPermissionsDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.OrgSettingsDriftGroup"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.drift.OrgWorkflowPermissionsDriftGroup"
+    },
+    {
       "type": "io.github.arlol.githubcheck.drift.PagesDriftGroup"
     },
     {
@@ -2180,11 +2434,34 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$ActionsEnabledRepositories",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$ActionsPermissions",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.pkl.Drifty$ActionsEnabledRepositories",
+            "io.github.arlol.githubcheck.pkl.Drifty$AllowedActions",
+            "boolean",
+            "io.github.arlol.githubcheck.pkl.Drifty$SelectedActions"
+          ]
+        }
+      ],
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$ActorType",
       "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$AlertsThreshold",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$AllowedActions",
       "allPublicConstructors": true
     },
     {
@@ -2277,6 +2554,83 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$OrgGroupName",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$OrgManaged",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.pkl.Drifty$ManageMode",
+            "java.util.List"
+          ]
+        }
+      ],
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$OrgSecret",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.pkl.Drifty$SecretVisibility",
+            "java.util.List"
+          ]
+        }
+      ],
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$Organization",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.pkl.Drifty$OrgManaged",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "boolean",
+            "boolean",
+            "io.github.arlol.githubcheck.pkl.Drifty$RepositoryPermission",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "java.lang.String",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "boolean",
+            "io.github.arlol.githubcheck.pkl.Drifty$ActionsPermissions",
+            "io.github.arlol.githubcheck.pkl.Drifty$WorkflowPermissions",
+            "boolean",
+            "java.util.Map",
+            "java.util.List"
+          ]
+        }
+      ],
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$Pages",
       "methods": [
         {
@@ -2300,7 +2654,6 @@
         {
           "name": "<init>",
           "parameterTypes": [
-            "java.lang.String",
             "java.lang.String",
             "io.github.arlol.githubcheck.pkl.Drifty$Managed",
             "boolean",
@@ -2353,27 +2706,7 @@
       "allPublicConstructors": true
     },
     {
-      "type": "io.github.arlol.githubcheck.pkl.Drifty$User",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "java.util.List"
-          ]
-        }
-      ],
-      "allPublicConstructors": true
-    },
-    {
-      "type": "io.github.arlol.githubcheck.pkl.Drifty$Organization",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "java.util.List"
-          ]
-        }
-      ],
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$RepositoryPermission",
       "allPublicConstructors": true
     },
     {
@@ -2429,7 +2762,25 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$SecretVisibility",
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$SecurityAlertsThreshold",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$SelectedActions",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean",
+            "boolean",
+            "java.util.List"
+          ]
+        }
+      ],
       "allPublicConstructors": true
     },
     {
@@ -2448,6 +2799,18 @@
           "parameterTypes": [
             "java.lang.String",
             "java.lang.Long"
+          ]
+        }
+      ],
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$User",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.util.List"
           ]
         }
       ],
@@ -2565,7 +2928,7 @@
       "glob": "org/pkl/core/errorMessages_en.properties"
     },
     {
-      "glob": "org/pkl/core/errorMessages_en_US.properties"
+      "glob": "org/pkl/core/errorMessages_en_DE.properties"
     },
     {
       "glob": "org/pkl/core/stdlib/base.pkl"

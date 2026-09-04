@@ -2,19 +2,40 @@
 
 ## Overview
 
-**drifty** is a Java CLI tool that manages the configuration of GitHub repositories for a single org or personal account. It compares actual repository state against desired configuration defined in a Pkl file, reports drift, and can automatically fix discrepancies via `--fix`.
+**drifty** is a Java CLI tool that manages GitHub configuration: the settings of the organizations named in its config and of the repositories those organizations and personal accounts own. It compares actual state against desired configuration defined in a Pkl file, reports drift, and can automatically fix discrepancies via `--fix`.
 
 ## Core Concepts
 
 ### Configuration Model
 
-Desired repository state is defined in a **Pkl** configuration file. The schema lives in `config/drifty.pkl`; a concrete config `amends` it and lists the managed repositories (see `config/ArloL.pkl` for a complete example).
+Desired state is defined in a **Pkl** configuration file. The schema lives in `config/drifty.pkl`; a concrete config `amends` it and lists the managed accounts and repositories (see `config/example.pkl` for a complete example).
 
 drifty loads `./drifty.pkl` from the current working directory by default. A different file can be passed with `--config <path>`.
 
+#### Owner Nesting
+
+Two top-level mappings, both keyed by login, hold everything: `organizations` and `users`. A repository sits in the `repositories` listing of the account that owns it and carries no `owner` field, so a repository cannot name an owner that no other part of the config declares.
+
+```pkl
+organizations {
+  ["example-org"] {
+    description = "An example organization"
+    repositories { (defaultRepo) { name = "example-service" } }
+  }
+}
+
+users {
+  ["example-user"] {
+    repositories { (defaultRepo) { name = "personal-site" } }
+  }
+}
+```
+
+`Organization` and `User` are separate types rather than one type with a kind flag: a personal account has no org-level settings, and separate types make "org settings on a personal account" unrepresentable rather than settable and ignored.
+
 #### Field Defaults
 
-The `Repository` type in `config/drifty.pkl` declares defaults that match **GitHub's defaults** for newly created repos. A minimal repo entry (just `owner` and `name`) therefore represents a repo with GitHub's out-of-the-box settings and reports no drift against a freshly created repo.
+The `Repository` and `Organization` types in `config/drifty.pkl` declare defaults that match **GitHub's defaults** for a newly created repository or organization. A minimal repo entry (just a `name`) therefore represents a repo with GitHub's out-of-the-box settings and reports no drift against a freshly created repo; an organization nobody has touched reports no drift against an empty `organizations` entry.
 
 Non-default desired values (e.g. disabling merge commits, enabling auto-merge) are set in shared templates in the config file, not in the schema.
 
@@ -25,26 +46,31 @@ Repos are organized into groups that share defaults. Each group defines a `local
 ```pkl
 // config — grouping model
 local defaultRepo: Repository = new {
-  owner = "ArloL"
   allowMergeCommit = false
   allowAutoMerge = true
   deleteBranchOnMerge = true
   // ... org-wide policy overrides
 }
 
-repositories {
-  (defaultRepo) { name = "repo-a"; description = "..." }
-  (defaultRepo) { name = "repo-b"; description = "..."; topics { "library"; "java" } }
-  // Per-repo overrides
-  (defaultRepo) { name = "special-repo"; allowSquashMerge = true }
+organizations {
+  ["example-org"] {
+    repositories {
+      (defaultRepo) { name = "repo-a"; description = "..." }
+      (defaultRepo) { name = "repo-b"; description = "..."; topics { "library"; "java" } }
+      // Per-repo overrides
+      (defaultRepo) { name = "special-repo"; allowSquashMerge = true }
+    }
+  }
 }
 ```
 
+A template is an ordinary Pkl `local` binding and belongs to no account, so the same one can be amended by repositories under several owners.
+
 ### Org/Account Targeting
 
-The target org or personal account is set via the `owner` field on each repository in the config file. There is no CLI argument for it.
+The accounts drifty works on are the keys of the `organizations` and `users` mappings. There is no CLI argument for them.
 
-A single config may name more than one owner. drifty lists the repositories of each distinct `owner` it finds and checks each repository under the owner its own entry declares, so repository names only have to be unique within an owner.
+A single config may name any number of accounts. drifty lists each account's repositories once and hands that listing to both the organization check and the repository checks, so repository names only have to be unique within an account.
 
 ### Archived Repos
 
@@ -66,7 +92,7 @@ A repo declares which drift groups drifty manages, through the `managed` field o
 
 The default is `all_except` with an empty list, so a repo that declares nothing is checked exactly as it would be without the field.
 
-Group names come from the `GroupName` typealias in `config/drifty.pkl`, which lists every group drifty can check. A name outside that union fails at config-eval time — a typo that silently left a group unmanaged is the dangerous failure here, so the union is what prevents it rather than a runtime check.
+Group names come from the `GroupName` typealias in `config/drifty.pkl`, which lists every group drifty can check on a repository. A name outside that union — including one of the organization groups — fails at config-eval time. A typo that silently left a group unmanaged is the dangerous failure here, so the union is what prevents it rather than a runtime check.
 
 An unmanaged group is not fetched, not compared, and not fixed. Skipping only the comparison would still send the request, and a repo in an org someone else administers — the case this exists for — is where those requests return 403.
 
@@ -318,6 +344,7 @@ The `DRIFTY_GITHUB_SECRETS` env var contains a JSON map. Keys are formed by conc
 
 - Repo action secret: `<repo>-<secret_name>`
 - Environment secret: `<repo>-<environment>-<secret_name>`
+- Org action secret: `org-<org>-<secret_name>`
 
 ### Environments
 
@@ -338,6 +365,114 @@ Per-repo setting:
 | Setting | Check | Fix |
 |---------|-------|-----|
 | Enabled | Yes | Yes |
+
+## Organizations
+
+Every key of the `organizations` mapping is checked as well as its repositories. Four drift groups cover it, named in the `OrgGroupName` typealias in `config/drifty.pkl`:
+
+| Group | Endpoint |
+|---|---|
+| `org_settings` | `GET`/`PATCH /orgs/{org}` |
+| `org_actions_permissions` | `/orgs/{org}/actions/permissions` and `.../selected-actions` |
+| `org_workflow_permissions` | `/orgs/{org}/actions/permissions/workflow` |
+| `org_action_secrets` | `/orgs/{org}/actions/secrets` |
+
+Partial management works as it does per repository, through a `managed` block on the organization. Its `groups` listing is typed `OrgGroupName`, so naming a repository group there fails at config-eval rather than silently managing nothing.
+
+An organization is never reported `UNKNOWN`: enumerating every organization the token can see is not drift. `MISSING` means the config names a login that 404s. Organization drift and organization errors count toward exit code 1 exactly as repository drift does.
+
+### Organization Settings
+
+The settings `PATCH /orgs/{org}` accepts. Defaults are GitHub's, so an organization nobody has touched reports no drift.
+
+| Setting | Wire name | GitHub default |
+|---|---|---|
+| `displayName` | `name` | `""` |
+| `description` | `description` | `""` |
+| `websiteUrl` | `blog` | `""` |
+| `company` | `company` | `""` |
+| `email` | `email` | `""` |
+| `location` | `location` | `""` |
+| `twitterUsername` | `twitter_username` | `""` |
+| `hasOrganizationProjects` | `has_organization_projects` | `true` |
+| `hasRepositoryProjects` | `has_repository_projects` | `true` |
+| `defaultRepositoryPermission` | `default_repository_permission` | `"read"` |
+| `membersCanCreateRepositories` | `members_can_create_repositories` | `true` |
+| `membersCanCreatePublicRepositories` | `members_can_create_public_repositories` | `true` |
+| `membersCanCreatePrivateRepositories` | `members_can_create_private_repositories` | `true` |
+| `membersCanCreateInternalRepositories` | `members_can_create_internal_repositories` | `false` |
+| `membersCanCreatePages` | `members_can_create_pages` | `true` |
+| `membersCanCreatePublicPages` | `members_can_create_public_pages` | `true` |
+| `membersCanCreatePrivatePages` | `members_can_create_private_pages` | `true` |
+| `membersCanForkPrivateRepositories` | `members_can_fork_private_repositories` | `false` |
+| `webCommitSignoffRequired` | `web_commit_signoff_required` | `false` |
+| `deployKeysEnabledForRepositories` | `deploy_keys_enabled_for_repositories` | `false` |
+
+`GET /orgs/{org}` returns ten more settings that the `PATCH` accepts none of. drifty compares and reports them and never sends them; under `--fix` each is reported unfixed with the reason, the same null-`write` shape repository `visibility` uses.
+
+| Setting | Wire name | GitHub default |
+|---|---|---|
+| `defaultRepositoryBranch` | `default_repository_branch` | `"main"` |
+| `twoFactorRequirementEnabled` | `two_factor_requirement_enabled` | `false` |
+| `membersCanDeleteRepositories` | `members_can_delete_repositories` | `true` |
+| `membersCanChangeRepoVisibility` | `members_can_change_repo_visibility` | `true` |
+| `membersCanInviteOutsideCollaborators` | `members_can_invite_outside_collaborators` | `true` |
+| `membersCanDeleteIssues` | `members_can_delete_issues` | `false` |
+| `membersCanCreateTeams` | `members_can_create_teams` | `true` |
+| `membersCanViewDependencyInsights` | `members_can_view_dependency_insights` | `true` |
+| `readersCanCreateDiscussions` | `readers_can_create_discussions` | `false` |
+| `displayCommenterFullNameSettingEnabled` | `display_commenter_full_name_setting_enabled` | `false` |
+
+Three groups of `PATCH` fields are deliberately absent from both tables. `billing_email` returns only to admins, so a config that named it would report drift for every non-admin token. `members_allowed_repository_creation_type` is a legacy overlap of the three `members_can_create_*_repositories` booleans. Every `*_enabled_for_new_repositories` security field carries an endpoint closing-down notice in GitHub's OpenAPI spec, superseded by code security configurations.
+
+### Organization Actions Permissions
+
+| Setting | GitHub default | Check | Fix |
+|---|---|---|---|
+| `enabledRepositories` | `"all"` | Yes | Yes |
+| `allowedActions` | `"all"` | Yes | Yes |
+| `shaPinningRequired` | `false` | Yes | Yes |
+| `selectedActions` (GitHub-owned, verified, patterns) | unset | Yes | Yes |
+
+The allow-list lives on a second endpoint and only exists under `allowedActions = "selected"`; it is read and written only when the config declares `selectedActions`. Which repositories are selected under `enabledRepositories = "selected"` is not managed — see [Future Considerations](#future-considerations).
+
+### Organization Workflow Permissions
+
+| Setting | GitHub default | Check | Fix |
+|---|---|---|---|
+| `defaultWorkflowPermissions` | `"write"` | Yes | Yes |
+| `canApprovePullRequestReviews` | `true` | Yes | Yes |
+
+### Organization Action Secrets
+
+Drift is detected against the [state file](#state-file) exactly as repository secrets are, with `visibility` and — under `visibility = "selected"` — `selectedRepositories` compared alongside. Config names repositories; the wire carries repository IDs, which drifty resolves from the listing it already performed for that account. A visibility-only change still re-pushes the value: the `PUT` requires `encrypted_value`, so there is no way to move a secret between visibilities without re-sending it.
+
+Values come from `DRIFTY_GITHUB_SECRETS` under `org-<org>-<secret_name>`. The `org-` prefix is what keeps the key from colliding with a repository's `<repo>-<secret_name>` when an organization and a repository share a name — the map is flat and nothing else separates the two.
+
+```json
+{
+  "org-example-org-NPM_TOKEN": "npm_xxxx"
+}
+```
+
+Secrets on GitHub that the config does not declare are reported as extra and never deleted.
+
+### Report
+
+Organizations print above the repositories, under their own heading; a run over personal accounts alone prints neither heading.
+
+```
+=== Organizations ===
+[DRIFT]   my-org:
+            org_settings.description: want="..." got=""
+            org_workflow_permissions.default_workflow_permissions: want=READ got=WRITE
+  Would fix: org_settings, org_workflow_permissions
+
+=== Repositories ===
+[OK]      repo-a
+```
+
+`Orgs checked` and `Orgs drifted` join the summary under the same condition.
 
 ## State File
 
@@ -368,9 +503,21 @@ last observed and a salted SHA-256 hash of the value it last pushed.
         }
       }
     }
+  },
+  "organizations": {
+    "my-org": {
+      "action_secrets": {
+        "NPM_TOKEN": {
+          "updated_at": "2026-01-02T03:04:05Z",
+          "value_hash": "ef56…"
+        }
+      }
+    }
   }
 }
 ```
+
+`organizations` was added without a version bump. The key is optional in both directions — a file written before organization secrets existed simply has none, and the reader ignores properties it does not know — so `version` stays 1 and older state files load unchanged.
 
 On each run drifty compares the recorded values against GitHub and the desired
 config:
@@ -444,8 +591,13 @@ The tool is run **on-demand** (e.g. via `workflow_dispatch`). No scheduled cron 
 These are explicitly out of scope for the initial version but acknowledged as potential additions:
 
 - **Org-level rulesets** — manage rulesets at the org level (full CRUD, same as repo-level). Repo-level first.
+- **Code security configurations** — the org-level replacement for the per-repo security toggles. The `*_enabled_for_new_repositories` fields left out of [Organization Settings](#organization-settings) are the API GitHub is closing down in their favour.
+- **Custom properties** — manage the org-level property definitions, and their values per repo.
+- **Org webhooks** — full lifecycle, alongside the repo webhooks below.
+- **Teams and members** — team membership, org membership and role, and collaborator access per repo.
+- **Runner groups** — self-hosted runner groups and which repositories may use them.
+- **Actions variables** — org- and repo-level Actions variables, which are plaintext and so need no state file.
+- **Actions repository selection** — which repositories are selected under `enabledRepositories = "selected"`. The config accepts the policy value and drifty writes it; GitHub keeps whatever selection the org already had.
 - **GraphQL for bulk reads** — REST first, profile and optimize later.
-- **Collaborator/team access management** — out of scope for now, may be added later.
-- **Custom properties** — manage GitHub custom property values per repo (org-level definitions assumed to exist).
 - **Webhooks** — full lifecycle management of repo webhooks (URL, events, content type, secrets via `DRIFTY_GITHUB_SECRETS`).
 - **Repository lifecycle** — create/delete/transfer repos is out of scope. drifty only manages settings of existing repos plus archival.

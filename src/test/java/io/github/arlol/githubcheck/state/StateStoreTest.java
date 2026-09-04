@@ -169,6 +169,33 @@ class StateStoreTest {
 		assertThat(Files.readString(file)).contains("\"organizations\"");
 	}
 
+	/**
+	 * Reading an organization record back is the only thing that makes Jackson
+	 * construct an {@code OrgState}, and the native-image reachability metadata
+	 * is generated from what the test suite traces. Without this round trip the
+	 * generated metadata carries no constructor for it, and the native binary
+	 * fails on the first state file that holds an org secret.
+	 */
+	@Test
+	void save_thenLoad_roundTripsOrgSecretRecords(@TempDir Path dir)
+			throws Exception {
+		var path = dir.resolve("drifty-state.json");
+		var state = new DriftyState();
+		state.recordOrgActionSecret(
+				"my-org",
+				"NPM_TOKEN",
+				"2024-01-01T00:00:00Z",
+				state.hash("value")
+		);
+		store.save(path, state);
+
+		var record = store.load(path)
+				.orgActionSecretRecord("my-org", "NPM_TOKEN");
+
+		assertThat(record.updatedAt()).isEqualTo("2024-01-01T00:00:00Z");
+		assertThat(record.valueHash()).isEqualTo(state.hash("value"));
+	}
+
 	@Test
 	void save_thenLoad_persistsSalt(@TempDir Path dir) throws Exception {
 		var path = dir.resolve("drifty-state.json");

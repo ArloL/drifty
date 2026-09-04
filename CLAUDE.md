@@ -1,7 +1,7 @@
 # drifty
 
-Java CLI tool (`drifty`) that compares actual GitHub repository state
-against desired configuration and reports or fixes drift.
+Java CLI tool (`drifty`) that compares actual GitHub organization and
+repository state against desired configuration and reports or fixes drift.
 
 See `SPEC.md` for the full specification and `FEATURES.md` for implementation
 status.
@@ -15,26 +15,37 @@ status.
 
 ## Adding or changing a managed setting
 
-- **Drift groups never see GitHub response types.** `OrgChecker.fetchState`
-  translates every `client/*Response` into an `actual/*` record through
-  `ActualTypes` (the mirror of `PklTypes` on the desired side), and
-  `RepositoryState` holds only those. Put wire-shape knowledge — omitted
-  sections, `{"status": "enabled"}` wrappers, nulls that mean `""` — in
-  `ActualTypes`, not in a group. `ActualStateBoundaryTest` fails a group or
-  state field that holds a client type other than `GitHubClient`, `RepoRef`
-  or an enum.
+- **Drift groups never see GitHub response types.** `RepositoryChecker.fetchState`
+  and `OrganizationChecker.fetchState` translate every `client/*Response` into
+  an `actual/*` record through `ActualTypes` (the mirror of `PklTypes` on the
+  desired side), and `RepositoryState`/`OrganizationState` hold only those. Put
+  wire-shape knowledge — omitted sections, `{"status": "enabled"}` wrappers,
+  nulls that mean `""` — in `ActualTypes`, not in a group.
+  `ActualStateBoundaryTest` fails a group or state field that holds a client
+  type other than `GitHubClient`, `RepoRef` or an enum.
+- **Repositories nest under the account that owns them.** `config/drifty.pkl`
+  has `organizations` and `users`, both keyed by login; the key is the owner and
+  `Repository` has no `owner` field. `RepositoryState.ref()` is what carries the
+  owner from there into the client calls.
 - **Test fixtures for desired state come from the schema.** `testsupport.Desired`
   evaluates `src/test/resources/desired-defaults.pkl` once and hands out
   `Drifty.*` instances carrying `config/drifty.pkl`'s defaults; tests change
   fields with the generated `withX` methods. Do not reintroduce hand-written
   `*Args` builders — a new Pkl field needs no test-side change.
-- **A new drift group needs a `GroupName` constant.** Group names live in the
-  `GroupName` typealias in `config/drifty.pkl`, and `DriftGroup.name()` returns
-  the generated enum. `DriftPathNamespacingTest` fails a group whose constant is
-  missing, and a `Managed.groups` entry naming a group that does not exist fails
-  at config eval. If the group sends its own requests, guard them in
-  `OrgChecker.fetchState` too — filtering the group alone still sends them, and
-  a repository in someone else's org is where those return 403.
+- **A new drift group needs a name constant in its own scope.** Repository
+  groups name themselves in the `GroupName` typealias in `config/drifty.pkl`,
+  organization groups in `OrgGroupName`, and `DriftGroup<N>` is generic over
+  the enum so neither scope can use the other's names.
+  `DriftPathNamespacingTest` fails a group whose constant is missing from
+  either union, and a `Managed.groups` or `OrgManaged.groups` entry naming a
+  group that does not exist fails at config eval. If the group sends its own
+  requests, guard them in `RepositoryChecker.fetchState` or
+  `OrganizationChecker.fetchState` too — filtering the group alone still sends
+  them, and an account someone else administers is where those return 403.
+- **`GET /orgs/{org}` is sent even when `org_settings` is unmanaged.** It is how
+  `OrganizationChecker.fetchState` learns the organization exists — a 404 there
+  is what makes the entry `MISSING` — and any member can read it. Every other
+  org request is guarded by its group.
 - **Eight groups PATCH the same `/repos/{owner}/{repo}` resource.** Each
   request carries only its own fields because `RepositoryUpdateRequest` is
   all nullable wrappers under `NON_NULL`; keep it that way.
@@ -46,7 +57,14 @@ status.
   `members_can_fork_private_repositories` off answers that field with a 422
   even when it already holds the wanted value, failing a description change
   over a setting that had not drifted. A `Setting` with a null `write` is
-  reported but never sent — `visibility` is the only one, per SPEC.md.
+  reported but never sent — `visibility` is the only one on the repository
+  side, per SPEC.md.
+- **`OrgSettingsDriftGroup` is the same shape for the same reason.** Its PATCH
+  carries only the drifted fields and re-sends per field on a 422, because
+  `members_can_create_internal_repositories` is the org-side `allow_forking`:
+  GitHub rejects it on any organization outside Enterprise even when it already
+  holds the wanted value. Ten of its settings have a null `write` — `GET
+  /orgs/{org}` returns them and the PATCH accepts none of them.
 - **A rejected PATCH is not a failed PATCH.** GitHub applies the fields it
   accepts and rejects the rest, so a 422 attributes to no field. When a
   multi-field request fails, `RepoSettingsDriftGroup` re-sends each field on
@@ -87,10 +105,17 @@ test-scoped ClassGraph without shipping it). Both reflection and resources are
 partitioned by a production **allowlist**, with everything else supplied by the
 GraalVM metadata repository and routed to test scope:
 
-- reflection: only `io.github.arlol.*` records and the `com.goterl.lazysodium`
-  binding (160 entries; everything else, including JNA, is repository-supplied);
+- reflection: only `io.github.arlol.*` types and the `com.goterl.lazysodium` /
+  `com.sun.jna` binding (257 entries; everything else is repository-supplied);
 - resources: only Pkl's own resources and a platform-agnostic `**/libsodium.*`
-  glob for the lazysodium native library (8 entries).
+  glob for the lazysodium native library (11 entries).
+
+`io.github.arlol.*` is a package prefix, not a record filter: `DriftyState` and
+its `RepoState`/`OrgState` inner classes are plain classes and are matched the
+same way. Their metadata comes from what the suite traces, so a field or an
+inner class Jackson only touches on a code path no test exercises is silently
+absent from the shipped image — `StateStoreTest` round-trips both a repository
+and an organization secret record for that reason.
 
 The main file is then augmented with every public `client`/`pkl` record via
 ClassGraph so the project's own types are registered even if untested.
