@@ -30,6 +30,7 @@ public final class Desired {
 			.of("src/test/resources/desired-defaults.pkl")
 			.toAbsolutePath();
 
+	private static final Drifty.Organization ORGANIZATION;
 	private static final Drifty.Repository REPOSITORY;
 	private static final Drifty.Ruleset RULESET;
 	private static final Drifty.BranchProtection BRANCH_PROTECTION;
@@ -42,6 +43,8 @@ public final class Desired {
 	static {
 		try (var evaluator = ConfigEvaluator.preconfigured()) {
 			Config root = evaluator.evaluate(ModuleSource.path(DEFAULTS));
+			ORGANIZATION = root.get("organization")
+					.as(Drifty.Organization.class);
 			REPOSITORY = root.get("repository").as(Drifty.Repository.class);
 			RULESET = root.get("ruleset").as(Drifty.Ruleset.class);
 			BRANCH_PROTECTION = root.get("branchProtection")
@@ -56,6 +59,14 @@ public final class Desired {
 	}
 
 	private Desired() {
+	}
+
+	/**
+	 * An organization with GitHub's defaults, which is what the schema
+	 * declares.
+	 */
+	public static Drifty.Organization organization() {
+		return ORGANIZATION;
 	}
 
 	/**

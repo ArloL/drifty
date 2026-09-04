@@ -24,8 +24,16 @@ local defaultRepo: Repository = new {
 
 organizations {
   ["example-org"] {
+    description = "An example organization"
+    membersCanCreatePages = false
+    membersCanForkPrivateRepositories = true
     repositories {
-      (defaultRepo) { name = "example-service" }
+      (defaultRepo) {
+        name = "example-service"
+        environments {
+          ["production"] = new Environment { secrets { "TF_TOKEN" } }
+        }
+      }
       (defaultRepo) {
         name = "example-library"
         topics { "java"; "library" }

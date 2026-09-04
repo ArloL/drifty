@@ -7,7 +7,22 @@ public final class Report {
 	private Report() {
 	}
 
+	/**
+	 * Prints the organizations section only when there are organizations to
+	 * print: a run over personal accounts alone should look exactly as it did
+	 * before organizations were checked at all, headings included.
+	 */
 	public static void print(CheckResult result) {
+		if (!result.orgs().isEmpty()) {
+			System.out.println("=== Organizations ===");
+			printEntries(
+					result.orgs(),
+					"not in desired config",
+					"in config but not found on GitHub"
+			);
+			System.out.println();
+			System.out.println("=== Repositories ===");
+		}
 		printEntries(
 				result.repos(),
 				"not in desired config",
@@ -64,6 +79,10 @@ public final class Report {
 	private static void printSummary(CheckResult result) {
 		System.out.println();
 		System.out.println("=== Summary ===");
+		if (!result.orgs().isEmpty()) {
+			System.out.printf("Orgs checked:   %d%n", result.orgs().size());
+			System.out.printf("Orgs drifted:   %d%n", result.orgDriftCount());
+		}
 		System.out.printf("Repos checked:  %d%n", result.repos().size());
 		System.out.printf("OK:             %d%n", result.okCount());
 		System.out.printf("Drifted:        %d%n", result.driftCount());

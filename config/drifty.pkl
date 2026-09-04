@@ -47,6 +47,15 @@ typealias GroupName =
   | "vulnerability_alerts"
   | "workflow_permissions"
 
+/// Every drift group drifty can check on an organization. Separate from
+/// GroupName because neither scope's groups can be checked on the other, and
+/// the union is what makes a name from the wrong scope fail at config-eval.
+typealias OrgGroupName =
+  "org_settings"
+  | "org_actions_permissions"
+  | "org_workflow_permissions"
+  | "org_action_secrets"
+
 typealias ManageMode = "all_except" | "only"
 
 /// Which drift groups drifty manages for a repository. The default manages
@@ -55,6 +64,15 @@ class Managed {
   mode: ManageMode = "all_except"
   groups: Listing<GroupName> = new {}
 }
+
+/// Which drift groups drifty manages for an organization. Same default as
+/// Managed: everything.
+class OrgManaged {
+  mode: ManageMode = "all_except"
+  groups: Listing<OrgGroupName> = new {}
+}
+
+typealias RepositoryPermission = "none" | "read" | "write" | "admin"
 
 class SecretScanningBypassReviewer {
   reviewerId: Int
@@ -202,8 +220,46 @@ class Repository {
   environments: Mapping<String, Environment> = new {}
 }
 
-/// A GitHub organization drifty manages, keyed by login in `organizations`.
+/// Desired state for a GitHub organization, keyed by login in `organizations`.
+/// Defaults match GitHub's defaults for a new organization.
 class Organization {
+  managed: OrgManaged = new {}
+
+  displayName: String = ""
+  description: String = ""
+  websiteUrl: String = ""
+  company: String = ""
+  email: String = ""
+  location: String = ""
+  twitterUsername: String = ""
+
+  hasOrganizationProjects: Boolean = true
+  hasRepositoryProjects: Boolean = true
+  defaultRepositoryPermission: RepositoryPermission = "read"
+  membersCanCreateRepositories: Boolean = true
+  membersCanCreatePublicRepositories: Boolean = true
+  membersCanCreatePrivateRepositories: Boolean = true
+  membersCanCreateInternalRepositories: Boolean = false
+  membersCanCreatePages: Boolean = true
+  membersCanCreatePublicPages: Boolean = true
+  membersCanCreatePrivatePages: Boolean = true
+  membersCanForkPrivateRepositories: Boolean = false
+  webCommitSignoffRequired: Boolean = false
+  deployKeysEnabledForRepositories: Boolean = false
+
+  /// Check-only below: GitHub returns these but PATCH /orgs/{org} accepts
+  /// none of them, so drifty reports drift and never writes it.
+  defaultRepositoryBranch: String = "main"
+  twoFactorRequirementEnabled: Boolean = false
+  membersCanDeleteRepositories: Boolean = true
+  membersCanChangeRepoVisibility: Boolean = true
+  membersCanInviteOutsideCollaborators: Boolean = true
+  membersCanDeleteIssues: Boolean = false
+  membersCanCreateTeams: Boolean = true
+  membersCanViewDependencyInsights: Boolean = true
+  readersCanCreateDiscussions: Boolean = false
+  displayCommenterFullNameSettingEnabled: Boolean = false
+
   repositories: Listing<Repository> = new {}
 }
 

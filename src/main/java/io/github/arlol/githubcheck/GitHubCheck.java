@@ -81,6 +81,13 @@ public class GitHubCheck {
 				githubSecrets,
 				state
 		);
+		var orgChecker = new OrganizationChecker(
+				client,
+				fix,
+				githubSecrets,
+				state
+		);
+		var orgEntries = new ArrayList<CheckResult.Entry>();
 		var repoEntries = new ArrayList<CheckResult.Entry>();
 		long startFetch = System.currentTimeMillis();
 
@@ -90,6 +97,7 @@ public class GitHubCheck {
 			Optional<List<RepositorySummaryResponse>> repos = client
 					.listOrgRepos(login);
 			if (repos.isEmpty()) {
+				orgEntries.add(CheckResult.Entry.missing(login));
 				entry.getValue().repositories.forEach(
 						r -> repoEntries.add(CheckResult.Entry.missing(r.name))
 				);
@@ -98,6 +106,13 @@ public class GitHubCheck {
 			System.out.printf(
 					"Found %d repos. Fetching details in parallel...%n",
 					repos.orElseThrow().size()
+			);
+			// The org is checked before its repositories, and both work from
+			// the same listing: an org secret's selected repositories arrive as
+			// ids, and this is where their names are.
+			orgEntries.add(
+					orgChecker
+							.check(login, entry.getValue(), repos.orElseThrow())
 			);
 			repoEntries.addAll(
 					repoChecker.check(
@@ -127,7 +142,7 @@ public class GitHubCheck {
 				(System.currentTimeMillis() - startFetch) / 1000.0
 		);
 
-		CheckResult result = CheckResult.ofRepos(repoEntries);
+		CheckResult result = new CheckResult(orgEntries, repoEntries);
 		Report.print(result);
 
 		if (fix) {
