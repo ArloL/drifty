@@ -174,6 +174,54 @@ class OrganizationCheckerTest {
 		);
 	}
 
+	/**
+	 * {@code Would fix:} is what an operator reads to decide whether to run
+	 * {@code --fix}, so it must name the groups that drifted and no others.
+	 * Three of the four groups here match GitHub exactly, and all four return a
+	 * fix object whether or not they found drift — keying the preview on that
+	 * object rather than on its items previewed
+	 * {@code org_settings, org_actions_permissions, org_workflow_permissions}
+	 * for this organization.
+	 */
+	@Test
+	void fixPreviewNamesOnlyTheGroupThatDrifted() {
+		stubOrg("null");
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/permissions"))
+						.willReturn(okJson("""
+								{
+								  "enabled_repositories": "all",
+								  "allowed_actions": "all"
+								}
+								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/permissions/workflow"))
+						.willReturn(okJson("""
+								{
+								  "default_workflow_permissions": "read",
+								  "can_approve_pull_request_reviews": true
+								}
+								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/secrets"))
+						.willReturn(okJson("{\"secrets\": []}"))
+		);
+
+		CheckResult.Entry entry = checker
+				.check("my-org", Desired.organization(), List.of());
+
+		assertThat(entry.status()).isEqualTo(CheckResult.Status.DRIFT);
+		assertThat(entry.diffs()).singleElement()
+				.asString()
+				.startsWith(
+						"org_workflow_permissions.default_workflow_permissions:"
+				);
+		assertThat(entry.fixPreview())
+				.containsExactly("org_workflow_permissions");
+	}
+
 	@Test
 	void unknownOrganizationIsMissing() {
 		stubFor(

@@ -155,7 +155,7 @@ The state file defaults to `drifty-state.json` next to the resolved config file.
 [ERROR]   repo-e: 403 Forbidden
 ```
 
-A diff path is the drift group's name followed by the setting's wire name, which is what makes it unique across the run. Organizations are printed the same way, under their own heading — see [Report](#report) under Organizations.
+A diff path is the drift group's name followed by the setting's name within that group, which is what makes it unique across the run. Most groups use the setting's wire name; a few shorten it (`workflow_permissions.default` for `default_workflow_permissions`). Organizations are printed the same way, under their own heading — see [Report](#report) under Organizations.
 
 **With `--fix`:** Same output, but diffs are replaced with per-setting fix results (FIXED or FAILED with reason). Failed fixes are also collected in a summary at the end.
 
@@ -474,7 +474,9 @@ Organizations print above the repositories, under their own heading; a run over 
 [OK]      repo-a
 ```
 
-`Orgs checked` and `Orgs drifted` join the summary under the same condition.
+`Orgs checked`, `Orgs OK`, `Orgs drifted`, `Orgs errored` and `Orgs missing`
+join the summary under the same condition — one counter per status the section
+above can print, so the summary never disagrees with the detail.
 
 ## State File
 

@@ -223,6 +223,13 @@ public class OrganizationChecker {
 	// ─── Drift groups
 	// ──────────────────────────────────────────────────────────────
 
+	/**
+	 * The groups that drifted, with their fixes. A group is in only when it
+	 * reported a drifted item — see
+	 * {@link RepositoryChecker#computeGroupDrifts}, which the
+	 * {@code Would fix:} preview named three groups on an organization that had
+	 * drifted in one.
+	 */
 	Map<DriftGroup<Drifty.OrgGroupName>, List<DriftFix>> computeGroupDrifts(
 			OrganizationState actual,
 			Drifty.Organization desired,
@@ -231,7 +238,7 @@ public class OrganizationChecker {
 		Map<DriftGroup<Drifty.OrgGroupName>, List<DriftFix>> groupDrifts = new LinkedHashMap<>();
 		for (var group : createDriftGroups(actual, desired, repositoryIds)) {
 			var fixes = group.detect();
-			if (!fixes.isEmpty()) {
+			if (fixes.stream().anyMatch(fix -> !fix.items().isEmpty())) {
 				groupDrifts.put(group, fixes);
 			}
 		}
