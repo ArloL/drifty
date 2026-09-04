@@ -81,6 +81,24 @@ status.
 
 ## Native-image reachability metadata
 
+- **Take the collection types Pkl's mapper already has metadata for.**
+  `PklConfigLoader` walks the `organizations` and `users` mappings key by key
+  and builds the `LinkedHashMap` itself, because
+  `.as(LinkedHashMap<String, Organization>)` fails in the shipped binary:
+  `PMapToMap` instantiates the raw target class reflectively, and
+  pkl-config-java-native registers only `HashMap`, `ArrayList`, `HashSet`,
+  `TreeMap`, `TreeSet` and `ArrayDeque`. Any other target maps fine on the JVM
+  and ends a user's first run with
+  `ConversionException: ... because no conversion was found`.
+  `NativeExecutableIT.selfTestWithConfig` runs the real binary against
+  `config/example.pkl` so that is a build failure instead.
+  (`Mapping` fields inside the records are `Map`, which the mapper fills with a
+  `HashMap` — do not rely on their iteration order.)
+- **`--self-test` is what covers the shipped image.** It is the only place the
+  production binary's reflective paths — libsodium through JNA, and a full Pkl
+  evaluation when `--config` is passed — are exercised. Native *test* image
+  runs do not: they see the test-scoped metadata too.
+
 The native image needs reflection/resource metadata for everything Jackson and
 Pkl touch reflectively. It is **scope-split** so the shipped image stays lean:
 

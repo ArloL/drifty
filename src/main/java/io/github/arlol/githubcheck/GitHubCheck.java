@@ -31,8 +31,9 @@ public class GitHubCheck {
 		if (handledVersion(args)) {
 			return;
 		}
-		if (args.length == 1 && "--self-test".equals(args[0])) {
-			System.exit(selfTest());
+		var argsList = List.of(args);
+		if (argsList.contains("--self-test")) {
+			System.exit(selfTest(optionValue(argsList, "--config")));
 			return;
 		}
 
@@ -45,7 +46,6 @@ public class GitHubCheck {
 			return;
 		}
 
-		var argsList = List.of(args);
 		boolean fix = argsList.contains("--fix");
 		String configArg = optionValue(argsList, "--config");
 		String statePath = optionValue(argsList, "--state");
@@ -228,18 +228,44 @@ public class GitHubCheck {
 		return true;
 	}
 
-	// Network- and token-free smoke test of the libsodium/JNA path. This is
-	// the code that crashes in the native image when the JNA reflection
-	// metadata is missing (NoSuchMethodException on
-	// com.sun.jna.Structure$FFIType.<init>()). NativeExecutableIT runs the
-	// built production binary with this flag, so metadata regressions fail
-	// the build instead of shipping. 32-byte all-zeros key, base64.
-	static int selfTest() {
+	/**
+	 * Network- and token-free smoke test of the two paths only the shipped
+	 * binary can get wrong, both of them reflective and so both able to lose
+	 * their native-image metadata without a single JVM test noticing:
+	 * libsodium through JNA, which crashes with {@code NoSuchMethodException}
+	 * on {@code com.sun.jna.Structure$FFIType.<init>()}, and — when a config
+	 * path is given — a full Pkl evaluation and mapping into
+	 * {@link DriftyConfig}, which ends in a
+	 * {@code ConversionException}. {@code NativeExecutableIT} runs the built
+	 * production binary with this flag, so those regressions fail the build
+	 * instead of shipping. The config is optional because a user's binary has
+	 * none of its own to read; the IT passes the project's example config. The
+	 * public key is a 32-byte all-zeros key, base64.
+	 */
+	static int selfTest(String configPath) {
 		String publicKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 		String encrypted = Secrets.encryptSecret(publicKey, "drifty-self-test");
 		if (encrypted == null || encrypted.isBlank()) {
 			System.err.println("self-test FAILED: empty ciphertext");
 			return 1;
+		}
+		if (configPath != null) {
+			DriftyConfig config;
+			try {
+				config = PklConfigLoader
+						.load(Path.of(configPath).toAbsolutePath());
+			} catch (IOException | RuntimeException e) {
+				System.err.println(
+						"self-test FAILED: cannot load " + configPath + ": " + e
+				);
+				return 1;
+			}
+			if (config.organizations().isEmpty() && config.users().isEmpty()) {
+				System.err.println(
+						"self-test FAILED: no accounts in " + configPath
+				);
+				return 1;
+			}
 		}
 		System.out.println("self-test OK");
 		return 0;
