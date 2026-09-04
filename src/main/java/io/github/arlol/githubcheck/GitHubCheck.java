@@ -19,6 +19,7 @@ import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.Secrets;
+import io.github.arlol.githubcheck.drift.ManagedGroups;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 import io.github.arlol.githubcheck.state.StateStore;
@@ -299,6 +300,14 @@ public class GitHubCheck {
 		return true;
 	}
 
+	/**
+	 * The secrets fix mode needs a value for, which is only the ones it would
+	 * write: an entity's own {@code managed} declaration decides that, the same
+	 * way it decides which groups get built and which requests get sent.
+	 * Reading the declarations alone aborted the run over secrets drifty was
+	 * never going to touch — the case for excluding a secret group in the first
+	 * place is a repository whose secret values you do not have.
+	 */
 	static List<String> collectMissingSecrets(
 			DriftyConfig config,
 			Map<String, String> githubSecrets
@@ -307,6 +316,10 @@ public class GitHubCheck {
 		// An org secret's key carries an "org-" prefix, because the map is flat
 		// and an organization may share its name with a repository.
 		for (var org : config.organizations().entrySet()) {
+			if (!ManagedGroups.of(org.getValue().managed)
+					.manages(Drifty.OrgGroupName.ORG_ACTION_SECRETS)) {
+				continue;
+			}
 			addMissingSecrets(
 					missingSecrets,
 					githubSecrets,
@@ -315,12 +328,19 @@ public class GitHubCheck {
 			);
 		}
 		for (Drifty.Repository repo : config.allRepositories()) {
-			addMissingSecrets(
-					missingSecrets,
-					githubSecrets,
-					repo.actionsSecrets,
-					repo.name + "-"
-			);
+			ManagedGroups<Drifty.GroupName> managed = ManagedGroups
+					.of(repo.managed);
+			if (managed.manages(Drifty.GroupName.ACTION_SECRETS)) {
+				addMissingSecrets(
+						missingSecrets,
+						githubSecrets,
+						repo.actionsSecrets,
+						repo.name + "-"
+				);
+			}
+			if (!managed.manages(Drifty.GroupName.ENVIRONMENT_SECRETS)) {
+				continue;
+			}
 			for (var entry : repo.environments.entrySet()) {
 				addMissingSecrets(
 						missingSecrets,

@@ -96,6 +96,8 @@ Group names come from the `GroupName` typealias in `config/drifty.pkl`, which li
 
 An unmanaged group is not fetched, not compared, and not fixed. Skipping only the comparison would still send the request, and a repo in an org someone else administers — the case this exists for — is where those requests return 403.
 
+The same goes for the `--fix` preflight that aborts over secrets missing from `DRIFTY_GITHUB_SECRETS`: it only counts secrets in a managed group. An unmanaged `action_secrets` or `environment_secrets` declaration needs no value, because nothing will ever push it.
+
 The report names unmanaged groups but not their values:
 
 ```

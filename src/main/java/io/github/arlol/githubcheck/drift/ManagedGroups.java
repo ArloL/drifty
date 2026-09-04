@@ -9,11 +9,14 @@ import io.github.arlol.githubcheck.pkl.Drifty;
 /**
  * Which drift groups drifty manages for one repository or organization.
  * <p>
- * Consulted twice per entity, and both are required: once to decide which
- * groups to build, and once in the checker's {@code fetchState} to decide which
- * requests to send. Skipping only the comparison would still send the request,
- * and an org — or a repository in one — that someone else administers is
- * exactly where those requests return 403.
+ * Consulted three times per entity, and all three are required: once to decide
+ * which groups to build, once in the checker's {@code fetchState} to decide
+ * which requests to send, and once in {@code GitHubCheck.collectMissingSecrets}
+ * to decide which secrets {@code --fix} needs a value for. Skipping only the
+ * comparison would still send the request, and an org — or a repository in one
+ * — that someone else administers is exactly where those requests return 403;
+ * skipping only those two still aborted {@code --fix} over the secret values
+ * that repository's config declares but drifty never pushes.
  * <p>
  * Generic over the group-name enum, with the {@code Class<N>} token carried
  * alongside it purely because Java erases {@code N} at runtime — {@code
