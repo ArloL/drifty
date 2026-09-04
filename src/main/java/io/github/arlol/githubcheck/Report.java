@@ -79,9 +79,18 @@ public final class Report {
 	private static void printSummary(CheckResult result) {
 		System.out.println();
 		System.out.println("=== Summary ===");
+		// One counter per status an organization can end a run with; unknown
+		// is not one of them, since an org entry exists because the config
+		// declared it. With only "checked" and "drifted", an organization
+		// GitHub does not have summarised as "Orgs checked: 1 / Orgs drifted:
+		// 0" while the detail section above it said [MISSING] and the run
+		// exited 1.
 		if (!result.orgs().isEmpty()) {
 			System.out.printf("Orgs checked:   %d%n", result.orgs().size());
+			System.out.printf("Orgs OK:        %d%n", result.orgOkCount());
 			System.out.printf("Orgs drifted:   %d%n", result.orgDriftCount());
+			System.out.printf("Orgs errored:   %d%n", result.orgErrorCount());
+			System.out.printf("Orgs missing:   %d%n", result.orgMissingCount());
 		}
 		System.out.printf("Repos checked:  %d%n", result.repos().size());
 		System.out.printf("OK:             %d%n", result.okCount());

@@ -126,6 +126,48 @@ class RepositoryCheckerCheckTest {
 	}
 
 	/**
+	 * {@code Would fix:} is what an operator reads to decide whether to run
+	 * {@code --fix}, so it must name the groups that drifted and no others.
+	 * Both groups managed here return a fix object whether or not they found
+	 * drift — its item list is what says — and keying the preview on that
+	 * object rather than on its items named {@code vulnerability_alerts} too,
+	 * on a repository whose vulnerability alerts already held the wanted value.
+	 */
+	@Test
+	void fixPreviewNamesOnlyTheGroupThatDrifted() throws Exception {
+		stubOwner("alpha", "one");
+		stubRepoSubResources();
+
+		Drifty.Repository desired = entry("one")
+				.withManaged(
+						new Drifty.Managed(
+								Drifty.ManageMode.ONLY,
+								List.of(
+										Drifty.GroupName.VULNERABILITY_ALERTS,
+										Drifty.GroupName.WORKFLOW_PERMISSIONS
+								)
+						)
+				)
+				// 404 on the alerts endpoint reads as disabled, which is what
+				// this asks for, so only the workflow permissions drift.
+				.withVulnerabilityAlerts(false)
+				.withDefaultWorkflowPermissions(
+						Drifty.WorkflowPermissions.READ
+				);
+
+		List<CheckResult.Entry> results = check("alpha", desired);
+
+		assertThat(results).singleElement().satisfies(result -> {
+			assertThat(result.status()).isEqualTo(CheckResult.Status.DRIFT);
+			assertThat(result.diffs()).singleElement()
+					.asString()
+					.startsWith("workflow_permissions.default:");
+			assertThat(result.fixPreview())
+					.containsExactly("workflow_permissions");
+		});
+	}
+
+	/**
 	 * In fix mode the report is a FIXED/FAILED line per setting, and every
 	 * failure has to say why — SPEC.md's per-setting fix results and its
 	 * end-of-run failure summary.

@@ -416,6 +416,17 @@ public class RepositoryChecker {
 	// ─── Drift groups
 	// ──────────────────────────────────────────────────────────────
 
+	/**
+	 * The groups that drifted, with their fixes.
+	 * <p>
+	 * A group is in only when it reported a drifted item. Most groups return a
+	 * {@link DriftFix} whether or not anything drifted — its item list is what
+	 * says — so keying on "returned a fix" put twenty of the twenty-seven
+	 * groups in the map on every run. {@code --fix} was unaffected, since
+	 * {@link DriftFixer#applyFixes} skips an item-less fix, but the keys are
+	 * also the {@code Would fix:} preview, and that named groups the operator's
+	 * repository had no drift in.
+	 */
 	Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> computeGroupDrifts(
 			RepositoryState actual,
 			Drifty.Repository desired
@@ -423,7 +434,7 @@ public class RepositoryChecker {
 		Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts = new LinkedHashMap<>();
 		for (var group : createDriftGroups(actual, desired)) {
 			var fixes = group.detect();
-			if (!fixes.isEmpty()) {
+			if (fixes.stream().anyMatch(fix -> !fix.items().isEmpty())) {
 				groupDrifts.put(group, fixes);
 			}
 		}
