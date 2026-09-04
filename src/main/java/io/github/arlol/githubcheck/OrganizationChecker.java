@@ -19,6 +19,7 @@ import io.github.arlol.githubcheck.drift.DriftItem;
 import io.github.arlol.githubcheck.drift.ManagedGroups;
 import io.github.arlol.githubcheck.drift.OrgActionsPermissionsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgSettingsDriftGroup;
+import io.github.arlol.githubcheck.drift.OrgWorkflowPermissionsDriftGroup;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 
@@ -227,6 +228,15 @@ public class OrganizationChecker {
 				new OrgActionsPermissionsDriftGroup(
 						desired.actionsPermissions,
 						actual.actionsPermissions(),
+						client,
+						actual.login()
+				)
+		);
+		groups.add(
+				new OrgWorkflowPermissionsDriftGroup(
+						desired.defaultWorkflowPermissions,
+						desired.canApprovePullRequestReviews,
+						actual.workflowPermissions(),
 						client,
 						actual.login()
 				)
