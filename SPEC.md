@@ -145,15 +145,17 @@ The state file defaults to `drifty-state.json` next to the resolved config file.
 **Default (no `--fix`):** Compact field-level diffs per repo, plus human-readable previews of what `--fix` would do. All repos are listed, including those with no drift.
 
 ```
-repo-a: OK
-repo-b: DRIFT
-  description: "old value" -> "new value"
-  allowAutoMerge: false -> true
-  Would fix: update description, enable auto-merge
-repo-c: UNKNOWN (not in config)
-repo-d: MISSING (in config, not on GitHub)
-repo-e: ERROR: 403 Forbidden
+[OK]      repo-a
+[DRIFT]   repo-b:
+            repo_settings.description: want=new value got=old value
+            repo_settings.allow_auto_merge: want=true got=false
+  Would fix: repo_settings
+[UNKNOWN] repo-c: not in desired config
+[MISSING] repo-d: in config but not found in org
+[ERROR]   repo-e: 403 Forbidden
 ```
+
+A diff path is the drift group's name followed by the setting's wire name, which is what makes it unique across the run. Organizations are printed the same way, under their own heading — see [Report](#report) under Organizations.
 
 **With `--fix`:** Same output, but diffs are replaced with per-setting fix results (FIXED or FAILED with reason). Failed fixes are also collected in a summary at the end.
 
@@ -434,7 +436,7 @@ Three groups of `PATCH` fields are deliberately absent from both tables. `billin
 | `shaPinningRequired` | `false` | Yes | Yes |
 | `selectedActions` (GitHub-owned, verified, patterns) | unset | Yes | Yes |
 
-The allow-list lives on a second endpoint and only exists under `allowedActions = "selected"`; it is read and written only when the config declares `selectedActions`. Which repositories are selected under `enabledRepositories = "selected"` is not managed — see [Future Considerations](#future-considerations).
+The allow-list lives on a second endpoint and only exists under `allowedActions = "selected"`. drifty reads it whenever GitHub answers `allowed_actions = "selected"` — so an organization already in that mode draws the second request even from a config that declares no `selectedActions` — and writes it only when the config does declare one. Which repositories are selected under `enabledRepositories = "selected"` is not managed — see [Future Considerations](#future-considerations).
 
 ### Organization Workflow Permissions
 
@@ -517,7 +519,7 @@ last observed and a salted SHA-256 hash of the value it last pushed.
 }
 ```
 
-`organizations` was added without a version bump. The key is optional in both directions — a file written before organization secrets existed simply has none, and the reader ignores properties it does not know — so `version` stays 1 and older state files load unchanged.
+`organizations` was added without a version bump: a file written before organization secrets existed simply has none, and the reader ignores properties it does not know, so `version` stays 1 and older state files load unchanged.
 
 On each run drifty compares the recorded values against GitHub and the desired
 config:
@@ -540,7 +542,7 @@ secret uncrackable offline.
 
 ## Unmanaged Repos
 
-Repos that exist in the GitHub org but are not listed in config are reported as `UNKNOWN` with a warning and cause a non-zero exit code.
+Repos that GitHub lists under an account the config names, but that the account's own `repositories` listing does not, are reported as `UNKNOWN` with a warning and cause a non-zero exit code.
 
 ## Error Handling
 
