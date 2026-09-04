@@ -36,7 +36,7 @@ import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.testsupport.Desired;
 import io.github.arlol.githubcheck.drift.DriftItem;
 
-class OrgCheckerDiffTest {
+class RepositoryCheckerDiffTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper()
 			.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
@@ -102,11 +102,11 @@ class OrgCheckerDiffTest {
 			}
 			""";
 
-	private OrgChecker checker;
+	private RepositoryChecker checker;
 
 	@BeforeEach
 	void setUp() {
-		checker = new OrgChecker((GitHubClient) null, false);
+		checker = new RepositoryChecker((GitHubClient) null, false);
 	}
 
 	private Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> computeGroupDrifts(
@@ -434,7 +434,7 @@ class OrgCheckerDiffTest {
 	// ──────────────────────────────────────────────
 
 	// ─── Workflow permissions drift (tested via groupDrifts in
-	// OrgCheckerDiffTest)
+	// RepositoryCheckerDiffTest)
 	// ──────────────────────────────────────────
 
 	@Test

@@ -69,9 +69,9 @@ public class GitHubCheck {
 
 		long startTime = System.currentTimeMillis();
 
-		var checker = new OrgChecker(token, fix, githubSecrets, state);
+		var checker = new RepositoryChecker(token, fix, githubSecrets, state);
 		CheckResult result = checker.check(repos);
-		checker.printReport(result);
+		Report.print(result);
 
 		if (fix) {
 			stateStore.save(stateFile, state);

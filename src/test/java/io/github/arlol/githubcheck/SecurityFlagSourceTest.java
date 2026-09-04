@@ -131,7 +131,7 @@ class SecurityFlagSourceTest {
 				.withSecretScanning(true)
 				.withSecretScanningPushProtection(true);
 
-		List<String> paths = new OrgChecker((String) null, false)
+		List<String> paths = new RepositoryChecker((String) null, false)
 				.createDriftGroups(state, desired)
 				.stream()
 				.filter(group -> group.name() == groupName)

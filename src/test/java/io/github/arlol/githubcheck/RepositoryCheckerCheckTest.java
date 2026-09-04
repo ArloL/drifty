@@ -29,19 +29,19 @@ import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.testsupport.Desired;
 
 /**
- * Covers {@link OrgChecker#check}, and in particular which account each
+ * Covers {@link RepositoryChecker#check}, and in particular which account each
  * repository is looked up under. {@code drifty.pkl} declares an {@code owner}
  * per repository and SPEC.md calls that the targeting mechanism, so a config
  * naming two owners has to reach both.
  */
 @WireMockTest
-class OrgCheckerCheckTest {
+class RepositoryCheckerCheckTest {
 
-	private OrgChecker checker;
+	private RepositoryChecker checker;
 
 	@BeforeEach
 	void setUp(WireMockRuntimeInfo wm) {
-		checker = new OrgChecker(
+		checker = new RepositoryChecker(
 				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
 				false
 		);
@@ -59,10 +59,7 @@ class OrgCheckerCheckTest {
 		// Found under its own owner, so neither MISSING (declared but not
 		// found there) nor UNKNOWN (found but not declared).
 		assertThat(result.repos())
-				.extracting(
-						CheckResult.RepoCheckResult::name,
-						CheckResult.RepoCheckResult::status
-				)
+				.extracting(CheckResult.Entry::name, CheckResult.Entry::status)
 				.containsExactlyInAnyOrder(
 						tuple("one", CheckResult.Status.DRIFT),
 						tuple("two", CheckResult.Status.DRIFT)
@@ -112,7 +109,7 @@ class OrgCheckerCheckTest {
 						.willReturn(aResponse().withStatus(500))
 		);
 
-		var fixer = new OrgChecker(
+		var fixer = new RepositoryChecker(
 				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
 				true
 		);
@@ -147,13 +144,13 @@ class OrgCheckerCheckTest {
 						.willReturn(aResponse().withStatus(500))
 		);
 
-		var fixer = new OrgChecker(
+		var fixer = new RepositoryChecker(
 				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
 				true
 		);
 		CheckResult result = fixer.check(List.of(entry("alpha", "one")));
 
-		String report = capturePrintReport(fixer, result);
+		String report = capturePrintReport(result);
 
 		assertThat(report).contains(": FIXED")
 				.contains("vulnerability_alerts.enabled: FAILED")
@@ -162,25 +159,16 @@ class OrgCheckerCheckTest {
 
 	@Test
 	void printReportNamesUnmanagedGroups() {
-		var result = new CheckResult(
-				List.of(
-						CheckResult.RepoCheckResult
-								.ok("repo", List.of("action_secrets"))
-				)
+		var result = CheckResult.ofRepos(
+				List.of(CheckResult.Entry.ok("repo", List.of("action_secrets")))
 		);
 
-		String output = capturePrintReport(
-				new OrgChecker((GitHubClient) null, false),
-				result
-		);
+		String output = capturePrintReport(result);
 
 		assertThat(output).contains("Unmanaged: action_secrets");
 	}
 
-	private static String capturePrintReport(
-			OrgChecker checker,
-			CheckResult result
-	) {
+	private static String capturePrintReport(CheckResult result) {
 		PrintStream original = System.out;
 		var captured = new ByteArrayOutputStream();
 		try (var out = new PrintStream(
@@ -189,7 +177,7 @@ class OrgCheckerCheckTest {
 				StandardCharsets.UTF_8
 		)) {
 			System.setOut(out);
-			checker.printReport(result);
+			Report.print(result);
 		} finally {
 			System.setOut(original);
 		}

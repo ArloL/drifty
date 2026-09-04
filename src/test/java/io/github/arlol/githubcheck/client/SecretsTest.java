@@ -6,7 +6,8 @@ import org.junit.jupiter.api.Test;
 
 class SecretsTest {
 
-	// 32-byte all-zeros public key, base64-encoded (used in OrgCheckerFixTest)
+	// 32-byte all-zeros public key, base64-encoded (used in
+	// RepositoryCheckerFixTest)
 	private static final String TEST_PUBLIC_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
 	@Test
