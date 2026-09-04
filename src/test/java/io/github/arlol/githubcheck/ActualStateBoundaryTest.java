@@ -26,6 +26,7 @@ import io.github.arlol.githubcheck.client.SquashMergeCommitMessage;
 import io.github.arlol.githubcheck.client.SquashMergeCommitTitle;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.drift.DriftGroup;
+import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.testsupport.Desired;
 
 /**
@@ -52,7 +53,7 @@ class ActualStateBoundaryTest {
 	@Test
 	void noDriftGroupHoldsGitHubResponseTypes() {
 		var offenders = new ArrayList<String>();
-		for (DriftGroup group : driftGroups()) {
+		for (DriftGroup<Drifty.GroupName> group : driftGroups()) {
 			for (String type : clientTypesHeldBy(group.getClass())) {
 				offenders.add(
 						group.getClass().getSimpleName() + " holds " + type
@@ -73,7 +74,7 @@ class ActualStateBoundaryTest {
 	 * Every group the orchestrator would build; the fixture's values do not
 	 * matter.
 	 */
-	private static List<DriftGroup> driftGroups() {
+	private static List<DriftGroup<Drifty.GroupName>> driftGroups() {
 		return new OrgChecker((String) null, false).createDriftGroups(
 				new RepositoryState(
 						"repo",

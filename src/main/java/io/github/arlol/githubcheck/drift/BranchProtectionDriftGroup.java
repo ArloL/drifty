@@ -14,7 +14,7 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
-public class BranchProtectionDriftGroup extends DriftGroup {
+public class BranchProtectionDriftGroup extends DriftGroup<Drifty.GroupName> {
 
 	private final Map<String, Drifty.BranchProtection> desired;
 	private final Map<String, ActualBranchProtection> actual;

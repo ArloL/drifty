@@ -14,41 +14,58 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * which requests to send. Skipping only the comparison would still send the
  * request, and a repository in an org someone else administers is exactly where
  * those requests return 403.
+ * <p>
+ * Generic over the group-name enum, with the {@code Class<N>} token carried
+ * alongside it purely because Java erases {@code N} at runtime — {@code
+ * EnumSet.allOf} needs the class to enumerate an enum's constants.
  */
-public final class ManagedGroups {
+public final class ManagedGroups<N extends Enum<N>> {
 
-	private final Set<Drifty.GroupName> managed;
+	private final Class<N> type;
+	private final Set<N> managed;
 
-	private ManagedGroups(Set<Drifty.GroupName> managed) {
+	private ManagedGroups(Class<N> type, Set<N> managed) {
+		this.type = type;
 		this.managed = managed;
 	}
 
-	public static ManagedGroups of(Drifty.Managed managed) {
-		Set<Drifty.GroupName> named = managed.groups.isEmpty()
-				? EnumSet.noneOf(Drifty.GroupName.class)
-				: EnumSet.copyOf(managed.groups);
-		return new ManagedGroups(switch (managed.mode) {
+	public static ManagedGroups<Drifty.GroupName> of(Drifty.Managed managed) {
+		return of(Drifty.GroupName.class, managed.mode, managed.groups);
+	}
+
+	/**
+	 * Every group of one scope, which is what an entity that declares nothing
+	 * gets. The class token is the only way to enumerate an enum's constants
+	 * generically — {@code EnumSet.allOf} needs it.
+	 */
+	public static <N extends Enum<N>> ManagedGroups<N> all(Class<N> type) {
+		return new ManagedGroups<>(type, EnumSet.allOf(type));
+	}
+
+	private static <N extends Enum<N>> ManagedGroups<N> of(
+			Class<N> type,
+			Drifty.ManageMode mode,
+			List<N> groups
+	) {
+		Set<N> named = groups.isEmpty() ? EnumSet.noneOf(type)
+				: EnumSet.copyOf(groups);
+		return new ManagedGroups<>(type, switch (mode) {
 		case ONLY -> named;
 		case ALL_EXCEPT -> {
-			var rest = EnumSet.allOf(Drifty.GroupName.class);
+			var rest = EnumSet.allOf(type);
 			rest.removeAll(named);
 			yield rest;
 		}
 		});
 	}
 
-	/** Every group, which is what a repository that declares nothing gets. */
-	public static ManagedGroups all() {
-		return new ManagedGroups(EnumSet.allOf(Drifty.GroupName.class));
-	}
-
-	public boolean manages(Drifty.GroupName group) {
+	public boolean manages(N group) {
 		return managed.contains(group);
 	}
 
-	/** The groups this repository leaves alone, for the report. */
-	public List<Drifty.GroupName> unmanaged() {
-		var rest = EnumSet.allOf(Drifty.GroupName.class);
+	/** The groups this entity leaves alone, for the report. */
+	public List<N> unmanaged() {
+		var rest = EnumSet.allOf(type);
 		rest.removeAll(managed);
 		return List.copyOf(rest);
 	}

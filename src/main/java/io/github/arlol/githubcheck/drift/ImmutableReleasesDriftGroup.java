@@ -6,7 +6,7 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
-public class ImmutableReleasesDriftGroup extends DriftGroup {
+public class ImmutableReleasesDriftGroup extends DriftGroup<Drifty.GroupName> {
 
 	private final boolean desired;
 	private final boolean actual;

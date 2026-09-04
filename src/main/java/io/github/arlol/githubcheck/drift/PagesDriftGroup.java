@@ -11,7 +11,7 @@ import io.github.arlol.githubcheck.client.PagesCreateRequest;
 import io.github.arlol.githubcheck.client.PagesUpdateRequest;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
-public class PagesDriftGroup extends DriftGroup {
+public class PagesDriftGroup extends DriftGroup<Drifty.GroupName> {
 
 	private static final String BUILD_TYPE_LEGACY = "legacy";
 

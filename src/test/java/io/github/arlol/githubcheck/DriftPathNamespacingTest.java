@@ -80,7 +80,7 @@ class DriftPathNamespacingTest {
 		var offenders = new ArrayList<String>();
 		int inspected = 0;
 
-		for (DriftGroup group : driftGroups()) {
+		for (DriftGroup<Drifty.GroupName> group : driftGroups()) {
 			for (DriftFix fix : group.detect()) {
 				for (DriftItem item : fix.items()) {
 					inspected++;
@@ -116,7 +116,7 @@ class DriftPathNamespacingTest {
 	 * keyed sections (rulesets, branch protections, environments, secrets,
 	 * pages) are configured but absent.
 	 */
-	private static List<DriftGroup> driftGroups() {
+	private static List<DriftGroup<Drifty.GroupName>> driftGroups() {
 		var checker = new OrgChecker((String) null, false);
 
 		Drifty.Repository desired = Desired.repository("owner", "repo")

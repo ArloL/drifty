@@ -7,7 +7,7 @@ import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
-public class ArchivedDriftGroup extends DriftGroup {
+public class ArchivedDriftGroup extends DriftGroup<Drifty.GroupName> {
 
 	private final boolean desiredArchived;
 	private final boolean actualArchived;

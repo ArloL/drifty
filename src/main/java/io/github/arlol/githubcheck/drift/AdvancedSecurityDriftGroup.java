@@ -8,7 +8,7 @@ import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
-public class AdvancedSecurityDriftGroup extends DriftGroup {
+public class AdvancedSecurityDriftGroup extends DriftGroup<Drifty.GroupName> {
 
 	private final boolean desired;
 	private final boolean actual;

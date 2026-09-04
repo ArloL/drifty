@@ -10,7 +10,7 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
-public class EnvironmentConfigDriftGroup extends DriftGroup {
+public class EnvironmentConfigDriftGroup extends DriftGroup<Drifty.GroupName> {
 
 	private final Map<String, Drifty.Environment> desired;
 	private final Map<String, ActualEnvironment> actual;

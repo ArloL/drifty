@@ -192,7 +192,8 @@ public class OrgChecker {
 			return CheckResult.RepoCheckResult.unknown(name);
 		}
 		try {
-			ManagedGroups managed = ManagedGroups.of(desired.managed);
+			ManagedGroups<Drifty.GroupName> managed = ManagedGroups
+					.of(desired.managed);
 			List<String> unmanaged = managed.unmanaged()
 					.stream()
 					.map(Drifty.GroupName::toString)
@@ -200,7 +201,7 @@ public class OrgChecker {
 
 			RepositoryState state = fetchState(ref, summary, managed);
 
-			Map<DriftGroup, List<DriftFix>> groupDrifts = computeGroupDrifts(
+			Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts = computeGroupDrifts(
 					state,
 					desired
 			);
@@ -277,7 +278,7 @@ public class OrgChecker {
 	RepositoryState fetchState(
 			RepoRef ref,
 			RepositorySummaryResponse summary,
-			ManagedGroups managed
+			ManagedGroups<Drifty.GroupName> managed
 	) throws IOException, InterruptedException {
 		String org = ref.owner();
 		String name = ref.name();
@@ -371,7 +372,7 @@ public class OrgChecker {
 	private SecurityFlags fetchSecurityFlags(
 			String org,
 			String name,
-			ManagedGroups managed
+			ManagedGroups<Drifty.GroupName> managed
 	) {
 		boolean vulnAlerts = managed
 				.manages(Drifty.GroupName.VULNERABILITY_ALERTS)
@@ -475,11 +476,11 @@ public class OrgChecker {
 	// ─── Drift groups
 	// ──────────────────────────────────────────────────────────────
 
-	Map<DriftGroup, List<DriftFix>> computeGroupDrifts(
+	Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> computeGroupDrifts(
 			RepositoryState actual,
 			Drifty.Repository desired
 	) {
-		Map<DriftGroup, List<DriftFix>> groupDrifts = new LinkedHashMap<>();
+		Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts = new LinkedHashMap<>();
 		for (var group : createDriftGroups(actual, desired)) {
 			var fixes = group.detect();
 			if (!fixes.isEmpty()) {
@@ -489,13 +490,14 @@ public class OrgChecker {
 		return groupDrifts;
 	}
 
-	List<DriftGroup> createDriftGroups(
+	List<DriftGroup<Drifty.GroupName>> createDriftGroups(
 			RepositoryState actual,
 			Drifty.Repository desired
 	) {
 		var ref = new RepoRef(desired.owner, actual.name());
 		ActualSecurityAndAnalysis security = actual.securityAndAnalysis();
-		ManagedGroups managed = ManagedGroups.of(desired.managed);
+		ManagedGroups<Drifty.GroupName> managed = ManagedGroups
+				.of(desired.managed);
 
 		if (desired.archived) {
 			// When archiving (or already archived): only check archived state,
@@ -514,7 +516,7 @@ public class OrgChecker {
 			);
 		}
 
-		var groups = new ArrayList<DriftGroup>();
+		var groups = new ArrayList<DriftGroup<Drifty.GroupName>>();
 
 		// When actual.archived=false this detects nothing and
 		// computeGroupDrifts skips it. When it does drift, applyFixes runs it
@@ -728,9 +730,9 @@ public class OrgChecker {
 	 * dozen {@code groups.add} calls: a group added later is filtered without
 	 * its author having to know this feature exists.
 	 */
-	private static List<DriftGroup> onlyManaged(
-			List<DriftGroup> groups,
-			ManagedGroups managed
+	private static List<DriftGroup<Drifty.GroupName>> onlyManaged(
+			List<DriftGroup<Drifty.GroupName>> groups,
+			ManagedGroups<Drifty.GroupName> managed
 	) {
 		return groups.stream().filter(g -> managed.manages(g.name())).toList();
 	}
@@ -769,7 +771,9 @@ public class OrgChecker {
 	 * ones. Working from the items themselves removes that whole class of bug
 	 * rather than relying on the paths staying distinct.
 	 */
-	FixOutcome applyFixes(Map<DriftGroup, List<DriftFix>> groupDrifts) {
+	FixOutcome applyFixes(
+			Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts
+	) {
 		var fixed = new ArrayList<DriftItem>();
 		var unfixed = new ArrayList<FixResult.Unfixed>();
 
@@ -787,7 +791,7 @@ public class OrgChecker {
 	 * an archived repository and every other fix would fail.
 	 */
 	private static List<DriftFix> prerequisitesFirst(
-			Map<DriftGroup, List<DriftFix>> groupDrifts
+			Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts
 	) {
 		var ordered = new ArrayList<DriftFix>();
 		groupDrifts.entrySet()

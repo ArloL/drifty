@@ -12,7 +12,7 @@ import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 
-public class EnvironmentSecretsDriftGroup extends DriftGroup {
+public class EnvironmentSecretsDriftGroup extends DriftGroup<Drifty.GroupName> {
 
 	private final Map<String, Drifty.Environment> desired;
 	private final Map<String, List<ActualSecret>> actual;

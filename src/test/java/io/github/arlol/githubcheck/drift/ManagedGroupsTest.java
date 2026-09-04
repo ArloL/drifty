@@ -55,7 +55,8 @@ class ManagedGroupsTest {
 
 	@Test
 	void all_managesEverything() {
-		assertThat(ManagedGroups.all().unmanaged()).isEmpty();
+		assertThat(ManagedGroups.all(Drifty.GroupName.class).unmanaged())
+				.isEmpty();
 	}
 
 }

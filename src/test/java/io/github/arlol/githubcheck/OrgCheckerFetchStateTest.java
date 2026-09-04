@@ -143,8 +143,11 @@ class OrgCheckerFetchStateTest {
 										"""))
 		);
 
-		RepositoryState state = checker
-				.fetchState(REF, summary(false, "public"), ManagedGroups.all());
+		RepositoryState state = checker.fetchState(
+				REF,
+				summary(false, "public"),
+				ManagedGroups.all(Drifty.GroupName.class)
+		);
 
 		assertThat(state.name()).isEqualTo("repo");
 		assertThat(state.vulnerabilityAlerts()).isTrue();
@@ -197,7 +200,7 @@ class OrgCheckerFetchStateTest {
 		RepositoryState state = checker.fetchState(
 				REF,
 				summary(false, "private"),
-				ManagedGroups.all()
+				ManagedGroups.all(Drifty.GroupName.class)
 		);
 
 		assertThat(state.branchProtections()).isEmpty();
@@ -225,8 +228,11 @@ class OrgCheckerFetchStateTest {
 				""");
 		stubStandardEndpoints();
 
-		RepositoryState state = checker
-				.fetchState(REF, summary(true, "public"), ManagedGroups.all());
+		RepositoryState state = checker.fetchState(
+				REF,
+				summary(true, "public"),
+				ManagedGroups.all(Drifty.GroupName.class)
+		);
 
 		// None of the security endpoints are stubbed: reaching any of them
 		// would fail the request, so passing proves they are all skipped.
@@ -279,7 +285,7 @@ class OrgCheckerFetchStateTest {
 		RepositoryState state = checker.fetchState(
 				REF,
 				summary(false, "private"),
-				ManagedGroups.all()
+				ManagedGroups.all(Drifty.GroupName.class)
 		);
 
 		assertThat(state.immutableReleases()).isFalse();
@@ -322,8 +328,11 @@ class OrgCheckerFetchStateTest {
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		RepositoryState state = checker
-				.fetchState(REF, summary(false, "public"), ManagedGroups.all());
+		RepositoryState state = checker.fetchState(
+				REF,
+				summary(false, "public"),
+				ManagedGroups.all(Drifty.GroupName.class)
+		);
 
 		assertThat(state.rulesets()).singleElement()
 				.satisfies(r -> assertThat(r.name()).isEqualTo("repo-rules"));
@@ -355,7 +364,7 @@ class OrgCheckerFetchStateTest {
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		ManagedGroups managed = ManagedGroups.of(
+		ManagedGroups<Drifty.GroupName> managed = ManagedGroups.of(
 				new Drifty.Managed(
 						Drifty.ManageMode.ALL_EXCEPT,
 						List.of(
