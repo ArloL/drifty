@@ -1,19 +1,31 @@
 package io.github.arlol.githubcheck.drift;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.put;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.list;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
+import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.SecretVisibility;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 import io.github.arlol.githubcheck.testsupport.Desired;
 
+@WireMockTest
 class OrgActionSecretsDriftGroupTest {
 
 	@Test
@@ -98,6 +110,117 @@ class OrgActionSecretsDriftGroupTest {
 						state
 				).detect()
 		).isEmpty();
+	}
+
+	@Test
+	void secretWithoutARecordHasNoBaseline() {
+		var items = items(
+				group(
+						Map.of("PAT", Desired.orgSecret()),
+						List.of(secret("PAT", "t1", SecretVisibility.PRIVATE)),
+						Map.of(),
+						Map.of("org-my-org-PAT", "value"),
+						new DriftyState()
+				)
+		);
+
+		assertThat(items).singleElement()
+				.isInstanceOf(DriftItem.SecretMissingBaseline.class)
+				.extracting(DriftItem::message)
+				.isEqualTo(
+						"org_action_secrets.PAT: exists but has no recorded baseline (--fix pushes the configured value)"
+				);
+	}
+
+	@Test
+	void newerTimestampIsAChangeOutsideDrifty() {
+		var state = new DriftyState();
+		state.recordOrgActionSecret(
+				"my-org",
+				"PAT",
+				"2024-01-01T00:00:00Z",
+				state.hash("value")
+		);
+
+		var items = items(
+				group(
+						Map.of("PAT", Desired.orgSecret()),
+						List.of(
+								secret(
+										"PAT",
+										"2024-06-01T00:00:00Z",
+										SecretVisibility.PRIVATE
+								)
+						),
+						Map.of(),
+						Map.of("org-my-org-PAT", "value"),
+						state
+				)
+		);
+
+		// The message pins which timestamp is the recorded one: swapping the
+		// two constructor arguments reads as plausibly as the right order.
+		assertThat(items).singleElement()
+				.isInstanceOf(DriftItem.SecretChanged.class)
+				.extracting(DriftItem::message)
+				.isEqualTo(
+						"org_action_secrets.PAT: changed outside drifty "
+								+ "(recorded 2024-01-01T00:00:00Z, now 2024-06-01T00:00:00Z)"
+				);
+	}
+
+	@Test
+	void rotatedConfigValueIsDrift() {
+		var state = new DriftyState();
+		state.recordOrgActionSecret("my-org", "PAT", "t1", state.hash("old"));
+
+		var items = items(
+				group(
+						Map.of("PAT", Desired.orgSecret()),
+						List.of(secret("PAT", "t1", SecretVisibility.PRIVATE)),
+						Map.of(),
+						Map.of("org-my-org-PAT", "new"),
+						state
+				)
+		);
+
+		assertThat(items).singleElement()
+				.isInstanceOf(DriftItem.SecretValueChanged.class)
+				.extracting(DriftItem::message)
+				.isEqualTo(
+						"org_action_secrets.PAT: config value changed since last push"
+				);
+	}
+
+	/**
+	 * The report follows the config, not a hash order that changes with every
+	 * JVM run. Four secrets, declared out of alphabetical order, so a shuffled
+	 * map cannot pass by luck.
+	 */
+	@Test
+	void secretsAreReportedInConfigOrder() {
+		var desired = new LinkedHashMap<String, Drifty.OrgSecret>();
+		desired.put("ZULU", Desired.orgSecret());
+		desired.put("alpha", Desired.orgSecret());
+		desired.put("MIKE", Desired.orgSecret());
+		desired.put("bravo", Desired.orgSecret());
+
+		var group = group(
+				desired,
+				List.of(),
+				Map.of(),
+				Map.of(),
+				new DriftyState()
+		);
+
+		assertThat(group.detect()).flatExtracting(DriftFix::items)
+				.extracting(DriftItem::path)
+				.containsExactly(
+						"org_action_secrets.ZULU",
+						"org_action_secrets.alpha",
+						"org_action_secrets.MIKE",
+						"org_action_secrets.bravo"
+				);
 	}
 
 	@Test
@@ -201,6 +324,70 @@ class OrgActionSecretsDriftGroupTest {
 						"org_action_secrets.PAT.visibility"
 				);
 		assertThat(fixes.getFirst().fix().execute().unfixedItems()).hasSize(2);
+	}
+
+	/**
+	 * A repository list left behind under {@code private} is never sent — the
+	 * PUT drops the ids for every visibility but {@code selected} — so it must
+	 * not fail the push over a name nothing can resolve.
+	 */
+	@Test
+	void privateSecretPushesDespiteAStaleRepositoryList(
+			WireMockRuntimeInfo wm
+	) {
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/secrets/public-key"))
+						.willReturn(
+								okJson(
+										"""
+												{
+												  "key_id": "1",
+												  "key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+												}
+												"""
+								)
+						)
+		);
+		stubFor(
+				put(urlPathEqualTo("/orgs/my-org/actions/secrets/PAT"))
+						.willReturn(aResponse().withStatus(204))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/secrets/PAT"))
+						.willReturn(okJson("""
+								{
+								  "name": "PAT",
+								  "updated_at": "t2",
+								  "visibility": "private"
+								}
+								"""))
+		);
+		var state = new DriftyState();
+
+		FixResult result = new OrgActionSecretsDriftGroup(
+				Map.of(
+						"PAT",
+						Desired.orgSecret()
+								.withSelectedRepositories(List.of("gone"))
+				),
+				List.of(),
+				Map.of(),
+				Map.of("org-my-org-PAT", "value"),
+				state,
+				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
+				"my-org"
+		).detect().getFirst().fix().execute();
+
+		assertThat(result.unfixedItems()).isEmpty();
+		assertThat(state.orgActionSecretRecord("my-org", "PAT").updatedAt())
+				.isEqualTo("t2");
+	}
+
+	private static List<DriftItem> items(OrgActionSecretsDriftGroup group) {
+		return group.detect()
+				.stream()
+				.flatMap(fix -> fix.items().stream())
+				.toList();
 	}
 
 	private static Drifty.OrgSecret selectedFor(String... repositories) {
