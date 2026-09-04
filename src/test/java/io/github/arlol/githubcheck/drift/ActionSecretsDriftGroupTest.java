@@ -36,7 +36,7 @@ class ActionSecretsDriftGroupTest {
 			Map<String, String> secretValues,
 			DriftyState state
 	) {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withActionsSecrets(desiredSecrets);
 		return new ActionSecretsDriftGroup(
 				desired.actionsSecrets,

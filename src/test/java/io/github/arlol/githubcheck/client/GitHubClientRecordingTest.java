@@ -81,7 +81,10 @@ class GitHubClientRecordingTest {
 				.until(() -> client.getRepo(owner, repo) != null);
 
 		try {
+			// ArloL is a personal account: the org listing 404s and the user
+			// listing answers. Both are recorded so playback covers each.
 			client.listOrgRepos(owner);
+			client.listUserRepos(owner);
 			var apiRepo = client.getRepo(owner, repo);
 			client.getBranches(owner, repo, false);
 

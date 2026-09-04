@@ -63,23 +63,48 @@ public class GitHubClient {
 	// ─── Public API
 	// ──────────────────────────────────────────────────────────
 
-	public List<RepositorySummaryResponse> listOrgRepos(String owner) {
-		String url = baseUrl + "/orgs/" + owner
-				+ "/repos?per_page=100&type=all";
+	/**
+	 * The organization's repositories, or empty when GitHub does not know the
+	 * organization. The empty result is what makes the org report MISSING
+	 * rather than error.
+	 */
+	public Optional<List<RepositorySummaryResponse>> listOrgRepos(String org) {
+		String url = baseUrl + "/orgs/" + org + "/repos?per_page=100&type=all";
 		HttpResponse<String> resp = get(url);
 		if (resp.statusCode() == 404) {
-			// Not an org — personal account. /users/{name}/repos only
-			// returns public repos; /user/repos returns everything
-			// (public + private + archived) for the authenticated user.
-			url = baseUrl + "/user/repos?per_page=100&type=owner";
-			resp = get(url);
+			return Optional.empty();
 		}
 		if (resp.statusCode() != 200) {
 			throw new GitHubApiException(
-					"HTTP " + resp.statusCode() + " listing repos for " + owner
+					"HTTP " + resp.statusCode() + " listing repos for " + org
 							+ ": " + resp.body()
 			);
 		}
+		return Optional.of(summaries(resp));
+	}
+
+	/**
+	 * A personal account's repositories. {@code /users/{login}/repos} returns
+	 * only public ones, so this reads {@code /user/repos}, which covers public,
+	 * private and archived — for the authenticated user, which is the only
+	 * personal account a token can manage.
+	 */
+	public List<RepositorySummaryResponse> listUserRepos(String login) {
+		HttpResponse<String> resp = get(
+				baseUrl + "/user/repos?per_page=100&type=owner"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " listing repos for " + login
+							+ ": " + resp.body()
+			);
+		}
+		return summaries(resp);
+	}
+
+	private List<RepositorySummaryResponse> summaries(
+			HttpResponse<String> resp
+	) {
 		return collectPaginatedArrayItems(resp, null).stream()
 				.map(
 						node -> mapper.convertValue(

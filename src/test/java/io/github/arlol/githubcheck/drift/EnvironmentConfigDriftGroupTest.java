@@ -14,7 +14,7 @@ class EnvironmentConfigDriftGroupTest {
 
 	@Test
 	void noDriftWhenNoDesiredEnvironments() {
-		var desired = Desired.repository("owner", "repo");
+		var desired = Desired.repository("repo");
 		var actual = Map
 				.of("production", new ActualEnvironment(0, false, false));
 		var group = new EnvironmentConfigDriftGroup(
@@ -34,7 +34,7 @@ class EnvironmentConfigDriftGroupTest {
 
 	@Test
 	void noDriftWhenConfigMatches() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -60,7 +60,7 @@ class EnvironmentConfigDriftGroupTest {
 
 	@Test
 	void detectsWaitTimerDrift() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -93,7 +93,7 @@ class EnvironmentConfigDriftGroupTest {
 
 	@Test
 	void detectsDeploymentBranchPolicyDrift() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -135,7 +135,7 @@ class EnvironmentConfigDriftGroupTest {
 
 	@Test
 	void detectsMissingEnvironment() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",

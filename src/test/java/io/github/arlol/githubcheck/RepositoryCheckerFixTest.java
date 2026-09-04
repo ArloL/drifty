@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.drift.DriftFix;
 import io.github.arlol.githubcheck.drift.DriftFixer;
 import io.github.arlol.githubcheck.drift.DriftGroup;
@@ -192,7 +193,7 @@ class RepositoryCheckerFixTest {
 
 	private static RepositoryState goodPublicState() {
 		return new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -217,7 +218,7 @@ class RepositoryCheckerFixTest {
 				.toString();
 		var details = parse(mergedDetails, RepositoryDetailsResponse.class);
 		return new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(details),
 				ActualTypes.securityAndAnalysis(details),
 				true,
@@ -241,10 +242,7 @@ class RepositoryCheckerFixTest {
 	@Test
 	void noDiffs_noApiCalls() throws Exception {
 		var state = goodPublicState();
-		var groupDrifts = computeGroupDrifts(
-				state,
-				Desired.repository("owner", "repo")
-		);
+		var groupDrifts = computeGroupDrifts(state, Desired.repository("repo"));
 		List<String> remaining = unfixedMessages(checker, groupDrifts);
 		assertThat(remaining).isEmpty();
 		verify(0, patchRequestedFor(urlEqualTo("/repos/owner/repo")));
@@ -258,7 +256,7 @@ class RepositoryCheckerFixTest {
 						.willReturn(okJson("{\"names\":[\"java\"]}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withTopics(List.of("java"));
 
 		var state = goodPublicState(); // topics = []
@@ -280,7 +278,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withDescription("correct");
 
 		var state = stateWithDetailsOverride("""
@@ -313,7 +311,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withDescription("correct")
 				.withAllowForking(false);
 
@@ -357,7 +355,7 @@ class RepositoryCheckerFixTest {
 						.willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withDescription("correct")
 				.withAllowForking(true);
 
@@ -409,7 +407,7 @@ class RepositoryCheckerFixTest {
 				)
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withDescription("correct");
 
 		var state = stateWithDetailsOverride("""
@@ -436,7 +434,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withVisibility(Drifty.Visibility.PRIVATE);
 
 		var state = stateWithDetailsOverride("""
@@ -458,7 +456,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withAllowRebaseMerge(false);
 
 		var state = stateWithDetailsOverride("""
@@ -487,7 +485,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withDescription("correct")
 				.withHomepageUrl("https://example.com");
 
@@ -528,7 +526,7 @@ class RepositoryCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withDescription("correct");
 
 		var state = stateWithDetailsOverride("""
@@ -539,7 +537,7 @@ class RepositoryCheckerFixTest {
 				""");
 		// Also override vulnerability alerts to false
 		var stateWithBadVuln = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				state.repository(),
 				state.securityAndAnalysis(),
 				false,
@@ -586,7 +584,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withAutomatedSecurityFixes(true);
 
 		var baseState = stateWithDetailsOverride(
@@ -600,7 +598,7 @@ class RepositoryCheckerFixTest {
 						"""
 		);
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				baseState.repository(),
 				baseState.securityAndAnalysis(),
 				false,
@@ -664,11 +662,11 @@ class RepositoryCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withAutomatedSecurityFixes(true);
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				false,
@@ -711,11 +709,11 @@ class RepositoryCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withVulnerabilityAlerts(false);
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -757,11 +755,11 @@ class RepositoryCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withAutomatedSecurityFixes(false);
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -802,7 +800,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withSecretScanning(false)
 				.withSecretScanningPushProtection(false);
 
@@ -846,7 +844,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withSecretScanningPushProtection(false);
 
 		var state = goodPublicState();
@@ -878,7 +876,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withSecretScanningValidityChecks(true);
 
 		var state = stateWithDetailsOverride(
@@ -920,7 +918,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withSecretScanningNonProviderPatterns(true);
 
 		var state = stateWithDetailsOverride(
@@ -962,7 +960,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withAdvancedSecurity(true);
 
 		var state = stateWithDetailsOverride(
@@ -1001,7 +999,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withSecretScanningAiDetection(true);
 
 		var state = stateWithDetailsOverride(
@@ -1043,7 +1041,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withSecretScanningDelegatedAlertDismissal(true);
 
 		var state = stateWithDetailsOverride(
@@ -1086,7 +1084,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withSecretScanningDelegatedBypass(true)
 				.withSecretScanningDelegatedBypassReviewers(
 						List.of(
@@ -1146,11 +1144,11 @@ class RepositoryCheckerFixTest {
 				).willReturn(WireMock.noContent())
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withPrivateVulnerabilityReporting(true);
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -1200,11 +1198,11 @@ class RepositoryCheckerFixTest {
 				).willReturn(WireMock.noContent())
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withPrivateVulnerabilityReporting(false);
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -1253,11 +1251,11 @@ class RepositoryCheckerFixTest {
 				).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withCodeScanningDefaultSetup(true);
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -1299,11 +1297,11 @@ class RepositoryCheckerFixTest {
 				).willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withCodeScanningDefaultSetup(false);
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -1347,10 +1345,10 @@ class RepositoryCheckerFixTest {
 				).willReturn(WireMock.noContent())
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo");
+		Drifty.Repository desired = Desired.repository("repo");
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -1391,7 +1389,7 @@ class RepositoryCheckerFixTest {
 
 	@Test
 	void noWorkflowPermissionsDrift_noPutCall() throws Exception {
-		Drifty.Repository desired = Desired.repository("owner", "repo");
+		Drifty.Repository desired = Desired.repository("repo");
 		var state = goodPublicState();
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1416,7 +1414,7 @@ class RepositoryCheckerFixTest {
 						.willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withBranchProtections(
 						Map.of(
 								"main",
@@ -1427,7 +1425,7 @@ class RepositoryCheckerFixTest {
 				);
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -1475,8 +1473,7 @@ class RepositoryCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		var desired = Desired.repository("owner", "repo")
-				.withImmutableReleases(true);
+		var desired = Desired.repository("repo").withImmutableReleases(true);
 
 		var state = goodPublicState();
 
@@ -1500,10 +1497,10 @@ class RepositoryCheckerFixTest {
 				).willReturn(WireMock.noContent())
 		);
 
-		var desired = Desired.repository("owner", "repo");
+		var desired = Desired.repository("repo");
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -1539,7 +1536,7 @@ class RepositoryCheckerFixTest {
 						.willReturn(okJson("{}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withBranchProtections(
 						Map.of(
 								"main",
@@ -1569,7 +1566,7 @@ class RepositoryCheckerFixTest {
 				BranchProtectionResponse.class
 		);
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -1623,7 +1620,7 @@ class RepositoryCheckerFixTest {
 				.withRequiredApprovingReviewCount(1L)
 				.withDismissStaleReviews(true)
 				.withRequireCodeOwnerReviews(true);
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withBranchProtections(Map.of("main", bp));
 
 		var driftedBp = parse("""
@@ -1638,7 +1635,7 @@ class RepositoryCheckerFixTest {
 				}
 				""", BranchProtectionResponse.class);
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -1698,7 +1695,7 @@ class RepositoryCheckerFixTest {
 				.withUsers(List.of("admin-user", "dev-user"))
 				.withTeams(List.of("admins"))
 				.withApps(List.of("my-app"));
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withBranchProtections(Map.of("main", bp));
 
 		var driftedBp = parse("""
@@ -1713,7 +1710,7 @@ class RepositoryCheckerFixTest {
 				}
 				""", BranchProtectionResponse.class);
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -1760,7 +1757,7 @@ class RepositoryCheckerFixTest {
 
 	@Test
 	void noBranchProtectionDrift_noPutCall() throws Exception {
-		Drifty.Repository desired = Desired.repository("owner", "repo");
+		Drifty.Repository desired = Desired.repository("repo");
 		var state = goodPublicState();
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -1783,10 +1780,10 @@ class RepositoryCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo");
+		Drifty.Repository desired = Desired.repository("repo");
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -1833,7 +1830,7 @@ class RepositoryCheckerFixTest {
 						.willReturn(okJson("{\"names\":[\"java\"]}"))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withDescription("correct")
 				.withTopics(List.of("java"));
 
@@ -1869,7 +1866,7 @@ class RepositoryCheckerFixTest {
 				)
 		);
 
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"main-branch-rules",
@@ -1944,7 +1941,7 @@ class RepositoryCheckerFixTest {
 						.willReturn(okJson("{\"id\": 42}"))
 		);
 
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"main-branch-rules",
@@ -1984,7 +1981,7 @@ class RepositoryCheckerFixTest {
 				List.of()
 		);
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -2050,7 +2047,7 @@ class RepositoryCheckerFixTest {
 				)
 		);
 
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"main-branch-rules",
@@ -2070,7 +2067,7 @@ class RepositoryCheckerFixTest {
 				);
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -2113,7 +2110,7 @@ class RepositoryCheckerFixTest {
 								"""))
 		);
 
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withRulesets(
 						Map.of(
 								"main-branch-rules",
@@ -2132,7 +2129,7 @@ class RepositoryCheckerFixTest {
 				);
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -2180,11 +2177,10 @@ class RepositoryCheckerFixTest {
 								"""))
 		);
 
-		var desired = Desired.repository("owner", "repo")
-				.withPages(Desired.pages());
+		var desired = Desired.repository("repo").withPages(Desired.pages());
 
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -2221,8 +2217,7 @@ class RepositoryCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 
-		var desired = Desired.repository("owner", "repo")
-				.withPages(Desired.pages());
+		var desired = Desired.repository("repo").withPages(Desired.pages());
 
 		var actualPages = new ActualPages(
 				"workflow",
@@ -2230,7 +2225,7 @@ class RepositoryCheckerFixTest {
 				false // https_enforced is false → drift
 		);
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -2265,7 +2260,7 @@ class RepositoryCheckerFixTest {
 
 	@Test
 	void noPagesDesired_noPagesApiCall() throws Exception {
-		var desired = Desired.repository("owner", "repo");
+		var desired = Desired.repository("repo");
 
 		var state = goodPublicState();
 
@@ -2288,7 +2283,7 @@ class RepositoryCheckerFixTest {
 						.willReturn(okJson("{}"))
 		);
 
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -2298,7 +2293,7 @@ class RepositoryCheckerFixTest {
 
 		var actualEnv = new ActualEnvironment(10, false, false);
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -2337,7 +2332,7 @@ class RepositoryCheckerFixTest {
 						.willReturn(okJson("{}"))
 		);
 
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -2349,7 +2344,7 @@ class RepositoryCheckerFixTest {
 
 		var actualEnv = new ActualEnvironment(0, false, true);
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -2387,7 +2382,7 @@ class RepositoryCheckerFixTest {
 
 	@Test
 	void noEnvironmentConfigDrift_noEnvironmentApiCall() throws Exception {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -2397,7 +2392,7 @@ class RepositoryCheckerFixTest {
 
 		var actualEnv = new ActualEnvironment(30, false, false);
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -2467,7 +2462,7 @@ class RepositoryCheckerFixTest {
 				Map.of("repo-PAT", "ghp_test_value")
 		);
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -2483,7 +2478,7 @@ class RepositoryCheckerFixTest {
 				goodWorkflowPermissions(),
 				Optional.empty()
 		);
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withActionsSecrets(List.of("PAT"));
 
 		var groupDrifts = localChecker.computeGroupDrifts(state, desired);
@@ -2505,7 +2500,7 @@ class RepositoryCheckerFixTest {
 	) throws Exception {
 		var localChecker = checkerWithSecrets(wm, Map.of());
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -2521,7 +2516,7 @@ class RepositoryCheckerFixTest {
 				goodWorkflowPermissions(),
 				Optional.empty()
 		);
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withActionsSecrets(List.of("PAT"));
 
 		var groupDrifts = localChecker.computeGroupDrifts(state, desired);
@@ -2579,7 +2574,7 @@ class RepositoryCheckerFixTest {
 				Map.of("repo-production-TF_GITHUB_TOKEN", "ghp_test_value")
 		);
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				true,
@@ -2595,7 +2590,7 @@ class RepositoryCheckerFixTest {
 				goodWorkflowPermissions(),
 				Optional.empty()
 		);
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -2628,7 +2623,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		var desired = Desired.repository("owner", "repo").withArchived(true);
+		var desired = Desired.repository("repo").withArchived(true);
 		var state = goodPublicState(); // not archived
 
 		var groupDrifts = computeGroupDrifts(state, desired);
@@ -2649,7 +2644,7 @@ class RepositoryCheckerFixTest {
 				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
 		);
 
-		var desired = Desired.repository("owner", "repo"); // not archived
+		var desired = Desired.repository("repo"); // not archived
 		var state = stateWithDetailsOverride("""
 				{"archived": true}
 				""");
@@ -2681,7 +2676,7 @@ class RepositoryCheckerFixTest {
 
 		// Wants the repo active and the description changed, so both the
 		// archive group and the repo-settings group have work to do.
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withDescription("a new description");
 		var state = stateWithDetailsOverride("""
 				{"archived": true}
@@ -2730,13 +2725,13 @@ class RepositoryCheckerFixTest {
 						.willReturn(WireMock.aResponse().withStatus(500))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withVulnerabilityAlerts(true)
 				.withImmutableReleases(true);
 
 		// Both flags are off on GitHub, so both groups detect drift.
 		var state = new RepositoryState(
-				"repo",
+				new RepoRef("owner", "repo"),
 				ActualTypes.repository(goodDetails()),
 				ActualTypes.securityAndAnalysis(goodDetails()),
 				false,
@@ -2774,7 +2769,7 @@ class RepositoryCheckerFixTest {
 						.willReturn(WireMock.aResponse().withStatus(500))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withImmutableReleases(true);
 
 		var groupDrifts = computeGroupDrifts(goodPublicState(), desired);
@@ -2797,7 +2792,7 @@ class RepositoryCheckerFixTest {
 			throws Exception {
 		var localChecker = checkerWithSecrets(wm, Map.of());
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withActionsSecrets(List.of("PAT"));
 
 		var groupDrifts = localChecker
@@ -2822,7 +2817,7 @@ class RepositoryCheckerFixTest {
 						.willReturn(WireMock.aResponse().withStatus(204))
 		);
 
-		Drifty.Repository desired = Desired.repository("owner", "repo")
+		Drifty.Repository desired = Desired.repository("repo")
 				.withImmutableReleases(true);
 
 		var groupDrifts = computeGroupDrifts(goodPublicState(), desired);

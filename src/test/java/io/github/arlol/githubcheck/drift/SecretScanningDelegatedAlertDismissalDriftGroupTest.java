@@ -11,7 +11,7 @@ class SecretScanningDelegatedAlertDismissalDriftGroupTest {
 
 	@Test
 	void noDriftWhenMatches() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withSecretScanningDelegatedAlertDismissal(true);
 		var group = new SecretScanningDelegatedAlertDismissalDriftGroup(
 				desired.secretScanningDelegatedAlertDismissal,
@@ -27,7 +27,7 @@ class SecretScanningDelegatedAlertDismissalDriftGroupTest {
 
 	@Test
 	void detectsDrift() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withSecretScanningDelegatedAlertDismissal(true);
 		var group = new SecretScanningDelegatedAlertDismissalDriftGroup(
 				desired.secretScanningDelegatedAlertDismissal,

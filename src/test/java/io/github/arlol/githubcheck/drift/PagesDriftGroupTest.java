@@ -14,7 +14,7 @@ class PagesDriftGroupTest {
 
 	@Test
 	void noDriftWhenPagesNotDesired() {
-		var desired = Desired.repository("owner", "repo");
+		var desired = Desired.repository("repo");
 		var actual = Optional
 				.of(new ActualPages("workflow", Optional.empty(), true));
 		var group = new PagesDriftGroup(
@@ -34,8 +34,7 @@ class PagesDriftGroupTest {
 
 	@Test
 	void detectsMissingPages() {
-		var desired = Desired.repository("owner", "repo")
-				.withPages(Desired.pages());
+		var desired = Desired.repository("repo").withPages(Desired.pages());
 		Optional<ActualPages> actual = Optional.empty();
 		var group = new PagesDriftGroup(
 				desired.pages,
@@ -57,8 +56,8 @@ class PagesDriftGroupTest {
 
 	@Test
 	void detectsBuildTypeMismatch() {
-		var desired = Desired.repository("owner", "repo")
-				.withPages(Desired.pages()); // wants workflow
+		var desired = Desired.repository("repo").withPages(Desired.pages()); // wants
+																			 // workflow
 		var actual = Optional.of(
 				new ActualPages(
 						"legacy",
@@ -89,8 +88,7 @@ class PagesDriftGroupTest {
 
 	@Test
 	void detectsHttpsNotEnforced() {
-		var desired = Desired.repository("owner", "repo")
-				.withPages(Desired.pages());
+		var desired = Desired.repository("repo").withPages(Desired.pages());
 		var actual = Optional.of(
 				new ActualPages(
 						"workflow",
@@ -121,7 +119,7 @@ class PagesDriftGroupTest {
 
 	@Test
 	void detectsSourceBranchMismatch() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withPages(Desired.legacyPages("main", "/docs"));
 		var actual = Optional.of(
 				new ActualPages(
@@ -147,7 +145,7 @@ class PagesDriftGroupTest {
 
 	@Test
 	void noDriftWhenAllMatch() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withPages(Desired.legacyPages("main", "/docs"));
 		var actual = Optional.of(
 				new ActualPages(

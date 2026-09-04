@@ -15,7 +15,7 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 
 	@Test
 	void noDriftWhenStatusAndReviewersMatch() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withSecretScanningDelegatedBypass(true)
 				.withSecretScanningDelegatedBypassReviewers(
 						List.of(
@@ -41,7 +41,7 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 
 	@Test
 	void detectsStatusDrift() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withSecretScanningDelegatedBypass(true);
 		var group = new SecretScanningDelegatedBypassDriftGroup(
 				desired.secretScanningDelegatedBypass,
@@ -67,7 +67,7 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 
 	@Test
 	void detectsReviewerDriftWhenEnabled() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withSecretScanningDelegatedBypass(true)
 				.withSecretScanningDelegatedBypassReviewers(
 						List.of(
@@ -97,7 +97,7 @@ class SecretScanningDelegatedBypassDriftGroupTest {
 
 	@Test
 	void ignoresReviewersWhenDisabled() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withSecretScanningDelegatedBypass(false);
 		var group = new SecretScanningDelegatedBypassDriftGroup(
 				desired.secretScanningDelegatedBypass,

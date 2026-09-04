@@ -54,7 +54,8 @@ class GitHubClientTest {
 				]
 				""")));
 
-		List<RepositorySummaryResponse> repos = client.listOrgRepos("owner");
+		List<RepositorySummaryResponse> repos = client.listOrgRepos("owner")
+				.orElseThrow();
 
 		assertThat(repos).hasSize(2);
 		assertThat(repos.get(0).name()).isEqualTo("repo-a");
@@ -99,7 +100,8 @@ class GitHubClientTest {
 						)
 		);
 
-		List<RepositorySummaryResponse> repos = client.listOrgRepos("owner");
+		List<RepositorySummaryResponse> repos = client.listOrgRepos("owner")
+				.orElseThrow();
 
 		assertThat(repos).hasSize(2);
 		assertThat(repos.get(0).name()).isEqualTo("repo-page1");
@@ -113,12 +115,18 @@ class GitHubClientTest {
 						.willReturn(okJson("[]"))
 		);
 
-		List<RepositorySummaryResponse> repos = client.listOrgRepos("owner");
+		List<RepositorySummaryResponse> repos = client.listOrgRepos("owner")
+				.orElseThrow();
 		assertThat(repos).isEmpty();
 	}
 
+	/**
+	 * An unknown organization reads as empty, not as the token owner's own
+	 * repositories: the 404 used to fall back to {@code /user/repos}, which
+	 * silently checked the wrong account.
+	 */
 	@Test
-	void listOrgRepos_fallsBackToUserEndpointOn404() throws Exception {
+	void listOrgRepos_unknownOrgIsEmpty() throws Exception {
 		stubFor(
 				get(urlPathEqualTo("/orgs/owner/repos")).willReturn(
 						aResponse().withStatus(404)
@@ -130,6 +138,16 @@ class GitHubClientTest {
 								)
 				)
 		);
+
+		assertThat(client.listOrgRepos("owner")).isEmpty();
+	}
+
+	// ─── listUserRepos
+	// ──────────────────────────────────────────────────────────
+
+	@Test
+	void listUserRepos_readsTheAuthenticatedUsersRepositories()
+			throws Exception {
 		stubFor(get(urlPathEqualTo("/user/repos")).willReturn(okJson("""
 				[
 				  {"name": "repo-a", "archived": false, "visibility": "public"},
@@ -137,7 +155,7 @@ class GitHubClientTest {
 				]
 				""")));
 
-		List<RepositorySummaryResponse> repos = client.listOrgRepos("owner");
+		List<RepositorySummaryResponse> repos = client.listUserRepos("owner");
 
 		assertThat(repos).hasSize(2);
 		assertThat(repos.get(0).name()).isEqualTo("repo-a");
@@ -146,20 +164,26 @@ class GitHubClientTest {
 	}
 
 	@Test
+	void listUserRepos_errorThrows() {
+		stubFor(
+				get(urlPathEqualTo("/user/repos")).willReturn(
+						aResponse().withStatus(403)
+								.withHeader("Content-Type", "application/json")
+								.withBody("""
+										{"message":"Forbidden"}
+										""")
+				)
+		);
+
+		assertThatThrownBy(() -> client.listUserRepos("owner"))
+				.isInstanceOf(RuntimeException.class)
+				.hasMessageContaining("HTTP 403");
+	}
+
+	@Test
 	void listOrgRepos_errorThrows() {
 		stubFor(
 				get(urlPathEqualTo("/orgs/owner/repos")).willReturn(
-						aResponse().withStatus(404)
-								.withHeader("Content-Type", "application/json")
-								.withBody(
-										"""
-												{"message":"Not Found","documentation_url":"https://docs.github.com/rest","status":"404"}
-												"""
-								)
-				)
-		);
-		stubFor(
-				get(urlPathEqualTo("/user/repos")).willReturn(
 						aResponse().withStatus(403)
 								.withHeader("Content-Type", "application/json")
 								.withBody("""

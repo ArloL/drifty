@@ -464,7 +464,7 @@
 						<argument>${start-class}</argument>
 						<argument>--no-fix</argument>
 						<argument>--config</argument>
-						<argument>./config/ArloL.pkl</argument>
+						<argument>./config/example.pkl</argument>
 					</arguments>
 				</configuration>
 				<executions>

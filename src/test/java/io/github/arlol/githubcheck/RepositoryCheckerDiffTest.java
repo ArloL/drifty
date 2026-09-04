@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.drift.DriftFix;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 
@@ -144,7 +145,7 @@ class RepositoryCheckerDiffTest {
 
 	private static Drifty.Repository defaultDesired() {
 		return Desired.withBranchProtection(
-				Desired.repository("owner", "repo"),
+				Desired.repository("repo"),
 				"main",
 				Desired.branchProtection()
 						.withEnforceAdmins(true)
@@ -292,7 +293,7 @@ class RepositoryCheckerDiffTest {
 			bpMap.putAll(extraBranchProtections);
 			var details = parse(detailsJson, RepositoryDetailsResponse.class);
 			return new RepositoryState(
-					"repo",
+					new RepoRef("owner", "repo"),
 					ActualTypes.repository(details),
 					ActualTypes.securityAndAnalysis(details),
 					vulnerabilityAlerts,

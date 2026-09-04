@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -13,6 +14,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.Secrets;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
@@ -53,8 +56,7 @@ public class GitHubCheck {
 			System.exit(1);
 			return;
 		}
-		List<Drifty.Repository> repos = PklConfigLoader
-				.load(configPath.toAbsolutePath());
+		DriftyConfig config = PklConfigLoader.load(configPath.toAbsolutePath());
 
 		Path stateFile = statePath != null ? Path.of(statePath)
 				: configPath.toAbsolutePath()
@@ -62,15 +64,70 @@ public class GitHubCheck {
 		var stateStore = new StateStore();
 		DriftyState state = stateStore.load(stateFile);
 
-		if (fix && reportMissingSecrets(repos, githubSecrets)) {
+		if (fix && reportMissingSecrets(
+				config.allRepositories(),
+				githubSecrets
+		)) {
 			System.exit(1);
 			return;
 		}
 
 		long startTime = System.currentTimeMillis();
 
-		var checker = new RepositoryChecker(token, fix, githubSecrets, state);
-		CheckResult result = checker.check(repos);
+		var client = new GitHubClient(token);
+		var repoChecker = new RepositoryChecker(
+				client,
+				fix,
+				githubSecrets,
+				state
+		);
+		var repoEntries = new ArrayList<CheckResult.Entry>();
+		long startFetch = System.currentTimeMillis();
+
+		for (var entry : config.organizations().entrySet()) {
+			String login = entry.getKey();
+			System.out.println("Fetching repo list for organization: " + login);
+			Optional<List<RepositorySummaryResponse>> repos = client
+					.listOrgRepos(login);
+			if (repos.isEmpty()) {
+				entry.getValue().repositories.forEach(
+						r -> repoEntries.add(CheckResult.Entry.missing(r.name))
+				);
+				continue;
+			}
+			System.out.printf(
+					"Found %d repos. Fetching details in parallel...%n",
+					repos.orElseThrow().size()
+			);
+			repoEntries.addAll(
+					repoChecker.check(
+							login,
+							repos.orElseThrow(),
+							entry.getValue().repositories
+					)
+			);
+		}
+
+		for (var entry : config.users().entrySet()) {
+			String login = entry.getKey();
+			System.out.println("Fetching repo list for user: " + login);
+			List<RepositorySummaryResponse> repos = client.listUserRepos(login);
+			System.out.printf(
+					"Found %d repos. Fetching details in parallel...%n",
+					repos.size()
+			);
+			repoEntries.addAll(
+					repoChecker
+							.check(login, repos, entry.getValue().repositories)
+			);
+		}
+
+		System.out.printf(
+				"Fetch complete in %.2f seconds%n%n",
+				(System.currentTimeMillis() - startFetch) / 1000.0
+		);
+
+		CheckResult result = CheckResult.ofRepos(repoEntries);
 		Report.print(result);
 
 		if (fix) {

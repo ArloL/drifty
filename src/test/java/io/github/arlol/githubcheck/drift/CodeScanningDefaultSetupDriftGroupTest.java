@@ -11,7 +11,7 @@ class CodeScanningDefaultSetupDriftGroupTest {
 
 	@Test
 	void noDriftWhenMatches() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withCodeScanningDefaultSetup(true);
 		var group = new CodeScanningDefaultSetupDriftGroup(
 				desired.codeScanningDefaultSetup,
@@ -27,7 +27,7 @@ class CodeScanningDefaultSetupDriftGroupTest {
 
 	@Test
 	void detectsDrift() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withCodeScanningDefaultSetup(true);
 		var group = new CodeScanningDefaultSetupDriftGroup(
 				desired.codeScanningDefaultSetup,

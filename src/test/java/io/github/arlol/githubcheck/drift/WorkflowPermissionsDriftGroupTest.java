@@ -14,7 +14,7 @@ class WorkflowPermissionsDriftGroupTest {
 
 	@Test
 	void noDriftWhenBothFieldsMatch() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withDefaultWorkflowPermissions(
 						Drifty.WorkflowPermissions.WRITE
 				)
@@ -42,7 +42,7 @@ class WorkflowPermissionsDriftGroupTest {
 	@Test
 	void detectsDefaultPermissionsDrift() {
 		// canApprove matches actual to test only one field
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withDefaultWorkflowPermissions(
 						Drifty.WorkflowPermissions.WRITE
 				)
@@ -76,7 +76,7 @@ class WorkflowPermissionsDriftGroupTest {
 	@Test
 	void detectsCanApprovePrsDrift() {
 		// defaultWorkflowPermissions matches actual to test only one field
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withCanApprovePullRequestReviews(true)
 				.withDefaultWorkflowPermissions(
 						Drifty.WorkflowPermissions.READ
@@ -110,7 +110,7 @@ class WorkflowPermissionsDriftGroupTest {
 
 	@Test
 	void detectsBothFieldsDrift() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withDefaultWorkflowPermissions(
 						Drifty.WorkflowPermissions.WRITE
 				)

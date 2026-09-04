@@ -12,6 +12,7 @@ import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
+import io.github.arlol.githubcheck.client.RepoRef;
 
 /**
  * Everything drifty knows about one repository on GitHub, in drifty's own
@@ -28,12 +29,16 @@ import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
  * GitHub serves from their own endpoints; for an archived repository they are
  * not fetched and read {@code false}.
  * <p>
+ * The {@code ref} carries the owner, which the desired state no longer does: a
+ * repository is nested under the account that owns it, so the owner reaches the
+ * drift groups with the actual state rather than beside it.
+ * <p>
  * {@code workflowPermissions} is null when the repository does not manage the
  * {@code workflow_permissions} group: the response is never fetched, and the
  * group that would read it is not built.
  */
 public record RepositoryState(
-		String name,
+		RepoRef ref,
 		ActualRepository repository,
 		ActualSecurityAndAnalysis securityAndAnalysis,
 		boolean vulnerabilityAlerts,
@@ -56,6 +61,10 @@ public record RepositoryState(
 		actionSecrets = List.copyOf(actionSecrets);
 		environments = Map.copyOf(environments);
 		environmentSecrets = Map.copyOf(environmentSecrets);
+	}
+
+	public String name() {
+		return ref.name();
 	}
 
 }

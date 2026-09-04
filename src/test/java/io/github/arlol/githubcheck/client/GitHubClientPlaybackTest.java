@@ -40,8 +40,8 @@ class GitHubClientPlaybackTest {
 	}
 
 	@Test
-	void listOrgRepos_returnsRecordedRepos() throws Exception {
-		List<RepositorySummaryResponse> repos = client.listOrgRepos("ArloL");
+	void listUserRepos_returnsRecordedRepos() throws Exception {
+		List<RepositorySummaryResponse> repos = client.listUserRepos("ArloL");
 		assertThat(repos).isNotEmpty();
 		assertThat(repos).extracting(RepositorySummaryResponse::name)
 				.contains("drifty");

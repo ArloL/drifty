@@ -70,7 +70,7 @@ class GitHubCheckTest {
 	@Test
 	void collectMissingSecrets_noneMissing() {
 		var repos = List.of(
-				Desired.repository("owner", "repo")
+				Desired.repository("repo")
 						.withActionsSecrets(List.of("TOKEN"))
 						.withEnvironments(
 								Map.of(
@@ -94,7 +94,7 @@ class GitHubCheckTest {
 	@Test
 	void collectMissingSecrets_reportsActionAndEnvironmentSecrets() {
 		var repos = List.of(
-				Desired.repository("owner", "repo")
+				Desired.repository("repo")
 						.withActionsSecrets(List.of("TOKEN"))
 						.withEnvironments(
 								Map.of(
@@ -117,8 +117,7 @@ class GitHubCheckTest {
 	@Test
 	void reportMissingSecrets_signalsWhetherAnythingIsMissing() {
 		var repos = List.of(
-				Desired.repository("owner", "repo")
-						.withActionsSecrets(List.of("TOKEN"))
+				Desired.repository("repo").withActionsSecrets(List.of("TOKEN"))
 		);
 
 		assertThat(GitHubCheck.reportMissingSecrets(repos, Map.of())).isTrue();

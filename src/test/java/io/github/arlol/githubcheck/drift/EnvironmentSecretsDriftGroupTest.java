@@ -27,7 +27,7 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsExtraSecret_whenNoDesiredSecrets() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(Map.of("production", Desired.environment()));
 		var group = new EnvironmentSecretsDriftGroup(
 				desired.environments,
@@ -52,7 +52,7 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsMissingBaseline_whenSecretExistsWithoutRecordedBaseline() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -85,7 +85,7 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsMissingSecret() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -114,7 +114,7 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsExtraSecret() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -156,7 +156,7 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsPerItem_acrossMultipleEnvironments() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"staging",
@@ -195,7 +195,7 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void noDrift_whenRecordedTimestampMatches() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -228,7 +228,7 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsSecretChanged_whenTimestampMismatch() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -265,7 +265,7 @@ class EnvironmentSecretsDriftGroupTest {
 
 	@Test
 	void detectsSecretValueChanged_whenConfigValueChanged() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withEnvironments(
 						Map.of(
 								"production",

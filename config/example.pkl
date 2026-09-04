@@ -1,0 +1,47 @@
+/// Example configuration. Not a real account — it exists so `./mvnw exec:java`
+/// and PklConfigLoaderTest have something to evaluate, and so SPEC.md can
+/// point at a complete config.
+amends "drifty.pkl"
+
+local checkActions = new StatusCheck {
+  context = "check-actions.required-status-check"
+  appId = module.githubActionsAppId
+}
+
+local mainRuleset: Ruleset = new {
+  includePatterns { "refs/heads/main" }
+  requiredLinearHistory = true
+  noForcePushes = true
+  requiredStatusChecks { checkActions }
+}
+
+local defaultRepo: Repository = new {
+  allowMergeCommit = false
+  allowAutoMerge = true
+  deleteBranchOnMerge = true
+  rulesets { ["main"] = mainRuleset }
+}
+
+organizations {
+  ["example-org"] {
+    repositories {
+      (defaultRepo) { name = "example-service" }
+      (defaultRepo) {
+        name = "example-library"
+        topics { "java"; "library" }
+      }
+      (defaultRepo) {
+        name = "shared-with-another-team"
+        managed { mode = "all_except"; groups { "action_secrets"; "rulesets" } }
+      }
+    }
+  }
+}
+
+users {
+  ["example-user"] {
+    repositories {
+      (defaultRepo) { name = "personal-site"; pages = new Pages {} }
+    }
+  }
+}

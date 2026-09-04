@@ -11,7 +11,7 @@ class SecretScanningNonProviderPatternsDriftGroupTest {
 
 	@Test
 	void noDriftWhenMatches() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withSecretScanningNonProviderPatterns(true);
 		var group = new SecretScanningNonProviderPatternsDriftGroup(
 				desired.secretScanningNonProviderPatterns,
@@ -27,7 +27,7 @@ class SecretScanningNonProviderPatternsDriftGroupTest {
 
 	@Test
 	void detectsDrift() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withSecretScanningNonProviderPatterns(true);
 		var group = new SecretScanningNonProviderPatternsDriftGroup(
 				desired.secretScanningNonProviderPatterns,

@@ -11,7 +11,7 @@ class AutomatedSecurityFixesDriftGroupTest {
 
 	@Test
 	void noDriftWhenMatches() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withAutomatedSecurityFixes(true);
 		var group = new AutomatedSecurityFixesDriftGroup(
 				desired.automatedSecurityFixes,
@@ -27,7 +27,7 @@ class AutomatedSecurityFixesDriftGroupTest {
 
 	@Test
 	void detectsDrift() {
-		var desired = Desired.repository("owner", "repo")
+		var desired = Desired.repository("repo")
 				.withAutomatedSecurityFixes(true);
 		var group = new AutomatedSecurityFixesDriftGroup(
 				desired.automatedSecurityFixes,

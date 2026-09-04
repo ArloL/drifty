@@ -4,7 +4,7 @@
 // builder: it arrives here with the default `config/drifty.pkl` gives it.
 import "../../../config/drifty.pkl" as drifty
 
-repository: drifty.Repository = new { owner = "owner"; name = "repo" }
+repository: drifty.Repository = new { name = "repo" }
 ruleset: drifty.Ruleset = new {}
 branchProtection: drifty.BranchProtection = new {}
 environment: drifty.Environment = new {}
