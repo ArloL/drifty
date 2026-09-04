@@ -8,6 +8,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.patch;
 import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
@@ -1290,6 +1291,199 @@ class GitHubClientTest {
 		assertThatThrownBy(
 				() -> client.replaceTopics("owner", "my-repo", List.of("bad"))
 		).isInstanceOf(RuntimeException.class).hasMessageContaining("HTTP 422");
+	}
+
+	// ─── Organizations
+	// ──────────────────────────────────────────────────
+
+	@Test
+	void getOrganization_parsesSettings() {
+		stubFor(get(urlPathEqualTo("/orgs/my-org")).willReturn(okJson("""
+				{
+				  "login": "my-org",
+				  "description": null,
+				  "blog": "https://example.com",
+				  "default_repository_permission": "read",
+				  "members_can_create_repositories": true,
+				  "members_can_fork_private_repositories": false,
+				  "web_commit_signoff_required": true,
+				  "two_factor_requirement_enabled": true
+				}
+				""")));
+
+		OrganizationResponse org = client.getOrganization("my-org")
+				.orElseThrow();
+
+		assertThat(org.login()).isEqualTo("my-org");
+		assertThat(org.description()).isNull();
+		assertThat(org.blog()).isEqualTo("https://example.com");
+		assertThat(org.webCommitSignoffRequired()).isTrue();
+		assertThat(org.twoFactorRequirementEnabled()).isTrue();
+	}
+
+	@Test
+	void getOrganization_missingIsEmpty() {
+		stubFor(
+				get(urlPathEqualTo("/orgs/nope"))
+						.willReturn(aResponse().withStatus(404))
+		);
+
+		assertThat(client.getOrganization("nope")).isEmpty();
+	}
+
+	@Test
+	void updateOrganization_sendsOnlySetFields() {
+		stubFor(patch(urlPathEqualTo("/orgs/my-org")).willReturn(okJson("{}")));
+
+		client.updateOrganization(
+				"my-org",
+				OrganizationUpdateRequest.builder()
+						.description("new")
+						.membersCanCreatePages(false)
+						.build()
+		);
+
+		verify(
+				patchRequestedFor(urlPathEqualTo("/orgs/my-org"))
+						.withRequestBody(
+								equalToJson(
+										"""
+												{"description":"new","members_can_create_pages":false}"""
+								)
+						)
+		);
+	}
+
+	@Test
+	void getOrgActionsPermissions_parses() {
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/permissions"))
+						.willReturn(okJson("""
+								{
+								  "enabled_repositories": "all",
+								  "allowed_actions": "selected",
+								  "sha_pinning_required": false
+								}
+								"""))
+		);
+
+		OrgActionsPermissionsResponse permissions = client
+				.getOrgActionsPermissions("my-org");
+
+		assertThat(permissions.enabledRepositories())
+				.isEqualTo(ActionsEnabledRepositories.ALL);
+		assertThat(permissions.allowedActions())
+				.isEqualTo(AllowedActions.SELECTED);
+		assertThat(permissions.shaPinningRequired()).isFalse();
+	}
+
+	@Test
+	void getOrgSelectedActions_parses() {
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/orgs/my-org/actions/permissions/selected-actions"
+						)
+				).willReturn(okJson("""
+						{
+						  "github_owned_allowed": true,
+						  "verified_allowed": false,
+						  "patterns_allowed": ["my-org/*"]
+						}
+						"""))
+		);
+
+		SelectedActions selected = client.getOrgSelectedActions("my-org");
+
+		assertThat(selected.githubOwnedAllowed()).isTrue();
+		assertThat(selected.verifiedAllowed()).isFalse();
+		assertThat(selected.patternsAllowed()).containsExactly("my-org/*");
+	}
+
+	@Test
+	void getOrgWorkflowPermissions_parses() {
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/permissions/workflow"))
+						.willReturn(okJson("""
+								{
+								  "default_workflow_permissions": "read",
+								  "can_approve_pull_request_reviews": false
+								}
+								"""))
+		);
+
+		WorkflowPermissions permissions = client
+				.getOrgWorkflowPermissions("my-org");
+
+		assertThat(permissions.defaultWorkflowPermissions())
+				.isEqualTo(WorkflowPermissions.DefaultWorkflowPermissions.READ);
+		assertThat(permissions.canApprovePullRequestReviews()).isFalse();
+	}
+
+	@Test
+	void getOrgActionSecrets_parsesVisibility() {
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/secrets")).willReturn(
+						okJson(
+								"""
+										{
+										  "total_count": 2,
+										  "secrets": [
+										    {"name":"PAT","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","visibility":"selected"},
+										    {"name":"NPM","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","visibility":"all"}
+										  ]
+										}
+										"""
+						)
+				)
+		);
+
+		List<OrgSecretResponse> secrets = client.getOrgActionSecrets("my-org");
+
+		assertThat(secrets).extracting(OrgSecretResponse::name)
+				.containsExactly("PAT", "NPM");
+		assertThat(secrets.getFirst().visibility())
+				.isEqualTo(SecretVisibility.SELECTED);
+	}
+
+	@Test
+	void createOrUpdateOrgActionSecret_sendsVisibilityAndRepositoryIds() {
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/secrets/public-key"))
+						.willReturn(
+								okJson(
+										"""
+												{"key_id":"1","key":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}
+												"""
+								)
+						)
+		);
+		stubFor(
+				put(urlPathEqualTo("/orgs/my-org/actions/secrets/PAT"))
+						.willReturn(aResponse().withStatus(204))
+		);
+
+		client.createOrUpdateOrgActionSecret(
+				"my-org",
+				"PAT",
+				"value",
+				SecretVisibility.SELECTED,
+				List.of(1L, 2L)
+		);
+
+		verify(
+				putRequestedFor(
+						urlPathEqualTo("/orgs/my-org/actions/secrets/PAT")
+				).withRequestBody(
+						matchingJsonPath("$.visibility", equalTo("selected"))
+				)
+						.withRequestBody(
+								matchingJsonPath(
+										"$.selected_repository_ids[1]",
+										equalTo("2")
+								)
+						)
+		);
 	}
 
 }

@@ -925,6 +925,217 @@ public class GitHubClient {
 		return readValue(resp.body(), SimpleUser.class);
 	}
 
+	// ─── Organizations
+	// ─────────────────────────────────────────────────────
+
+	public Optional<OrganizationResponse> getOrganization(String org) {
+		HttpResponse<String> resp = get(orgUrl(org));
+		if (resp.statusCode() == 404) {
+			return Optional.empty();
+		}
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " fetching organization "
+							+ org + ": " + resp.body()
+			);
+		}
+		return Optional.of(readValue(resp.body(), OrganizationResponse.class));
+	}
+
+	public void updateOrganization(
+			String org,
+			OrganizationUpdateRequest request
+	) {
+		HttpResponse<String> resp = patch(orgUrl(org), writeValue(request));
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " updating organization "
+							+ org + ": " + resp.body()
+			);
+		}
+	}
+
+	public OrgActionsPermissionsResponse getOrgActionsPermissions(String org) {
+		HttpResponse<String> resp = get(orgUrl(org) + "/actions/permissions");
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " GET actions permissions on "
+							+ org + ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), OrgActionsPermissionsResponse.class);
+	}
+
+	public void updateOrgActionsPermissions(
+			String org,
+			OrgActionsPermissionsRequest request
+	) {
+		HttpResponse<String> resp = put(
+				orgUrl(org) + "/actions/permissions",
+				writeValue(request)
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " updating actions permissions on " + org + ": "
+							+ resp.body()
+			);
+		}
+	}
+
+	public SelectedActions getOrgSelectedActions(String org) {
+		HttpResponse<String> resp = get(
+				orgUrl(org) + "/actions/permissions/selected-actions"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " GET selected actions on "
+							+ org + ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), SelectedActions.class);
+	}
+
+	public void updateOrgSelectedActions(String org, SelectedActions selected) {
+		HttpResponse<String> resp = put(
+				orgUrl(org) + "/actions/permissions/selected-actions",
+				writeValue(selected)
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " updating selected actions on " + org + ": "
+							+ resp.body()
+			);
+		}
+	}
+
+	public WorkflowPermissions getOrgWorkflowPermissions(String org) {
+		HttpResponse<String> resp = get(
+				orgUrl(org) + "/actions/permissions/workflow"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " GET workflow permissions on " + org + ": "
+							+ resp.body()
+			);
+		}
+		return readValue(resp.body(), WorkflowPermissions.class);
+	}
+
+	public void updateOrgWorkflowPermissions(
+			String org,
+			WorkflowPermissions permissions
+	) {
+		HttpResponse<String> resp = put(
+				orgUrl(org) + "/actions/permissions/workflow",
+				writeValue(permissions)
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " updating workflow permissions on " + org + ": "
+							+ resp.body()
+			);
+		}
+	}
+
+	public List<OrgSecretResponse> getOrgActionSecrets(String org) {
+		HttpResponse<String> resp = get(
+				orgUrl(org) + "/actions/secrets?per_page=100"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " for org action secrets on "
+							+ org + ": " + resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, "secrets").stream()
+				.map(s -> mapper.convertValue(s, OrgSecretResponse.class))
+				.toList();
+	}
+
+	public OrgSecretResponse getOrgActionSecret(String org, String name) {
+		HttpResponse<String> resp = get(
+				orgUrl(org) + "/actions/secrets/" + name
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " GET org action secret "
+							+ name + " on " + org + ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), OrgSecretResponse.class);
+	}
+
+	/** The repositories a {@code selected} secret is shared with. */
+	public List<RepositorySummaryResponse> getOrgActionSecretRepositories(
+			String org,
+			String name
+	) {
+		HttpResponse<String> resp = get(
+				orgUrl(org) + "/actions/secrets/" + name
+						+ "/repositories?per_page=100"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " for repositories of org "
+							+ "secret " + name + " on " + org + ": "
+							+ resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, "repositories").stream()
+				.map(
+						node -> mapper.convertValue(
+								node,
+								RepositorySummaryResponse.class
+						)
+				)
+				.toList();
+	}
+
+	public SecretPublicKeyResponse getOrgActionSecretPublicKey(String org) {
+		HttpResponse<String> resp = get(
+				orgUrl(org) + "/actions/secrets/public-key"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " GET org action secret public key on " + org
+							+ ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), SecretPublicKeyResponse.class);
+	}
+
+	public void createOrUpdateOrgActionSecret(
+			String org,
+			String name,
+			String value,
+			SecretVisibility visibility,
+			List<Long> selectedRepositoryIds
+	) {
+		var publicKey = getOrgActionSecretPublicKey(org);
+		var request = new OrgSecretRequest(
+				Secrets.encryptSecret(publicKey.key(), value),
+				publicKey.keyId(),
+				visibility,
+				visibility == SecretVisibility.SELECTED ? selectedRepositoryIds
+						: null
+		);
+		HttpResponse<String> resp = put(
+				orgUrl(org) + "/actions/secrets/" + name,
+				writeValue(request)
+		);
+		if (resp.statusCode() != 201 && resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " PUT org action secret "
+							+ name + " on " + org + ": " + resp.body()
+			);
+		}
+	}
+
 	// ─── Pagination
 	// ──────────────────────────────────────────────────────────
 
@@ -967,6 +1178,10 @@ public class GitHubClient {
 
 	private String repoUrl(String owner, String repo) {
 		return baseUrl + "/repos/" + owner + "/" + repo;
+	}
+
+	private String orgUrl(String org) {
+		return baseUrl + "/orgs/" + org;
 	}
 
 	private String pagesUrl(String owner, String repo) {
