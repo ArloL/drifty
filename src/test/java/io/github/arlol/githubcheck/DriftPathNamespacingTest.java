@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrganization;
+import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.RepoRef;
@@ -111,13 +112,14 @@ class DriftPathNamespacingTest {
 				.map(DriftGroup::name)
 				.toList();
 
-		// org_settings and org_actions_permissions have groups so far. Task 9
-		// lands the last of the other two, and tightens this to
+		// org_settings, org_actions_permissions and org_workflow_permissions
+		// have groups so far. Task 9 lands the last one, and tightens this to
 		// OrgGroupName.values().
 		assertThat(names).doesNotHaveDuplicates()
 				.containsExactlyInAnyOrder(
 						Drifty.OrgGroupName.ORG_SETTINGS,
-						Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS
+						Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS,
+						Drifty.OrgGroupName.ORG_WORKFLOW_PERMISSIONS
 				);
 	}
 
@@ -294,12 +296,17 @@ class DriftPathNamespacingTest {
 				null
 		);
 
+		var workflowPermissions = new ActualWorkflowPermissions(
+				WorkflowPermissions.DefaultWorkflowPermissions.READ,
+				false
+		);
+
 		return checker.createDriftGroups(
 				new OrganizationState(
 						"my-org",
 						actual,
 						actionsPermissions,
-						null,
+						workflowPermissions,
 						List.of()
 				),
 				Desired.organization(),

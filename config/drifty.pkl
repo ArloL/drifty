@@ -281,6 +281,8 @@ class Organization {
   displayCommenterFullNameSettingEnabled: Boolean = false
 
   actionsPermissions: ActionsPermissions = new {}
+  defaultWorkflowPermissions: WorkflowPermissions = "write"
+  canApprovePullRequestReviews: Boolean = true
 
   repositories: Listing<Repository> = new {}
 }
