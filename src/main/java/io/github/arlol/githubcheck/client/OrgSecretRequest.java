@@ -17,4 +17,12 @@ public record OrgSecretRequest(
 		SecretVisibility visibility,
 		List<Long> selectedRepositoryIds
 ) {
+
+	public OrgSecretRequest {
+		// Copy, but keep null null: NON_NULL is what drops the field for the
+		// visibilities that must not carry it.
+		selectedRepositoryIds = selectedRepositoryIds == null ? null
+				: List.copyOf(selectedRepositoryIds);
+	}
+
 }

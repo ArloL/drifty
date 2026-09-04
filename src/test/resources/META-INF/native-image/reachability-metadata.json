@@ -264,6 +264,9 @@
       "type": "com.github.tomakehurst.wiremock.matching.EqualToPattern"
     },
     {
+      "type": "com.github.tomakehurst.wiremock.matching.MatchesJsonPathPattern"
+    },
+    {
       "type": "com.github.tomakehurst.wiremock.matching.MultiValuePattern"
     },
     {
@@ -514,7 +517,7 @@
       "glob": "META-INF/graalvm/org.graalvm.truffle/version"
     },
     {
-      "glob": "META-INF/resources/engine/libtruffleattach/linux/amd64/sha256"
+      "glob": "META-INF/resources/engine/libtruffleattach/darwin/aarch64/sha256"
     },
     {
       "glob": "META-INF/services/com.github.tomakehurst.wiremock.extension.Extension"
@@ -601,7 +604,7 @@
       "glob": "assets"
     },
     {
-      "glob": "com/sun/jna/linux-x86-64/libjnidispatch.so"
+      "glob": "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib"
     },
     {
       "glob": "helpers.nashorn.js"
@@ -619,7 +622,7 @@
       "glob": "jakarta/servlet/LocalStrings_en.properties"
     },
     {
-      "glob": "jakarta/servlet/LocalStrings_en_US.properties"
+      "glob": "jakarta/servlet/LocalStrings_en_DE.properties"
     },
     {
       "glob": "jakarta/servlet/http/LocalStrings.properties"
@@ -628,7 +631,11 @@
       "glob": "jakarta/servlet/http/LocalStrings_en.properties"
     },
     {
-      "glob": "jakarta/servlet/http/LocalStrings_en_US.properties"
+      "glob": "jakarta/servlet/http/LocalStrings_en_DE.properties"
+    },
+    {
+      "module": "java.base",
+      "glob": "jdk/internal/icu/impl/data/icudt76b/nfc.nrm"
     },
     {
       "module": "jdk.jfr",
