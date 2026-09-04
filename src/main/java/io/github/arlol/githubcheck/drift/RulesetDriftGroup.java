@@ -18,7 +18,7 @@ import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.PklTypes;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
-public class RulesetDriftGroup extends DriftGroup {
+public class RulesetDriftGroup extends DriftGroup<Drifty.GroupName> {
 
 	private final Map<String, Drifty.Ruleset> desired;
 	private final List<ActualRuleset> actual;

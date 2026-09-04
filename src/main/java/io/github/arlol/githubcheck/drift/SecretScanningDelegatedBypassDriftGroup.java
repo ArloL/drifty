@@ -13,7 +13,8 @@ import io.github.arlol.githubcheck.PklTypes;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
-public class SecretScanningDelegatedBypassDriftGroup extends DriftGroup {
+public class SecretScanningDelegatedBypassDriftGroup
+		extends DriftGroup<Drifty.GroupName> {
 
 	private final boolean desiredEnabled;
 	private final boolean actualEnabled;

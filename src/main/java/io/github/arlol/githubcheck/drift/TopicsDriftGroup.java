@@ -6,7 +6,7 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
-public class TopicsDriftGroup extends DriftGroup {
+public class TopicsDriftGroup extends DriftGroup<Drifty.GroupName> {
 
 	private final List<String> desired;
 	private final List<String> actual;

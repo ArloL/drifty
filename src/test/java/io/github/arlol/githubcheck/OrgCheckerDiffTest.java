@@ -109,7 +109,7 @@ class OrgCheckerDiffTest {
 		checker = new OrgChecker((GitHubClient) null, false);
 	}
 
-	private Map<DriftGroup, List<DriftFix>> computeGroupDrifts(
+	private Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> computeGroupDrifts(
 			RepositoryState actual,
 			Drifty.Repository desired
 	) {

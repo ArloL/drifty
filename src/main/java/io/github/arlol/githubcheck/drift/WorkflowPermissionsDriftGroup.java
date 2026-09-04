@@ -9,7 +9,8 @@ import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
-public class WorkflowPermissionsDriftGroup extends DriftGroup {
+public class WorkflowPermissionsDriftGroup
+		extends DriftGroup<Drifty.GroupName> {
 
 	private final Drifty.WorkflowPermissions desiredPermissions;
 	private final boolean desiredCanApprove;

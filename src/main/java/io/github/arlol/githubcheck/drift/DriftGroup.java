@@ -8,11 +8,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import io.github.arlol.githubcheck.pkl.Drifty;
+public abstract class DriftGroup<N extends Enum<N>> {
 
-public abstract class DriftGroup {
-
-	public abstract Drifty.GroupName name();
+	public abstract N name();
 
 	/**
 	 * Whether this group's fix has to run before every other group's.

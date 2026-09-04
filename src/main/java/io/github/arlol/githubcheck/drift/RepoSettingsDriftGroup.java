@@ -13,7 +13,7 @@ import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositoryUpdateRequest;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
-public class RepoSettingsDriftGroup extends DriftGroup {
+public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 
 	/**
 	 * Why {@code visibility} is compared but never written. Kept as the unfixed

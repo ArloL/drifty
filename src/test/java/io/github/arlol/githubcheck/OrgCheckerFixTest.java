@@ -133,7 +133,7 @@ class OrgCheckerFixTest {
 	 */
 	private static List<String> unfixedMessages(
 			OrgChecker checker,
-			Map<DriftGroup, List<DriftFix>> groupDrifts
+			Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts
 	) {
 		return checker.applyFixes(groupDrifts)
 				.unfixedItems()
@@ -142,7 +142,7 @@ class OrgCheckerFixTest {
 				.toList();
 	}
 
-	private Map<DriftGroup, List<DriftFix>> computeGroupDrifts(
+	private Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> computeGroupDrifts(
 			RepositoryState actual,
 			Drifty.Repository desired
 	) {
@@ -2701,12 +2701,12 @@ class OrgCheckerFixTest {
 				.contains("\"archived\":false");
 	}
 
-	private static Map<DriftGroup, List<DriftFix>> reversed(
-			Map<DriftGroup, List<DriftFix>> groupDrifts
+	private static Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> reversed(
+			Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts
 	) {
 		var entries = new ArrayList<>(groupDrifts.entrySet());
 		Collections.reverse(entries);
-		var reversed = new LinkedHashMap<DriftGroup, List<DriftFix>>();
+		var reversed = new LinkedHashMap<DriftGroup<Drifty.GroupName>, List<DriftFix>>();
 		entries.forEach(e -> reversed.put(e.getKey(), e.getValue()));
 		return reversed;
 	}
