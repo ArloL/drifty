@@ -51,4 +51,47 @@ public final class Actual {
 		);
 	}
 
+	/**
+	 * An organization whose every managed setting differs from
+	 * {@link Desired#organization()}: each string is another string, each flag
+	 * is inverted. It sits beside {@link #organization()} rather than in the
+	 * one test that drifts everything, because the two literals encode the same
+	 * thirty-field order positionally — kept apart, swapping two booleans in
+	 * one of them compiles and passes.
+	 */
+	public static ActualOrganization driftedOrganization() {
+		return new ActualOrganization(
+				"stale",
+				"stale",
+				"stale",
+				"stale",
+				"stale",
+				"stale",
+				"stale",
+				false,
+				false,
+				"admin",
+				false,
+				false,
+				false,
+				true,
+				false,
+				false,
+				false,
+				true,
+				true,
+				true,
+				"master",
+				true,
+				false,
+				false,
+				false,
+				true,
+				false,
+				false,
+				true,
+				true
+		);
+	}
+
 }

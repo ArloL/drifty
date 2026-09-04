@@ -35,6 +35,13 @@ public class DriftyState {
 
 	}
 
+	@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+	public static class OrgState {
+
+		ConcurrentHashMap<String, SecretRecord> actionSecrets = new ConcurrentHashMap<>();
+
+	}
+
 	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
 	static final int CURRENT_VERSION = 1;
@@ -42,6 +49,12 @@ public class DriftyState {
 	int version = CURRENT_VERSION;
 	String salt;
 	ConcurrentHashMap<String, RepoState> repositories = new ConcurrentHashMap<>();
+	/**
+	 * Organization secrets, added without a version bump: a file written before
+	 * this simply has no key here, and the reader tolerates unknown properties
+	 * in the other direction.
+	 */
+	ConcurrentHashMap<String, OrgState> organizations = new ConcurrentHashMap<>();
 
 	/**
 	 * Whether the state holds no secret record. A salt generated during this
@@ -50,7 +63,10 @@ public class DriftyState {
 	 */
 	@JsonIgnore
 	public boolean isEmpty() {
-		return repositories.values().stream().allMatch(DriftyState::isEmpty);
+		return repositories.values().stream().allMatch(DriftyState::isEmpty)
+				&& organizations.values()
+						.stream()
+						.allMatch(orgState -> orgState.actionSecrets.isEmpty());
 	}
 
 	private static boolean isEmpty(RepoState repoState) {
@@ -79,6 +95,11 @@ public class DriftyState {
 		return secrets == null ? null : secrets.get(name);
 	}
 
+	public SecretRecord orgActionSecretRecord(String org, String name) {
+		OrgState orgState = organizations.get(org);
+		return orgState == null ? null : orgState.actionSecrets.get(name);
+	}
+
 	public void recordActionSecret(
 			String repo,
 			String name,
@@ -98,6 +119,16 @@ public class DriftyState {
 	) {
 		repoState(repo).environmentSecrets
 				.computeIfAbsent(env, key -> new ConcurrentHashMap<>())
+				.put(name, new SecretRecord(updatedAt, valueHash));
+	}
+
+	public void recordOrgActionSecret(
+			String org,
+			String name,
+			String updatedAt,
+			String valueHash
+	) {
+		organizations.computeIfAbsent(org, key -> new OrgState()).actionSecrets
 				.put(name, new SecretRecord(updatedAt, valueHash));
 	}
 

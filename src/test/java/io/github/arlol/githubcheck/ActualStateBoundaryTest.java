@@ -14,9 +14,12 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
+import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualRepository;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
+import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
+import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.MergeCommitMessage;
 import io.github.arlol.githubcheck.client.MergeCommitTitle;
@@ -27,6 +30,8 @@ import io.github.arlol.githubcheck.client.SquashMergeCommitTitle;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.pkl.Drifty;
+import io.github.arlol.githubcheck.state.DriftyState;
+import io.github.arlol.githubcheck.testsupport.Actual;
 import io.github.arlol.githubcheck.testsupport.Desired;
 
 /**
@@ -54,6 +59,19 @@ class ActualStateBoundaryTest {
 	void noDriftGroupHoldsGitHubResponseTypes() {
 		var offenders = new ArrayList<String>();
 		for (DriftGroup<Drifty.GroupName> group : driftGroups()) {
+			for (String type : clientTypesHeldBy(group.getClass())) {
+				offenders.add(
+						group.getClass().getSimpleName() + " holds " + type
+				);
+			}
+		}
+		assertThat(offenders).isEmpty();
+	}
+
+	@Test
+	void noOrgDriftGroupHoldsGitHubResponseTypes() {
+		var offenders = new ArrayList<String>();
+		for (DriftGroup<Drifty.OrgGroupName> group : orgDriftGroups()) {
 			for (String type : clientTypesHeldBy(group.getClass())) {
 				offenders.add(
 						group.getClass().getSimpleName() + " holds " + type
@@ -139,6 +157,34 @@ class ActualStateBoundaryTest {
 						Optional.empty()
 				),
 				Desired.repository("repo")
+		);
+	}
+
+	/** Every organization group the orchestrator would build. */
+	private static List<DriftGroup<Drifty.OrgGroupName>> orgDriftGroups() {
+		return new OrganizationChecker(
+				null,
+				false,
+				Map.of(),
+				new DriftyState()
+		).createDriftGroups(
+				new OrganizationState(
+						"my-org",
+						Actual.organization(),
+						new ActualOrgActionsPermissions(
+								ActionsEnabledRepositories.ALL,
+								AllowedActions.ALL,
+								false,
+								null
+						),
+						new ActualWorkflowPermissions(
+								WorkflowPermissions.DefaultWorkflowPermissions.WRITE,
+								true
+						),
+						List.of()
+				),
+				Desired.organization(),
+				Map.of()
 		);
 	}
 

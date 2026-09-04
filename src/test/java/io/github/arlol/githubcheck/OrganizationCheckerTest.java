@@ -16,16 +16,19 @@ import org.junit.jupiter.api.Test;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
+import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.SecretVisibility;
+import io.github.arlol.githubcheck.drift.ManagedGroups;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 import io.github.arlol.githubcheck.testsupport.Desired;
 
 /**
- * Only {@code /orgs/my-org} is stubbed, and the fixture manages only
- * {@code org_settings}. A group whose request escaped its guard in
- * {@code fetchState} would hit an unstubbed path and fail these tests, which is
- * what makes them a guard test as well as a checker test.
+ * Each test stubs only the endpoints the group it manages is allowed to read. A
+ * group whose request escaped its guard in {@code fetchState} would hit an
+ * unstubbed path and fail these tests, which is what makes them a guard test as
+ * well as a checker test.
  */
 @WireMockTest
 class OrganizationCheckerTest {
@@ -106,6 +109,69 @@ class OrganizationCheckerTest {
 				.asString()
 				.startsWith("org_settings.description:");
 		assertThat(entry.fixPreview()).containsExactly("org_settings");
+	}
+
+	/**
+	 * The repositories of the private secret are never asked for: that request
+	 * is not stubbed, so a fetch that sent it would fail here.
+	 */
+	@Test
+	void secretRepositoriesAreReadOnlyForSelectedSecrets() {
+		stubOrg("null");
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/secrets")).willReturn(
+						okJson(
+								"""
+										{
+										  "total_count": 2,
+										  "secrets": [
+										    {"name": "PAT", "updated_at": "t1", "visibility": "private"},
+										    {"name": "SHARED", "updated_at": "t2", "visibility": "selected"}
+										  ]
+										}
+										"""
+						)
+				)
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/orgs/my-org/actions/secrets/SHARED/repositories"
+						)
+				).willReturn(okJson("""
+						{
+						  "total_count": 1,
+						  "repositories": [
+						    {"id": 1, "name": "one", "archived": false}
+						  ]
+						}
+						"""))
+		);
+
+		OrganizationState state = checker.fetchState(
+				"my-org",
+				ManagedGroups.of(
+						new Drifty.OrgManaged(
+								Drifty.ManageMode.ONLY,
+								List.of(Drifty.OrgGroupName.ORG_ACTION_SECRETS)
+						)
+				)
+		);
+
+		assertThat(state.actionSecrets()).containsExactly(
+				new ActualOrgSecret(
+						"PAT",
+						"t1",
+						SecretVisibility.PRIVATE,
+						List.of()
+				),
+				new ActualOrgSecret(
+						"SHARED",
+						"t2",
+						SecretVisibility.SELECTED,
+						List.of("one")
+				)
+		);
 	}
 
 	@Test

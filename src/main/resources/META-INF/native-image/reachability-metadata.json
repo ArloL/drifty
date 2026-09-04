@@ -2465,6 +2465,9 @@
       "type": "io.github.arlol.githubcheck.state.DriftyState",
       "fields": [
         {
+          "name": "organizations"
+        },
+        {
           "name": "repositories"
         },
         {
@@ -2472,6 +2475,20 @@
         },
         {
           "name": "version"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.state.DriftyState$OrgState",
+      "fields": [
+        {
+          "name": "actionSecrets"
         }
       ],
       "methods": [
