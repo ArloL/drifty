@@ -14,6 +14,9 @@ import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
 import io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration;
+import io.github.arlol.githubcheck.actual.ActualCollaborators;
+import io.github.arlol.githubcheck.actual.ActualOrgMember;
+import io.github.arlol.githubcheck.actual.ActualTeam;
 import io.github.arlol.githubcheck.actual.ActualCustomProperty;
 import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
 import io.github.arlol.githubcheck.actual.ActualEnvironment;
@@ -34,6 +37,9 @@ import io.github.arlol.githubcheck.actual.StatusCheck;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.BranchPolicyType;
 import io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse;
+import io.github.arlol.githubcheck.client.CollaboratorResponse;
+import io.github.arlol.githubcheck.client.RepoTeamResponse;
+import io.github.arlol.githubcheck.client.TeamResponse;
 import io.github.arlol.githubcheck.client.CodeSecurityRepositoryResponse;
 import io.github.arlol.githubcheck.client.CustomPropertyResponse;
 import io.github.arlol.githubcheck.client.CustomPropertyValueResponse;
@@ -770,6 +776,92 @@ public final class ActualTypes {
 						&& !config.secret().isEmpty(),
 				response.updatedAt()
 		);
+	}
+
+	// ─── Collaborators, teams and members
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * The permission comes from the booleans, which spell triage and maintain
+	 * where the legacy {@code permission} field and {@code role_name} do not
+	 * agree with the config's vocabulary. Teams that reach the repository
+	 * through the organization or enterprise are not direct grants and are left
+	 * out; a response without {@code access_source} predates the field and
+	 * lists direct grants only.
+	 */
+	public static ActualCollaborators collaborators(
+			List<CollaboratorResponse> collaborators,
+			List<RepoTeamResponse> teams
+	) {
+		var users = new LinkedHashMap<String, String>();
+		for (CollaboratorResponse c : collaborators) {
+			users.put(
+					c.login(),
+					permissionLevel(c.permissions(), c.roleName())
+			);
+		}
+		var bySlug = new LinkedHashMap<String, String>();
+		for (RepoTeamResponse t : teams) {
+			if (t.accessSource() != null
+					&& !"direct".equals(t.accessSource())) {
+				continue;
+			}
+			bySlug.put(
+					t.slug(),
+					permissionLevel(t.permissions(), t.permission())
+			);
+		}
+		return new ActualCollaborators(users, bySlug);
+	}
+
+	private static String permissionLevel(
+			io.github.arlol.githubcheck.client.Permissions permissions,
+			String fallback
+	) {
+		if (permissions != null) {
+			return permissions.level();
+		}
+		return switch (fallback == null ? "" : fallback) {
+		case "read" -> "pull";
+		case "write" -> "push";
+		default -> fallback;
+		};
+	}
+
+	public static ActualTeam team(
+			TeamResponse response,
+			List<SimpleUser> members,
+			List<SimpleUser> maintainers
+	) {
+		return new ActualTeam(
+				response.id(),
+				response.slug(),
+				response.name(),
+				Objects.toString(response.description(), ""),
+				wire(response.privacy()),
+				wire(response.notificationSetting()),
+				response.parent() == null ? null : response.parent().slug(),
+				members.stream()
+						.map(SimpleUser::login)
+						.collect(Collectors.toSet()),
+				maintainers.stream()
+						.map(SimpleUser::login)
+						.collect(Collectors.toSet())
+		);
+	}
+
+	public static List<ActualOrgMember> orgMembers(
+			List<SimpleUser> admins,
+			List<SimpleUser> members
+	) {
+		var result = new ArrayList<ActualOrgMember>();
+		for (SimpleUser user : admins) {
+			result.add(new ActualOrgMember(user.login(), "admin"));
+		}
+		for (SimpleUser user : members) {
+			result.add(new ActualOrgMember(user.login(), "member"));
+		}
+		return result;
 	}
 
 	// ─── Code security configurations

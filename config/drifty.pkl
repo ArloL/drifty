@@ -30,6 +30,7 @@ typealias GroupName =
   | "automated_security_fixes"
   | "branch_protection"
   | "code_scanning_default_setup"
+  | "collaborators"
   | "custom_properties"
   | "environment_config"
   | "environment_secrets"
@@ -64,6 +65,8 @@ typealias OrgGroupName =
   | "org_custom_properties"
   | "org_rulesets"
   | "org_code_security_configurations"
+  | "org_teams"
+  | "org_members"
 
 typealias SecretVisibility = "all" | "private" | "selected"
 
@@ -330,6 +333,31 @@ class CodeSecurityConfiguration {
   repositories: Listing<String> = new {}
 }
 
+typealias CollaboratorPermission = "pull" | "triage" | "push" | "maintain" | "admin"
+typealias OrgRole = "admin" | "member"
+typealias TeamPrivacy = "closed" | "secret"
+typealias TeamNotificationSetting = "notifications_enabled" | "notifications_disabled"
+
+/// A team. The slug is the key in Organization.teams. GitHub derives the slug
+/// from the name on creation, so a key that is not the slug of its own name
+/// is created under one slug and reported missing under the other on the
+/// next run. Members on GitHub that the config does not list are reported
+/// and left in place; team repository access is managed from the repository
+/// side by `teamPermissions`.
+class Team {
+  /// Display name; defaults to the slug the entry is keyed by.
+  name: String?
+  description: String = ""
+  privacy: TeamPrivacy = "closed"
+  notificationSetting: TeamNotificationSetting = "notifications_enabled"
+  /// Parent team slug
+  parent: String?
+  /// Logins with the member role
+  members: Listing<String> = new {}
+  /// Logins with the maintainer role
+  maintainers: Listing<String> = new {}
+}
+
 /// Deployment environment. The environment name is the key in Repository.environments.
 class Environment {
   secrets: Listing<String> = new {}
@@ -418,6 +446,13 @@ class Repository {
   customProperties: Mapping<String, String> = new {}
   /// Values of multi_select properties, name to the selected values.
   customMultiSelectProperties: Mapping<String, Listing<String>> = new {}
+  /// Direct collaborators, login to permission. A member who reaches the
+  /// repository through an org role or a team is not one. Collaborators on
+  /// GitHub that the config does not list are reported and left in place.
+  collaborators: Mapping<String, CollaboratorPermission> = new {}
+  /// Team access, team slug to permission. Only a repository under an
+  /// organization can name a team.
+  teamPermissions: Mapping<String, CollaboratorPermission> = new {}
 }
 
 class SelectedActions {
@@ -511,6 +546,12 @@ class Organization {
   rulesets: Mapping<String, OrgRuleset> = new {}
   /// Code security configurations, keyed by name
   codeSecurityConfigurations: Mapping<String, CodeSecurityConfiguration> = new {}
+  /// Teams, keyed by slug
+  teams: Mapping<String, Team> = new {}
+  /// Members, login to role. A login missing from GitHub is invited by --fix
+  /// and stays missing until the invitation is accepted; members the config
+  /// does not list are reported and never removed.
+  members: Mapping<String, OrgRole> = new {}
 
   repositories: Listing<Repository> = new {}
 }

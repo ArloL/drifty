@@ -171,6 +171,12 @@ class DriftPathNamespacingTest {
 				)
 				.withCustomProperties(Map.of("tier", "gold"))
 				.withCustomMultiSelectProperties(Map.of("tags", List.of("a")))
+				.withCollaborators(
+						Map.of("alice", Drifty.CollaboratorPermission.PUSH)
+				)
+				.withTeamPermissions(
+						Map.of("core", Drifty.CollaboratorPermission.PULL)
+				)
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -311,7 +317,9 @@ class DriftPathNamespacingTest {
 										"baseline",
 										Desired.codeSecurityConfiguration()
 								)
-						),
+						)
+						.withTeams(Map.of("core", Desired.team()))
+						.withMembers(Map.of("alice", Drifty.OrgRole.ADMIN)),
 				Map.of()
 		);
 	}

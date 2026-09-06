@@ -52,6 +52,7 @@ public final class Desired {
 	private static final Drifty.OrgRuleset ORG_RULESET;
 	private static final Drifty.PropertyCondition PROPERTY_CONDITION;
 	private static final Drifty.CodeSecurityConfiguration CODE_SECURITY_CONFIGURATION;
+	private static final Drifty.Team TEAM;
 
 	static {
 		try (var evaluator = ConfigEvaluator.preconfigured()) {
@@ -88,6 +89,7 @@ public final class Desired {
 					.as(Drifty.PropertyCondition.class);
 			CODE_SECURITY_CONFIGURATION = root.get("codeSecurityConfiguration")
 					.as(Drifty.CodeSecurityConfiguration.class);
+			TEAM = root.get("team").as(Drifty.Team.class);
 		}
 	}
 
@@ -222,6 +224,11 @@ public final class Desired {
 	/** A code security configuration with GitHub's POST defaults. */
 	public static Drifty.CodeSecurityConfiguration codeSecurityConfiguration() {
 		return CODE_SECURITY_CONFIGURATION;
+	}
+
+	/** A team with the defaults: closed, notifications on, no members. */
+	public static Drifty.Team team() {
+		return TEAM;
 	}
 
 	public static Drifty.BypassActor bypassActor(

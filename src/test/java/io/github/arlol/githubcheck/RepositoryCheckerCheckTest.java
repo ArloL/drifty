@@ -390,6 +390,14 @@ class RepositoryCheckerCheckTest {
 						.willReturn(okJson("[]"))
 		);
 		stubFor(
+				get(urlPathMatching("/repos/[^/]+/[^/]+/collaborators"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathMatching("/repos/[^/]+/[^/]+/teams"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
 				get(urlPathMatching("/repos/[^/]+/[^/]+/environments"))
 						.willReturn(okJson("{\"environments\": []}"))
 		);

@@ -10,6 +10,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -187,6 +188,10 @@ class RepositoryCheckerFetchStateTest {
 		assertThat(state.webhooks()).singleElement()
 				.extracting(ActualWebhook::url)
 				.isEqualTo("https://example.com/hook");
+		assertThat(state.collaborators().users())
+				.containsExactly(Map.entry("alice", "push"));
+		assertThat(state.collaborators().teams()).isEmpty();
+		verify(0, getRequestedFor(urlPathEqualTo("/repos/owner/repo/teams")));
 		assertThat(state.customPropertyValues()).containsExactly(
 				new ActualCustomPropertyValue("tier", "gold", List.of()),
 				new ActualCustomPropertyValue("tags", null, List.of("a", "b")),
@@ -392,6 +397,10 @@ class RepositoryCheckerFetchStateTest {
 						.willReturn(aResponse().withStatus(403))
 		);
 		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/collaborators"))
+						.willReturn(aResponse().withStatus(403))
+		);
+		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo/branches"))
 						.willReturn(okJson("[]"))
 		);
@@ -409,7 +418,8 @@ class RepositoryCheckerFetchStateTest {
 								Drifty.GroupName.ACTION_VARIABLES,
 								Drifty.GroupName.ENVIRONMENT_VARIABLES,
 								Drifty.GroupName.WEBHOOKS,
-								Drifty.GroupName.CUSTOM_PROPERTIES
+								Drifty.GroupName.CUSTOM_PROPERTIES,
+								Drifty.GroupName.COLLABORATORS
 						)
 				)
 		);
@@ -424,6 +434,13 @@ class RepositoryCheckerFetchStateTest {
 		assertThat(state.webhooks()).isEmpty();
 		verify(0, getRequestedFor(urlPathEqualTo("/repos/owner/repo/hooks")));
 		assertThat(state.customPropertyValues()).isEmpty();
+		assertThat(state.collaborators()).isNull();
+		verify(
+				0,
+				getRequestedFor(
+						urlPathEqualTo("/repos/owner/repo/collaborators")
+				)
+		);
 		verify(
 				0,
 				getRequestedFor(
@@ -560,6 +577,59 @@ class RepositoryCheckerFetchStateTest {
 		);
 	}
 
+	/**
+	 * Team access exists only under an organization, so the teams listing is
+	 * sent for an organization-owned repository and skipped for a personal one.
+	 */
+	@Test
+	void organizationRepo_readsTeamAccess() throws Exception {
+		stubRepoDetails(
+				", \"owner\": {\"login\": \"owner\", \"type\": \"Organization\"}"
+		);
+		stubSecurityEndpoints();
+		stubStandardEndpoints();
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/branches"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/rulesets"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/pages"))
+						.willReturn(aResponse().withStatus(404))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/teams")).willReturn(
+						okJson(
+								"""
+										[
+										  {"slug": "core", "permission": "push", "access_source": "direct",
+										   "permissions": {"pull": true, "triage": true, "push": true, "maintain": true, "admin": false}},
+										  {"slug": "everyone", "permission": "pull", "access_source": "organization",
+										   "permissions": {"pull": true, "triage": false, "push": false, "maintain": false, "admin": false}}
+										]
+										"""
+						)
+				)
+		);
+
+		RepositoryState state = checker.fetchState(
+				REF,
+				summary(false, "public"),
+				ManagedGroups.of(
+						new Drifty.Managed(
+								Drifty.ManageMode.ONLY,
+								List.of(Drifty.GroupName.COLLABORATORS)
+						)
+				)
+		);
+
+		assertThat(state.collaborators().teams())
+				.containsExactly(Map.entry("core", "maintain"));
+	}
+
 	private static void stubRepoDetails(String extraFields) {
 		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo")).willReturn(
@@ -648,6 +718,17 @@ class RepositoryCheckerFetchStateTest {
 										"""
 						)
 				)
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/collaborators"))
+						.willReturn(
+								okJson(
+										"""
+												[{"login": "alice", "role_name": "write",
+												  "permissions": {"pull": true, "triage": true, "push": true, "maintain": false, "admin": false}}]
+												"""
+								)
+						)
 		);
 		stubFor(
 				get(
