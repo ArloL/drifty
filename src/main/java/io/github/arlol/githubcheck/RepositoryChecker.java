@@ -457,12 +457,13 @@ public class RepositoryChecker {
 	private List<ActualRuleset> fetchRulesets(String org, String name) {
 		var rulesets = new ArrayList<ActualRuleset>();
 		for (var rs : client.listRulesets(org, name)) {
-			if (rs.sourceType() == RulesetSourceType.ORGANIZATION) {
+			if (rs.sourceType() == RulesetSourceType.ORGANIZATION
+					|| rs.sourceType() == RulesetSourceType.ENTERPRISE) {
 				// listRulesets hits /rulesets, whose includes_parents defaults
-				// to true, so org rulesets arrive here. They are not the
-				// repository's to reconcile: the repo endpoint cannot delete
-				// one, so reporting it as extra produces a fix that always
-				// fails.
+				// to true, so org and enterprise rulesets arrive here. They
+				// are not the repository's to reconcile: the repo endpoint
+				// cannot delete one, so reporting it as extra produces a fix
+				// that always fails.
 				continue;
 			}
 			rulesets.add(

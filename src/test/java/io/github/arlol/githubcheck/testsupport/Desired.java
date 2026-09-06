@@ -2,6 +2,7 @@ package io.github.arlol.githubcheck.testsupport;
 
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.pkl.config.java.Config;
@@ -48,6 +49,8 @@ public final class Desired {
 	private static final Drifty.OrgVariable ORG_VARIABLE;
 	private static final Drifty.Webhook WEBHOOK;
 	private static final Drifty.CustomProperty CUSTOM_PROPERTY;
+	private static final Drifty.OrgRuleset ORG_RULESET;
+	private static final Drifty.PropertyCondition PROPERTY_CONDITION;
 
 	static {
 		try (var evaluator = ConfigEvaluator.preconfigured()) {
@@ -79,6 +82,9 @@ public final class Desired {
 			WEBHOOK = root.get("webhook").as(Drifty.Webhook.class);
 			CUSTOM_PROPERTY = root.get("customProperty")
 					.as(Drifty.CustomProperty.class);
+			ORG_RULESET = root.get("orgRuleset").as(Drifty.OrgRuleset.class);
+			PROPERTY_CONDITION = root.get("propertyCondition")
+					.as(Drifty.PropertyCondition.class);
 		}
 	}
 
@@ -195,6 +201,21 @@ public final class Desired {
 		return CUSTOM_PROPERTY.withValueType(valueType);
 	}
 
+	/**
+	 * An organization ruleset with the defaults: every repository, no rules.
+	 */
+	public static Drifty.OrgRuleset orgRuleset() {
+		return ORG_RULESET;
+	}
+
+	/** A custom-source property condition on {@code name}. */
+	public static Drifty.PropertyCondition propertyCondition(
+			String name,
+			List<String> values
+	) {
+		return PROPERTY_CONDITION.withName(name).withPropertyValues(values);
+	}
+
 	public static Drifty.BypassActor bypassActor(
 			long actorId,
 			Drifty.ActorType actorType,
@@ -236,8 +257,11 @@ public final class Desired {
 			String name,
 			Drifty.Ruleset ruleset
 	) {
-		return repository
-				.withRulesets(plus(repository.rulesets, name, ruleset));
+		var copy = new LinkedHashMap<String, Drifty.Ruleset>(
+				repository.rulesets
+		);
+		copy.put(name, ruleset);
+		return repository.withRulesets(Map.copyOf(copy));
 	}
 
 	public static Drifty.Repository withEnvironment(

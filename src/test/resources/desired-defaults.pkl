@@ -22,3 +22,5 @@ orgSecret: drifty.OrgSecret = new {}
 orgVariable: drifty.OrgVariable = new { value = "value" }
 webhook: drifty.Webhook = new { url = "https://example.com/hook" }
 customProperty: drifty.CustomProperty = new { valueType = "string" }
+orgRuleset: drifty.OrgRuleset = new {}
+propertyCondition: drifty.PropertyCondition = new { name = "team"; propertyValues = new { "core" } }

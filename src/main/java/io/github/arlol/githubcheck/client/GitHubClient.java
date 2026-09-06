@@ -1382,6 +1382,85 @@ public class GitHubClient {
 		return readValue(resp.body(), RulesetDetailsResponse.class);
 	}
 
+	// ─── Organization rulesets
+	// ──────────────────────────────────────────────────────────
+
+	public List<RulesetSummaryResponse> listOrgRulesets(String org) {
+		HttpResponse<String> resp = get(orgUrl(org) + "/rulesets?per_page=100");
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " listing rulesets for " + org
+							+ ": " + resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, null).stream()
+				.map(
+						node -> mapper.convertValue(
+								node,
+								RulesetSummaryResponse.class
+						)
+				)
+				.toList();
+	}
+
+	public RulesetDetailsResponse getOrgRuleset(String org, long rulesetId) {
+		HttpResponse<String> resp = get(orgUrl(org) + "/rulesets/" + rulesetId);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " GET ruleset " + rulesetId
+							+ " on " + org + ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), RulesetDetailsResponse.class);
+	}
+
+	public RulesetDetailsResponse createOrgRuleset(
+			String org,
+			RulesetRequest payload
+	) {
+		HttpResponse<String> resp = post(
+				orgUrl(org) + "/rulesets",
+				writeValue(payload)
+		);
+		if (resp.statusCode() != 201) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " creating ruleset on " + org
+							+ ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), RulesetDetailsResponse.class);
+	}
+
+	public RulesetDetailsResponse updateOrgRuleset(
+			String org,
+			long rulesetId,
+			RulesetRequest payload
+	) {
+		HttpResponse<String> resp = put(
+				orgUrl(org) + "/rulesets/" + rulesetId,
+				writeValue(payload)
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " updating ruleset "
+							+ rulesetId + " on " + org + ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), RulesetDetailsResponse.class);
+	}
+
+	public void deleteOrgRuleset(String org, long rulesetId) {
+		HttpResponse<String> resp = delete(
+				orgUrl(org) + "/rulesets/" + rulesetId
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " deleting ruleset "
+							+ rulesetId + " on " + org + ": " + resp.body()
+			);
+		}
+	}
+
 	public void replaceTopics(String owner, String repo, List<String> topics) {
 		String body = writeValue(new ReplaceTopicsRequest(topics));
 		HttpResponse<String> resp = put(repoUrl(owner, repo) + "/topics", body);
