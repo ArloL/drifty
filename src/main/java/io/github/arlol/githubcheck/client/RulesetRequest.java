@@ -12,7 +12,11 @@ public record RulesetRequest(
 		@JsonInclude(
 			JsonInclude.Include.NON_EMPTY
 		) List<BypassActorRequest> bypassActors,
-		Conditions conditions,
+		/**
+		 * Omitted when null rather than sent as {@code null} or {@code {}}: a
+		 * repository push ruleset has no conditions at all.
+		 */
+		@JsonInclude(JsonInclude.Include.NON_NULL) Conditions conditions,
 		List<Rule> rules
 ) {
 

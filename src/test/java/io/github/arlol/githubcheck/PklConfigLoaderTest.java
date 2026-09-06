@@ -157,4 +157,110 @@ class PklConfigLoaderTest {
 				.hasMessageContaining("not_a_group");
 	}
 
+	/**
+	 * A push ruleset has no refs to condition on, so the schema refuses ref
+	 * patterns on one; a repository target is an organization ruleset's, so a
+	 * repository's mapping refuses it. Both fail at config eval, before any
+	 * request GitHub would 422.
+	 */
+	@Test
+	void pushRulesetWithRefPatterns_failsToEvaluate(@TempDir Path tempDir)
+			throws IOException {
+		Path config = write(
+				tempDir,
+				"""
+						users {
+						  ["owner"] {
+						    repositories {
+						      new {
+						        name = "repo"
+						        rulesets {
+						          ["no-binaries"] { target = "push"; includePatterns { "~ALL" } }
+						        }
+						      }
+						    }
+						  }
+						}
+						"""
+		);
+
+		assertThatThrownBy(() -> PklConfigLoader.load(config))
+				.hasMessageContaining("includePatterns");
+	}
+
+	@Test
+	void repositoryTargetOnARepositoryRuleset_failsToEvaluate(
+			@TempDir Path tempDir
+	) throws IOException {
+		Path config = write(tempDir, """
+				users {
+				  ["owner"] {
+				    repositories {
+				      new {
+				        name = "repo"
+				        rulesets { ["settings"] { target = "repository" } }
+				      }
+				    }
+				  }
+				}
+				""");
+
+		assertThatThrownBy(() -> PklConfigLoader.load(config))
+				.hasMessageContaining("rulesets");
+	}
+
+	@Test
+	void pushAndRepositoryTargets_load(@TempDir Path tempDir)
+			throws IOException {
+		Path config = write(
+				tempDir,
+				"""
+						users {
+						  ["owner"] {
+						    repositories {
+						      new {
+						        name = "repo"
+						        rulesets {
+						          ["no-binaries"] { target = "push"; fileExtensionRestrictions { "*.exe" } }
+						        }
+						      }
+						    }
+						  }
+						}
+						organizations {
+						  ["my-org"] {
+						    rulesets {
+						      ["no-binaries"] { target = "push"; maxFileSize = 5 }
+						      ["settings"] { target = "repository"; repositoryNameInclude { "~ALL" } }
+						    }
+						  }
+						}
+						"""
+		);
+
+		DriftyConfig loaded = PklConfigLoader.load(config);
+
+		assertThat(loaded.allRepositories().getFirst().rulesets)
+				.extractingByKey("no-binaries")
+				.extracting(r -> r.target)
+				.isEqualTo(Drifty.RulesetTarget.PUSH);
+		assertThat(loaded.organizations().get("my-org").rulesets)
+				.extractingByKey("settings")
+				.extracting(r -> r.target)
+				.isEqualTo(Drifty.RulesetTarget.REPOSITORY);
+	}
+
+	private static Path write(Path tempDir, String body) throws IOException {
+		String schema = Path.of("config/drifty.pkl")
+				.toAbsolutePath()
+				.toUri()
+				.toString();
+		Path config = tempDir.resolve("drifty.pkl");
+		Files.writeString(
+				config,
+				"amends \"%s\"\n\n%s".formatted(schema, body)
+		);
+		return config;
+	}
+
 }

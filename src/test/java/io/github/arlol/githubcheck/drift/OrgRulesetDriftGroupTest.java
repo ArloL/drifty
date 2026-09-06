@@ -262,4 +262,83 @@ class OrgRulesetDriftGroupTest {
 		verify(deleteRequestedFor(urlEqualTo("/orgs/my-org/rulesets/1")));
 	}
 
+	/**
+	 * A repository-target ruleset selects repositories, not refs: the body
+	 * carries the repository name condition and no ref-name one, and one GitHub
+	 * answers without a ref-name condition compares clean.
+	 */
+	@Test
+	void repositoryTargetRuleset_isSentWithoutARefNameCondition() {
+		stubFor(
+				post(urlEqualTo("/orgs/my-org/rulesets")).willReturn(
+						aResponse().withStatus(201)
+								.withHeader("Content-Type", "application/json")
+								.withBody(
+										"""
+												{"id": 3, "name": "settings", "target": "repository", "rules": []}
+												"""
+								)
+				)
+		);
+		var wanted = Desired.orgRuleset()
+				.withTarget(Drifty.RulesetTarget.REPOSITORY)
+				.withRepositoryNameInclude(List.of("~ALL"));
+		var got = ActualTypes.ruleset(
+				new RulesetDetailsResponse(
+						3L,
+						"settings",
+						RulesetTarget.REPOSITORY,
+						RulesetEnforcement.ACTIVE,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						new RulesetDetailsResponse.Conditions(
+								null,
+								new RulesetDetailsResponse.Conditions.RepositoryName(
+										List.of("~ALL"),
+										List.of(),
+										false
+								),
+								null,
+								null
+						),
+						List.of()
+				)
+		);
+
+		assertThat(group(Map.of("settings", wanted), List.of(got)).detect())
+				.isEmpty();
+
+		var result = group(Map.of("settings", wanted), List.of()).detect()
+				.getFirst()
+				.fix()
+				.execute();
+
+		assertThat(result.unfixedItems()).isEmpty();
+		verify(
+				postRequestedFor(urlEqualTo("/orgs/my-org/rulesets"))
+						.withRequestBody(
+								equalToJson(
+										"""
+												{
+													"name": "settings",
+													"target": "repository",
+													"enforcement": "active",
+													"conditions": {
+														"repository_name": {"include": ["~ALL"], "exclude": []}
+													},
+													"rules": []
+												}
+												""",
+										true,
+										false
+								)
+						)
+		);
+	}
+
 }

@@ -268,6 +268,7 @@ Repo-level rulesets managed via the `rulesets` mapping (keyed by ruleset name) o
 | Setting | Check | Fix |
 |---------|-------|-----|
 | Ruleset name and enforcement | Yes | Yes |
+| Target (`branch`, `tag`, `push`) | Yes | Yes |
 | Target branch/tag patterns | Yes | Yes |
 | Bypass actors (roles, teams, apps) | Yes | Yes |
 | Creation | Yes | Yes |
@@ -285,6 +286,8 @@ Repo-level rulesets managed via the `rulesets` mapping (keyed by ruleset name) o
 | Tag name pattern | Yes | Yes |
 | Required deployments | Yes | Yes |
 | Required code scanning | Yes | Yes |
+
+**Push rulesets** are the same group with `target = "push"`. A push ruleset applies to every push to the repository, forks included, so it has no ref conditions: the schema refuses `includePatterns` and `excludePatterns` on one, and the request body carries no `conditions` at all. The rules GitHub accepts on a push ruleset are the file rules — `filePathRestrictions`, `maxFilePathLength`, `fileExtensionRestrictions`, `maxFileSize` — and they are compared and written exactly as on a branch ruleset. drifty does not check which rules a target accepts; a rule GitHub rejects for the target comes back as a failed fix with GitHub's message.
 
 **Extra rulesets:** Rulesets that exist on the repo but are not in config are reported as drift. `--fix` deletes them.
 
@@ -595,6 +598,8 @@ One PUT per drifted property, which replaces the definition whole. Definitions w
 
 `repository_id` conditions are not offered: the config names repositories, and a name condition covers the same ground without an id lookup. Rulesets whose `source_type` is `Enterprise` are dropped before comparing, on the organization side as on the repository side. Extra rulesets are deleted by `--fix`.
 
+An organization ruleset takes every target a repository ruleset does plus `repository`. Neither a `push` nor a `repository` ruleset has refs to condition on, so the ref-name condition is left out of the request for both and the schema refuses ref patterns on them; the repository conditions above still say which repositories they cover. The `repository` target is the schema's to refuse on a repository ruleset, since only an organization has one.
+
 ### Code Security Configurations
 
 ```pkl
@@ -608,7 +613,24 @@ codeSecurityConfigurations {
 }
 ```
 
-Defaults are GitHub's POST defaults, so a configuration created with only a name reports no drift. Every one of the seventeen `enabled`/`disabled`/`not_set` toggles, the description and the enforcement are compared; only configurations whose `target_type` is `organization` are, since the GitHub-provided global ones are not the organization's to change. Three writes, each its own fix so a rejected one is not reported as having failed the others: the settings go to a PATCH (a POST for a missing configuration), `defaultForNewRepos` to `PUT .../{id}/defaults`, and missing attachments to `POST .../{id}/attach` with `scope = selected`. Repositories attached outside the config are reported and left attached; extra configurations are reported and never deleted. Runner-label and bypass-reviewer sub-options are not managed.
+Defaults are GitHub's POST defaults, so a configuration created with only a name reports no drift. Every one of the seventeen `enabled`/`disabled`/`not_set` toggles, the description and the enforcement are compared; only configurations whose `target_type` is `organization` are, since the GitHub-provided global ones are not the organization's to change. Three writes, each its own fix so a rejected one is not reported as having failed the others: the settings go to a PATCH (a POST for a missing configuration), `defaultForNewRepos` to `PUT .../{id}/defaults`, and missing attachments to `POST .../{id}/attach` with `scope = selected`. Repositories attached outside the config are reported and left attached; extra configurations are reported and never deleted.
+
+Two option sub-objects are managed only when the config sets them, so a configuration that leaves them out reports no drift for them and the PATCH omits them:
+
+```pkl
+codeScanningDefaultSetupOptions { runnerType = "labeled"; runnerLabel = "gpu" }
+secretScanningDelegatedBypassOptions {
+  reviewers { new { reviewerId = 5; reviewerType = "TEAM"; mode = "ALWAYS" } }
+}
+```
+
+| Option | Check | Fix |
+|---|---|---|
+| `codeScanningDefaultSetupOptions.runnerType` (`standard`, `labeled`, `not_set`) | Yes | Yes |
+| `codeScanningDefaultSetupOptions.runnerLabel` | Yes | Yes |
+| `secretScanningDelegatedBypassOptions.reviewers` (id, `TEAM`/`ROLE`, `ALWAYS`/`EXEMPT`) | Yes | Yes |
+
+A runner label is required exactly when the runner type is `labeled`, and the schema says so. GitHub answers a configuration with no runner chosen as a null options object or as `not_set` with a null label; both read as `not_set`. A reviewer GitHub returns without a `mode` predates the field and reads as `ALWAYS`, the schema's default. An empty `reviewers` listing wants none and clears them. The `labeled_runners` flag for dependency submission and `code_scanning_options.allow_advanced` are not managed.
 
 ### Teams
 
@@ -798,7 +820,7 @@ These are explicitly out of scope for the initial version but acknowledged as po
 
 - **GraphQL for bulk reads** — REST first, profile and optimize later.
 - **Repository lifecycle** — create/delete/transfer repos is out of scope. drifty only manages settings of existing repos plus archival.
-- **Push and repository-target rulesets** — different rule vocabularies from the branch and tag rulesets drifty manages.
-- **Code security configuration sub-options** — runner labels for default setup and bypass reviewers for delegated bypass.
+- **Per-target rule validation for rulesets** — drifty writes whatever rules the config puts on a `push` or `repository` ruleset and lets GitHub reject the ones the target does not take; the schema could refuse them at config eval once the vocabulary is stable.
+- **The remaining code security sub-options** — `labeled_runners` for dependency submission and `code_scanning_options.allow_advanced`.
 - **Custom repository roles** as collaborator permissions.
 - **Enterprise-owned entities** of any kind — rulesets, custom properties, teams — drifty drops before comparing; managing them is the enterprise's API, not the organization's.

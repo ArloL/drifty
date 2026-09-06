@@ -938,12 +938,19 @@ public final class ActualTypes {
 				response.privateVulnerabilityReporting()
 		);
 		settings.replaceAll((_, value) -> value == null ? "not_set" : value);
+		var runner = response.codeScanningDefaultSetupOptions();
 		return new ActualCodeSecurityConfiguration(
 				response.id(),
 				response.name(),
 				response.description() == null ? "" : response.description(),
 				settings,
 				response.enforcement(),
+				runner == null || runner.runnerType() == null ? "not_set"
+						: runner.runnerType(),
+				runner == null ? null : runner.runnerLabel(),
+				bypassReviewers(
+						response.secretScanningDelegatedBypassOptions()
+				),
 				defaultForNewRepos == null ? "none" : defaultForNewRepos,
 				repositories.stream()
 						.filter(
@@ -958,6 +965,28 @@ public final class ActualTypes {
 
 	private static final Set<String> ATTACHED = Set
 			.of("attached", "attaching", "enforced", "updating");
+
+	/**
+	 * A reviewer without a {@code mode} predates the field; the schema's
+	 * default for it is {@code ALWAYS}.
+	 */
+	private static Set<ActualCodeSecurityConfiguration.BypassReviewer> bypassReviewers(
+			CodeSecurityConfigurationResponse.SecretScanningDelegatedBypassOptions options
+	) {
+		if (options == null || options.reviewers() == null) {
+			return Set.of();
+		}
+		return options.reviewers()
+				.stream()
+				.map(
+						r -> new ActualCodeSecurityConfiguration.BypassReviewer(
+								r.reviewerType(),
+								r.reviewerId(),
+								r.mode() == null ? "ALWAYS" : r.mode()
+						)
+				)
+				.collect(Collectors.toSet());
+	}
 
 	// ─── Custom properties
 	// ──────────────────────────────────────────────────────────

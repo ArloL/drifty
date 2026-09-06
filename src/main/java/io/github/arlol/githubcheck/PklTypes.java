@@ -123,6 +123,8 @@ public final class PklTypes {
 		return switch (t) {
 		case BRANCH -> RulesetTarget.BRANCH;
 		case TAG -> RulesetTarget.TAG;
+		case PUSH -> RulesetTarget.PUSH;
+		case REPOSITORY -> RulesetTarget.REPOSITORY;
 		};
 	}
 

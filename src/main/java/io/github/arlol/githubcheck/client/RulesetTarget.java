@@ -6,5 +6,6 @@ public enum RulesetTarget {
 	@JsonProperty("branch")
 	BRANCH, @JsonProperty("tag")
 	TAG, @JsonProperty("push")
-	PUSH
+	PUSH, @JsonProperty("repository")
+	REPOSITORY
 }

@@ -153,6 +153,98 @@ class RulesetDriftGroupTest {
 		);
 	}
 
+	/**
+	 * A push ruleset has no conditions: GitHub answers it without any, and the
+	 * create body carries none — not an empty object, which GitHub rejects. The
+	 * file rules are the same ones a branch ruleset can carry.
+	 */
+	@Test
+	void pushRuleset_hasNoConditionsAndCompareByItsFileRules() {
+		stubFor(
+				post(urlEqualTo("/repos/owner/repo/rulesets")).willReturn(
+						aResponse().withStatus(201)
+								.withHeader("Content-Type", "application/json")
+								.withBody(
+										"""
+												{"id": 2, "name": "no-binaries", "target": "push", "rules": []}
+												"""
+								)
+				)
+		);
+		var wanted = Desired.ruleset()
+				.withTarget(Drifty.RulesetTarget.PUSH)
+				.withFileExtensionRestrictions(List.of("*.exe"))
+				.withMaxFileSize(5L);
+		var matching = ActualTypes.ruleset(
+				new RulesetDetailsResponse(
+						2L,
+						"no-binaries",
+						RulesetTarget.PUSH,
+						RulesetEnforcement.ACTIVE,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						List.of(
+								new Rule.FileExtensionRestriction(
+										new Rule.FileExtensionRestriction.Parameters(
+												List.of("*.exe")
+										)
+								),
+								new Rule.MaxFileSize(
+										new Rule.MaxFileSize.Parameters(5)
+								)
+						)
+				)
+		);
+		var desired = Desired.repository("repo")
+				.withRulesets(Map.of("no-binaries", wanted));
+
+		assertThat(
+				new RulesetDriftGroup(
+						desired.rulesets,
+						List.of(matching),
+						client,
+						new RepoRef("owner", "repo")
+				).detect()
+		).isEmpty();
+
+		var result = new RulesetDriftGroup(
+				desired.rulesets,
+				List.of(),
+				client,
+				new RepoRef("owner", "repo")
+		).detect().getFirst().fix().execute();
+
+		assertThat(result.unfixedItems()).isEmpty();
+		verify(
+				postRequestedFor(urlEqualTo("/repos/owner/repo/rulesets"))
+						.withRequestBody(
+								equalToJson(
+										"""
+												{
+													"name": "no-binaries",
+													"target": "push",
+													"enforcement": "active",
+													"rules": [
+														{"type": "file_extension_restriction",
+														 "parameters": {"restricted_file_extensions": ["*.exe"]}},
+														{"type": "max_file_size",
+														 "parameters": {"max_file_size": 5}}
+													]
+												}
+												""",
+										true,
+										false
+								)
+						)
+		);
+	}
+
 	private static ActualRuleset responseWith(
 			String name,
 			List<RulesetDetailsResponse.BypassActor> bypassActors,

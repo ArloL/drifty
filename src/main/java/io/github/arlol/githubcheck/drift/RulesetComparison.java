@@ -470,8 +470,11 @@ final class RulesetComparison {
 
 	/**
 	 * The request that writes {@code args} under {@code name}, with the
-	 * conditions the caller built — ref names alone for a repository ruleset,
-	 * repository conditions too for an organization one.
+	 * conditions the caller built — ref names alone for a repository ruleset
+	 * (none at all for a push one), repository conditions too for an
+	 * organization one. The rules are whatever the config set; which of them a
+	 * target accepts is GitHub's to decide, and a rejected one comes back as a
+	 * failed fix.
 	 */
 	static RulesetRequest request(
 			String name,
@@ -504,11 +507,24 @@ final class RulesetComparison {
 		);
 	}
 
+	/**
+	 * The ref-name condition, or null for a push or repository target: neither
+	 * has refs to condition on, and GitHub rejects the condition there. The
+	 * schema keeps the pattern listings empty for those targets.
+	 */
 	static RulesetRequest.Conditions.RefName refName(Drifty.Ruleset args) {
+		if (!hasRefConditions(args)) {
+			return null;
+		}
 		return new RulesetRequest.Conditions.RefName(
 				args.includePatterns,
 				args.excludePatterns
 		);
+	}
+
+	static boolean hasRefConditions(Drifty.Ruleset args) {
+		return args.target == Drifty.RulesetTarget.BRANCH
+				|| args.target == Drifty.RulesetTarget.TAG;
 	}
 
 	private static void addBooleanRules(Drifty.Ruleset args, List<Rule> rules) {
