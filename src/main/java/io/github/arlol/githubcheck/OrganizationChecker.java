@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.github.arlol.githubcheck.actual.ActualCustomProperty;
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.actual.ActualOrgVariable;
@@ -24,6 +25,7 @@ import io.github.arlol.githubcheck.drift.ManagedGroups;
 import io.github.arlol.githubcheck.drift.OrgActionSecretsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgActionVariablesDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgActionsPermissionsDriftGroup;
+import io.github.arlol.githubcheck.drift.OrgCustomPropertiesDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgSettingsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgWebhooksDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgWorkflowPermissionsDriftGroup;
@@ -198,6 +200,11 @@ public class OrganizationChecker {
 								.toList()
 						: List.of();
 
+		List<ActualCustomProperty> customProperties = managed
+				.manages(Drifty.OrgGroupName.ORG_CUSTOM_PROPERTIES)
+						? customProperties(login)
+						: List.of();
+
 		return new OrganizationState(
 				login,
 				settings,
@@ -205,8 +212,22 @@ public class OrganizationChecker {
 				workflowPermissions,
 				secrets,
 				variables,
-				webhooks
+				webhooks,
+				customProperties
 		);
+	}
+
+	/**
+	 * The organization's own definitions. An enterprise-owned one is not the
+	 * organization's to change, so it is dropped here rather than reported as
+	 * extra with a fix that always fails.
+	 */
+	private List<ActualCustomProperty> customProperties(String login) {
+		return client.getOrgCustomProperties(login)
+				.stream()
+				.filter(p -> !"enterprise".equals(p.sourceType()))
+				.map(ActualTypes::customProperty)
+				.toList();
 	}
 
 	private List<ActualOrgVariable> orgVariables(String login) {
@@ -343,6 +364,14 @@ public class OrganizationChecker {
 						actual.webhooks(),
 						githubSecrets,
 						state,
+						client,
+						actual.login()
+				)
+		);
+		groups.add(
+				new OrgCustomPropertiesDriftGroup(
+						desired.customProperties,
+						actual.customProperties(),
 						client,
 						actual.login()
 				)

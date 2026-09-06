@@ -15,6 +15,7 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
+import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
 import io.github.arlol.githubcheck.actual.ActualEnvironment;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualSecret;
@@ -39,6 +40,7 @@ import io.github.arlol.githubcheck.drift.ArchivedDriftGroup;
 import io.github.arlol.githubcheck.drift.AutomatedSecurityFixesDriftGroup;
 import io.github.arlol.githubcheck.drift.BranchProtectionDriftGroup;
 import io.github.arlol.githubcheck.drift.CodeScanningDefaultSetupDriftGroup;
+import io.github.arlol.githubcheck.drift.CustomPropertiesDriftGroup;
 import io.github.arlol.githubcheck.drift.DriftFix;
 import io.github.arlol.githubcheck.drift.DriftFixer;
 import io.github.arlol.githubcheck.drift.DriftGroup;
@@ -323,6 +325,14 @@ public class RepositoryChecker {
 								.toList()
 						: List.of();
 
+		List<ActualCustomPropertyValue> customPropertyValues = managed
+				.manages(Drifty.GroupName.CUSTOM_PROPERTIES)
+						? client.getRepoCustomPropertyValues(org, name)
+								.stream()
+								.map(ActualTypes::customPropertyValue)
+								.toList()
+						: List.of();
+
 		return new RepositoryState(
 				ref,
 				ActualTypes.repository(details),
@@ -341,7 +351,8 @@ public class RepositoryChecker {
 				pages.map(ActualTypes::pages),
 				variables,
 				envVariables,
-				webhooks
+				webhooks,
+				customPropertyValues
 		);
 	}
 
@@ -638,6 +649,17 @@ public class RepositoryChecker {
 						actual.webhooks(),
 						githubSecrets,
 						state,
+						client,
+						ref
+				)
+		);
+
+		// Custom properties
+		groups.add(
+				new CustomPropertiesDriftGroup(
+						desired.customProperties,
+						desired.customMultiSelectProperties,
+						actual.customPropertyValues(),
 						client,
 						ref
 				)

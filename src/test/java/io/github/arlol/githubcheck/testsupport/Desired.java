@@ -47,6 +47,7 @@ public final class Desired {
 	private static final Drifty.OrgSecret ORG_SECRET;
 	private static final Drifty.OrgVariable ORG_VARIABLE;
 	private static final Drifty.Webhook WEBHOOK;
+	private static final Drifty.CustomProperty CUSTOM_PROPERTY;
 
 	static {
 		try (var evaluator = ConfigEvaluator.preconfigured()) {
@@ -76,6 +77,8 @@ public final class Desired {
 			ORG_SECRET = root.get("orgSecret").as(Drifty.OrgSecret.class);
 			ORG_VARIABLE = root.get("orgVariable").as(Drifty.OrgVariable.class);
 			WEBHOOK = root.get("webhook").as(Drifty.Webhook.class);
+			CUSTOM_PROPERTY = root.get("customProperty")
+					.as(Drifty.CustomProperty.class);
 		}
 	}
 
@@ -183,6 +186,13 @@ public final class Desired {
 	/** A webhook with GitHub's defaults: form content, push events, active. */
 	public static Drifty.Webhook webhook(String url) {
 		return WEBHOOK.withUrl(url);
+	}
+
+	/** A custom property definition of the given type with the defaults. */
+	public static Drifty.CustomProperty customProperty(
+			Drifty.CustomPropertyValueType valueType
+	) {
+		return CUSTOM_PROPERTY.withValueType(valueType);
 	}
 
 	public static Drifty.BypassActor bypassActor(

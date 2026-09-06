@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import io.github.arlol.githubcheck.actual.ActualCustomProperty;
+import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
 import io.github.arlol.githubcheck.actual.ActualEnvironment;
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrganization;
@@ -22,6 +24,8 @@ import io.github.arlol.githubcheck.actual.StatusCheck;
 import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
+import io.github.arlol.githubcheck.client.CustomPropertyResponse;
+import io.github.arlol.githubcheck.client.CustomPropertyValueResponse;
 import io.github.arlol.githubcheck.client.BranchPolicyType;
 import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
@@ -701,6 +705,69 @@ class ActualTypesTest {
 
 		assertThat(actual.selectedActions()).isNull();
 		assertThat(actual.shaPinningRequired()).isFalse();
+	}
+
+	/**
+	 * {@code default_value} and a repository's {@code value} are a string or a
+	 * list depending on the property type, and each has its own field on the
+	 * actual side; a null description reads as {@code ""}.
+	 */
+	@Test
+	void customPropertyDefaultsAndValuesSplitByShape() throws Exception {
+		var multi = MAPPER.readValue(
+				"""
+						{"property_name": "tags", "source_type": "organization", "value_type": "multi_select",
+						 "required": false, "default_value": ["a", "b"], "description": null,
+						 "allowed_values": ["a", "b", "c"], "values_editable_by": "org_and_repo_actors"}
+						""",
+				CustomPropertyResponse.class
+		);
+		var single = MAPPER.readValue(
+				"""
+						{"property_name": "tier", "source_type": "organization", "value_type": "string",
+						 "required": true, "default_value": "gold", "description": "the tier",
+						 "values_editable_by": "org_actors"}
+						""",
+				CustomPropertyResponse.class
+		);
+
+		assertThat(ActualTypes.customProperty(multi)).isEqualTo(
+				new ActualCustomProperty(
+						"tags",
+						"multi_select",
+						false,
+						null,
+						List.of("a", "b"),
+						"",
+						List.of("a", "b", "c"),
+						"org_and_repo_actors"
+				)
+		);
+		assertThat(ActualTypes.customProperty(single)).isEqualTo(
+				new ActualCustomProperty(
+						"tier",
+						"string",
+						true,
+						"gold",
+						List.of(),
+						"the tier",
+						List.of(),
+						"org_actors"
+				)
+		);
+
+		var value = MAPPER.readValue("""
+				{"property_name": "tags", "value": ["x"]}
+				""", CustomPropertyValueResponse.class);
+		assertThat(ActualTypes.customPropertyValue(value)).isEqualTo(
+				new ActualCustomPropertyValue("tags", null, List.of("x"))
+		);
+		var unset = MAPPER.readValue("""
+				{"property_name": "tier", "value": null}
+				""", CustomPropertyValueResponse.class);
+		assertThat(ActualTypes.customPropertyValue(unset)).isEqualTo(
+				new ActualCustomPropertyValue("tier", null, List.of())
+		);
 	}
 
 }

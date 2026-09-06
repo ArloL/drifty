@@ -373,6 +373,81 @@ public class GitHubClient {
 		}
 	}
 
+	// ─── Custom properties
+	// ──────────────────────────────────────────────────────────
+
+	public List<CustomPropertyResponse> getOrgCustomProperties(String org) {
+		HttpResponse<String> resp = get(orgUrl(org) + "/properties/schema");
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " for custom properties of "
+							+ org + ": " + resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, null).stream()
+				.map(p -> mapper.convertValue(p, CustomPropertyResponse.class))
+				.toList();
+	}
+
+	public void putOrgCustomProperty(
+			String org,
+			String name,
+			CustomPropertyRequest property
+	) {
+		HttpResponse<String> resp = put(
+				orgUrl(org) + "/properties/schema/" + name,
+				writeValue(property)
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " writing custom property "
+							+ name + " on " + org + ": " + resp.body()
+			);
+		}
+	}
+
+	public List<CustomPropertyValueResponse> getRepoCustomPropertyValues(
+			String owner,
+			String repo
+	) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/properties/values"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " for custom property values of " + owner + "/"
+							+ repo + ": " + resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, null).stream()
+				.map(
+						p -> mapper.convertValue(
+								p,
+								CustomPropertyValueResponse.class
+						)
+				)
+				.toList();
+	}
+
+	public void updateRepoCustomPropertyValues(
+			String owner,
+			String repo,
+			CustomPropertyValuesRequest values
+	) {
+		HttpResponse<String> resp = patch(
+				repoUrl(owner, repo) + "/properties/values",
+				writeValue(values)
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " writing custom property values on " + owner
+							+ "/" + repo + ": " + resp.body()
+			);
+		}
+	}
+
 	// ─── Actions variables
 	// ──────────────────────────────────────────────────────────
 
