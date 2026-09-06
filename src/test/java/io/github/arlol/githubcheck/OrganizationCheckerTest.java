@@ -20,6 +20,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
+import io.github.arlol.githubcheck.actual.ActualCustomProperty;
 import io.github.arlol.githubcheck.actual.ActualOrgVariable;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -97,7 +98,8 @@ class OrganizationCheckerTest {
 				"org_workflow_permissions",
 				"org_action_secrets",
 				"org_action_variables",
-				"org_webhooks"
+				"org_webhooks",
+				"org_custom_properties"
 		);
 	}
 
@@ -221,6 +223,10 @@ class OrganizationCheckerTest {
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/hooks"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/properties/schema"))
 						.willReturn(okJson("[]"))
 		);
 
@@ -377,6 +383,66 @@ class OrganizationCheckerTest {
 				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
 		assertThat(settingsOnly.webhooks()).isEmpty();
 		verify(1, getRequestedFor(urlPathEqualTo("/orgs/my-org/hooks")));
+	}
+
+	/**
+	 * Definitions are read only when their group is managed, and the
+	 * enterprise-owned ones are dropped: the organization cannot change them.
+	 */
+	@Test
+	void customPropertiesAreReadOnlyWhenManagedAndEnterpriseOnesDropped() {
+		stubOrg("null");
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/properties/schema"))
+						.willReturn(
+								okJson(
+										"""
+												[
+												  {"property_name": "tier", "source_type": "organization", "value_type": "single_select",
+												   "required": true, "default_value": "gold", "description": null,
+												   "allowed_values": ["gold", "silver"], "values_editable_by": "org_actors"},
+												  {"property_name": "owner", "source_type": "enterprise", "value_type": "string",
+												   "required": false, "default_value": null, "values_editable_by": "org_actors"}
+												]
+												"""
+								)
+						)
+		);
+
+		OrganizationState state = checker.fetchState(
+				"my-org",
+				ManagedGroups.of(
+						new Drifty.OrgManaged(
+								Drifty.ManageMode.ONLY,
+								List.of(
+										Drifty.OrgGroupName.ORG_CUSTOM_PROPERTIES
+								)
+						)
+				)
+		);
+
+		assertThat(state.customProperties()).containsExactly(
+				new ActualCustomProperty(
+						"tier",
+						"single_select",
+						true,
+						"gold",
+						List.of(),
+						"",
+						List.of("gold", "silver"),
+						"org_actors"
+				)
+		);
+
+		OrganizationState settingsOnly = checker
+				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
+		assertThat(settingsOnly.customProperties()).isEmpty();
+		verify(
+				1,
+				getRequestedFor(
+						urlPathEqualTo("/orgs/my-org/properties/schema")
+				)
+		);
 	}
 
 }

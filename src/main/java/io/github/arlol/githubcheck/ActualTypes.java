@@ -12,6 +12,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
+import io.github.arlol.githubcheck.actual.ActualCustomProperty;
+import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
 import io.github.arlol.githubcheck.actual.ActualEnvironment;
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
@@ -29,6 +31,8 @@ import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.actual.StatusCheck;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.BranchPolicyType;
+import io.github.arlol.githubcheck.client.CustomPropertyResponse;
+import io.github.arlol.githubcheck.client.CustomPropertyValueResponse;
 import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.EnvironmentReviewerType;
@@ -762,6 +766,51 @@ public final class ActualTypes {
 						&& !config.secret().isEmpty(),
 				response.updatedAt()
 		);
+	}
+
+	// ─── Custom properties
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * {@code default_value} is a list for a {@code multi_select} property and a
+	 * string otherwise; each lands in its own field. A null description reads
+	 * as {@code ""}, and the allowed values as an empty list when absent.
+	 */
+	public static ActualCustomProperty customProperty(
+			CustomPropertyResponse response
+	) {
+		return new ActualCustomProperty(
+				response.propertyName(),
+				response.valueType(),
+				Boolean.TRUE.equals(response.required()),
+				stringValue(response.defaultValue()),
+				listValue(response.defaultValue()),
+				response.description() == null ? "" : response.description(),
+				response.allowedValues() == null ? List.of()
+						: response.allowedValues(),
+				response.valuesEditableBy()
+		);
+	}
+
+	/** Same split: a list value is a {@code multi_select} property's. */
+	public static ActualCustomPropertyValue customPropertyValue(
+			CustomPropertyValueResponse response
+	) {
+		return new ActualCustomPropertyValue(
+				response.propertyName(),
+				stringValue(response.value()),
+				listValue(response.value())
+		);
+	}
+
+	private static String stringValue(Object value) {
+		return value instanceof String s ? s : null;
+	}
+
+	private static List<String> listValue(Object value) {
+		return value instanceof List<?> list
+				? list.stream().map(String::valueOf).toList()
+				: List.of();
 	}
 
 	public static ActualVariable variable(VariableResponse response) {

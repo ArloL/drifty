@@ -30,6 +30,7 @@ typealias GroupName =
   | "automated_security_fixes"
   | "branch_protection"
   | "code_scanning_default_setup"
+  | "custom_properties"
   | "environment_config"
   | "environment_secrets"
   | "environment_variables"
@@ -60,6 +61,7 @@ typealias OrgGroupName =
   | "org_action_secrets"
   | "org_action_variables"
   | "org_webhooks"
+  | "org_custom_properties"
 
 typealias SecretVisibility = "all" | "private" | "selected"
 
@@ -248,6 +250,26 @@ class Webhook {
   secret: Boolean = false
 }
 
+typealias CustomPropertyValueType = "string" | "single_select" | "multi_select" | "true_false" | "url"
+typealias CustomPropertyEditableBy = "org_actors" | "org_and_repo_actors"
+
+/// A custom property definition. The property name is the key in
+/// Organization.customProperties. Extra definitions on GitHub are reported and
+/// never deleted: deleting one discards its value on every repository.
+class CustomProperty {
+  valueType: CustomPropertyValueType
+  required: Boolean = false
+  /// Default for every type but multi_select. A true_false property takes
+  /// "true" or "false", which is how GitHub stores it.
+  defaultValue: String?
+  /// Default for a multi_select property.
+  defaultValues: Listing<String> = new {}
+  description: String?
+  /// The choices of a single_select or multi_select property.
+  allowedValues: Listing<String> = new {}
+  valuesEditableBy: CustomPropertyEditableBy = "org_actors"
+}
+
 /// Deployment environment. The environment name is the key in Repository.environments.
 class Environment {
   secrets: Listing<String> = new {}
@@ -330,6 +352,12 @@ class Repository {
   environments: Mapping<String, Environment> = new {}
   /// Keyed by a name of your choosing; the url is the identity on GitHub
   webhooks: Mapping<String, Webhook> = new {}
+  /// Custom property values, name to value. A true_false property takes
+  /// "true" or "false". Only the properties named here are compared: which
+  /// properties exist is the organization's schema to decide.
+  customProperties: Mapping<String, String> = new {}
+  /// Values of multi_select properties, name to the selected values.
+  customMultiSelectProperties: Mapping<String, Listing<String>> = new {}
 }
 
 class SelectedActions {
@@ -417,6 +445,8 @@ class Organization {
   actionsVariables: Mapping<String, OrgVariable> = new {}
   /// Keyed by a name of your choosing; the url is the identity on GitHub
   webhooks: Mapping<String, Webhook> = new {}
+  /// Custom property definitions, keyed by property name
+  customProperties: Mapping<String, CustomProperty> = new {}
 
   repositories: Listing<Repository> = new {}
 }

@@ -40,7 +40,7 @@ One commit per task; each task leaves `./mvnw -DskipNativeTests test` green.
   `Webhook` class; client CRUD; `ActualWebhook`; `DriftyState.webhookSecrets`;
   two groups; preflight; fetch guards.
 
-- [ ] **Task 6: Custom properties** (org definitions, repo values)
+- [x] **Task 6: Custom properties** (org definitions, repo values)
 
 - [ ] **Task 7: Org rulesets** on top of `RulesetComparison`.
 

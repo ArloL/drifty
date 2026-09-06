@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
+import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
 import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -186,6 +187,11 @@ class RepositoryCheckerFetchStateTest {
 		assertThat(state.webhooks()).singleElement()
 				.extracting(ActualWebhook::url)
 				.isEqualTo("https://example.com/hook");
+		assertThat(state.customPropertyValues()).containsExactly(
+				new ActualCustomPropertyValue("tier", "gold", List.of()),
+				new ActualCustomPropertyValue("tags", null, List.of("a", "b")),
+				new ActualCustomPropertyValue("unset", null, List.of())
+		);
 		assertThat(state.workflowPermissions().defaultWorkflowPermissions())
 				.isEqualTo(
 						WorkflowPermissions.DefaultWorkflowPermissions.WRITE
@@ -382,6 +388,10 @@ class RepositoryCheckerFetchStateTest {
 						.willReturn(aResponse().withStatus(403))
 		);
 		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/properties/values"))
+						.willReturn(aResponse().withStatus(403))
+		);
+		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo/branches"))
 						.willReturn(okJson("[]"))
 		);
@@ -398,7 +408,8 @@ class RepositoryCheckerFetchStateTest {
 								Drifty.GroupName.RULESETS,
 								Drifty.GroupName.ACTION_VARIABLES,
 								Drifty.GroupName.ENVIRONMENT_VARIABLES,
-								Drifty.GroupName.WEBHOOKS
+								Drifty.GroupName.WEBHOOKS,
+								Drifty.GroupName.CUSTOM_PROPERTIES
 						)
 				)
 		);
@@ -412,6 +423,13 @@ class RepositoryCheckerFetchStateTest {
 		assertThat(state.environmentVariables()).isEmpty();
 		assertThat(state.webhooks()).isEmpty();
 		verify(0, getRequestedFor(urlPathEqualTo("/repos/owner/repo/hooks")));
+		assertThat(state.customPropertyValues()).isEmpty();
+		verify(
+				0,
+				getRequestedFor(
+						urlPathEqualTo("/repos/owner/repo/properties/values")
+				)
+		);
 		verify(
 				0,
 				getRequestedFor(
@@ -630,6 +648,17 @@ class RepositoryCheckerFetchStateTest {
 										"""
 						)
 				)
+		);
+		stubFor(
+				get(
+						urlPathEqualTo("/repos/owner/repo/properties/values")
+				).willReturn(okJson("""
+						[
+						  {"property_name": "tier", "value": "gold"},
+						  {"property_name": "tags", "value": ["a", "b"]},
+						  {"property_name": "unset", "value": null}
+						]
+						"""))
 		);
 		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo/environments"))

@@ -169,6 +169,8 @@ class DriftPathNamespacingTest {
 				.withWebhooks(
 						Map.of("ci", Desired.webhook("https://ci.example.com"))
 				)
+				.withCustomProperties(Map.of("tier", "gold"))
+				.withCustomMultiSelectProperties(Map.of("tags", List.of("a")))
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -286,6 +288,14 @@ class DriftPathNamespacingTest {
 										"audit",
 										Desired.webhook(
 												"https://audit.example.com"
+										)
+								)
+						)
+						.withCustomProperties(
+								Map.of(
+										"tier",
+										Desired.customProperty(
+												Drifty.CustomPropertyValueType.STRING
 										)
 								)
 						),

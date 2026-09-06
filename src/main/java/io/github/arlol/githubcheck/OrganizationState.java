@@ -2,6 +2,7 @@ package io.github.arlol.githubcheck;
 
 import java.util.List;
 
+import io.github.arlol.githubcheck.actual.ActualCustomProperty;
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.actual.ActualOrgVariable;
@@ -25,13 +26,15 @@ public record OrganizationState(
 		ActualWorkflowPermissions workflowPermissions,
 		List<ActualOrgSecret> actionSecrets,
 		List<ActualOrgVariable> actionVariables,
-		List<ActualWebhook> webhooks
+		List<ActualWebhook> webhooks,
+		List<ActualCustomProperty> customProperties
 ) {
 
 	public OrganizationState {
 		actionSecrets = List.copyOf(actionSecrets);
 		actionVariables = List.copyOf(actionVariables);
 		webhooks = List.copyOf(webhooks);
+		customProperties = List.copyOf(customProperties);
 	}
 
 	/** A state with nothing in the sections added after the first five. */
@@ -48,6 +51,7 @@ public record OrganizationState(
 				actionsPermissions,
 				workflowPermissions,
 				actionSecrets,
+				List.of(),
 				List.of(),
 				List.of()
 		);

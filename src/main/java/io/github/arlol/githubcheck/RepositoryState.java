@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
+import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
 import io.github.arlol.githubcheck.actual.ActualEnvironment;
 import io.github.arlol.githubcheck.actual.ActualPages;
 import io.github.arlol.githubcheck.actual.ActualRepository;
@@ -57,7 +58,8 @@ public record RepositoryState(
 		Optional<ActualPages> pages,
 		List<ActualVariable> actionVariables,
 		Map<String, List<ActualVariable>> environmentVariables,
-		List<ActualWebhook> webhooks
+		List<ActualWebhook> webhooks,
+		List<ActualCustomPropertyValue> customPropertyValues
 ) {
 
 	public RepositoryState {
@@ -69,6 +71,7 @@ public record RepositoryState(
 		actionVariables = List.copyOf(actionVariables);
 		environmentVariables = Map.copyOf(environmentVariables);
 		webhooks = List.copyOf(webhooks);
+		customPropertyValues = List.copyOf(customPropertyValues);
 	}
 
 	/**
@@ -110,6 +113,7 @@ public record RepositoryState(
 				pages,
 				List.of(),
 				Map.of(),
+				List.of(),
 				List.of()
 		);
 	}
