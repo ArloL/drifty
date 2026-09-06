@@ -51,6 +51,7 @@ public final class Desired {
 	private static final Drifty.CustomProperty CUSTOM_PROPERTY;
 	private static final Drifty.OrgRuleset ORG_RULESET;
 	private static final Drifty.PropertyCondition PROPERTY_CONDITION;
+	private static final Drifty.CodeSecurityConfiguration CODE_SECURITY_CONFIGURATION;
 
 	static {
 		try (var evaluator = ConfigEvaluator.preconfigured()) {
@@ -85,6 +86,8 @@ public final class Desired {
 			ORG_RULESET = root.get("orgRuleset").as(Drifty.OrgRuleset.class);
 			PROPERTY_CONDITION = root.get("propertyCondition")
 					.as(Drifty.PropertyCondition.class);
+			CODE_SECURITY_CONFIGURATION = root.get("codeSecurityConfiguration")
+					.as(Drifty.CodeSecurityConfiguration.class);
 		}
 	}
 
@@ -214,6 +217,11 @@ public final class Desired {
 			List<String> values
 	) {
 		return PROPERTY_CONDITION.withName(name).withPropertyValues(values);
+	}
+
+	/** A code security configuration with GitHub's POST defaults. */
+	public static Drifty.CodeSecurityConfiguration codeSecurityConfiguration() {
+		return CODE_SECURITY_CONFIGURATION;
 	}
 
 	public static Drifty.BypassActor bypassActor(

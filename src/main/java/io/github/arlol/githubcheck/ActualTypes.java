@@ -2,6 +2,7 @@ package io.github.arlol.githubcheck;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
@@ -12,6 +13,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
+import io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration;
 import io.github.arlol.githubcheck.actual.ActualCustomProperty;
 import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
 import io.github.arlol.githubcheck.actual.ActualEnvironment;
@@ -31,6 +33,8 @@ import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.actual.StatusCheck;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.BranchPolicyType;
+import io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse;
+import io.github.arlol.githubcheck.client.CodeSecurityRepositoryResponse;
 import io.github.arlol.githubcheck.client.CustomPropertyResponse;
 import io.github.arlol.githubcheck.client.CustomPropertyValueResponse;
 import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
@@ -767,6 +771,99 @@ public final class ActualTypes {
 				response.updatedAt()
 		);
 	}
+
+	// ─── Code security configurations
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * The seventeen toggles land in a map keyed by GitHub's field name; a
+	 * toggle the response omits reads as {@code not_set}, which is what GitHub
+	 * means by leaving it out. The attached repositories are the ones whose
+	 * attachment is in place or under way — a repository GitHub is still
+	 * detaching or failed to attach is not one the configuration covers.
+	 *
+	 * @param defaultForNewRepos from the defaults listing; {@code none} when
+	 *                           the configuration is not a default
+	 */
+	public static ActualCodeSecurityConfiguration codeSecurityConfiguration(
+			CodeSecurityConfigurationResponse response,
+			String defaultForNewRepos,
+			List<CodeSecurityRepositoryResponse> repositories
+	) {
+		var settings = new LinkedHashMap<String, String>();
+		settings.put("advanced_security", response.advancedSecurity());
+		settings.put("dependency_graph", response.dependencyGraph());
+		settings.put(
+				"dependency_graph_autosubmit_action",
+				response.dependencyGraphAutosubmitAction()
+		);
+		settings.put("dependabot_alerts", response.dependabotAlerts());
+		settings.put(
+				"dependabot_security_updates",
+				response.dependabotSecurityUpdates()
+		);
+		settings.put(
+				"dependabot_delegated_alert_dismissal",
+				response.dependabotDelegatedAlertDismissal()
+		);
+		settings.put(
+				"code_scanning_default_setup",
+				response.codeScanningDefaultSetup()
+		);
+		settings.put(
+				"code_scanning_delegated_alert_dismissal",
+				response.codeScanningDelegatedAlertDismissal()
+		);
+		settings.put("secret_scanning", response.secretScanning());
+		settings.put(
+				"secret_scanning_push_protection",
+				response.secretScanningPushProtection()
+		);
+		settings.put(
+				"secret_scanning_delegated_bypass",
+				response.secretScanningDelegatedBypass()
+		);
+		settings.put(
+				"secret_scanning_validity_checks",
+				response.secretScanningValidityChecks()
+		);
+		settings.put(
+				"secret_scanning_non_provider_patterns",
+				response.secretScanningNonProviderPatterns()
+		);
+		settings.put(
+				"secret_scanning_generic_secrets",
+				response.secretScanningGenericSecrets()
+		);
+		settings.put(
+				"secret_scanning_delegated_alert_dismissal",
+				response.secretScanningDelegatedAlertDismissal()
+		);
+		settings.put(
+				"private_vulnerability_reporting",
+				response.privateVulnerabilityReporting()
+		);
+		settings.replaceAll((_, value) -> value == null ? "not_set" : value);
+		return new ActualCodeSecurityConfiguration(
+				response.id(),
+				response.name(),
+				response.description() == null ? "" : response.description(),
+				settings,
+				response.enforcement(),
+				defaultForNewRepos == null ? "none" : defaultForNewRepos,
+				repositories.stream()
+						.filter(
+								r -> r.repository() != null
+										&& r.repository().name() != null
+										&& ATTACHED.contains(r.status())
+						)
+						.map(r -> r.repository().name())
+						.collect(Collectors.toSet())
+		);
+	}
+
+	private static final Set<String> ATTACHED = Set
+			.of("attached", "attaching", "enforced", "updating");
 
 	// ─── Custom properties
 	// ──────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration;
 import io.github.arlol.githubcheck.actual.ActualCustomProperty;
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
@@ -13,6 +14,7 @@ import io.github.arlol.githubcheck.actual.ActualOrgVariable;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.AllowedActions;
+import io.github.arlol.githubcheck.client.CodeSecurityDefaultResponse;
 import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.OrgSecretResponse;
@@ -27,6 +29,7 @@ import io.github.arlol.githubcheck.drift.ManagedGroups;
 import io.github.arlol.githubcheck.drift.OrgActionSecretsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgActionVariablesDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgActionsPermissionsDriftGroup;
+import io.github.arlol.githubcheck.drift.OrgCodeSecurityConfigurationsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgCustomPropertiesDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgRulesetDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgSettingsDriftGroup;
@@ -212,6 +215,11 @@ public class OrganizationChecker {
 				.manages(Drifty.OrgGroupName.ORG_RULESETS) ? orgRulesets(login)
 						: List.of();
 
+		List<ActualCodeSecurityConfiguration> codeSecurityConfigurations = managed
+				.manages(Drifty.OrgGroupName.ORG_CODE_SECURITY_CONFIGURATIONS)
+						? codeSecurityConfigurations(login)
+						: List.of();
+
 		return new OrganizationState(
 				login,
 				settings,
@@ -221,8 +229,45 @@ public class OrganizationChecker {
 				variables,
 				webhooks,
 				customProperties,
-				rulesets
+				rulesets,
+				codeSecurityConfigurations
 		);
+	}
+
+	/**
+	 * The organization's own configurations — GitHub's global ones are not its
+	 * to change — with the defaults listing read once and the attached
+	 * repositories once per configuration.
+	 */
+	private List<ActualCodeSecurityConfiguration> codeSecurityConfigurations(
+			String login
+	) {
+		var configurations = client.getCodeSecurityConfigurations(login)
+				.stream()
+				.filter(c -> "organization".equals(c.targetType()))
+				.toList();
+		if (configurations.isEmpty()) {
+			return List.of();
+		}
+		Map<Long, String> defaults = new java.util.HashMap<>();
+		for (CodeSecurityDefaultResponse d : client
+				.getCodeSecurityDefaults(login)) {
+			if (d.configuration() != null) {
+				defaults.put(d.configuration().id(), d.defaultForNewRepos());
+			}
+		}
+		return configurations.stream()
+				.map(
+						c -> ActualTypes.codeSecurityConfiguration(
+								c,
+								defaults.get(c.id()),
+								client.getCodeSecurityConfigurationRepositories(
+										login,
+										c.id()
+								)
+						)
+				)
+				.toList();
 	}
 
 	/**
@@ -406,6 +451,15 @@ public class OrganizationChecker {
 				new OrgRulesetDriftGroup(
 						desired.rulesets,
 						actual.rulesets(),
+						client,
+						actual.login()
+				)
+		);
+		groups.add(
+				new OrgCodeSecurityConfigurationsDriftGroup(
+						desired.codeSecurityConfigurations,
+						actual.codeSecurityConfigurations(),
+						repositoryIds,
 						client,
 						actual.login()
 				)

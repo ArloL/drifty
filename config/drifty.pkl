@@ -63,6 +63,7 @@ typealias OrgGroupName =
   | "org_webhooks"
   | "org_custom_properties"
   | "org_rulesets"
+  | "org_code_security_configurations"
 
 typealias SecretVisibility = "all" | "private" | "selected"
 
@@ -292,6 +293,43 @@ class CustomProperty {
   valuesEditableBy: CustomPropertyEditableBy = "org_actors"
 }
 
+typealias SecuritySetting = "enabled" | "disabled" | "not_set"
+typealias AdvancedSecuritySetting = "enabled" | "disabled" | "code_security" | "secret_protection"
+typealias SecurityEnforcement = "enforced" | "unenforced"
+typealias DefaultForNewRepos = "none" | "public" | "private_and_internal" | "all"
+
+/// A code security configuration. The name is the key in
+/// Organization.codeSecurityConfigurations; the defaults are GitHub's, so a
+/// configuration created with only a name reports no drift. Extra
+/// configurations on GitHub are reported and never deleted: deleting one
+/// detaches every repository it is attached to.
+class CodeSecurityConfiguration {
+  description: String = ""
+  advancedSecurity: AdvancedSecuritySetting = "disabled"
+  dependencyGraph: SecuritySetting = "enabled"
+  dependencyGraphAutosubmitAction: SecuritySetting = "disabled"
+  dependabotAlerts: SecuritySetting = "disabled"
+  dependabotSecurityUpdates: SecuritySetting = "disabled"
+  dependabotDelegatedAlertDismissal: SecuritySetting = "disabled"
+  codeScanningDefaultSetup: SecuritySetting = "disabled"
+  codeScanningDelegatedAlertDismissal: SecuritySetting = "not_set"
+  secretScanning: SecuritySetting = "disabled"
+  secretScanningPushProtection: SecuritySetting = "disabled"
+  secretScanningDelegatedBypass: SecuritySetting = "disabled"
+  secretScanningValidityChecks: SecuritySetting = "disabled"
+  secretScanningNonProviderPatterns: SecuritySetting = "disabled"
+  secretScanningGenericSecrets: SecuritySetting = "disabled"
+  secretScanningDelegatedAlertDismissal: SecuritySetting = "not_set"
+  privateVulnerabilityReporting: SecuritySetting = "disabled"
+  enforcement: SecurityEnforcement = "enforced"
+  /// Which new repositories get this configuration by default.
+  defaultForNewRepos: DefaultForNewRepos = "none"
+  /// Repositories this configuration is attached to. Missing ones are
+  /// attached; repositories attached outside the config are reported, not
+  /// detached.
+  repositories: Listing<String> = new {}
+}
+
 /// Deployment environment. The environment name is the key in Repository.environments.
 class Environment {
   secrets: Listing<String> = new {}
@@ -471,6 +509,8 @@ class Organization {
   customProperties: Mapping<String, CustomProperty> = new {}
   /// Organization rulesets, keyed by ruleset name
   rulesets: Mapping<String, OrgRuleset> = new {}
+  /// Code security configurations, keyed by name
+  codeSecurityConfigurations: Mapping<String, CodeSecurityConfiguration> = new {}
 
   repositories: Listing<Repository> = new {}
 }

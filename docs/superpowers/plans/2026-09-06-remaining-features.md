@@ -44,7 +44,7 @@ One commit per task; each task leaves `./mvnw -DskipNativeTests test` green.
 
 - [x] **Task 7: Org rulesets** on top of `RulesetComparison`.
 
-- [ ] **Task 8: Code security configurations**
+- [x] **Task 8: Code security configurations**
 
 - [ ] **Task 9: Teams, org members, collaborators**
 

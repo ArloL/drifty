@@ -373,6 +373,158 @@ public class GitHubClient {
 		}
 	}
 
+	// ─── Code security configurations
+	// ──────────────────────────────────────────────────────────
+
+	private String codeSecurityUrl(String org) {
+		return orgUrl(org) + "/code-security/configurations";
+	}
+
+	public List<CodeSecurityConfigurationResponse> getCodeSecurityConfigurations(
+			String org
+	) {
+		HttpResponse<String> resp = get(codeSecurityUrl(org) + "?per_page=100");
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " for code security configurations of " + org
+							+ ": " + resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, null).stream()
+				.map(
+						c -> mapper.convertValue(
+								c,
+								CodeSecurityConfigurationResponse.class
+						)
+				)
+				.toList();
+	}
+
+	public List<CodeSecurityDefaultResponse> getCodeSecurityDefaults(
+			String org
+	) {
+		HttpResponse<String> resp = get(codeSecurityUrl(org) + "/defaults");
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " for code security defaults of " + org + ": "
+							+ resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, null).stream()
+				.map(
+						d -> mapper.convertValue(
+								d,
+								CodeSecurityDefaultResponse.class
+						)
+				)
+				.toList();
+	}
+
+	public List<CodeSecurityRepositoryResponse> getCodeSecurityConfigurationRepositories(
+			String org,
+			long configurationId
+	) {
+		HttpResponse<String> resp = get(
+				codeSecurityUrl(org) + "/" + configurationId
+						+ "/repositories?per_page=100"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " for repositories of code security configuration "
+							+ configurationId + " on " + org + ": "
+							+ resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, null).stream()
+				.map(
+						r -> mapper.convertValue(
+								r,
+								CodeSecurityRepositoryResponse.class
+						)
+				)
+				.toList();
+	}
+
+	public CodeSecurityConfigurationResponse createCodeSecurityConfiguration(
+			String org,
+			CodeSecurityConfigurationRequest configuration
+	) {
+		HttpResponse<String> resp = post(
+				codeSecurityUrl(org),
+				writeValue(configuration)
+		);
+		if (resp.statusCode() != 201) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " creating code security configuration on " + org
+							+ ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), CodeSecurityConfigurationResponse.class);
+	}
+
+	public void updateCodeSecurityConfiguration(
+			String org,
+			long configurationId,
+			CodeSecurityConfigurationRequest configuration
+	) {
+		HttpResponse<String> resp = patch(
+				codeSecurityUrl(org) + "/" + configurationId,
+				writeValue(configuration)
+		);
+		if (resp.statusCode() != 200 && resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " updating code security configuration "
+							+ configurationId + " on " + org + ": "
+							+ resp.body()
+			);
+		}
+	}
+
+	public void setCodeSecurityDefaults(
+			String org,
+			long configurationId,
+			String defaultForNewRepos
+	) {
+		HttpResponse<String> resp = put(
+				codeSecurityUrl(org) + "/" + configurationId + "/defaults",
+				writeValue(new CodeSecurityDefaultsRequest(defaultForNewRepos))
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " setting defaults of code security configuration "
+							+ configurationId + " on " + org + ": "
+							+ resp.body()
+			);
+		}
+	}
+
+	public void attachCodeSecurityConfiguration(
+			String org,
+			long configurationId,
+			List<Long> repositoryIds
+	) {
+		HttpResponse<String> resp = post(
+				codeSecurityUrl(org) + "/" + configurationId + "/attach",
+				writeValue(
+						new CodeSecurityAttachRequest("selected", repositoryIds)
+				)
+		);
+		if (resp.statusCode() != 202) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " attaching code security configuration "
+							+ configurationId + " on " + org + ": "
+							+ resp.body()
+			);
+		}
+	}
+
 	// ─── Custom properties
 	// ──────────────────────────────────────────────────────────
 

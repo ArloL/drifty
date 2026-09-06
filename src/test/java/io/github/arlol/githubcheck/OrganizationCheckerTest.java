@@ -100,7 +100,8 @@ class OrganizationCheckerTest {
 				"org_action_variables",
 				"org_webhooks",
 				"org_custom_properties",
-				"org_rulesets"
+				"org_rulesets",
+				"org_code_security_configurations"
 		);
 	}
 
@@ -232,6 +233,10 @@ class OrganizationCheckerTest {
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/rulesets"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/code-security/configurations"))
 						.willReturn(okJson("[]"))
 		);
 
@@ -505,6 +510,104 @@ class OrganizationCheckerTest {
 				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
 		assertThat(settingsOnly.rulesets()).isEmpty();
 		verify(1, getRequestedFor(urlPathEqualTo("/orgs/my-org/rulesets")));
+	}
+
+	/**
+	 * Configurations are read only when their group is managed; GitHub's global
+	 * ones are dropped, the defaults listing is read once, and the attached
+	 * repositories once per organization configuration.
+	 */
+	@Test
+	void codeSecurityConfigurationsAreReadOnlyWhenManaged() {
+		stubOrg("null");
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/code-security/configurations"))
+						.willReturn(
+								okJson(
+										"""
+												[
+												  {"id": 1, "target_type": "global", "name": "GitHub recommended"},
+												  {"id": 2, "target_type": "organization", "name": "baseline",
+												   "description": null, "secret_scanning": "enabled", "enforcement": "enforced"}
+												]
+												"""
+								)
+						)
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/orgs/my-org/code-security/configurations/defaults"
+						)
+				).willReturn(
+						okJson(
+								"""
+										[{"default_for_new_repos": "all", "configuration": {"id": 2, "name": "baseline"}}]
+										"""
+						)
+				)
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/orgs/my-org/code-security/configurations/2/repositories"
+						)
+				).willReturn(
+						okJson(
+								"""
+										[
+										  {"status": "attached", "repository": {"id": 10, "name": "one"}},
+										  {"status": "detached", "repository": {"id": 11, "name": "two"}}
+										]
+										"""
+						)
+				)
+		);
+
+		OrganizationState state = checker.fetchState(
+				"my-org",
+				ManagedGroups.of(
+						new Drifty.OrgManaged(
+								Drifty.ManageMode.ONLY,
+								List.of(
+										Drifty.OrgGroupName.ORG_CODE_SECURITY_CONFIGURATIONS
+								)
+						)
+				)
+		);
+
+		assertThat(state.codeSecurityConfigurations()).singleElement()
+				.satisfies(configuration -> {
+					assertThat(configuration.id()).isEqualTo(2);
+					assertThat(configuration.description()).isEmpty();
+					assertThat(configuration.settings())
+							.containsEntry("secret_scanning", "enabled")
+							.containsEntry("dependency_graph", "not_set");
+					assertThat(configuration.defaultForNewRepos())
+							.isEqualTo("all");
+					assertThat(configuration.repositories())
+							.containsExactly("one");
+				});
+		verify(
+				0,
+				getRequestedFor(
+						urlPathEqualTo(
+								"/orgs/my-org/code-security/configurations/1/repositories"
+						)
+				)
+		);
+
+		OrganizationState settingsOnly = checker
+				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
+		assertThat(settingsOnly.codeSecurityConfigurations()).isEmpty();
+		verify(
+				1,
+				getRequestedFor(
+						urlPathEqualTo(
+								"/orgs/my-org/code-security/configurations"
+						)
+				)
+		);
 	}
 
 }
