@@ -11,6 +11,8 @@ import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulePatternOperator;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
+import io.github.arlol.githubcheck.client.RulesetEnforcement;
+import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.SecretVisibility;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.SquashMergeCommitMessage;
@@ -114,6 +116,23 @@ public final class PklTypes {
 		case ALWAYS -> RulesetDetailsResponse.BypassActor.BypassMode.ALWAYS;
 		case PULL_REQUEST ->
 			RulesetDetailsResponse.BypassActor.BypassMode.PULL_REQUEST;
+		};
+	}
+
+	public static RulesetTarget rulesetTarget(Drifty.RulesetTarget t) {
+		return switch (t) {
+		case BRANCH -> RulesetTarget.BRANCH;
+		case TAG -> RulesetTarget.TAG;
+		};
+	}
+
+	public static RulesetEnforcement rulesetEnforcement(
+			Drifty.RulesetEnforcement e
+	) {
+		return switch (e) {
+		case ACTIVE -> RulesetEnforcement.ACTIVE;
+		case EVALUATE -> RulesetEnforcement.EVALUATE;
+		case DISABLED -> RulesetEnforcement.DISABLED;
 		};
 	}
 

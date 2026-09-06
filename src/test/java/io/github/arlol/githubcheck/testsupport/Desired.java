@@ -33,6 +33,9 @@ public final class Desired {
 	private static final Drifty.Organization ORGANIZATION;
 	private static final Drifty.Repository REPOSITORY;
 	private static final Drifty.Ruleset RULESET;
+	private static final Drifty.PullRequestRule PULL_REQUEST_RULE;
+	private static final Drifty.MergeQueueRule MERGE_QUEUE_RULE;
+	private static final Drifty.WorkflowRule WORKFLOW_RULE;
 	private static final Drifty.BranchProtection BRANCH_PROTECTION;
 	private static final Drifty.Environment ENVIRONMENT;
 	private static final Drifty.Pages PAGES;
@@ -50,6 +53,12 @@ public final class Desired {
 					.as(Drifty.Organization.class);
 			REPOSITORY = root.get("repository").as(Drifty.Repository.class);
 			RULESET = root.get("ruleset").as(Drifty.Ruleset.class);
+			PULL_REQUEST_RULE = root.get("pullRequestRule")
+					.as(Drifty.PullRequestRule.class);
+			MERGE_QUEUE_RULE = root.get("mergeQueueRule")
+					.as(Drifty.MergeQueueRule.class);
+			WORKFLOW_RULE = root.get("workflowRule")
+					.as(Drifty.WorkflowRule.class);
 			BRANCH_PROTECTION = root.get("branchProtection")
 					.as(Drifty.BranchProtection.class);
 			ENVIRONMENT = root.get("environment").as(Drifty.Environment.class);
@@ -86,6 +95,23 @@ public final class Desired {
 
 	public static Drifty.Ruleset ruleset() {
 		return RULESET;
+	}
+
+	/** A pull_request rule with GitHub's defaults for a new one. */
+	public static Drifty.PullRequestRule pullRequestRule() {
+		return PULL_REQUEST_RULE;
+	}
+
+	/** A merge_queue rule with GitHub's defaults for a new one. */
+	public static Drifty.MergeQueueRule mergeQueueRule() {
+		return MERGE_QUEUE_RULE;
+	}
+
+	public static Drifty.WorkflowRule workflowRule(
+			String path,
+			long repositoryId
+	) {
+		return WORKFLOW_RULE.withPath(path).withRepositoryId(repositoryId);
 	}
 
 	public static Drifty.BranchProtection branchProtection() {

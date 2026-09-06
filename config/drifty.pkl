@@ -111,13 +111,58 @@ class BypassActor {
   bypassMode: BypassMode
 }
 
+typealias RulesetTarget = "branch" | "tag"
+typealias RulesetEnforcement = "active" | "evaluate" | "disabled"
+typealias MergeMethod = "merge" | "squash" | "rebase"
+typealias MergeQueueGroupingStrategy = "ALLGREEN" | "HEADGREEN"
+typealias MergeQueueMergeMethod = "MERGE" | "SQUASH" | "REBASE"
+
+/// The pull_request rule. Its presence on a Ruleset is what requires pull
+/// requests before merging; the defaults are GitHub's for a new rule.
+class PullRequestRule {
+  requiredApprovingReviewCount: Int = 0
+  dismissStaleReviewsOnPush: Boolean = false
+  requireCodeOwnerReview: Boolean = false
+  requireLastPushApproval: Boolean = false
+  requiredReviewThreadResolution: Boolean = false
+  /// Leave empty to allow every merge method.
+  allowedMergeMethods: Listing<MergeMethod> = new {}
+}
+
+/// The merge_queue rule, with GitHub's defaults for a new queue.
+class MergeQueueRule {
+  checkResponseTimeoutMinutes: Int = 60
+  groupingStrategy: MergeQueueGroupingStrategy = "ALLGREEN"
+  maxEntriesToBuild: Int = 5
+  maxEntriesToMerge: Int = 5
+  mergeMethod: MergeQueueMergeMethod = "MERGE"
+  minEntriesToMerge: Int = 1
+  minEntriesToMergeWaitMinutes: Int = 5
+}
+
+/// A workflow that must pass before merging, for the workflows rule.
+class WorkflowRule {
+  /// Path of the workflow file, e.g. ".github/workflows/ci.yml".
+  path: String
+  /// Id of the repository the workflow lives in.
+  repositoryId: Int
+  /// Branch, tag or SHA to take the workflow from; omit for the default branch.
+  ref: String?
+}
+
 /// A repository ruleset. The ruleset name is the key in Repository.rulesets.
 class Ruleset {
+  target: RulesetTarget = "branch"
+  enforcement: RulesetEnforcement = "active"
   includePatterns: Listing<String> = new {}
+  excludePatterns: Listing<String> = new {}
   requiredLinearHistory: Boolean = false
   noForcePushes: Boolean = false
+  /// Whether branches must be up to date before merging.
+  strictRequiredStatusChecks: Boolean = false
   requiredStatusChecks: Listing<StatusCheck> = new {}
-  requiredReviewCount: Int?
+  /// Set to require pull requests; omit to allow direct pushes.
+  pullRequest: PullRequestRule?
   requiredCodeScanning: Listing<CodeScanningTool> = new {}
   creation: Boolean = false
   deletion: Boolean = false
@@ -130,6 +175,15 @@ class Ruleset {
   branchNamePattern: RulePattern?
   tagNamePattern: RulePattern?
   requiredDeployments: Listing<String> = new {}
+  mergeQueue: MergeQueueRule?
+  workflows: Listing<WorkflowRule> = new {}
+  /// File paths that may not be committed.
+  filePathRestrictions: Listing<String> = new {}
+  maxFilePathLength: Int?
+  /// File extensions that may not be committed.
+  fileExtensionRestrictions: Listing<String> = new {}
+  /// Largest file size in megabytes.
+  maxFileSize: Int?
   bypassActors: Listing<BypassActor> = new {}
 }
 

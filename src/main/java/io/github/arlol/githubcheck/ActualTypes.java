@@ -67,10 +67,19 @@ public final class ActualTypes {
 
 	public static ActualRuleset ruleset(RulesetDetailsResponse response) {
 		Map<RulesetRuleType, Rule> rules = rulesByType(response);
+		var conditions = response.conditions();
+		var refName = conditions == null ? null : conditions.refName();
+		var repositoryName = conditions == null ? null
+				: conditions.repositoryName();
+		var repositoryProperty = conditions == null ? null
+				: conditions.repositoryProperty();
 		return new ActualRuleset(
 				response.id(),
 				response.name(),
-				includePatterns(response),
+				wire(response.target()),
+				wire(response.enforcement()),
+				patterns(refName == null ? null : refName.include()),
+				patterns(refName == null ? null : refName.exclude()),
 				rules.containsKey(RulesetRuleType.CREATION),
 				rules.containsKey(RulesetRuleType.DELETION),
 				rules.containsKey(RulesetRuleType.UPDATE),
@@ -78,8 +87,9 @@ public final class ActualTypes {
 				rules.containsKey(RulesetRuleType.REQUIRED_SIGNATURES),
 				rules.containsKey(RulesetRuleType.REQUIRED_LINEAR_HISTORY),
 				rules.containsKey(RulesetRuleType.NON_FAST_FORWARD),
+				strictStatusChecks(rules),
 				statusChecks(rules),
-				requiredReviewCount(rules),
+				pullRequest(rules),
 				codeScanningTools(rules),
 				requiredDeployments(rules),
 				pattern(rules, RulesetRuleType.COMMIT_MESSAGE_PATTERN),
@@ -87,8 +97,38 @@ public final class ActualTypes {
 				pattern(rules, RulesetRuleType.COMMITTER_EMAIL_PATTERN),
 				pattern(rules, RulesetRuleType.BRANCH_NAME_PATTERN),
 				pattern(rules, RulesetRuleType.TAG_NAME_PATTERN),
-				bypassActors(response)
+				mergeQueue(rules),
+				workflows(rules),
+				filePathRestrictions(rules),
+				maxFilePathLength(rules),
+				fileExtensionRestrictions(rules),
+				maxFileSize(rules),
+				bypassActors(response),
+				patterns(
+						repositoryName == null ? null : repositoryName.include()
+				),
+				patterns(
+						repositoryName == null ? null : repositoryName.exclude()
+				),
+				repositoryName != null
+						&& Boolean.TRUE.equals(repositoryName.isProtected()),
+				propertyConditions(
+						repositoryProperty == null ? null
+								: repositoryProperty.include()
+				),
+				propertyConditions(
+						repositoryProperty == null ? null
+								: repositoryProperty.exclude()
+				)
 		);
+	}
+
+	/**
+	 * The wire spelling of a client enum — what Jackson would write — which is
+	 * also what the Pkl enum's {@code toString()} gives on the desired side.
+	 */
+	private static String wire(Enum<?> value) {
+		return value == null ? null : value.name().toLowerCase(Locale.ROOT);
 	}
 
 	private static Map<RulesetRuleType, Rule> rulesByType(
@@ -103,13 +143,25 @@ public final class ActualTypes {
 				.collect(Collectors.toMap(Rule::type, r -> r, (a, _) -> a));
 	}
 
-	private static Set<String> includePatterns(RulesetDetailsResponse ruleset) {
-		if (ruleset.conditions() == null
-				|| ruleset.conditions().refName() == null
-				|| ruleset.conditions().refName().include() == null) {
+	private static Set<String> patterns(List<String> patterns) {
+		return patterns == null ? Set.of() : new HashSet<>(patterns);
+	}
+
+	private static Set<ActualRuleset.PropertyCondition> propertyConditions(
+			List<RulesetDetailsResponse.Conditions.RepositoryProperty.PropertyCondition> conditions
+	) {
+		if (conditions == null) {
 			return Set.of();
 		}
-		return new HashSet<>(ruleset.conditions().refName().include());
+		return conditions.stream()
+				.map(
+						c -> new ActualRuleset.PropertyCondition(
+								c.name(),
+								patterns(c.propertyValues()),
+								c.source() == null ? "custom" : c.source()
+						)
+				)
+				.collect(Collectors.toSet());
 	}
 
 	private static boolean updateAllowsFetchAndMerge(
@@ -119,6 +171,18 @@ public final class ActualTypes {
 				&& update.parameters() != null
 				&& Boolean.TRUE.equals(
 						update.parameters().updateAllowsFetchAndMerge()
+				);
+	}
+
+	private static boolean strictStatusChecks(
+			Map<RulesetRuleType, Rule> rules
+	) {
+		return rules.get(
+				RulesetRuleType.REQUIRED_STATUS_CHECKS
+		) instanceof Rule.RequiredStatusChecks rsc
+				&& rsc.parameters() != null
+				&& Boolean.TRUE.equals(
+						rsc.parameters().strictRequiredStatusChecksPolicy()
 				);
 	}
 
@@ -143,15 +207,120 @@ public final class ActualTypes {
 		return Set.of();
 	}
 
-	private static Integer requiredReviewCount(
+	/**
+	 * GitHub returns every parameter of a pull_request rule, so a missing one
+	 * is read as the default it would have been created with.
+	 */
+	private static ActualRuleset.PullRequest pullRequest(
 			Map<RulesetRuleType, Rule> rules
 	) {
-		if (rules.get(
+		if (!(rules.get(
 				RulesetRuleType.PULL_REQUEST
-		) instanceof Rule.PullRequest pr && pr.parameters() != null) {
-			return pr.parameters().requiredApprovingReviewCount();
+		) instanceof Rule.PullRequest pr)) {
+			return null;
 		}
-		return null;
+		var p = pr.parameters();
+		if (p == null) {
+			return new ActualRuleset.PullRequest(
+					0,
+					false,
+					false,
+					false,
+					false,
+					Set.of()
+			);
+		}
+		return new ActualRuleset.PullRequest(
+				p.requiredApprovingReviewCount() == null ? 0
+						: p.requiredApprovingReviewCount(),
+				Boolean.TRUE.equals(p.dismissStaleReviewsOnPush()),
+				Boolean.TRUE.equals(p.requireCodeOwnerReview()),
+				Boolean.TRUE.equals(p.requireLastPushApproval()),
+				Boolean.TRUE.equals(p.requiredReviewThreadResolution()),
+				patterns(p.allowedMergeMethods())
+		);
+	}
+
+	private static ActualRuleset.MergeQueue mergeQueue(
+			Map<RulesetRuleType, Rule> rules
+	) {
+		if (!(rules
+				.get(RulesetRuleType.MERGE_QUEUE) instanceof Rule.MergeQueue mq)
+				|| mq.parameters() == null) {
+			return null;
+		}
+		var p = mq.parameters();
+		return new ActualRuleset.MergeQueue(
+				orZero(p.checkResponseTimeoutMinutes()),
+				p.groupingStrategy(),
+				orZero(p.maxEntriesToBuild()),
+				orZero(p.maxEntriesToMerge()),
+				p.mergeMethod(),
+				orZero(p.minEntriesToMerge()),
+				orZero(p.minEntriesToMergeWaitMinutes())
+		);
+	}
+
+	private static int orZero(Integer value) {
+		return value == null ? 0 : value;
+	}
+
+	private static Set<ActualRuleset.Workflow> workflows(
+			Map<RulesetRuleType, Rule> rules
+	) {
+		if (rules.get(RulesetRuleType.WORKFLOWS) instanceof Rule.Workflows w
+				&& w.parameters() != null
+				&& w.parameters().workflows() != null) {
+			return w.parameters()
+					.workflows()
+					.stream()
+					.map(
+							wf -> new ActualRuleset.Workflow(
+									wf.path(),
+									wf.repositoryId() == null ? 0
+											: wf.repositoryId(),
+									wf.ref()
+							)
+					)
+					.collect(Collectors.toSet());
+		}
+		return Set.of();
+	}
+
+	private static Set<String> filePathRestrictions(
+			Map<RulesetRuleType, Rule> rules
+	) {
+		return rules.get(
+				RulesetRuleType.FILE_PATH_RESTRICTION
+		) instanceof Rule.FilePathRestriction r && r.parameters() != null
+				? patterns(r.parameters().restrictedFilePaths())
+				: Set.of();
+	}
+
+	private static Set<String> fileExtensionRestrictions(
+			Map<RulesetRuleType, Rule> rules
+	) {
+		return rules.get(
+				RulesetRuleType.FILE_EXTENSION_RESTRICTION
+		) instanceof Rule.FileExtensionRestriction r && r.parameters() != null
+				? patterns(r.parameters().restrictedFileExtensions())
+				: Set.of();
+	}
+
+	private static Integer maxFilePathLength(Map<RulesetRuleType, Rule> rules) {
+		return rules.get(
+				RulesetRuleType.MAX_FILE_PATH_LENGTH
+		) instanceof Rule.MaxFilePathLength r && r.parameters() != null
+				? r.parameters().maxFilePathLength()
+				: null;
+	}
+
+	private static Integer maxFileSize(Map<RulesetRuleType, Rule> rules) {
+		return rules.get(
+				RulesetRuleType.MAX_FILE_SIZE
+		) instanceof Rule.MaxFileSize r && r.parameters() != null
+				? r.parameters().maxFileSize()
+				: null;
 	}
 
 	private static Set<String> codeScanningTools(

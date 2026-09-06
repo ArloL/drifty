@@ -1156,7 +1156,12 @@ class RepositoryCheckerDiffTest {
 						"main-branch-rules",
 						Desired.ruleset()
 								.withIncludePatterns(List.of("~DEFAULT_BRANCH"))
-								.withRequiredReviewCount(2L)
+								.withPullRequest(
+										Desired.pullRequestRule()
+												.withRequiredApprovingReviewCount(
+														2L
+												)
+								)
 				)
 		);
 		var include = List.of("~DEFAULT_BRANCH");
@@ -1204,7 +1209,7 @@ class RepositoryCheckerDiffTest {
 				.map(DriftItem::message)
 				.toList();
 		assertThat(messages).contains(
-				"rulesets.main-branch-rules.required_review_count: want=2 got=1"
+				"rulesets.main-branch-rules.pull_request.required_approving_review_count: want=2 got=1"
 		);
 	}
 
