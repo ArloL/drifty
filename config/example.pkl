@@ -31,12 +31,52 @@ organizations {
     defaultWorkflowPermissions = "read"
     // Value read from DRIFTY_GITHUB_SECRETS under "org-example-org-NPM_TOKEN".
     actionsSecrets { ["NPM_TOKEN"] = new OrgSecret { visibility = "all" } }
+    actionsVariables { ["REGISTRY"] = new OrgVariable { value = "ghcr.io"; visibility = "all" } }
+    // Secret under "org-example-org-webhook-audit".
+    webhooks {
+      ["audit"] = new Webhook { url = "https://audit.example.com/github"; contentType = "json"; secret = true }
+    }
+    customProperties {
+      ["tier"] = new CustomProperty {
+        valueType = "single_select"
+        defaultValue = "silver"
+        allowedValues { "gold"; "silver" }
+      }
+    }
+    rulesets {
+      ["default-branch"] = new OrgRuleset {
+        includePatterns { "~DEFAULT_BRANCH" }
+        repositoryNameInclude { "~ALL" }
+        noForcePushes = true
+      }
+    }
+    codeSecurityConfigurations {
+      ["baseline"] = new CodeSecurityConfiguration {
+        secretScanning = "enabled"
+        secretScanningPushProtection = "enabled"
+        defaultForNewRepos = "all"
+      }
+    }
+    teams {
+      ["core"] = new Team { description = "Owns the services"; maintainers { "example-user" } }
+    }
+    members { ["example-user"] = "admin" }
+    // Runner groups exist only on paid plans; a free organization would
+    // exclude "org_runner_groups" through `managed` instead.
+    runnerGroups { ["Default"] = new RunnerGroup { allowsPublicRepositories = true } }
     repositories {
       (defaultRepo) {
         name = "example-service"
         environments {
           ["production"] = new Environment { secrets { "TF_TOKEN" } }
         }
+        actionsVariables { ["REGION"] = "eu" }
+        // Secret under "example-service-webhook-ci".
+        webhooks {
+          ["ci"] = new Webhook { url = "https://ci.example.com/hook"; events { "push"; "pull_request" }; secret = true }
+        }
+        customProperties { ["tier"] = "gold" }
+        teamPermissions { ["core"] = "maintain" }
       }
       (defaultRepo) {
         name = "example-library"
