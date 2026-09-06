@@ -25,6 +25,7 @@ public record EnvironmentDetailsResponse(
 	public record ProtectionRule(
 			ProtectionRuleType type,
 			Integer waitTimer,
+			Boolean preventSelfReview,
 			List<Reviewer> reviewers
 	) {
 

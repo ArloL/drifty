@@ -25,7 +25,10 @@ import io.github.arlol.githubcheck.actual.ActualSelectedActions;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.actual.StatusCheck;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
+import io.github.arlol.githubcheck.client.BranchPolicyType;
+import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
+import io.github.arlol.githubcheck.client.EnvironmentReviewerType;
 import io.github.arlol.githubcheck.client.OrgActionsPermissionsResponse;
 import io.github.arlol.githubcheck.client.OrgSecretResponse;
 import io.github.arlol.githubcheck.client.OrganizationResponse;
@@ -440,29 +443,88 @@ public final class ActualTypes {
 	// ──────────────────────────────────────────────────────────
 
 	/**
-	 * GitHub keeps the wait timer in a typed entry of the protection-rules list
-	 * and leaves the branch policy out entirely when nothing is set.
+	 * GitHub keeps the wait timer and the reviewers in typed entries of the
+	 * protection-rules list and leaves the branch policy out entirely when
+	 * nothing is set. The custom policies come from their own listing, which
+	 * the caller only performs when the environment has them on.
 	 */
+	public static ActualEnvironment environment(
+			EnvironmentDetailsResponse response,
+			List<DeploymentBranchPolicyResponse> policies
+	) {
+		var policy = response.deploymentBranchPolicy();
+		var reviewersRule = protectionRule(
+				response,
+				EnvironmentDetailsResponse.ProtectionRuleType.REQUIRED_REVIEWERS
+		);
+		return new ActualEnvironment(
+				protectionRule(
+						response,
+						EnvironmentDetailsResponse.ProtectionRuleType.WAIT_TIMER
+				).map(EnvironmentDetailsResponse.ProtectionRule::waitTimer)
+						.orElse(0),
+				reviewersRule.map(
+						EnvironmentDetailsResponse.ProtectionRule::preventSelfReview
+				).map(Boolean.TRUE::equals).orElse(false),
+				reviewersRule.map(
+						EnvironmentDetailsResponse.ProtectionRule::reviewers
+				)
+						.orElse(List.of())
+						.stream()
+						.map(ActualTypes::reviewer)
+						.filter(Objects::nonNull)
+						.collect(Collectors.toSet()),
+				policy != null && policy.protectedBranches(),
+				policy != null && policy.customBranchPolicies(),
+				policies.stream()
+						.map(
+								p -> new ActualEnvironment.BranchPolicy(
+										p.id(),
+										p.type() == BranchPolicyType.TAG ? "tag"
+												: "branch",
+										p.name()
+								)
+						)
+						.toList()
+		);
+	}
+
 	public static ActualEnvironment environment(
 			EnvironmentDetailsResponse response
 	) {
-		var policy = response.deploymentBranchPolicy();
-		return new ActualEnvironment(
-				response.protectionRules()
-						.stream()
-						.filter(
-								rule -> rule
-										.type() == EnvironmentDetailsResponse.ProtectionRuleType.WAIT_TIMER
-						)
-						.map(
-								EnvironmentDetailsResponse.ProtectionRule::waitTimer
-						)
-						.filter(Objects::nonNull)
-						.findFirst()
-						.orElse(0),
-				policy != null && policy.protectedBranches(),
-				policy != null && policy.customBranchPolicies()
-		);
+		return environment(response, List.of());
+	}
+
+	private static Optional<EnvironmentDetailsResponse.ProtectionRule> protectionRule(
+			EnvironmentDetailsResponse response,
+			EnvironmentDetailsResponse.ProtectionRuleType type
+	) {
+		return response.protectionRules()
+				.stream()
+				.filter(rule -> rule.type() == type)
+				.findFirst();
+	}
+
+	/**
+	 * {@code User:<login>} or {@code Team:<slug>}, which is how the config
+	 * names a reviewer; null for a reviewer GitHub returned without either.
+	 */
+	private static String reviewer(EnvironmentDetailsResponse.Reviewer r) {
+		if (r.type() == null || r.reviewer() == null) {
+			return null;
+		}
+		String name = r.type() == EnvironmentReviewerType.TEAM
+				? r.reviewer().slug()
+				: r.reviewer().login();
+		return name == null ? null : reviewerKey(r.type(), name);
+	}
+
+	public static String reviewerKey(
+			EnvironmentReviewerType type,
+			String name
+	) {
+		return (type == EnvironmentReviewerType.TEAM ? "Team:" : "User:")
+				+ name;
 	}
 
 	// ─── Secrets and workflow permissions

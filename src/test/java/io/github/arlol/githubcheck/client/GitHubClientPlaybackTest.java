@@ -178,7 +178,7 @@ class GitHubClientPlaybackTest {
 
 	@Test
 	void updateEnvironment_succeeds() {
-		var payload = new EnvironmentUpdateRequest(30, null, null);
+		var payload = new EnvironmentUpdateRequest(30, null, null, null);
 		assertThatNoException().isThrownBy(
 				() -> client.updateEnvironment(
 						"ArloL",

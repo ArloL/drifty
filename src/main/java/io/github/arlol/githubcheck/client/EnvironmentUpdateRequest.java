@@ -7,8 +7,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record EnvironmentUpdateRequest(
 		Integer waitTimer,
+		Boolean preventSelfReview,
 		List<Reviewer> reviewers,
-		DeploymentBranchPolicy deploymentBranchPolicy
+		// Always written: GitHub reads an omitted policy as "leave it", and a
+		// null one as "let every branch deploy", which is what clearing it
+		// takes.
+		@JsonInclude(
+			JsonInclude.Include.ALWAYS
+		) DeploymentBranchPolicy deploymentBranchPolicy
 ) {
 
 	public EnvironmentUpdateRequest {

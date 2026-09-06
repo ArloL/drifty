@@ -19,6 +19,7 @@ import io.github.arlol.githubcheck.actual.ActualEnvironment;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
+import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.PagesResponse;
@@ -250,7 +251,13 @@ public class RepositoryChecker {
 		if (wantEnvConfig || wantEnvSecrets) {
 			for (EnvironmentDetailsResponse env : client
 					.getEnvironments(org, name)) {
-				environments.put(env.name(), ActualTypes.environment(env));
+				environments.put(
+						env.name(),
+						ActualTypes.environment(
+								env,
+								branchPolicies(org, name, env, wantEnvConfig)
+						)
+				);
 				if (wantEnvSecrets) {
 					envSecrets.put(
 							env.name(),
@@ -298,6 +305,25 @@ public class RepositoryChecker {
 				workflowPermissions,
 				pages.map(ActualTypes::pages)
 		);
+	}
+
+	/**
+	 * The custom branch policies of one environment: one request per
+	 * environment that has them on, since the endpoint 404s otherwise, and only
+	 * for {@code environment_config}, the group that compares them.
+	 */
+	private List<DeploymentBranchPolicyResponse> branchPolicies(
+			String org,
+			String name,
+			EnvironmentDetailsResponse env,
+			boolean wantEnvConfig
+	) {
+		var policy = env.deploymentBranchPolicy();
+		if (!wantEnvConfig || policy == null
+				|| !policy.customBranchPolicies()) {
+			return List.of();
+		}
+		return client.getDeploymentBranchPolicies(org, name, env.name());
 	}
 
 	private static List<ActualSecret> secrets(List<Secret> responses) {
