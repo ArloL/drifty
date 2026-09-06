@@ -446,4 +446,112 @@ class BranchProtectionDriftGroupTest {
 		assertThat(items).anyMatch(i -> i instanceof DriftItem.SectionExtra);
 	}
 
+	private static List<DriftItem> items(BranchProtectionDriftGroup group) {
+		return group.detect()
+				.stream()
+				.flatMap(f -> f.items().stream())
+				.toList();
+	}
+
+	@Test
+	void detectsTheBooleanSettingsTheProtectionGained() {
+		var desired = Desired.withBranchProtection(
+				Desired.repository("repo"),
+				"main",
+				Desired.branchProtection()
+						.withAllowDeletions(true)
+						.withBlockCreations(true)
+						.withLockBranch(true)
+						.withAllowForkSyncing(true)
+						.withStrictStatusChecks(true)
+		);
+		var group = new BranchProtectionDriftGroup(
+				desired.branchProtections,
+				Map.of("main", matchingResponse("main")),
+				null,
+				new RepoRef("owner", "repo")
+		);
+
+		assertThat(items(group)).extracting(DriftItem::path)
+				.containsExactlyInAnyOrder(
+						"branch_protection.main.allow_deletions",
+						"branch_protection.main.block_creations",
+						"branch_protection.main.lock_branch",
+						"branch_protection.main.allow_fork_syncing",
+						"branch_protection.main.required_status_checks.strict"
+				);
+	}
+
+	@Test
+	void detectsDismissalRestrictionsAndBypassAllowances() {
+		var desired = Desired.withBranchProtection(
+				Desired.repository("repo"),
+				"main",
+				Desired.branchProtection()
+						.withRequiredApprovingReviewCount(1L)
+						.withDismissalUsers(List.of("alice"))
+						.withBypassPullRequestTeams(List.of("release"))
+		);
+		var actual = responseWithReviews(
+				"main",
+				false,
+				new BranchProtectionResponse.RequiredPullRequestReviews(
+						null,
+						false,
+						false,
+						1,
+						false,
+						new BranchProtectionResponse.Actors(
+								List.of(),
+								List.of(
+										new BranchProtectionResponse.Restrictions.Team(
+												1L,
+												null,
+												"Ops",
+												"ops",
+												null
+										)
+								),
+								List.of()
+						),
+						null
+				)
+		);
+		var group = new BranchProtectionDriftGroup(
+				desired.branchProtections,
+				Map.of("main", actual),
+				null,
+				new RepoRef("owner", "repo")
+		);
+
+		assertThat(items(group)).extracting(DriftItem::path)
+				.containsExactlyInAnyOrder(
+						"branch_protection.main.required_pull_request_reviews.dismissal_restrictions.users",
+						"branch_protection.main.required_pull_request_reviews.dismissal_restrictions.teams",
+						"branch_protection.main.required_pull_request_reviews.bypass_pull_request_allowances.teams"
+				);
+	}
+
+	@Test
+	void dismissalRestrictionsAloneAskForTheReviewsSection() {
+		var desired = Desired.withBranchProtection(
+				Desired.repository("repo"),
+				"main",
+				Desired.branchProtection().withDismissalTeams(List.of("ops"))
+		);
+		var group = new BranchProtectionDriftGroup(
+				desired.branchProtections,
+				Map.of("main", matchingResponse("main")),
+				null,
+				new RepoRef("owner", "repo")
+		);
+
+		assertThat(items(group)).singleElement()
+				.isInstanceOf(DriftItem.SectionMissing.class)
+				.extracting(DriftItem::path)
+				.isEqualTo(
+						"branch_protection.main.required_pull_request_reviews"
+				);
+	}
+
 }

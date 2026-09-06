@@ -106,8 +106,48 @@ public record BranchProtectionResponse(
 			boolean dismissStaleReviews,
 			boolean requireCodeOwnerReviews,
 			Integer requiredApprovingReviewCount, // optional
-			Boolean requireLastPushApproval // optional, default false
+			Boolean requireLastPushApproval, // optional, default false
+			Actors dismissalRestrictions, // optional
+			Actors bypassPullRequestAllowances // optional
 	) {
+
+		public RequiredPullRequestReviews(
+				String url,
+				boolean dismissStaleReviews,
+				boolean requireCodeOwnerReviews,
+				Integer requiredApprovingReviewCount,
+				Boolean requireLastPushApproval
+		) {
+			this(
+					url,
+					dismissStaleReviews,
+					requireCodeOwnerReviews,
+					requiredApprovingReviewCount,
+					requireLastPushApproval,
+					null,
+					null
+			);
+		}
+
+	}
+
+	/**
+	 * The users, teams and apps a review sub-setting names — the shape of both
+	 * {@code dismissal_restrictions} and
+	 * {@code bypass_pull_request_allowances}.
+	 */
+	public record Actors(
+			List<SimpleUser> users,
+			List<Restrictions.Team> teams,
+			List<Restrictions.App> apps
+	) {
+
+		public Actors {
+			users = users == null ? List.of() : List.copyOf(users);
+			teams = teams == null ? List.of() : List.copyOf(teams);
+			apps = apps == null ? List.of() : List.copyOf(apps);
+		}
+
 	}
 
 	public record Restrictions(
