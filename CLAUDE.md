@@ -78,6 +78,16 @@ status.
 - `./mvnw test` also builds and runs the native test image when GraalVM is
   the JDK. Iterate with `-DskipNativeTests`, run the full thing once before
   pushing.
+- **Native build time is mostly builder memory, and the macOS runner has 7GB.**
+  `macos-latest` has 3 cores and 7GB, and the native test image is what makes
+  its job the slowest by far; the builder's peak RSS decides whether that
+  build runs or thrashes. `-H:+IncludeAllLocales` cost 2GB of it for ~49,000
+  reflection-registered locale classes the tool never formats with, so it is
+  gone from `native-image.properties`; do not bring it back for a
+  locale-sensitive feature without measuring the test image on macOS. The
+  test image builds with `quickBuild` (`-Ob`) because it verifies metadata,
+  not speed; the production image stays at `-O2`. The build report's
+  "registered for reflection" and "Peak RSS" lines are the numbers to watch.
 
 ## Native-image reachability metadata
 

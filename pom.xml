@@ -86,6 +86,15 @@
 								<goals>
 									<goal>test</goal>
 								</goals>
+								<configuration>
+									<!--
+										-Ob: the test image exists to run the suite against
+										the reachability metadata, not to be fast, and the
+										economy compiler takes a third off its compile phase.
+										The production image below stays fully optimized.
+									-->
+									<quickBuild>true</quickBuild>
+								</configuration>
 							</execution>
 						</executions>
 						<configuration>
@@ -182,7 +191,13 @@
 			<optional>true</optional>
 		</dependency>
 		<dependency>
-			<groupId>io.github.arlol</groupId>
+			<!--
+				The module artifact, not the io.github.arlol:pkl-config-java-native
+				aggregate jitpack builds for the repository root: that one also
+				depends on pkl-config-java-native-it, whose test classes would
+				otherwise ship in the native image.
+			-->
+			<groupId>io.github.arlol.pkl-config-java-native</groupId>
 			<artifactId>pkl-config-java-native</artifactId>
 			<version>v2604.0.110</version>
 		</dependency>
