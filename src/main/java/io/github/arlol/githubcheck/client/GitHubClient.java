@@ -373,6 +373,148 @@ public class GitHubClient {
 		}
 	}
 
+	// ─── Actions repository selection and runner groups
+	// ──────────────────────────────────────────────────────────
+
+	/** The repositories Actions is enabled in under {@code selected}. */
+	public List<RepositorySummaryResponse> getOrgActionsPermissionsRepositories(
+			String org
+	) {
+		return selectedRepositories(
+				orgUrl(org) + "/actions/permissions/repositories",
+				"Actions-enabled repositories of " + org
+		);
+	}
+
+	public void setOrgActionsPermissionsRepositories(
+			String org,
+			List<Long> repositoryIds
+	) {
+		HttpResponse<String> resp = put(
+				orgUrl(org) + "/actions/permissions/repositories",
+				writeValue(new SelectedRepositoryIdsRequest(repositoryIds))
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " setting Actions-enabled repositories of " + org
+							+ ": " + resp.body()
+			);
+		}
+	}
+
+	private String runnerGroupsUrl(String org) {
+		return orgUrl(org) + "/actions/runner-groups";
+	}
+
+	public List<RunnerGroupResponse> listRunnerGroups(String org) {
+		HttpResponse<String> resp = get(runnerGroupsUrl(org) + "?per_page=100");
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " listing runner groups of "
+							+ org + ": " + resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, "runner_groups").stream()
+				.map(g -> mapper.convertValue(g, RunnerGroupResponse.class))
+				.toList();
+	}
+
+	public List<RepositorySummaryResponse> getRunnerGroupRepositories(
+			String org,
+			long groupId
+	) {
+		return selectedRepositories(
+				runnerGroupsUrl(org) + "/" + groupId + "/repositories",
+				"repositories of runner group " + groupId + " on " + org
+		);
+	}
+
+	private List<RepositorySummaryResponse> selectedRepositories(
+			String url,
+			String what
+	) {
+		HttpResponse<String> resp = get(url + "?per_page=100");
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " for " + what + ": "
+							+ resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, "repositories").stream()
+				.map(
+						r -> mapper.convertValue(
+								r,
+								RepositorySummaryResponse.class
+						)
+				)
+				.toList();
+	}
+
+	public RunnerGroupResponse createRunnerGroup(
+			String org,
+			RunnerGroupRequest group
+	) {
+		HttpResponse<String> resp = post(
+				runnerGroupsUrl(org),
+				writeValue(group)
+		);
+		if (resp.statusCode() != 201) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " creating runner group "
+							+ group.name() + " on " + org + ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), RunnerGroupResponse.class);
+	}
+
+	public void updateRunnerGroup(
+			String org,
+			long groupId,
+			RunnerGroupRequest group
+	) {
+		HttpResponse<String> resp = patch(
+				runnerGroupsUrl(org) + "/" + groupId,
+				writeValue(group)
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " updating runner group "
+							+ groupId + " on " + org + ": " + resp.body()
+			);
+		}
+	}
+
+	public void setRunnerGroupRepositories(
+			String org,
+			long groupId,
+			List<Long> repositoryIds
+	) {
+		HttpResponse<String> resp = put(
+				runnerGroupsUrl(org) + "/" + groupId + "/repositories",
+				writeValue(new SelectedRepositoryIdsRequest(repositoryIds))
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " setting repositories of runner group " + groupId
+							+ " on " + org + ": " + resp.body()
+			);
+		}
+	}
+
+	public void deleteRunnerGroup(String org, long groupId) {
+		HttpResponse<String> resp = delete(
+				runnerGroupsUrl(org) + "/" + groupId
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " deleting runner group "
+							+ groupId + " on " + org + ": " + resp.body()
+			);
+		}
+	}
+
 	// ─── Collaborators, teams and members
 	// ──────────────────────────────────────────────────────────
 

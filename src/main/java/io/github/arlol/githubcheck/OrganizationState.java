@@ -10,6 +10,7 @@ import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.actual.ActualOrgVariable;
 import io.github.arlol.githubcheck.actual.ActualOrganization;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
+import io.github.arlol.githubcheck.actual.ActualRunnerGroup;
 import io.github.arlol.githubcheck.actual.ActualTeam;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
@@ -35,7 +36,8 @@ public record OrganizationState(
 		List<ActualRuleset> rulesets,
 		List<ActualCodeSecurityConfiguration> codeSecurityConfigurations,
 		List<ActualTeam> teams,
-		List<ActualOrgMember> members
+		List<ActualOrgMember> members,
+		List<ActualRunnerGroup> runnerGroups
 ) {
 
 	public OrganizationState {
@@ -47,6 +49,7 @@ public record OrganizationState(
 		codeSecurityConfigurations = List.copyOf(codeSecurityConfigurations);
 		teams = List.copyOf(teams);
 		members = List.copyOf(members);
+		runnerGroups = List.copyOf(runnerGroups);
 	}
 
 	/** A state with nothing in the sections added after the first five. */
@@ -63,6 +66,7 @@ public record OrganizationState(
 				actionsPermissions,
 				workflowPermissions,
 				actionSecrets,
+				List.of(),
 				List.of(),
 				List.of(),
 				List.of(),

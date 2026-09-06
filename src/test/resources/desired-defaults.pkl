@@ -26,3 +26,4 @@ orgRuleset: drifty.OrgRuleset = new {}
 propertyCondition: drifty.PropertyCondition = new { name = "team"; propertyValues = new { "core" } }
 codeSecurityConfiguration: drifty.CodeSecurityConfiguration = new {}
 team: drifty.Team = new {}
+runnerGroup: drifty.RunnerGroup = new {}

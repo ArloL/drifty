@@ -53,6 +53,7 @@ public final class Desired {
 	private static final Drifty.PropertyCondition PROPERTY_CONDITION;
 	private static final Drifty.CodeSecurityConfiguration CODE_SECURITY_CONFIGURATION;
 	private static final Drifty.Team TEAM;
+	private static final Drifty.RunnerGroup RUNNER_GROUP;
 
 	static {
 		try (var evaluator = ConfigEvaluator.preconfigured()) {
@@ -90,6 +91,7 @@ public final class Desired {
 			CODE_SECURITY_CONFIGURATION = root.get("codeSecurityConfiguration")
 					.as(Drifty.CodeSecurityConfiguration.class);
 			TEAM = root.get("team").as(Drifty.Team.class);
+			RUNNER_GROUP = root.get("runnerGroup").as(Drifty.RunnerGroup.class);
 		}
 	}
 
@@ -229,6 +231,11 @@ public final class Desired {
 	/** A team with the defaults: closed, notifications on, no members. */
 	public static Drifty.Team team() {
 		return TEAM;
+	}
+
+	/** A runner group with the defaults: visible to all, no restrictions. */
+	public static Drifty.RunnerGroup runnerGroup() {
+		return RUNNER_GROUP;
 	}
 
 	public static Drifty.BypassActor bypassActor(

@@ -27,6 +27,7 @@ import io.github.arlol.githubcheck.actual.ActualOrganization;
 import io.github.arlol.githubcheck.actual.ActualPages;
 import io.github.arlol.githubcheck.actual.ActualRepository;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
+import io.github.arlol.githubcheck.actual.ActualRunnerGroup;
 import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.actual.ActualSelectedActions;
@@ -39,6 +40,7 @@ import io.github.arlol.githubcheck.client.BranchPolicyType;
 import io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse;
 import io.github.arlol.githubcheck.client.CollaboratorResponse;
 import io.github.arlol.githubcheck.client.RepoTeamResponse;
+import io.github.arlol.githubcheck.client.RunnerGroupResponse;
 import io.github.arlol.githubcheck.client.TeamResponse;
 import io.github.arlol.githubcheck.client.CodeSecurityRepositoryResponse;
 import io.github.arlol.githubcheck.client.CustomPropertyResponse;
@@ -1079,6 +1081,18 @@ public final class ActualTypes {
 			OrgActionsPermissionsResponse response,
 			SelectedActions selected
 	) {
+		return orgActionsPermissions(response, selected, List.of());
+	}
+
+	/**
+	 * @param selectedRepositories the names Actions is enabled in, read only
+	 *                             under {@code selected}
+	 */
+	public static ActualOrgActionsPermissions orgActionsPermissions(
+			OrgActionsPermissionsResponse response,
+			SelectedActions selected,
+			List<String> selectedRepositories
+	) {
 		return new ActualOrgActionsPermissions(
 				response.enabledRepositories(),
 				response.allowedActions(),
@@ -1088,7 +1102,28 @@ public final class ActualTypes {
 								selected.githubOwnedAllowed(),
 								selected.verifiedAllowed(),
 								selected.patternsAllowed()
-						)
+						),
+				selectedRepositories
+		);
+	}
+
+	/**
+	 * @param selectedRepositories the names the group is visible to, read only
+	 *                             under {@code selected} visibility
+	 */
+	public static ActualRunnerGroup runnerGroup(
+			RunnerGroupResponse response,
+			List<String> selectedRepositories
+	) {
+		return new ActualRunnerGroup(
+				response.id(),
+				response.name(),
+				response.visibility(),
+				Boolean.TRUE.equals(response.isDefault()),
+				Boolean.TRUE.equals(response.allowsPublicRepositories()),
+				Boolean.TRUE.equals(response.restrictedToWorkflows()),
+				new HashSet<>(response.selectedWorkflows()),
+				selectedRepositories
 		);
 	}
 

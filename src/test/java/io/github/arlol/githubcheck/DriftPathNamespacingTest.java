@@ -319,7 +319,8 @@ class DriftPathNamespacingTest {
 								)
 						)
 						.withTeams(Map.of("core", Desired.team()))
-						.withMembers(Map.of("alice", Drifty.OrgRole.ADMIN)),
+						.withMembers(Map.of("alice", Drifty.OrgRole.ADMIN))
+						.withRunnerGroups(Map.of("gpu", Desired.runnerGroup())),
 				Map.of()
 		);
 	}

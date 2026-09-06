@@ -2,9 +2,11 @@ package io.github.arlol.githubcheck.drift;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import io.github.arlol.githubcheck.PklTypes;
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
+import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.OrgActionsPermissionsRequest;
 import io.github.arlol.githubcheck.client.SelectedActions;
@@ -15,17 +17,19 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * they are allowed to run, and — under {@code allowedActions = "selected"} —
  * the allow-list of actions.
  * <p>
- * Two endpoints, two {@link DriftFix} values. The policy fields
+ * Three endpoints, three {@link DriftFix} values. The policy fields
  * ({@code enabled_repositories}, {@code allowed_actions},
- * {@code sha_pinning_required}) go to one PUT and the allow-list to another;
- * keeping them separate means a rejected policy write is not reported as having
- * failed the patterns too, and vice versa.
+ * {@code sha_pinning_required}) go to one PUT, the allow-list to another and
+ * the repository selection under {@code enabledRepositories = "selected"} to a
+ * third; keeping them separate means a rejected policy write is not reported as
+ * having failed the patterns or the selection too, and vice versa.
  */
 public class OrgActionsPermissionsDriftGroup
 		extends DriftGroup<Drifty.OrgGroupName> {
 
 	private final Drifty.ActionsPermissions desired;
 	private final ActualOrgActionsPermissions actual;
+	private final Map<String, Long> repositoryIds;
 	private final GitHubClient client;
 	private final String org;
 
@@ -35,8 +39,23 @@ public class OrgActionsPermissionsDriftGroup
 			GitHubClient client,
 			String org
 	) {
+		this(desired, actual, Map.of(), client, org);
+	}
+
+	/**
+	 * @param repositoryIds the organization's repositories by name, which the
+	 *                      repository selection is written as
+	 */
+	public OrgActionsPermissionsDriftGroup(
+			Drifty.ActionsPermissions desired,
+			ActualOrgActionsPermissions actual,
+			Map<String, Long> repositoryIds,
+			GitHubClient client,
+			String org
+	) {
 		this.desired = desired;
 		this.actual = actual;
+		this.repositoryIds = Map.copyOf(repositoryIds);
 		this.client = client;
 		this.org = org;
 	}
@@ -84,7 +103,51 @@ public class OrgActionsPermissionsDriftGroup
 		if (desired.selectedActions != null) {
 			fixes.add(selectedActionsFix());
 		}
+		// The selection only exists under "selected"; comparing it otherwise
+		// would report the empty list GitHub returns as drift.
+		if (desired.enabledRepositories == Drifty.ActionsEnabledRepositories.SELECTED
+				|| actual
+						.enabledRepositories() == ActionsEnabledRepositories.SELECTED) {
+			fixes.add(selectedRepositoriesFix());
+		}
 		return fixes;
+	}
+
+	/**
+	 * A third endpoint, so a third fix. The names are resolved to ids through
+	 * the listing the checker already has, and a name that is not in it fails
+	 * the whole selection rather than enabling Actions in fewer repositories
+	 * than the config asks for.
+	 */
+	private DriftFix selectedRepositoriesFix() {
+		var items = compare(
+				"selected_repositories",
+				desired.selectedRepositories,
+				actual.selectedRepositories()
+		);
+		return new DriftFix(items, () -> {
+			var ids = new ArrayList<Long>();
+			for (String repository : desired.selectedRepositories) {
+				Long id = repositoryIds.get(repository);
+				if (id == null) {
+					return new FixResult(
+							items.stream()
+									.map(
+											item -> new FixResult.Unfixed(
+													item,
+													"no repository "
+															+ repository
+															+ " in " + org
+											)
+									)
+									.toList()
+					);
+				}
+				ids.add(id);
+			}
+			client.setOrgActionsPermissionsRepositories(org, ids);
+			return FixResult.success();
+		});
 	}
 
 	/**
