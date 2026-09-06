@@ -95,17 +95,15 @@ final class WebhookReconciler {
 				continue;
 			}
 			ActualWebhook current = actualByUrl.get(wanted.url);
-			if (current == null) {
-				fixes.add(
-						new DriftFix(
-								new DriftItem.SectionMissing(name),
-								() -> write(name, wanted, null)
-						)
-				);
-				continue;
-			}
-			List<DriftItem> items = compare(name, wanted, current);
-			fixes.add(new DriftFix(items, () -> write(name, wanted, current)));
+			List<DriftItem> items = current == null
+					? List.of(new DriftItem.SectionMissing(name))
+					: compare(name, wanted, current);
+			fixes.add(
+					new DriftFix(
+							items,
+							() -> write(name, wanted, current, items)
+					)
+			);
 		}
 
 		for (ActualWebhook hook : actualByUrl.values()) {
@@ -193,15 +191,25 @@ final class WebhookReconciler {
 	private FixResult write(
 			String name,
 			Drifty.Webhook wanted,
-			ActualWebhook current
+			ActualWebhook current,
+			List<DriftItem> items
 	) {
 		String value = null;
 		if (wanted.secret) {
 			String key = scope.secretKey(name);
 			value = secretValues.get(key);
 			if (value == null) {
-				throw new IllegalStateException(
-						"no value for " + key + " in DRIFTY_GITHUB_SECRETS"
+				String reason = "no value for " + key
+						+ " in DRIFTY_GITHUB_SECRETS";
+				return new FixResult(
+						items.stream()
+								.map(
+										item -> new FixResult.Unfixed(
+												item,
+												reason
+										)
+								)
+								.toList()
 				);
 			}
 		}

@@ -36,7 +36,7 @@ One commit per task; each task leaves `./mvnw -DskipNativeTests test` green.
   Client CRUD for all three; `ActualVariable`, `ActualOrgVariable`; three
   groups; state fields; fetch guards.
 
-- [ ] **Task 5: Webhooks** (repo and org) — IN PROGRESS, see Handoff below
+- [x] **Task 5: Webhooks** (repo and org)
   `Webhook` class; client CRUD; `ActualWebhook`; `DriftyState.webhookSecrets`;
   two groups; preflight; fetch guards.
 

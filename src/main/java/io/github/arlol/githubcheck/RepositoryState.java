@@ -12,6 +12,7 @@ import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.actual.ActualVariable;
+import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.client.RepoRef;
 
@@ -55,7 +56,8 @@ public record RepositoryState(
 		ActualWorkflowPermissions workflowPermissions,
 		Optional<ActualPages> pages,
 		List<ActualVariable> actionVariables,
-		Map<String, List<ActualVariable>> environmentVariables
+		Map<String, List<ActualVariable>> environmentVariables,
+		List<ActualWebhook> webhooks
 ) {
 
 	public RepositoryState {
@@ -66,6 +68,7 @@ public record RepositoryState(
 		environmentSecrets = Map.copyOf(environmentSecrets);
 		actionVariables = List.copyOf(actionVariables);
 		environmentVariables = Map.copyOf(environmentVariables);
+		webhooks = List.copyOf(webhooks);
 	}
 
 	/**
@@ -106,7 +109,8 @@ public record RepositoryState(
 				workflowPermissions,
 				pages,
 				List.of(),
-				Map.of()
+				Map.of(),
+				List.of()
 		);
 	}
 

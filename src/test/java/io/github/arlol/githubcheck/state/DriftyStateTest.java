@@ -84,6 +84,23 @@ class DriftyStateTest {
 	}
 
 	@Test
+	void isEmpty_isFalse_afterRecordingAWebhookSecret() {
+		var repo = new DriftyState();
+		repo.recordWebhookSecret("repo", "ci", "t", "h");
+		assertThat(repo.isEmpty()).isFalse();
+		assertThat(repo.webhookSecretRecord("repo", "ci").valueHash())
+				.isEqualTo("h");
+		assertThat(repo.actionSecretRecord("repo", "ci")).isNull();
+
+		var org = new DriftyState();
+		org.recordOrgWebhookSecret("my-org", "audit", "t", "h");
+		assertThat(org.isEmpty()).isFalse();
+		assertThat(org.orgWebhookSecretRecord("my-org", "audit").valueHash())
+				.isEqualTo("h");
+		assertThat(org.webhookSecretRecord("my-org", "audit")).isNull();
+	}
+
+	@Test
 	void orgAndRepoSecretsAreRecordedSeparately() {
 		var state = new DriftyState();
 		state.recordActionSecret("drifty", "PAT", "t1", "h1");

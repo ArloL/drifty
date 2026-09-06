@@ -132,6 +132,72 @@ class GitHubCheckTest {
 	}
 
 	@Test
+	void collectMissingSecrets_countsWebhookSecretsOnlyWhereDeclared() {
+		var repository = Desired.repository("repo")
+				.withWebhooks(
+						Map.of(
+								"ci",
+								Desired.webhook("https://ci.example.com")
+										.withSecret(true),
+								"open",
+								Desired.webhook("https://open.example.com")
+						)
+				);
+		var config = config(
+				Desired.organization()
+						.withRepositories(List.of(repository))
+						.withWebhooks(
+								Map.of(
+										"audit",
+										Desired.webhook(
+												"https://audit.example.com"
+										).withSecret(true)
+								)
+						)
+		);
+
+		assertThat(GitHubCheck.collectMissingSecrets(config, Map.of()))
+				.containsExactlyInAnyOrder(
+						"repo-webhook-ci",
+						"org-my-org-webhook-audit"
+				);
+
+		var unmanaged = config(
+				Desired.organization()
+						.withRepositories(
+								List.of(
+										repository.withManaged(
+												new Drifty.Managed(
+														Drifty.ManageMode.ALL_EXCEPT,
+														List.of(
+																Drifty.GroupName.WEBHOOKS
+														)
+												)
+										)
+								)
+						)
+						.withWebhooks(
+								Map.of(
+										"audit",
+										Desired.webhook(
+												"https://audit.example.com"
+										).withSecret(true)
+								)
+						)
+						.withManaged(
+								new Drifty.OrgManaged(
+										Drifty.ManageMode.ALL_EXCEPT,
+										List.of(
+												Drifty.OrgGroupName.ORG_WEBHOOKS
+										)
+								)
+						)
+		);
+		assertThat(GitHubCheck.collectMissingSecrets(unmanaged, Map.of()))
+				.isEmpty();
+	}
+
+	@Test
 	void collectMissingSecrets_skipsGroupsTheRepositoryLeavesUnmanaged() {
 		var repository = repositoryWithSecrets().withManaged(
 				new Drifty.Managed(

@@ -1657,4 +1657,149 @@ class GitHubClientTest {
 		);
 	}
 
+	// ─── Webhooks
+	// ──────────────────────────────────────────────────────────
+
+	@Test
+	void getRepoWebhooks_readsTheConfigAndUpdatedAt() {
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/hooks")).willReturn(
+						okJson(
+								"""
+										[
+										  {
+										    "id": 7,
+										    "name": "web",
+										    "active": false,
+										    "events": ["push", "release"],
+										    "config": {"url": "https://example.com/hook", "content_type": "json", "insecure_ssl": "1", "secret": "********"},
+										    "updated_at": "2024-06-01T00:00:00Z"
+										  }
+										]
+										"""
+						)
+				)
+		);
+
+		List<WebhookResponse> hooks = client.getRepoWebhooks("owner", "repo");
+
+		assertThat(hooks).singleElement().satisfies(hook -> {
+			assertThat(hook.id()).isEqualTo(7);
+			assertThat(hook.active()).isFalse();
+			assertThat(hook.events()).containsExactly("push", "release");
+			assertThat(hook.config().url())
+					.isEqualTo("https://example.com/hook");
+			assertThat(hook.config().contentType()).isEqualTo("json");
+			assertThat(hook.config().insecureSsl()).isEqualTo("1");
+			assertThat(hook.config().secret()).isEqualTo("********");
+			assertThat(hook.updatedAt()).isEqualTo("2024-06-01T00:00:00Z");
+		});
+	}
+
+	@Test
+	void getOrgWebhooks_failsWithTheStatus() {
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/hooks"))
+						.willReturn(aResponse().withStatus(403))
+		);
+
+		assertThatThrownBy(() -> client.getOrgWebhooks("my-org"))
+				.isInstanceOf(GitHubApiException.class)
+				.hasMessageContaining("HTTP 403")
+				.hasMessageContaining("webhooks on my-org");
+	}
+
+	@Test
+	void createRepoWebhook_postsTheBodyAndReadsTheHookBack() {
+		stubFor(
+				post(urlPathEqualTo("/repos/owner/repo/hooks")).willReturn(
+						aResponse().withStatus(201)
+								.withBody(
+										"""
+												{"id": 8, "name": "web", "active": true, "events": ["push"],
+												 "config": {"url": "https://example.com/hook"},
+												 "updated_at": "t"}
+												"""
+								)
+				)
+		);
+
+		WebhookResponse created = client.createRepoWebhook(
+				"owner",
+				"repo",
+				new WebhookRequest(
+						"web",
+						new WebhookRequest.Config(
+								"https://example.com/hook",
+								"json",
+								null,
+								"0"
+						),
+						List.of("push"),
+						true
+				)
+		);
+
+		assertThat(created.id()).isEqualTo(8);
+		verify(
+				postRequestedFor(urlPathEqualTo("/repos/owner/repo/hooks"))
+						.withRequestBody(
+								equalToJson(
+										"""
+												{"name": "web",
+												 "config": {"url": "https://example.com/hook", "content_type": "json", "insecure_ssl": "0"},
+												 "events": ["push"], "active": true}
+												"""
+								)
+						)
+		);
+	}
+
+	@Test
+	void updateOrgWebhook_failsWithTheStatus() {
+		stubFor(
+				patch(urlPathEqualTo("/orgs/my-org/hooks/9")).willReturn(
+						aResponse().withStatus(422).withBody("nope")
+				)
+		);
+
+		assertThatThrownBy(
+				() -> client.updateOrgWebhook(
+						"my-org",
+						9,
+						new WebhookRequest(
+								null,
+								new WebhookRequest.Config(
+										"https://example.com/hook",
+										"form",
+										null,
+										"0"
+								),
+								List.of("push"),
+								true
+						)
+				)
+		).isInstanceOf(GitHubApiException.class)
+				.hasMessageContaining("HTTP 422 updating webhook 9 on my-org");
+	}
+
+	@Test
+	void deleteRepoWebhook_acceptsOnly204() {
+		stubFor(
+				delete(urlPathEqualTo("/repos/owner/repo/hooks/7"))
+						.willReturn(aResponse().withStatus(204))
+		);
+		stubFor(
+				delete(urlPathEqualTo("/orgs/my-org/hooks/9"))
+						.willReturn(aResponse().withStatus(404))
+		);
+
+		assertThatCode(() -> client.deleteRepoWebhook("owner", "repo", 7))
+				.doesNotThrowAnyException();
+		verify(deleteRequestedFor(urlPathEqualTo("/repos/owner/repo/hooks/7")));
+		assertThatThrownBy(() -> client.deleteOrgWebhook("my-org", 9))
+				.isInstanceOf(GitHubApiException.class)
+				.hasMessageContaining("HTTP 404 deleting webhook 9 on my-org");
+	}
+
 }

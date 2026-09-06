@@ -20,6 +20,7 @@ import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.actual.ActualVariable;
+import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -60,6 +61,7 @@ import io.github.arlol.githubcheck.drift.SecretScanningPushProtectionDriftGroup;
 import io.github.arlol.githubcheck.drift.SecretScanningValidityChecksDriftGroup;
 import io.github.arlol.githubcheck.drift.TopicsDriftGroup;
 import io.github.arlol.githubcheck.drift.VulnerabilityAlertsDriftGroup;
+import io.github.arlol.githubcheck.drift.WebhooksDriftGroup;
 import io.github.arlol.githubcheck.drift.WorkflowPermissionsDriftGroup;
 import io.github.arlol.githubcheck.state.DriftyState;
 
@@ -313,6 +315,14 @@ public class RepositoryChecker {
 				? Optional.<PagesResponse>empty()
 				: client.getPages(org, name);
 
+		List<ActualWebhook> webhooks = managed
+				.manages(Drifty.GroupName.WEBHOOKS)
+						? client.getRepoWebhooks(org, name)
+								.stream()
+								.map(ActualTypes::webhook)
+								.toList()
+						: List.of();
+
 		return new RepositoryState(
 				ref,
 				ActualTypes.repository(details),
@@ -330,7 +340,8 @@ public class RepositoryChecker {
 				workflowPermissions,
 				pages.map(ActualTypes::pages),
 				variables,
-				envVariables
+				envVariables,
+				webhooks
 		);
 	}
 
@@ -615,6 +626,18 @@ public class RepositoryChecker {
 				new EnvironmentVariablesDriftGroup(
 						desired.environments,
 						actual.environmentVariables(),
+						client,
+						ref
+				)
+		);
+
+		// Webhooks
+		groups.add(
+				new WebhooksDriftGroup(
+						desired.webhooks,
+						actual.webhooks(),
+						githubSecrets,
+						state,
 						client,
 						ref
 				)

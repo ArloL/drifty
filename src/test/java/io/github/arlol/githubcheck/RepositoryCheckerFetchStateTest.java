@@ -21,6 +21,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
 import io.github.arlol.githubcheck.actual.ActualVariable;
+import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
@@ -182,6 +183,9 @@ class RepositoryCheckerFetchStateTest {
 		assertThat(state.environmentVariables().get("prod")).singleElement()
 				.extracting(ActualVariable::name)
 				.isEqualTo("TIER");
+		assertThat(state.webhooks()).singleElement()
+				.extracting(ActualWebhook::url)
+				.isEqualTo("https://example.com/hook");
 		assertThat(state.workflowPermissions().defaultWorkflowPermissions())
 				.isEqualTo(
 						WorkflowPermissions.DefaultWorkflowPermissions.WRITE
@@ -374,6 +378,10 @@ class RepositoryCheckerFetchStateTest {
 				).willReturn(aResponse().withStatus(403))
 		);
 		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/hooks"))
+						.willReturn(aResponse().withStatus(403))
+		);
+		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo/branches"))
 						.willReturn(okJson("[]"))
 		);
@@ -389,7 +397,8 @@ class RepositoryCheckerFetchStateTest {
 								Drifty.GroupName.ACTION_SECRETS,
 								Drifty.GroupName.RULESETS,
 								Drifty.GroupName.ACTION_VARIABLES,
-								Drifty.GroupName.ENVIRONMENT_VARIABLES
+								Drifty.GroupName.ENVIRONMENT_VARIABLES,
+								Drifty.GroupName.WEBHOOKS
 						)
 				)
 		);
@@ -401,6 +410,8 @@ class RepositoryCheckerFetchStateTest {
 		assertThat(state.rulesets()).isEmpty();
 		assertThat(state.actionVariables()).isEmpty();
 		assertThat(state.environmentVariables()).isEmpty();
+		assertThat(state.webhooks()).isEmpty();
+		verify(0, getRequestedFor(urlPathEqualTo("/repos/owner/repo/hooks")));
 		verify(
 				0,
 				getRequestedFor(
@@ -601,6 +612,24 @@ class RepositoryCheckerFetchStateTest {
 				).willReturn(okJson("""
 						{"variables": [{"name": "TIER", "value": "prod"}]}
 						"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/hooks")).willReturn(
+						okJson(
+								"""
+										[
+										  {
+										    "id": 1,
+										    "name": "web",
+										    "active": true,
+										    "events": ["push"],
+										    "config": {"url": "https://example.com/hook", "content_type": "form", "insecure_ssl": "0"},
+										    "updated_at": "2024-01-01T00:00:00Z"
+										  }
+										]
+										"""
+						)
+				)
 		);
 		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo/environments"))
