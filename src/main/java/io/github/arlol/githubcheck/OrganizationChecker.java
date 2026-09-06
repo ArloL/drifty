@@ -13,8 +13,10 @@ import io.github.arlol.githubcheck.actual.ActualOrgMember;
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.actual.ActualOrgVariable;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
+import io.github.arlol.githubcheck.actual.ActualRunnerGroup;
 import io.github.arlol.githubcheck.actual.ActualTeam;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
+import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.CodeSecurityDefaultResponse;
 import io.github.arlol.githubcheck.client.GitHubApiException;
@@ -35,6 +37,7 @@ import io.github.arlol.githubcheck.drift.OrgCodeSecurityConfigurationsDriftGroup
 import io.github.arlol.githubcheck.drift.OrgCustomPropertiesDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgMembersDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgRulesetDriftGroup;
+import io.github.arlol.githubcheck.drift.OrgRunnerGroupsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgSettingsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgTeamsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgWebhooksDriftGroup;
@@ -182,7 +185,20 @@ public class OrganizationChecker {
 			var selected = response.allowedActions() == AllowedActions.SELECTED
 					? client.getOrgSelectedActions(login)
 					: null;
-			permissions = ActualTypes.orgActionsPermissions(response, selected);
+			// Same for the repository selection: it is only there under
+			// "selected".
+			List<String> selectedRepositories = response
+					.enabledRepositories() == ActionsEnabledRepositories.SELECTED
+							? client.getOrgActionsPermissionsRepositories(login)
+									.stream()
+									.map(RepositorySummaryResponse::name)
+									.toList()
+							: List.of();
+			permissions = ActualTypes.orgActionsPermissions(
+					response,
+					selected,
+					selectedRepositories
+			);
 		}
 
 		var workflowPermissions = managed
@@ -236,6 +252,11 @@ public class OrganizationChecker {
 						)
 						: List.of();
 
+		List<ActualRunnerGroup> runnerGroups = managed
+				.manages(Drifty.OrgGroupName.ORG_RUNNER_GROUPS)
+						? runnerGroups(login)
+						: List.of();
+
 		return new OrganizationState(
 				login,
 				settings,
@@ -248,8 +269,32 @@ public class OrganizationChecker {
 				rulesets,
 				codeSecurityConfigurations,
 				teams,
-				members
+				members,
+				runnerGroups
 		);
+	}
+
+	/**
+	 * The repositories of a group cost one request each and only exist under
+	 * {@code selected} visibility, so they are read for those groups alone.
+	 */
+	private List<ActualRunnerGroup> runnerGroups(String login) {
+		return client.listRunnerGroups(login)
+				.stream()
+				.map(
+						g -> ActualTypes.runnerGroup(
+								g,
+								"selected".equals(g.visibility()) ? client
+										.getRunnerGroupRepositories(
+												login,
+												g.id()
+										)
+										.stream()
+										.map(RepositorySummaryResponse::name)
+										.toList() : List.of()
+						)
+				)
+				.toList();
 	}
 
 	/**
@@ -441,6 +486,7 @@ public class OrganizationChecker {
 				new OrgActionsPermissionsDriftGroup(
 						desired.actionsPermissions,
 						actual.actionsPermissions(),
+						repositoryIds,
 						client,
 						actual.login()
 				)
@@ -521,6 +567,15 @@ public class OrganizationChecker {
 				new OrgMembersDriftGroup(
 						desired.members,
 						actual.members(),
+						client,
+						actual.login()
+				)
+		);
+		groups.add(
+				new OrgRunnerGroupsDriftGroup(
+						desired.runnerGroups,
+						actual.runnerGroups(),
+						repositoryIds,
 						client,
 						actual.login()
 				)

@@ -24,6 +24,7 @@ import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.actual.ActualCustomProperty;
 import io.github.arlol.githubcheck.actual.ActualOrgMember;
 import io.github.arlol.githubcheck.actual.ActualOrgVariable;
+import io.github.arlol.githubcheck.actual.ActualRunnerGroup;
 import io.github.arlol.githubcheck.actual.ActualTeam;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -106,7 +107,8 @@ class OrganizationCheckerTest {
 				"org_rulesets",
 				"org_code_security_configurations",
 				"org_teams",
-				"org_members"
+				"org_members",
+				"org_runner_groups"
 		);
 	}
 
@@ -251,6 +253,10 @@ class OrganizationCheckerTest {
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/members"))
 						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/runner-groups"))
+						.willReturn(okJson("{\"runner_groups\": []}"))
 		);
 
 		CheckResult.Entry entry = checker
@@ -708,6 +714,126 @@ class OrganizationCheckerTest {
 		assertThat(settingsOnly.members()).isEmpty();
 		verify(1, getRequestedFor(urlPathEqualTo("/orgs/my-org/teams")));
 		verify(2, getRequestedFor(urlPathEqualTo("/orgs/my-org/members")));
+	}
+
+	/**
+	 * A runner group's repositories cost one request each and only exist under
+	 * {@code selected}; the Actions policy's repository selection the same way.
+	 * Neither listing is sent unless its group is managed.
+	 */
+	@Test
+	void runnerGroupsAndActionsRepositoriesAreReadOnlyWhenSelected() {
+		stubOrg("null");
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/runner-groups"))
+						.willReturn(
+								okJson(
+										"""
+												{"total_count": 2, "runner_groups": [
+												  {"id": 1, "name": "Default", "visibility": "all", "default": true,
+												   "allows_public_repositories": true, "restricted_to_workflows": false, "selected_workflows": []},
+												  {"id": 2, "name": "gpu", "visibility": "selected", "default": false,
+												   "allows_public_repositories": false, "restricted_to_workflows": true,
+												   "selected_workflows": ["my-org/one/.github/workflows/ci.yml@refs/heads/main"]}
+												]}
+												"""
+								)
+						)
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/orgs/my-org/actions/runner-groups/2/repositories"
+						)
+				).willReturn(
+						okJson(
+								"""
+										{"total_count": 1, "repositories": [{"id": 10, "name": "one", "archived": false}]}
+										"""
+						)
+				)
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/permissions"))
+						.willReturn(
+								okJson(
+										"""
+												{"enabled_repositories": "selected", "allowed_actions": "all"}
+												"""
+								)
+						)
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/orgs/my-org/actions/permissions/repositories"
+						)
+				).willReturn(
+						okJson(
+								"""
+										{"total_count": 1, "repositories": [{"id": 10, "name": "one", "archived": false}]}
+										"""
+						)
+				)
+		);
+
+		OrganizationState state = checker.fetchState(
+				"my-org",
+				ManagedGroups.of(
+						new Drifty.OrgManaged(
+								Drifty.ManageMode.ONLY,
+								List.of(
+										Drifty.OrgGroupName.ORG_RUNNER_GROUPS,
+										Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS
+								)
+						)
+				)
+		);
+
+		assertThat(state.runnerGroups()).containsExactly(
+				new ActualRunnerGroup(
+						1,
+						"Default",
+						"all",
+						true,
+						true,
+						false,
+						Set.of(),
+						List.of()
+				),
+				new ActualRunnerGroup(
+						2,
+						"gpu",
+						"selected",
+						false,
+						false,
+						true,
+						Set.of(
+								"my-org/one/.github/workflows/ci.yml@refs/heads/main"
+						),
+						List.of("one")
+				)
+		);
+		assertThat(state.actionsPermissions().selectedRepositories())
+				.containsExactly("one");
+		verify(
+				0,
+				getRequestedFor(
+						urlPathEqualTo(
+								"/orgs/my-org/actions/runner-groups/1/repositories"
+						)
+				)
+		);
+
+		OrganizationState settingsOnly = checker
+				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
+		assertThat(settingsOnly.runnerGroups()).isEmpty();
+		verify(
+				1,
+				getRequestedFor(
+						urlPathEqualTo("/orgs/my-org/actions/runner-groups")
+				)
+		);
 	}
 
 }

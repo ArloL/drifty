@@ -67,6 +67,7 @@ typealias OrgGroupName =
   | "org_code_security_configurations"
   | "org_teams"
   | "org_members"
+  | "org_runner_groups"
 
 typealias SecretVisibility = "all" | "private" | "selected"
 
@@ -461,15 +462,34 @@ class SelectedActions {
   patternsAllowed: Listing<String> = new {}
 }
 
-/// Organization Actions policy. Which repositories are selected under
-/// enabledRepositories = "selected" is not managed: drifty writes the policy
-/// value and GitHub keeps the existing selection.
+typealias RunnerGroupVisibility = "all" | "selected" | "private"
+
+/// A self-hosted runner group. The name is the key in
+/// Organization.runnerGroups. The group GitHub marks as the default is never
+/// extra and never deleted; naming it manages its settings. Runner groups
+/// exist only on paid plans, so on a free organization exclude the
+/// `org_runner_groups` group through `managed`.
+class RunnerGroup {
+  visibility: RunnerGroupVisibility = "all"
+  /// Only when visibility = "selected"
+  selectedRepositories: Listing<String> = new {}
+  allowsPublicRepositories: Boolean = false
+  restrictedToWorkflows: Boolean = false
+  /// Workflows that may use the group, as `owner/repo/path@ref`; only when
+  /// restrictedToWorkflows is true.
+  selectedWorkflows: Listing<String> = new {}
+}
+
+/// Organization Actions policy.
 class ActionsPermissions {
   enabledRepositories: ActionsEnabledRepositories = "all"
   allowedActions: AllowedActions = "all"
   shaPinningRequired: Boolean = false
   /// Required when allowedActions = "selected"
   selectedActions: SelectedActions?
+  /// The repositories Actions is enabled in; only when enabledRepositories =
+  /// "selected".
+  selectedRepositories: Listing<String> = new {}
 }
 
 /// An organization Actions secret. The name is the key in
@@ -552,6 +572,8 @@ class Organization {
   /// and stays missing until the invitation is accepted; members the config
   /// does not list are reported and never removed.
   members: Mapping<String, OrgRole> = new {}
+  /// Self-hosted runner groups, keyed by name
+  runnerGroups: Mapping<String, RunnerGroup> = new {}
 
   repositories: Listing<Repository> = new {}
 }
