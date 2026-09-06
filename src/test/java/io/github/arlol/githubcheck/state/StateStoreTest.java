@@ -196,6 +196,40 @@ class StateStoreTest {
 		assertThat(record.valueHash()).isEqualTo(state.hash("value"));
 	}
 
+	/**
+	 * Same reason as the org round trip: the {@code webhook_secrets} field is
+	 * only traced into the native-image metadata when a test reads it back.
+	 */
+	@Test
+	void save_thenLoad_roundTripsWebhookSecretRecords(@TempDir Path dir)
+			throws Exception {
+		var path = dir.resolve("drifty-state.json");
+		var state = new DriftyState();
+		state.recordWebhookSecret(
+				"repo",
+				"ci",
+				"2024-01-01T00:00:00Z",
+				state.hash("hook")
+		);
+		state.recordOrgWebhookSecret(
+				"my-org",
+				"audit",
+				"2024-02-01T00:00:00Z",
+				state.hash("org-hook")
+		);
+		store.save(path, state);
+
+		var loaded = store.load(path);
+
+		assertThat(Files.readString(path)).contains("\"webhook_secrets\"");
+		var repo = loaded.webhookSecretRecord("repo", "ci");
+		assertThat(repo.updatedAt()).isEqualTo("2024-01-01T00:00:00Z");
+		assertThat(repo.valueHash()).isEqualTo(state.hash("hook"));
+		var org = loaded.orgWebhookSecretRecord("my-org", "audit");
+		assertThat(org.updatedAt()).isEqualTo("2024-02-01T00:00:00Z");
+		assertThat(org.valueHash()).isEqualTo(state.hash("org-hook"));
+	}
+
 	@Test
 	void save_thenLoad_persistsSalt(@TempDir Path dir) throws Exception {
 		var path = dir.resolve("drifty-state.json");

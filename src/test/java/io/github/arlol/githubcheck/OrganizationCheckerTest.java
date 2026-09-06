@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.actual.ActualOrgVariable;
+import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.SecretVisibility;
 import io.github.arlol.githubcheck.drift.ManagedGroups;
@@ -94,7 +96,8 @@ class OrganizationCheckerTest {
 				"org_actions_permissions",
 				"org_workflow_permissions",
 				"org_action_secrets",
-				"org_action_variables"
+				"org_action_variables",
+				"org_webhooks"
 		);
 	}
 
@@ -216,6 +219,10 @@ class OrganizationCheckerTest {
 				get(urlPathEqualTo("/orgs/my-org/actions/variables"))
 						.willReturn(okJson("{\"variables\": []}"))
 		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/hooks"))
+						.willReturn(okJson("[]"))
+		);
 
 		CheckResult.Entry entry = checker
 				.check("my-org", Desired.organization(), List.of());
@@ -316,6 +323,60 @@ class OrganizationCheckerTest {
 						urlPathEqualTo("/orgs/my-org/actions/variables")
 				)
 		);
+	}
+
+	/**
+	 * Webhooks are read only when their group is managed; the listing is what
+	 * an organization someone else administers answers with a 403.
+	 */
+	@Test
+	void webhooksAreReadOnlyWhenManaged() {
+		stubOrg("null");
+		stubFor(get(urlPathEqualTo("/orgs/my-org/hooks")).willReturn(okJson("""
+				[
+				  {
+				    "id": 7,
+				    "name": "web",
+				    "active": true,
+				    "events": ["push", "pull_request"],
+				    "config": {
+				      "url": "https://example.com/hook",
+				      "content_type": "json",
+				      "insecure_ssl": "0",
+				      "secret": "********"
+				    },
+				    "updated_at": "2024-01-01T00:00:00Z"
+				  }
+				]
+				""")));
+
+		OrganizationState state = checker.fetchState(
+				"my-org",
+				ManagedGroups.of(
+						new Drifty.OrgManaged(
+								Drifty.ManageMode.ONLY,
+								List.of(Drifty.OrgGroupName.ORG_WEBHOOKS)
+						)
+				)
+		);
+
+		assertThat(state.webhooks()).containsExactly(
+				new ActualWebhook(
+						7,
+						"https://example.com/hook",
+						"json",
+						false,
+						true,
+						Set.of("push", "pull_request"),
+						true,
+						"2024-01-01T00:00:00Z"
+				)
+		);
+
+		OrganizationState settingsOnly = checker
+				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
+		assertThat(settingsOnly.webhooks()).isEmpty();
+		verify(1, getRequestedFor(urlPathEqualTo("/orgs/my-org/hooks")));
 	}
 
 }

@@ -166,6 +166,9 @@ class DriftPathNamespacingTest {
 				.withTopics(List.of("java"))
 				.withActionsSecrets(List.of("PAT"))
 				.withActionsVariables(Map.of("REGION", "eu"))
+				.withWebhooks(
+						Map.of("ci", Desired.webhook("https://ci.example.com"))
+				)
 				.withEnvironments(
 						Map.of(
 								"production",
@@ -277,6 +280,14 @@ class DriftPathNamespacingTest {
 						.withActionsSecrets(Map.of("PAT", Desired.orgSecret()))
 						.withActionsVariables(
 								Map.of("REGION", Desired.orgVariable("eu"))
+						)
+						.withWebhooks(
+								Map.of(
+										"audit",
+										Desired.webhook(
+												"https://audit.example.com"
+										)
+								)
 						),
 				Map.of()
 		);

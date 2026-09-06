@@ -341,16 +341,23 @@ public class GitHubCheck {
 		// An org secret's key carries an "org-" prefix, because the map is flat
 		// and an organization may share its name with a repository.
 		for (var org : config.organizations().entrySet()) {
-			if (!ManagedGroups.of(org.getValue().managed)
-					.manages(Drifty.OrgGroupName.ORG_ACTION_SECRETS)) {
-				continue;
+			var managed = ManagedGroups.of(org.getValue().managed);
+			if (managed.manages(Drifty.OrgGroupName.ORG_ACTION_SECRETS)) {
+				addMissingSecrets(
+						missingSecrets,
+						githubSecrets,
+						org.getValue().actionsSecrets.keySet(),
+						"org-" + org.getKey() + "-"
+				);
 			}
-			addMissingSecrets(
-					missingSecrets,
-					githubSecrets,
-					org.getValue().actionsSecrets.keySet(),
-					"org-" + org.getKey() + "-"
-			);
+			if (managed.manages(Drifty.OrgGroupName.ORG_WEBHOOKS)) {
+				addMissingSecrets(
+						missingSecrets,
+						githubSecrets,
+						webhookSecretNames(org.getValue().webhooks),
+						"org-" + org.getKey() + "-webhook-"
+				);
+			}
 		}
 		for (Drifty.Repository repo : config.allRepositories()) {
 			ManagedGroups<Drifty.GroupName> managed = ManagedGroups
@@ -361,6 +368,14 @@ public class GitHubCheck {
 						githubSecrets,
 						repo.actionsSecrets,
 						repo.name + "-"
+				);
+			}
+			if (managed.manages(Drifty.GroupName.WEBHOOKS)) {
+				addMissingSecrets(
+						missingSecrets,
+						githubSecrets,
+						webhookSecretNames(repo.webhooks),
+						repo.name + "-webhook-"
 				);
 			}
 			if (!managed.manages(Drifty.GroupName.ENVIRONMENT_SECRETS)) {
@@ -376,6 +391,17 @@ public class GitHubCheck {
 			}
 		}
 		return missingSecrets;
+	}
+
+	/** The names of the hooks whose config declares a secret. */
+	private static List<String> webhookSecretNames(
+			Map<String, Drifty.Webhook> webhooks
+	) {
+		return webhooks.entrySet()
+				.stream()
+				.filter(entry -> entry.getValue().secret)
+				.map(Map.Entry::getKey)
+				.toList();
 	}
 
 	private static void addMissingSecrets(

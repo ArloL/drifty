@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.actual.ActualOrgVariable;
+import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -24,6 +25,7 @@ import io.github.arlol.githubcheck.drift.OrgActionSecretsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgActionVariablesDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgActionsPermissionsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgSettingsDriftGroup;
+import io.github.arlol.githubcheck.drift.OrgWebhooksDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgWorkflowPermissionsDriftGroup;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
@@ -188,13 +190,22 @@ public class OrganizationChecker {
 						? orgVariables(login)
 						: List.of();
 
+		List<ActualWebhook> webhooks = managed
+				.manages(Drifty.OrgGroupName.ORG_WEBHOOKS)
+						? client.getOrgWebhooks(login)
+								.stream()
+								.map(ActualTypes::webhook)
+								.toList()
+						: List.of();
+
 		return new OrganizationState(
 				login,
 				settings,
 				permissions,
 				workflowPermissions,
 				secrets,
-				variables
+				variables,
+				webhooks
 		);
 	}
 
@@ -322,6 +333,16 @@ public class OrganizationChecker {
 						desired.actionsVariables,
 						actual.actionVariables(),
 						repositoryIds,
+						client,
+						actual.login()
+				)
+		);
+		groups.add(
+				new OrgWebhooksDriftGroup(
+						desired.webhooks,
+						actual.webhooks(),
+						githubSecrets,
+						state,
 						client,
 						actual.login()
 				)
