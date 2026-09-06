@@ -339,6 +339,9 @@
       "type": "io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration"
     },
     {
+      "type": "io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration$BypassReviewer"
+    },
+    {
       "type": "io.github.arlol.githubcheck.actual.ActualCollaborators"
     },
     {
@@ -938,6 +941,10 @@
           "parameterTypes": []
         },
         {
+          "name": "codeScanningDefaultSetupOptions",
+          "parameterTypes": []
+        },
+        {
           "name": "codeScanningDelegatedAlertDismissal",
           "parameterTypes": []
         },
@@ -990,6 +997,10 @@
           "parameterTypes": []
         },
         {
+          "name": "secretScanningDelegatedBypassOptions",
+          "parameterTypes": []
+        },
+        {
           "name": "secretScanningGenericSecrets",
           "parameterTypes": []
         },
@@ -1003,6 +1014,54 @@
         },
         {
           "name": "secretScanningValidityChecks",
+          "parameterTypes": []
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.CodeSecurityConfigurationRequest$BypassReviewer",
+      "methods": [
+        {
+          "name": "mode",
+          "parameterTypes": []
+        },
+        {
+          "name": "reviewerId",
+          "parameterTypes": []
+        },
+        {
+          "name": "reviewerType",
+          "parameterTypes": []
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.CodeSecurityConfigurationRequest$CodeScanningDefaultSetupOptions",
+      "methods": [
+        {
+          "name": "runnerLabel",
+          "parameterTypes": []
+        },
+        {
+          "name": "runnerType",
+          "parameterTypes": []
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.CodeSecurityConfigurationRequest$SecretScanningDelegatedBypassOptions",
+      "methods": [
+        {
+          "name": "reviewers",
           "parameterTypes": []
         }
       ],
@@ -1027,10 +1086,12 @@
             "java.lang.String",
             "java.lang.String",
             "java.lang.String",
+            "io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse$CodeScanningDefaultSetupOptions",
             "java.lang.String",
             "java.lang.String",
             "java.lang.String",
             "java.lang.String",
+            "io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse$SecretScanningDelegatedBypassOptions",
             "java.lang.String",
             "java.lang.String",
             "java.lang.String",
@@ -1038,6 +1099,51 @@
             "java.lang.String",
             "java.lang.String",
             "java.lang.String"
+          ]
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse$BypassReviewer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long",
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse$CodeScanningDefaultSetupOptions",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse$SecretScanningDelegatedBypassOptions",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.util.List"
           ]
         }
       ],
@@ -2239,12 +2345,24 @@
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$FileExtensionRestriction",
+      "methods": [
+        {
+          "name": "parameters",
+          "parameterTypes": []
+        }
+      ],
       "allPublicFields": true,
       "allPublicMethods": true,
       "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$FileExtensionRestriction$Parameters",
+      "methods": [
+        {
+          "name": "restrictedFileExtensions",
+          "parameterTypes": []
+        }
+      ],
       "allPublicFields": true,
       "allPublicMethods": true,
       "allPublicConstructors": true
@@ -2275,12 +2393,24 @@
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$MaxFileSize",
+      "methods": [
+        {
+          "name": "parameters",
+          "parameterTypes": []
+        }
+      ],
       "allPublicFields": true,
       "allPublicMethods": true,
       "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$MaxFileSize$Parameters",
+      "methods": [
+        {
+          "name": "maxFileSize",
+          "parameterTypes": []
+        }
+      ],
       "allPublicFields": true,
       "allPublicMethods": true,
       "allPublicConstructors": true
@@ -3485,6 +3615,14 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$CodeScanningDefaultSetupOptions",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$CodeScanningRunnerType",
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$CodeScanningTool",
       "methods": [
         {
@@ -3493,6 +3631,20 @@
             "java.lang.String",
             "io.github.arlol.githubcheck.pkl.Drifty$AlertsThreshold",
             "io.github.arlol.githubcheck.pkl.Drifty$SecurityAlertsThreshold"
+          ]
+        }
+      ],
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$CodeSecurityBypassReviewer",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long",
+            "io.github.arlol.githubcheck.pkl.Drifty$SecretScanningBypassReviewerType",
+            "io.github.arlol.githubcheck.pkl.Drifty$SecretScanningBypassReviewerMode"
           ]
         }
       ],
@@ -3522,6 +3674,8 @@
             "io.github.arlol.githubcheck.pkl.Drifty$SecuritySetting",
             "io.github.arlol.githubcheck.pkl.Drifty$SecuritySetting",
             "io.github.arlol.githubcheck.pkl.Drifty$SecurityEnforcement",
+            "io.github.arlol.githubcheck.pkl.Drifty$CodeScanningDefaultSetupOptions",
+            "io.github.arlol.githubcheck.pkl.Drifty$SecretScanningDelegatedBypassOptions",
             "io.github.arlol.githubcheck.pkl.Drifty$DefaultForNewRepos",
             "java.util.List"
           ]
@@ -3993,7 +4147,23 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$SecretScanningBypassReviewerMode",
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$SecretScanningBypassReviewerType",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$SecretScanningDelegatedBypassOptions",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.util.List"
+          ]
+        }
+      ],
       "allPublicConstructors": true
     },
     {
