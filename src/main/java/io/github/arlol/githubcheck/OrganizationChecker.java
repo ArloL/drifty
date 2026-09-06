@@ -9,9 +9,11 @@ import java.util.stream.Collectors;
 import io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration;
 import io.github.arlol.githubcheck.actual.ActualCustomProperty;
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
+import io.github.arlol.githubcheck.actual.ActualOrgMember;
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.actual.ActualOrgVariable;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
+import io.github.arlol.githubcheck.actual.ActualTeam;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.CodeSecurityDefaultResponse;
@@ -31,8 +33,10 @@ import io.github.arlol.githubcheck.drift.OrgActionVariablesDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgActionsPermissionsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgCodeSecurityConfigurationsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgCustomPropertiesDriftGroup;
+import io.github.arlol.githubcheck.drift.OrgMembersDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgRulesetDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgSettingsDriftGroup;
+import io.github.arlol.githubcheck.drift.OrgTeamsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgWebhooksDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgWorkflowPermissionsDriftGroup;
 import io.github.arlol.githubcheck.pkl.Drifty;
@@ -220,6 +224,18 @@ public class OrganizationChecker {
 						? codeSecurityConfigurations(login)
 						: List.of();
 
+		List<ActualTeam> teams = managed.manages(Drifty.OrgGroupName.ORG_TEAMS)
+				? teams(login)
+				: List.of();
+
+		List<ActualOrgMember> members = managed
+				.manages(Drifty.OrgGroupName.ORG_MEMBERS)
+						? ActualTypes.orgMembers(
+								client.listOrgMembers(login, "admin"),
+								client.listOrgMembers(login, "member")
+						)
+						: List.of();
+
 		return new OrganizationState(
 				login,
 				settings,
@@ -230,8 +246,37 @@ public class OrganizationChecker {
 				webhooks,
 				customProperties,
 				rulesets,
-				codeSecurityConfigurations
+				codeSecurityConfigurations,
+				teams,
+				members
 		);
+	}
+
+	/**
+	 * Two member listings per team after the one that lists the teams, one per
+	 * role. Enterprise teams are not the organization's to change and are
+	 * dropped.
+	 */
+	private List<ActualTeam> teams(String login) {
+		return client.listOrgTeams(login)
+				.stream()
+				.filter(t -> !"enterprise".equals(t.type()))
+				.map(
+						t -> ActualTypes.team(
+								t,
+								client.getTeamMembers(
+										login,
+										t.slug(),
+										"member"
+								),
+								client.getTeamMembers(
+										login,
+										t.slug(),
+										"maintainer"
+								)
+						)
+				)
+				.toList();
 	}
 
 	/**
@@ -460,6 +505,22 @@ public class OrganizationChecker {
 						desired.codeSecurityConfigurations,
 						actual.codeSecurityConfigurations(),
 						repositoryIds,
+						client,
+						actual.login()
+				)
+		);
+		groups.add(
+				new OrgTeamsDriftGroup(
+						desired.teams,
+						actual.teams(),
+						client,
+						actual.login()
+				)
+		);
+		groups.add(
+				new OrgMembersDriftGroup(
+						desired.members,
+						actual.members(),
 						client,
 						actual.login()
 				)

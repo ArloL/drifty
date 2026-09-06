@@ -373,6 +373,199 @@ public class GitHubClient {
 		}
 	}
 
+	// ─── Collaborators, teams and members
+	// ──────────────────────────────────────────────────────────
+
+	/** Direct collaborators only: {@code affiliation=direct}. */
+	public List<CollaboratorResponse> getCollaborators(
+			String owner,
+			String repo
+	) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo)
+						+ "/collaborators?affiliation=direct&per_page=100"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " for collaborators of "
+							+ owner + "/" + repo + ": " + resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, null).stream()
+				.map(c -> mapper.convertValue(c, CollaboratorResponse.class))
+				.toList();
+	}
+
+	/** Adds or updates a collaborator; 201 invites, 204 updates. */
+	public void addCollaborator(
+			String owner,
+			String repo,
+			String login,
+			String permission
+	) {
+		HttpResponse<String> resp = put(
+				repoUrl(owner, repo) + "/collaborators/" + login,
+				writeValue(new PermissionRequest(permission))
+		);
+		if (resp.statusCode() != 201 && resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " adding collaborator "
+							+ login + " to " + owner + "/" + repo + ": "
+							+ resp.body()
+			);
+		}
+	}
+
+	public List<RepoTeamResponse> getRepoTeams(String owner, String repo) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + "/teams?per_page=100"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " for teams of " + owner + "/"
+							+ repo + ": " + resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, null).stream()
+				.map(t -> mapper.convertValue(t, RepoTeamResponse.class))
+				.toList();
+	}
+
+	public void setTeamRepositoryPermission(
+			String org,
+			String slug,
+			String owner,
+			String repo,
+			String permission
+	) {
+		HttpResponse<String> resp = put(
+				orgUrl(org) + "/teams/" + slug + "/repos/" + owner + "/" + repo,
+				writeValue(new PermissionRequest(permission))
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " granting team " + slug
+							+ " access to " + owner + "/" + repo + ": "
+							+ resp.body()
+			);
+		}
+	}
+
+	public List<TeamResponse> listOrgTeams(String org) {
+		HttpResponse<String> resp = get(orgUrl(org) + "/teams?per_page=100");
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " listing teams of " + org
+							+ ": " + resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, null).stream()
+				.map(t -> mapper.convertValue(t, TeamResponse.class))
+				.toList();
+	}
+
+	/**
+	 * The team's members with one role: {@code member} or {@code maintainer}.
+	 */
+	public List<SimpleUser> getTeamMembers(
+			String org,
+			String slug,
+			String role
+	) {
+		HttpResponse<String> resp = get(
+				orgUrl(org) + "/teams/" + slug + "/members?role=" + role
+						+ "&per_page=100"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " for members of team " + slug
+							+ " in " + org + ": " + resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, null).stream()
+				.map(u -> mapper.convertValue(u, SimpleUser.class))
+				.toList();
+	}
+
+	public TeamResponse createTeam(String org, TeamRequest team) {
+		HttpResponse<String> resp = post(
+				orgUrl(org) + "/teams",
+				writeValue(team)
+		);
+		if (resp.statusCode() != 201) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " creating team "
+							+ team.name() + " in " + org + ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), TeamResponse.class);
+	}
+
+	public void updateTeam(String org, String slug, TeamRequest team) {
+		HttpResponse<String> resp = patch(
+				orgUrl(org) + "/teams/" + slug,
+				writeValue(team)
+		);
+		if (resp.statusCode() != 200 && resp.statusCode() != 201) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " updating team " + slug
+							+ " in " + org + ": " + resp.body()
+			);
+		}
+	}
+
+	public void setTeamMembership(
+			String org,
+			String slug,
+			String login,
+			String role
+	) {
+		HttpResponse<String> resp = put(
+				orgUrl(org) + "/teams/" + slug + "/memberships/" + login,
+				writeValue(new RoleRequest(role))
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " setting membership of "
+							+ login + " in team " + slug + " of " + org + ": "
+							+ resp.body()
+			);
+		}
+	}
+
+	/**
+	 * The organization's members with one role: {@code admin} or
+	 * {@code member}.
+	 */
+	public List<SimpleUser> listOrgMembers(String org, String role) {
+		HttpResponse<String> resp = get(
+				orgUrl(org) + "/members?role=" + role + "&per_page=100"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " listing members of " + org
+							+ ": " + resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, null).stream()
+				.map(u -> mapper.convertValue(u, SimpleUser.class))
+				.toList();
+	}
+
+	/** Sets a member's role, or invites a user who is not yet a member. */
+	public void setOrgMembership(String org, String login, String role) {
+		HttpResponse<String> resp = put(
+				orgUrl(org) + "/memberships/" + login,
+				writeValue(new RoleRequest(role))
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " setting membership of "
+							+ login + " in " + org + ": " + resp.body()
+			);
+		}
+	}
+
 	// ─── Code security configurations
 	// ──────────────────────────────────────────────────────────
 

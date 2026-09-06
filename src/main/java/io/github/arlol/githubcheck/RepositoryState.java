@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
+import io.github.arlol.githubcheck.actual.ActualCollaborators;
 import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
 import io.github.arlol.githubcheck.actual.ActualEnvironment;
 import io.github.arlol.githubcheck.actual.ActualPages;
@@ -38,7 +39,8 @@ import io.github.arlol.githubcheck.client.RepoRef;
  * <p>
  * {@code workflowPermissions} is null when the repository does not manage the
  * {@code workflow_permissions} group: the response is never fetched, and the
- * group that would read it is not built.
+ * group that would read it is not built. {@code collaborators} is null the same
+ * way.
  */
 public record RepositoryState(
 		RepoRef ref,
@@ -59,7 +61,8 @@ public record RepositoryState(
 		List<ActualVariable> actionVariables,
 		Map<String, List<ActualVariable>> environmentVariables,
 		List<ActualWebhook> webhooks,
-		List<ActualCustomPropertyValue> customPropertyValues
+		List<ActualCustomPropertyValue> customPropertyValues,
+		ActualCollaborators collaborators
 ) {
 
 	public RepositoryState {
@@ -114,7 +117,8 @@ public record RepositoryState(
 				List.of(),
 				Map.of(),
 				List.of(),
-				List.of()
+				List.of(),
+				null
 		);
 	}
 

@@ -15,6 +15,7 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
+import io.github.arlol.githubcheck.actual.ActualCollaborators;
 import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
 import io.github.arlol.githubcheck.actual.ActualEnvironment;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
@@ -40,6 +41,7 @@ import io.github.arlol.githubcheck.drift.ArchivedDriftGroup;
 import io.github.arlol.githubcheck.drift.AutomatedSecurityFixesDriftGroup;
 import io.github.arlol.githubcheck.drift.BranchProtectionDriftGroup;
 import io.github.arlol.githubcheck.drift.CodeScanningDefaultSetupDriftGroup;
+import io.github.arlol.githubcheck.drift.CollaboratorsDriftGroup;
 import io.github.arlol.githubcheck.drift.CustomPropertiesDriftGroup;
 import io.github.arlol.githubcheck.drift.DriftFix;
 import io.github.arlol.githubcheck.drift.DriftFixer;
@@ -333,9 +335,23 @@ public class RepositoryChecker {
 								.toList()
 						: List.of();
 
+		var repository = ActualTypes.repository(details);
+
+		// Teams only exist under an organization; the endpoint 404s on a
+		// personal account's repository.
+		ActualCollaborators collaborators = null;
+		if (managed.manages(Drifty.GroupName.COLLABORATORS)) {
+			collaborators = ActualTypes.collaborators(
+					client.getCollaborators(org, name),
+					repository.organizationOwned()
+							? client.getRepoTeams(org, name)
+							: List.of()
+			);
+		}
+
 		return new RepositoryState(
 				ref,
-				ActualTypes.repository(details),
+				repository,
 				ActualTypes.securityAndAnalysis(details),
 				security.vulnAlerts(),
 				security.automatedSecurityFixes(),
@@ -352,7 +368,8 @@ public class RepositoryChecker {
 				variables,
 				envVariables,
 				webhooks,
-				customPropertyValues
+				customPropertyValues,
+				collaborators
 		);
 	}
 
@@ -661,6 +678,18 @@ public class RepositoryChecker {
 						desired.customProperties,
 						desired.customMultiSelectProperties,
 						actual.customPropertyValues(),
+						client,
+						ref
+				)
+		);
+
+		// Collaborators
+		groups.add(
+				new CollaboratorsDriftGroup(
+						desired.collaborators,
+						desired.teamPermissions,
+						actual.collaborators(),
+						actual.repository().organizationOwned(),
 						client,
 						ref
 				)

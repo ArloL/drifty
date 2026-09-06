@@ -10,7 +10,9 @@ public record TeamResponse(
 		Privacy privacy,
 		NotificationSetting notificationSetting,
 		String permission,
-		Parent parent // nullable
+		Parent parent, // nullable
+		/** "organization" or "enterprise"; absent from older responses. */
+		String type
 ) {
 
 	public enum Privacy {

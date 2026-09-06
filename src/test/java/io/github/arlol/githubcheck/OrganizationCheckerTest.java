@@ -1,6 +1,7 @@
 package io.github.arlol.githubcheck;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
@@ -21,7 +22,9 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.actual.ActualCustomProperty;
+import io.github.arlol.githubcheck.actual.ActualOrgMember;
 import io.github.arlol.githubcheck.actual.ActualOrgVariable;
+import io.github.arlol.githubcheck.actual.ActualTeam;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.SecretVisibility;
@@ -101,7 +104,9 @@ class OrganizationCheckerTest {
 				"org_webhooks",
 				"org_custom_properties",
 				"org_rulesets",
-				"org_code_security_configurations"
+				"org_code_security_configurations",
+				"org_teams",
+				"org_members"
 		);
 	}
 
@@ -237,6 +242,14 @@ class OrganizationCheckerTest {
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/code-security/configurations"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/teams"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/members"))
 						.willReturn(okJson("[]"))
 		);
 
@@ -608,6 +621,93 @@ class OrganizationCheckerTest {
 						)
 				)
 		);
+	}
+
+	/**
+	 * Teams cost one listing plus two member listings each; members two
+	 * listings, one per role. Neither is sent unless its group is managed.
+	 */
+	@Test
+	void teamsAndMembersAreReadOnlyWhenManaged() {
+		stubOrg("null");
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/teams")).willReturn(
+						okJson(
+								"""
+										[
+										  {"id": 1, "name": "Core", "slug": "core", "description": null, "privacy": "closed",
+										   "notification_setting": "notifications_enabled", "parent": null},
+										  {"id": 2, "name": "Corp", "slug": "corp", "privacy": "closed",
+										   "notification_setting": "notifications_enabled", "type": "enterprise"}
+										]
+										"""
+						)
+				)
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/teams/core/members"))
+						.withQueryParam("role", equalTo("member"))
+						.willReturn(okJson("[{\"login\": \"alice\"}]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/teams/core/members"))
+						.withQueryParam("role", equalTo("maintainer"))
+						.willReturn(okJson("[{\"login\": \"bob\"}]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/members"))
+						.withQueryParam("role", equalTo("admin"))
+						.willReturn(okJson("[{\"login\": \"bob\"}]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/members"))
+						.withQueryParam("role", equalTo("member"))
+						.willReturn(okJson("[{\"login\": \"alice\"}]"))
+		);
+
+		OrganizationState state = checker.fetchState(
+				"my-org",
+				ManagedGroups.of(
+						new Drifty.OrgManaged(
+								Drifty.ManageMode.ONLY,
+								List.of(
+										Drifty.OrgGroupName.ORG_TEAMS,
+										Drifty.OrgGroupName.ORG_MEMBERS
+								)
+						)
+				)
+		);
+
+		assertThat(state.teams()).containsExactly(
+				new ActualTeam(
+						1,
+						"core",
+						"Core",
+						"",
+						"closed",
+						"notifications_enabled",
+						null,
+						Set.of("alice"),
+						Set.of("bob")
+				)
+		);
+		assertThat(state.members()).containsExactly(
+				new ActualOrgMember("bob", "admin"),
+				new ActualOrgMember("alice", "member")
+		);
+		verify(
+				0,
+				getRequestedFor(
+						urlPathEqualTo("/orgs/my-org/teams/corp/members")
+				)
+		);
+
+		OrganizationState settingsOnly = checker
+				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
+		assertThat(settingsOnly.teams()).isEmpty();
+		assertThat(settingsOnly.members()).isEmpty();
+		verify(1, getRequestedFor(urlPathEqualTo("/orgs/my-org/teams")));
+		verify(2, getRequestedFor(urlPathEqualTo("/orgs/my-org/members")));
 	}
 
 }

@@ -5,10 +5,12 @@ import java.util.List;
 import io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration;
 import io.github.arlol.githubcheck.actual.ActualCustomProperty;
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
+import io.github.arlol.githubcheck.actual.ActualOrgMember;
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.actual.ActualOrgVariable;
 import io.github.arlol.githubcheck.actual.ActualOrganization;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
+import io.github.arlol.githubcheck.actual.ActualTeam;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 
@@ -31,7 +33,9 @@ public record OrganizationState(
 		List<ActualWebhook> webhooks,
 		List<ActualCustomProperty> customProperties,
 		List<ActualRuleset> rulesets,
-		List<ActualCodeSecurityConfiguration> codeSecurityConfigurations
+		List<ActualCodeSecurityConfiguration> codeSecurityConfigurations,
+		List<ActualTeam> teams,
+		List<ActualOrgMember> members
 ) {
 
 	public OrganizationState {
@@ -41,6 +45,8 @@ public record OrganizationState(
 		customProperties = List.copyOf(customProperties);
 		rulesets = List.copyOf(rulesets);
 		codeSecurityConfigurations = List.copyOf(codeSecurityConfigurations);
+		teams = List.copyOf(teams);
+		members = List.copyOf(members);
 	}
 
 	/** A state with nothing in the sections added after the first five. */
@@ -57,6 +63,8 @@ public record OrganizationState(
 				actionsPermissions,
 				workflowPermissions,
 				actionSecrets,
+				List.of(),
+				List.of(),
 				List.of(),
 				List.of(),
 				List.of(),
