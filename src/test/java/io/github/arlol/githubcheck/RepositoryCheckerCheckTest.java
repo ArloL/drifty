@@ -378,6 +378,10 @@ class RepositoryCheckerCheckTest {
 						.willReturn(okJson("{\"secrets\": []}"))
 		);
 		stubFor(
+				get(urlPathMatching("/repos/[^/]+/[^/]+/actions/variables"))
+						.willReturn(okJson("{\"variables\": []}"))
+		);
+		stubFor(
 				get(urlPathMatching("/repos/[^/]+/[^/]+/environments"))
 						.willReturn(okJson("{\"environments\": []}"))
 		);

@@ -24,6 +24,7 @@ typealias MergeCommitMessage = "PR_BODY" | "PR_TITLE" | "BLANK"
 /// silently leaving a group unmanaged.
 typealias GroupName =
   "action_secrets"
+  | "action_variables"
   | "advanced_security"
   | "archived"
   | "automated_security_fixes"
@@ -31,6 +32,7 @@ typealias GroupName =
   | "code_scanning_default_setup"
   | "environment_config"
   | "environment_secrets"
+  | "environment_variables"
   | "immutable_releases"
   | "pages"
   | "private_vulnerability_reporting"
@@ -55,6 +57,7 @@ typealias OrgGroupName =
   | "org_actions_permissions"
   | "org_workflow_permissions"
   | "org_action_secrets"
+  | "org_action_variables"
 
 typealias SecretVisibility = "all" | "private" | "selected"
 
@@ -229,6 +232,8 @@ class Pages {
 /// Deployment environment. The environment name is the key in Repository.environments.
 class Environment {
   secrets: Listing<String> = new {}
+  /// Actions variables, name to value. Plaintext, so the value is compared.
+  variables: Mapping<String, String> = new {}
   waitTimer: Int = 0
   preventSelfReview: Boolean = false
   /// Logins of the users who must approve deployments.
@@ -295,6 +300,8 @@ class Repository {
   immutableReleases: Boolean = false
   pages: Pages?
   actionsSecrets: Listing<String> = new {}
+  /// Actions variables, name to value. Plaintext, so the value is compared.
+  actionsVariables: Mapping<String, String> = new {}
 
   /// Keyed by branch pattern (e.g. "main")
   branchProtections: Mapping<String, BranchProtection> = new {}
@@ -325,6 +332,15 @@ class ActionsPermissions {
 /// Organization.actionsSecrets; the value comes from DRIFTY_GITHUB_SECRETS
 /// under the key `org-<org>-<secret>`.
 class OrgSecret {
+  visibility: SecretVisibility = "private"
+  /// Only when visibility = "selected"
+  selectedRepositories: Listing<String> = new {}
+}
+
+/// An organization Actions variable. The name is the key in
+/// Organization.actionsVariables; unlike a secret, the value is right here.
+class OrgVariable {
+  value: String
   visibility: SecretVisibility = "private"
   /// Only when visibility = "selected"
   selectedRepositories: Listing<String> = new {}
@@ -376,6 +392,8 @@ class Organization {
 
   /// Keyed by secret name
   actionsSecrets: Mapping<String, OrgSecret> = new {}
+  /// Keyed by variable name
+  actionsVariables: Mapping<String, OrgVariable> = new {}
 
   repositories: Listing<Repository> = new {}
 }

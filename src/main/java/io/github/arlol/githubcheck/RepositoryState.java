@@ -11,6 +11,7 @@ import io.github.arlol.githubcheck.actual.ActualRepository;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
+import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.client.RepoRef;
 
@@ -52,7 +53,9 @@ public record RepositoryState(
 		Map<String, ActualEnvironment> environments,
 		Map<String, List<ActualSecret>> environmentSecrets,
 		ActualWorkflowPermissions workflowPermissions,
-		Optional<ActualPages> pages
+		Optional<ActualPages> pages,
+		List<ActualVariable> actionVariables,
+		Map<String, List<ActualVariable>> environmentVariables
 ) {
 
 	public RepositoryState {
@@ -61,6 +64,50 @@ public record RepositoryState(
 		actionSecrets = List.copyOf(actionSecrets);
 		environments = Map.copyOf(environments);
 		environmentSecrets = Map.copyOf(environmentSecrets);
+		actionVariables = List.copyOf(actionVariables);
+		environmentVariables = Map.copyOf(environmentVariables);
+	}
+
+	/**
+	 * A state with nothing in the sections added after the first fifteen — what
+	 * a test that exercises the older groups builds.
+	 */
+	public RepositoryState(
+			RepoRef ref,
+			ActualRepository repository,
+			ActualSecurityAndAnalysis securityAndAnalysis,
+			boolean vulnerabilityAlerts,
+			boolean automatedSecurityFixes,
+			boolean immutableReleases,
+			boolean privateVulnerabilityReporting,
+			boolean codeScanningDefaultSetup,
+			Map<String, ActualBranchProtection> branchProtections,
+			List<ActualRuleset> rulesets,
+			List<ActualSecret> actionSecrets,
+			Map<String, ActualEnvironment> environments,
+			Map<String, List<ActualSecret>> environmentSecrets,
+			ActualWorkflowPermissions workflowPermissions,
+			Optional<ActualPages> pages
+	) {
+		this(
+				ref,
+				repository,
+				securityAndAnalysis,
+				vulnerabilityAlerts,
+				automatedSecurityFixes,
+				immutableReleases,
+				privateVulnerabilityReporting,
+				codeScanningDefaultSetup,
+				branchProtections,
+				rulesets,
+				actionSecrets,
+				environments,
+				environmentSecrets,
+				workflowPermissions,
+				pages,
+				List.of(),
+				Map.of()
+		);
 	}
 
 	public String name() {

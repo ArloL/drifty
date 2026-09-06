@@ -19,6 +19,7 @@ import io.github.arlol.githubcheck.actual.ActualEnvironment;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
+import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -28,8 +29,10 @@ import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.RulesetSourceType;
 import io.github.arlol.githubcheck.client.Secret;
+import io.github.arlol.githubcheck.client.VariableResponse;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.drift.ActionSecretsDriftGroup;
+import io.github.arlol.githubcheck.drift.ActionVariablesDriftGroup;
 import io.github.arlol.githubcheck.drift.AdvancedSecurityDriftGroup;
 import io.github.arlol.githubcheck.drift.ArchivedDriftGroup;
 import io.github.arlol.githubcheck.drift.AutomatedSecurityFixesDriftGroup;
@@ -42,6 +45,7 @@ import io.github.arlol.githubcheck.drift.DriftItem;
 import io.github.arlol.githubcheck.drift.ManagedGroups;
 import io.github.arlol.githubcheck.drift.EnvironmentConfigDriftGroup;
 import io.github.arlol.githubcheck.drift.EnvironmentSecretsDriftGroup;
+import io.github.arlol.githubcheck.drift.EnvironmentVariablesDriftGroup;
 import io.github.arlol.githubcheck.drift.ImmutableReleasesDriftGroup;
 import io.github.arlol.githubcheck.drift.PagesDriftGroup;
 import io.github.arlol.githubcheck.drift.PrivateVulnerabilityReportingDriftGroup;
@@ -240,15 +244,24 @@ public class RepositoryChecker {
 						? secrets(client.getActionSecrets(org, name))
 						: List.of();
 
-		// One listing serves two groups, so it runs when either wants it; the
-		// per-environment secret call only when environment_secrets does.
+		List<ActualVariable> variables = managed
+				.manages(Drifty.GroupName.ACTION_VARIABLES)
+						? variables(client.getActionVariables(org, name))
+						: List.of();
+
+		// One listing serves three groups, so it runs when any wants it; the
+		// per-environment secret and variable calls only when their group
+		// does.
 		Map<String, ActualEnvironment> environments = new LinkedHashMap<>();
 		Map<String, List<ActualSecret>> envSecrets = new LinkedHashMap<>();
+		Map<String, List<ActualVariable>> envVariables = new LinkedHashMap<>();
 		boolean wantEnvConfig = managed
 				.manages(Drifty.GroupName.ENVIRONMENT_CONFIG);
 		boolean wantEnvSecrets = managed
 				.manages(Drifty.GroupName.ENVIRONMENT_SECRETS);
-		if (wantEnvConfig || wantEnvSecrets) {
+		boolean wantEnvVariables = managed
+				.manages(Drifty.GroupName.ENVIRONMENT_VARIABLES);
+		if (wantEnvConfig || wantEnvSecrets || wantEnvVariables) {
 			for (EnvironmentDetailsResponse env : client
 					.getEnvironments(org, name)) {
 				environments.put(
@@ -263,6 +276,18 @@ public class RepositoryChecker {
 							env.name(),
 							secrets(
 									client.getEnvironmentSecrets(
+											org,
+											name,
+											env.name()
+									)
+							)
+					);
+				}
+				if (wantEnvVariables) {
+					envVariables.put(
+							env.name(),
+							variables(
+									client.getEnvironmentVariables(
 											org,
 											name,
 											env.name()
@@ -303,8 +328,16 @@ public class RepositoryChecker {
 				environments,
 				envSecrets,
 				workflowPermissions,
-				pages.map(ActualTypes::pages)
+				pages.map(ActualTypes::pages),
+				variables,
+				envVariables
 		);
+	}
+
+	private static List<ActualVariable> variables(
+			List<VariableResponse> responses
+	) {
+		return responses.stream().map(ActualTypes::variable).toList();
 	}
 
 	/**
@@ -564,6 +597,24 @@ public class RepositoryChecker {
 						actual.environmentSecrets(),
 						githubSecrets,
 						state,
+						client,
+						ref
+				)
+		);
+
+		// Variables
+		groups.add(
+				new ActionVariablesDriftGroup(
+						desired.actionsVariables,
+						actual.actionVariables(),
+						client,
+						ref
+				)
+		);
+		groups.add(
+				new EnvironmentVariablesDriftGroup(
+						desired.environments,
+						actual.environmentVariables(),
 						client,
 						ref
 				)
