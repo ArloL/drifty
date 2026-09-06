@@ -98,6 +98,11 @@ class GitHubClientRecordingTest {
 							null,
 							null,
 							true,
+							false,
+							false,
+							false,
+							false,
+							false,
 							false
 					)
 			);

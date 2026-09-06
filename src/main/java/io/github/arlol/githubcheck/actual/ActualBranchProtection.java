@@ -17,6 +17,10 @@ public record ActualBranchProtection(
 		boolean enforceAdmins,
 		boolean requiredLinearHistory,
 		boolean allowForcePushes,
+		boolean allowDeletions,
+		boolean blockCreations,
+		boolean lockBranch,
+		boolean allowForkSyncing,
 		boolean requireConversationResolution,
 		boolean strictStatusChecks,
 		Set<StatusCheck> requiredStatusChecks,
@@ -24,12 +28,42 @@ public record ActualBranchProtection(
 		Optional<Restrictions> restrictions
 ) {
 
+	/**
+	 * The review requirements. The two actor sets name who may dismiss a review
+	 * and who may push without one, each as logins, team slugs and app slugs.
+	 */
 	public record PullRequestReviews(
 			boolean dismissStaleReviews,
 			boolean requireCodeOwnerReviews,
 			Integer requiredApprovingReviewCount,
-			Boolean requireLastPushApproval
+			Boolean requireLastPushApproval,
+			Actors dismissalRestrictions,
+			Actors bypassPullRequestAllowances
 	) {
+	}
+
+	public record Actors(
+			Set<String> users,
+			Set<String> teams,
+			Set<String> apps
+	) {
+
+		public static final Actors NONE = new Actors(
+				Set.of(),
+				Set.of(),
+				Set.of()
+		);
+
+		public Actors {
+			users = Set.copyOf(users);
+			teams = Set.copyOf(teams);
+			apps = Set.copyOf(apps);
+		}
+
+		public boolean isEmpty() {
+			return users.isEmpty() && teams.isEmpty() && apps.isEmpty();
+		}
+
 	}
 
 	public record Restrictions(

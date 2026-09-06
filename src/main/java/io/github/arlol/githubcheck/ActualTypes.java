@@ -236,6 +236,14 @@ public final class ActualTypes {
 						&& response.requiredLinearHistory().enabled(),
 				response.allowForcePushes() != null
 						&& response.allowForcePushes().enabled(),
+				response.allowDeletions() != null
+						&& response.allowDeletions().enabled(),
+				response.blockCreations() != null
+						&& response.blockCreations().enabled(),
+				response.lockBranch() != null
+						&& Boolean.TRUE.equals(response.lockBranch().enabled()),
+				response.allowForkSyncing() != null && Boolean.TRUE
+						.equals(response.allowForkSyncing().enabled()),
 				response.requiredConversationResolution() != null
 						&& response.requiredConversationResolution().enabled(),
 				response.requiredStatusChecks() != null
@@ -282,8 +290,35 @@ public final class ActualTypes {
 						rpr.dismissStaleReviews(),
 						rpr.requireCodeOwnerReviews(),
 						rpr.requiredApprovingReviewCount(),
-						rpr.requireLastPushApproval()
+						rpr.requireLastPushApproval(),
+						actors(rpr.dismissalRestrictions()),
+						actors(rpr.bypassPullRequestAllowances())
 				)
+		);
+	}
+
+	/**
+	 * Logins and slugs out of the user, team and app objects GitHub returns.
+	 */
+	private static ActualBranchProtection.Actors actors(
+			BranchProtectionResponse.Actors actors
+	) {
+		if (actors == null) {
+			return ActualBranchProtection.Actors.NONE;
+		}
+		return new ActualBranchProtection.Actors(
+				actors.users()
+						.stream()
+						.map(SimpleUser::login)
+						.collect(Collectors.toSet()),
+				actors.teams()
+						.stream()
+						.map(BranchProtectionResponse.Restrictions.Team::slug)
+						.collect(Collectors.toSet()),
+				actors.apps()
+						.stream()
+						.map(BranchProtectionResponse.Restrictions.App::slug)
+						.collect(Collectors.toSet())
 		);
 	}
 

@@ -10,7 +10,12 @@ public record BranchProtectionRequest(
 		RequiredPullRequestReviews requiredPullRequestReviews,
 		Restrictions restrictions,
 		boolean requiredLinearHistory,
-		boolean allowForcePushes
+		boolean allowForcePushes,
+		boolean allowDeletions,
+		boolean blockCreations,
+		boolean requiredConversationResolution,
+		boolean lockBranch,
+		boolean allowForkSyncing
 ) {
 
 	public record RequiredStatusChecks(
@@ -30,16 +35,33 @@ public record BranchProtectionRequest(
 
 	}
 
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	public record RequiredPullRequestReviews(
 			boolean dismissStaleReviews,
 			boolean requireCodeOwnerReviews,
 			Integer requiredApprovingReviewCount,
-			Boolean requireLastPushApproval
+			Boolean requireLastPushApproval,
+			Actors dismissalRestrictions,
+			Actors bypassPullRequestAllowances
 	) {
 	}
 
 	// The write API identifies users/teams/apps by login/slug strings,
 	// not by the full objects returned in the response.
+	public record Actors(
+			List<String> users,
+			List<String> teams,
+			List<String> apps
+	) {
+
+		public Actors {
+			users = List.copyOf(users);
+			teams = List.copyOf(teams);
+			apps = List.copyOf(apps);
+		}
+
+	}
+
 	public record Restrictions(
 			List<String> users,
 			List<String> teams,

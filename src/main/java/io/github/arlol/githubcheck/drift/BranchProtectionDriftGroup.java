@@ -114,43 +114,63 @@ public class BranchProtectionDriftGroup extends DriftGroup<Drifty.GroupName> {
 			Drifty.BranchProtection wanted,
 			ActualBranchProtection got
 	) {
-		List<DriftItem> items = new ArrayList<>();
-
-		ocompare(
-				key(pattern, ".enforce_admins"),
-				wanted.enforceAdmins,
-				got.enforceAdmins()
-		).ifPresent(items::add);
-
-		ocompare(
-				key(pattern, ".required_linear_history"),
-				wanted.requiredLinearHistory,
-				got.requiredLinearHistory()
-		).ifPresent(items::add);
-
-		ocompare(
-				key(pattern, ".allow_force_pushes"),
-				wanted.allowForcePushes,
-				got.allowForcePushes()
-		).ifPresent(items::add);
-
-		ocompare(
-				key(pattern, ".require_conversation_resolution"),
-				wanted.requireConversationResolution,
-				got.requireConversationResolution()
-		).ifPresent(items::add);
-
-		ocompare(
-				key(pattern, ".required_status_checks.strict"),
-				false,
-				got.strictStatusChecks()
-		).ifPresent(items::add);
-
-		ocompare(
-				key(pattern, ".required_status_checks"),
-				desiredStatusChecks(wanted),
-				got.requiredStatusChecks()
-		).ifPresent(items::add);
+		List<DriftItem> items = new ArrayList<>(
+				combine(
+						compare(
+								key(pattern, ".enforce_admins"),
+								wanted.enforceAdmins,
+								got.enforceAdmins()
+						),
+						compare(
+								key(pattern, ".required_linear_history"),
+								wanted.requiredLinearHistory,
+								got.requiredLinearHistory()
+						),
+						compare(
+								key(pattern, ".allow_force_pushes"),
+								wanted.allowForcePushes,
+								got.allowForcePushes()
+						),
+						compare(
+								key(pattern, ".allow_deletions"),
+								wanted.allowDeletions,
+								got.allowDeletions()
+						),
+						compare(
+								key(pattern, ".block_creations"),
+								wanted.blockCreations,
+								got.blockCreations()
+						),
+						compare(
+								key(pattern, ".lock_branch"),
+								wanted.lockBranch,
+								got.lockBranch()
+						),
+						compare(
+								key(pattern, ".allow_fork_syncing"),
+								wanted.allowForkSyncing,
+								got.allowForkSyncing()
+						),
+						compare(
+								key(
+										pattern,
+										".require_conversation_resolution"
+								),
+								wanted.requireConversationResolution,
+								got.requireConversationResolution()
+						),
+						compare(
+								key(pattern, ".required_status_checks.strict"),
+								wanted.strictStatusChecks,
+								got.strictStatusChecks()
+						),
+						compare(
+								key(pattern, ".required_status_checks"),
+								desiredStatusChecks(wanted),
+								got.requiredStatusChecks()
+						)
+				)
+		);
 
 		comparePullRequestReviews(
 				pattern,
@@ -174,41 +194,65 @@ public class BranchProtectionDriftGroup extends DriftGroup<Drifty.GroupName> {
 			ActualBranchProtection.PullRequestReviews rpr,
 			List<DriftItem> items
 	) {
+		String prefix = key(pattern, ".required_pull_request_reviews");
 		if (rpr == null) {
 			if (wantsPullRequestReviews(wanted)) {
-				items.add(
-						new DriftItem.SectionMissing(
-								key(pattern, ".required_pull_request_reviews")
-						)
-				);
+				items.add(new DriftItem.SectionMissing(prefix));
 			}
 			return;
 		}
 
 		ocompare(
-				key(
-						pattern,
-						".required_pull_request_reviews.dismiss_stale_reviews"
-				),
+				prefix + ".dismiss_stale_reviews",
 				wanted.dismissStaleReviews,
 				rpr.dismissStaleReviews()
 		).ifPresent(items::add);
 
 		ocompare(
-				key(
-						pattern,
-						".required_pull_request_reviews.require_code_owner_reviews"
-				),
+				prefix + ".require_code_owner_reviews",
 				wanted.requireCodeOwnerReviews,
 				rpr.requireCodeOwnerReviews()
 		).ifPresent(items::add);
 
-		compareApprovingReviewCount(pattern, wanted, rpr, items);
-		compareLastPushApproval(pattern, wanted, rpr, items);
+		compareApprovingReviewCount(prefix, wanted, rpr, items);
+		compareLastPushApproval(prefix, wanted, rpr, items);
+		compareActors(
+				prefix + ".dismissal_restrictions",
+				wanted.dismissalUsers,
+				wanted.dismissalTeams,
+				wanted.dismissalApps,
+				rpr.dismissalRestrictions(),
+				items
+		);
+		compareActors(
+				prefix + ".bypass_pull_request_allowances",
+				wanted.bypassPullRequestUsers,
+				wanted.bypassPullRequestTeams,
+				wanted.bypassPullRequestApps,
+				rpr.bypassPullRequestAllowances(),
+				items
+		);
+	}
+
+	private static void compareActors(
+			String prefix,
+			List<String> users,
+			List<String> teams,
+			List<String> apps,
+			ActualBranchProtection.Actors got,
+			List<DriftItem> items
+	) {
+		items.addAll(
+				combine(
+						compare(prefix + ".users", users, got.users()),
+						compare(prefix + ".teams", teams, got.teams()),
+						compare(prefix + ".apps", apps, got.apps())
+				)
+		);
 	}
 
 	private static void compareApprovingReviewCount(
-			String pattern,
+			String prefix,
 			Drifty.BranchProtection wanted,
 			ActualBranchProtection.PullRequestReviews rpr,
 			List<DriftItem> items
@@ -222,10 +266,7 @@ public class BranchProtectionDriftGroup extends DriftGroup<Drifty.GroupName> {
 		if (drifted) {
 			items.add(
 					new DriftItem.FieldMismatch(
-							key(
-									pattern,
-									".required_pull_request_reviews.required_approving_review_count"
-							),
+							prefix + ".required_approving_review_count",
 							wantCount,
 							actualCount
 					)
@@ -234,7 +275,7 @@ public class BranchProtectionDriftGroup extends DriftGroup<Drifty.GroupName> {
 	}
 
 	private static void compareLastPushApproval(
-			String pattern,
+			String prefix,
 			Drifty.BranchProtection wanted,
 			ActualBranchProtection.PullRequestReviews rpr,
 			List<DriftItem> items
@@ -247,10 +288,7 @@ public class BranchProtectionDriftGroup extends DriftGroup<Drifty.GroupName> {
 		if (drifted) {
 			items.add(
 					new DriftItem.FieldMismatch(
-							key(
-									pattern,
-									".required_pull_request_reviews.require_last_push_approval"
-							),
+							prefix + ".require_last_push_approval",
 							wantLastPush,
 							actualLastPush
 					)
@@ -299,7 +337,25 @@ public class BranchProtectionDriftGroup extends DriftGroup<Drifty.GroupName> {
 	) {
 		return wanted.dismissStaleReviews || wanted.requireCodeOwnerReviews
 				|| wanted.requiredApprovingReviewCount != null
-				|| wanted.requireLastPushApproval != null;
+				|| wanted.requireLastPushApproval != null
+				|| wantsDismissalRestrictions(wanted)
+				|| wantsBypassAllowances(wanted);
+	}
+
+	private static boolean wantsDismissalRestrictions(
+			Drifty.BranchProtection wanted
+	) {
+		return !wanted.dismissalUsers.isEmpty()
+				|| !wanted.dismissalTeams.isEmpty()
+				|| !wanted.dismissalApps.isEmpty();
+	}
+
+	private static boolean wantsBypassAllowances(
+			Drifty.BranchProtection wanted
+	) {
+		return !wanted.bypassPullRequestUsers.isEmpty()
+				|| !wanted.bypassPullRequestTeams.isEmpty()
+				|| !wanted.bypassPullRequestApps.isEmpty();
 	}
 
 	private static boolean wantsRestrictions(Drifty.BranchProtection wanted) {
@@ -339,24 +395,33 @@ public class BranchProtectionDriftGroup extends DriftGroup<Drifty.GroupName> {
 				.toList();
 
 		BranchProtectionRequest.RequiredPullRequestReviews rpr = null;
-		boolean hasPrReviews = args.dismissStaleReviews
-				|| args.requireCodeOwnerReviews
-				|| args.requiredApprovingReviewCount != null
-				|| args.requireLastPushApproval != null;
-		if (hasPrReviews) {
+		if (wantsPullRequestReviews(args)) {
 			rpr = new BranchProtectionRequest.RequiredPullRequestReviews(
 					args.dismissStaleReviews,
 					args.requireCodeOwnerReviews,
 					args.requiredApprovingReviewCount != null
 							? args.requiredApprovingReviewCount.intValue()
 							: null,
-					args.requireLastPushApproval
+					args.requireLastPushApproval,
+					wantsDismissalRestrictions(args)
+							? new BranchProtectionRequest.Actors(
+									args.dismissalUsers,
+									args.dismissalTeams,
+									args.dismissalApps
+							)
+							: null,
+					wantsBypassAllowances(args)
+							? new BranchProtectionRequest.Actors(
+									args.bypassPullRequestUsers,
+									args.bypassPullRequestTeams,
+									args.bypassPullRequestApps
+							)
+							: null
 			);
 		}
 
 		BranchProtectionRequest.Restrictions restrictions = null;
-		if (!args.users.isEmpty() || !args.teams.isEmpty()
-				|| !args.apps.isEmpty()) {
+		if (wantsRestrictions(args)) {
 			restrictions = new BranchProtectionRequest.Restrictions(
 					args.users,
 					args.teams,
@@ -365,12 +430,20 @@ public class BranchProtectionDriftGroup extends DriftGroup<Drifty.GroupName> {
 		}
 
 		return new BranchProtectionRequest(
-				new BranchProtectionRequest.RequiredStatusChecks(false, checks),
+				new BranchProtectionRequest.RequiredStatusChecks(
+						args.strictStatusChecks,
+						checks
+				),
 				args.enforceAdmins,
 				rpr,
 				restrictions,
 				args.requiredLinearHistory,
-				args.allowForcePushes
+				args.allowForcePushes,
+				args.allowDeletions,
+				args.blockCreations,
+				args.requireConversationResolution,
+				args.lockBranch,
+				args.allowForkSyncing
 		);
 	}
 

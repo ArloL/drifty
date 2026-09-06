@@ -138,12 +138,27 @@ class BranchProtection {
   enforceAdmins: Boolean = false
   requiredLinearHistory: Boolean = false
   allowForcePushes: Boolean = false
+  allowDeletions: Boolean = false
+  blockCreations: Boolean = false
+  lockBranch: Boolean = false
+  allowForkSyncing: Boolean = false
   requireConversationResolution: Boolean = false
+  /// Whether branches must be up to date before merging.
+  strictStatusChecks: Boolean = false
   requiredStatusChecks: Listing<StatusCheck> = new {}
   requiredApprovingReviewCount: Int?
   dismissStaleReviews: Boolean = false
   requireCodeOwnerReviews: Boolean = false
   requireLastPushApproval: Boolean?
+  /// Who may dismiss reviews: logins, team slugs and app slugs.
+  dismissalUsers: Listing<String> = new {}
+  dismissalTeams: Listing<String> = new {}
+  dismissalApps: Listing<String> = new {}
+  /// Who may push without a review: logins, team slugs and app slugs.
+  bypassPullRequestUsers: Listing<String> = new {}
+  bypassPullRequestTeams: Listing<String> = new {}
+  bypassPullRequestApps: Listing<String> = new {}
+  /// Who may push to the branch: logins, team slugs and app slugs.
   users: Listing<String> = new {}
   teams: Listing<String> = new {}
   apps: Listing<String> = new {}
