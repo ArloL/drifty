@@ -92,6 +92,20 @@ status.
   `Repository.rulesets` is therefore `Map<String, ? extends Ruleset>`; a
   method taking the repository's rulesets declares that wildcard, and
   `RulesetComparison` takes a `Drifty.Ruleset` so both groups share it.
+- **A `push` or `repository` ruleset has no ref-name condition.**
+  `RulesetComparison.refName` returns null for those targets and the request
+  omits the condition (`RulesetRequest.conditions` is `NON_NULL`, since a
+  repository push ruleset has no conditions object at all). The schema
+  refuses `includePatterns`/`excludePatterns` on them and refuses the
+  `repository` target in `Repository.rulesets`, so neither case reaches a
+  group. Which rules a target accepts is not checked anywhere: GitHub's 422
+  is the report.
+- **Code security option sub-objects are nullable, and null means unmanaged.**
+  `codeScanningDefaultSetupOptions` and `secretScanningDelegatedBypassOptions`
+  are compared and sent only when the config sets them. Do not give them a
+  default: GitHub picks a runner type itself when default setup is enabled,
+  and a defaulted object would report drift on every configuration created
+  with only a name.
 - **A drifted entry with several endpoints gets one `DriftFix` per
   endpoint.** `OrgActionsPermissionsDriftGroup` (policy, allow-list,
   repository selection), `OrgCodeSecurityConfigurationsDriftGroup` (settings,

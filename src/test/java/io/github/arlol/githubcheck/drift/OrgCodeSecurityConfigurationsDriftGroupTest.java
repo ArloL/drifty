@@ -77,6 +77,9 @@ class OrgCodeSecurityConfigurationsDriftGroupTest {
 				"",
 				settings,
 				"enforced",
+				"not_set",
+				null,
+				Set.of(),
 				defaultForNewRepos,
 				repositories
 		);
@@ -272,6 +275,155 @@ class OrgCodeSecurityConfigurationsDriftGroupTest {
 				.extracting(FixResult.Unfixed::reason)
 				.asString()
 				.contains("does not delete code security configurations");
+	}
+
+	/**
+	 * The option sub-objects are compared and sent only when the config sets
+	 * them: a labeled runner and a reviewer list here, against a configuration
+	 * GitHub answers with no runner and a stray reviewer.
+	 */
+	@Test
+	void options_areComparedAndSentWhenTheConfigSetsThem() {
+		stubFor(patch(urlPathEqualTo(BASE + "/7")).willReturn(okJson()));
+		var wanted = Desired.codeSecurityConfiguration()
+				.withCodeScanningDefaultSetup(Drifty.SecuritySetting.ENABLED)
+				.withCodeScanningDefaultSetupOptions(
+						new Drifty.CodeScanningDefaultSetupOptions(
+								Drifty.CodeScanningRunnerType.LABELED,
+								"gpu"
+						)
+				)
+				.withSecretScanningDelegatedBypass(
+						Drifty.SecuritySetting.ENABLED
+				)
+				.withSecretScanningDelegatedBypassOptions(
+						new Drifty.SecretScanningDelegatedBypassOptions(
+								List.of(
+										new Drifty.CodeSecurityBypassReviewer(
+												5L,
+												Drifty.SecretScanningBypassReviewerType.TEAM,
+												Drifty.SecretScanningBypassReviewerMode.ALWAYS
+										)
+								)
+						)
+				);
+		var current = defaults("baseline", "none", Set.of());
+		current = new ActualCodeSecurityConfiguration(
+				current.id(),
+				current.name(),
+				current.description(),
+				current.settings(),
+				current.enforcement(),
+				"not_set",
+				null,
+				Set.of(
+						new ActualCodeSecurityConfiguration.BypassReviewer(
+								"ROLE",
+								9L,
+								"EXEMPT"
+						)
+				),
+				current.defaultForNewRepos(),
+				current.repositories()
+		);
+
+		var fixes = group(Map.of("baseline", wanted), List.of(current))
+				.detect();
+
+		assertThat(fixes).flatExtracting(DriftFix::items)
+				.extracting(DriftItem::path)
+				.containsExactlyInAnyOrder(
+						"org_code_security_configurations.baseline.code_scanning_default_setup",
+						"org_code_security_configurations.baseline.code_scanning_default_setup_options.runner_type",
+						"org_code_security_configurations.baseline.code_scanning_default_setup_options.runner_label",
+						"org_code_security_configurations.baseline.secret_scanning_delegated_bypass",
+						"org_code_security_configurations.baseline.secret_scanning_delegated_bypass_options.reviewers"
+				);
+		var settings = fixes.stream()
+				.filter(f -> !f.items().isEmpty())
+				.findFirst()
+				.orElseThrow();
+		assertThat(settings.fix().execute().unfixedItems()).isEmpty();
+		verify(
+				patchRequestedFor(urlPathEqualTo(BASE + "/7")).withRequestBody(
+						equalToJson(
+								"""
+										{"name": "baseline",
+										 "code_scanning_default_setup": "enabled",
+										 "code_scanning_default_setup_options": {"runner_type": "labeled", "runner_label": "gpu"},
+										 "secret_scanning_delegated_bypass": "enabled",
+										 "secret_scanning_delegated_bypass_options": {"reviewers": [
+										   {"reviewer_id": 5, "reviewer_type": "TEAM", "mode": "ALWAYS"}]}}
+										""",
+								true,
+								true
+						)
+				)
+		);
+	}
+
+	/**
+	 * A config that leaves the options out says nothing about them: whatever
+	 * runner and reviewers GitHub has are no drift, and the PATCH omits both
+	 * objects so GitHub keeps them.
+	 */
+	@Test
+	void options_areNeitherComparedNorSentWhenTheConfigLeavesThemOut() {
+		stubFor(patch(urlPathEqualTo(BASE + "/7")).willReturn(okJson()));
+		var wanted = Desired.codeSecurityConfiguration()
+				.withDescription("changed");
+		var current = defaults("baseline", "none", Set.of());
+		current = new ActualCodeSecurityConfiguration(
+				current.id(),
+				current.name(),
+				current.description(),
+				current.settings(),
+				current.enforcement(),
+				"labeled",
+				"gpu",
+				Set.of(
+						new ActualCodeSecurityConfiguration.BypassReviewer(
+								"TEAM",
+								5L,
+								"ALWAYS"
+						)
+				),
+				current.defaultForNewRepos(),
+				current.repositories()
+		);
+
+		var fixes = group(Map.of("baseline", wanted), List.of(current))
+				.detect();
+
+		assertThat(fixes).flatExtracting(DriftFix::items)
+				.extracting(DriftItem::path)
+				.containsExactly(
+						"org_code_security_configurations.baseline.description"
+				);
+		fixes.getFirst().fix().execute();
+		verify(
+				patchRequestedFor(urlPathEqualTo(BASE + "/7")).withRequestBody(
+						equalToJson(
+								"""
+										{"name": "baseline", "description": "changed",
+										 "advanced_security": "disabled", "dependency_graph": "enabled",
+										 "dependency_graph_autosubmit_action": "disabled",
+										 "dependabot_alerts": "disabled", "dependabot_security_updates": "disabled",
+										 "dependabot_delegated_alert_dismissal": "disabled",
+										 "code_scanning_default_setup": "disabled",
+										 "code_scanning_delegated_alert_dismissal": "not_set",
+										 "secret_scanning": "disabled", "secret_scanning_push_protection": "disabled",
+										 "secret_scanning_delegated_bypass": "disabled",
+										 "secret_scanning_validity_checks": "disabled",
+										 "secret_scanning_non_provider_patterns": "disabled",
+										 "secret_scanning_generic_secrets": "disabled",
+										 "secret_scanning_delegated_alert_dismissal": "not_set",
+										 "private_vulnerability_reporting": "disabled",
+										 "enforcement": "enforced"}
+										"""
+						)
+				)
+		);
 	}
 
 	private static ResponseDefinitionBuilder okJson() {

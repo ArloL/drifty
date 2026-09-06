@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration;
 import io.github.arlol.githubcheck.client.CodeSecurityConfigurationRequest;
@@ -25,6 +26,12 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * attached, and extra configurations are reported and never deleted: deleting
  * one detaches every repository it covers. Only the organization's own
  * configurations reach this group; the checker drops GitHub's global ones.
+ * <p>
+ * The two option sub-objects — the code scanning default setup runner and the
+ * delegated bypass reviewers — are compared and sent only when the config sets
+ * them. A config that leaves one out says nothing about it, and GitHub keeps
+ * whatever it has; that is what lets a configuration created with only a name
+ * report no drift whatever runner GitHub picked for it.
  */
 public class OrgCodeSecurityConfigurationsDriftGroup
 		extends DriftGroup<Drifty.OrgGroupName> {
@@ -214,7 +221,58 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 						current.enforcement()
 				)
 		);
+		compareOptions(name, wanted, current, items);
 		return items;
+	}
+
+	private static void compareOptions(
+			String name,
+			Drifty.CodeSecurityConfiguration wanted,
+			ActualCodeSecurityConfiguration current,
+			List<DriftItem> items
+	) {
+		var runner = wanted.codeScanningDefaultSetupOptions;
+		if (runner != null) {
+			String prefix = name + ".code_scanning_default_setup_options";
+			items.addAll(
+					compare(
+							prefix + ".runner_type",
+							runner.runnerType.toString(),
+							current.codeScanningRunnerType()
+					)
+			);
+			items.addAll(
+					compare(
+							prefix + ".runner_label",
+							runner.runnerLabel,
+							current.codeScanningRunnerLabel()
+					)
+			);
+		}
+		var bypass = wanted.secretScanningDelegatedBypassOptions;
+		if (bypass != null) {
+			Set<String> wantedReviewers = bypass.reviewers.stream()
+					.map(
+							r -> new ActualCodeSecurityConfiguration.BypassReviewer(
+									r.reviewerType.toString(),
+									r.reviewerId,
+									r.mode.toString()
+							).toString()
+					)
+					.collect(Collectors.toSet());
+			Set<String> gotReviewers = current
+					.secretScanningDelegatedBypassReviewers()
+					.stream()
+					.map(Object::toString)
+					.collect(Collectors.toSet());
+			items.addAll(
+					compare(
+							name + ".secret_scanning_delegated_bypass_options.reviewers",
+							wantedReviewers,
+							gotReviewers
+					)
+			);
+		}
 	}
 
 	/**
@@ -315,16 +373,51 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 				c.dependabotSecurityUpdates.toString(),
 				c.dependabotDelegatedAlertDismissal.toString(),
 				c.codeScanningDefaultSetup.toString(),
+				runnerOptions(c),
 				c.codeScanningDelegatedAlertDismissal.toString(),
 				c.secretScanning.toString(),
 				c.secretScanningPushProtection.toString(),
 				c.secretScanningDelegatedBypass.toString(),
+				bypassOptions(c),
 				c.secretScanningValidityChecks.toString(),
 				c.secretScanningNonProviderPatterns.toString(),
 				c.secretScanningGenericSecrets.toString(),
 				c.secretScanningDelegatedAlertDismissal.toString(),
 				c.privateVulnerabilityReporting.toString(),
 				c.enforcement.toString()
+		);
+	}
+
+	private static CodeSecurityConfigurationRequest.CodeScanningDefaultSetupOptions runnerOptions(
+			Drifty.CodeSecurityConfiguration c
+	) {
+		var options = c.codeScanningDefaultSetupOptions;
+		if (options == null) {
+			return null;
+		}
+		return new CodeSecurityConfigurationRequest.CodeScanningDefaultSetupOptions(
+				options.runnerType.toString(),
+				options.runnerLabel
+		);
+	}
+
+	private static CodeSecurityConfigurationRequest.SecretScanningDelegatedBypassOptions bypassOptions(
+			Drifty.CodeSecurityConfiguration c
+	) {
+		var options = c.secretScanningDelegatedBypassOptions;
+		if (options == null) {
+			return null;
+		}
+		return new CodeSecurityConfigurationRequest.SecretScanningDelegatedBypassOptions(
+				options.reviewers.stream()
+						.map(
+								r -> new CodeSecurityConfigurationRequest.BypassReviewer(
+										r.reviewerId,
+										r.reviewerType.toString(),
+										r.mode.toString()
+								)
+						)
+						.toList()
 		);
 	}
 

@@ -49,11 +49,24 @@ organizations {
         repositoryNameInclude { "~ALL" }
         noForcePushes = true
       }
+      // A push ruleset has no ref patterns; it applies to every push.
+      ["no-binaries"] = new OrgRuleset {
+        target = "push"
+        repositoryNameInclude { "~ALL" }
+        fileExtensionRestrictions { "*.exe"; "*.dll" }
+        maxFileSize = 50
+      }
     }
     codeSecurityConfigurations {
       ["baseline"] = new CodeSecurityConfiguration {
         secretScanning = "enabled"
         secretScanningPushProtection = "enabled"
+        secretScanningDelegatedBypass = "enabled"
+        // Team id 5 may approve bypass requests; omit the block to leave
+        // whatever reviewers GitHub has.
+        secretScanningDelegatedBypassOptions {
+          reviewers { new { reviewerId = 5; reviewerType = "TEAM" } }
+        }
         defaultForNewRepos = "all"
       }
     }

@@ -24,6 +24,7 @@ import io.github.arlol.githubcheck.actual.StatusCheck;
 import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
+import io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse;
 import io.github.arlol.githubcheck.client.CustomPropertyResponse;
 import io.github.arlol.githubcheck.client.CustomPropertyValueResponse;
 import io.github.arlol.githubcheck.client.BranchPolicyType;
@@ -768,6 +769,45 @@ class ActualTypesTest {
 		assertThat(ActualTypes.customPropertyValue(unset)).isEqualTo(
 				new ActualCustomPropertyValue("tier", null, List.of())
 		);
+	}
+
+	// ─── Code security configurations
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * The option objects arrive flattened: a missing runner object is
+	 * {@code not_set} with no label, and a reviewer without a {@code mode} gets
+	 * the schema's default.
+	 */
+	@Test
+	void codeSecurityConfiguration_flattensTheOptionObjects() throws Exception {
+		var withoutOptions = MAPPER.readValue("""
+				{"id": 1, "name": "bare", "target_type": "organization"}
+				""", CodeSecurityConfigurationResponse.class);
+		var withOptions = MAPPER.readValue(
+				"""
+						{"id": 2, "name": "full", "target_type": "organization",
+						 "code_scanning_default_setup_options": {"runner_type": "labeled", "runner_label": "gpu"},
+						 "secret_scanning_delegated_bypass_options": {"reviewers": [
+						   {"reviewer_id": 5, "reviewer_type": "TEAM", "security_configuration_id": 2},
+						   {"reviewer_id": 9, "reviewer_type": "ROLE", "mode": "EXEMPT"}]}}
+						""",
+				CodeSecurityConfigurationResponse.class
+		);
+
+		var bare = ActualTypes
+				.codeSecurityConfiguration(withoutOptions, null, List.of());
+		var full = ActualTypes
+				.codeSecurityConfiguration(withOptions, null, List.of());
+
+		assertThat(bare.codeScanningRunnerType()).isEqualTo("not_set");
+		assertThat(bare.codeScanningRunnerLabel()).isNull();
+		assertThat(bare.secretScanningDelegatedBypassReviewers()).isEmpty();
+		assertThat(full.codeScanningRunnerType()).isEqualTo("labeled");
+		assertThat(full.codeScanningRunnerLabel()).isEqualTo("gpu");
+		assertThat(full.secretScanningDelegatedBypassReviewers())
+				.extracting(Object::toString)
+				.containsExactlyInAnyOrder("TEAM:5:ALWAYS", "ROLE:9:EXEMPT");
 	}
 
 }

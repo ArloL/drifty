@@ -14,7 +14,8 @@ import io.github.arlol.githubcheck.pkl.Drifty;
 /**
  * Repository rulesets. The comparison and the request body live in
  * {@link RulesetComparison}, which the organization group shares; this class
- * owns the repository endpoints and the ref-name conditions.
+ * owns the repository endpoints and the ref-name conditions. Push rulesets are
+ * the same group on the same endpoints, with no conditions.
  */
 public class RulesetDriftGroup extends DriftGroup<Drifty.GroupName> {
 
@@ -113,16 +114,22 @@ public class RulesetDriftGroup extends DriftGroup<Drifty.GroupName> {
 		});
 	}
 
+	/**
+	 * A branch or tag ruleset carries its ref-name condition; a push ruleset
+	 * carries no conditions at all, and the field is left out of the body.
+	 */
 	private static RulesetRequest request(String name, Drifty.Ruleset args) {
+		var refName = RulesetComparison.refName(args);
 		return RulesetComparison.request(
 				name,
 				args,
-				new RulesetRequest.Conditions(
-						RulesetComparison.refName(args),
-						null,
-						null,
-						null
-				)
+				refName == null ? null
+						: new RulesetRequest.Conditions(
+								refName,
+								null,
+								null,
+								null
+						)
 		);
 	}
 

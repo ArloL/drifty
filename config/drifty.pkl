@@ -124,7 +124,14 @@ class BypassActor {
   bypassMode: BypassMode
 }
 
-typealias RulesetTarget = "branch" | "tag"
+/// What a ruleset applies to. A "push" ruleset has no ref conditions: it
+/// applies to every push to the repository, forks included, and the only
+/// rules GitHub accepts on it are the file ones (filePathRestrictions,
+/// maxFilePathLength, fileExtensionRestrictions, maxFileSize). A
+/// "repository" ruleset is an organization ruleset only; it selects
+/// repositories with the repository conditions and has no ref conditions
+/// either.
+typealias RulesetTarget = "branch" | "tag" | "push" | "repository"
 typealias RulesetEnforcement = "active" | "evaluate" | "disabled"
 typealias MergeMethod = "merge" | "squash" | "rebase"
 typealias MergeQueueGroupingStrategy = "ALLGREEN" | "HEADGREEN"
@@ -164,11 +171,15 @@ class WorkflowRule {
 }
 
 /// A repository ruleset. The ruleset name is the key in Repository.rulesets.
+/// The ref patterns are only for a "branch" or "tag" target; a "push" or
+/// "repository" ruleset has no ref conditions, so the listings must stay
+/// empty there.
 open class Ruleset {
   target: RulesetTarget = "branch"
   enforcement: RulesetEnforcement = "active"
-  includePatterns: Listing<String> = new {}
-  excludePatterns: Listing<String> = new {}
+  includePatterns: Listing<String>(isEmpty || hasRefConditions) = new {}
+  excludePatterns: Listing<String>(isEmpty || hasRefConditions) = new {}
+  hidden hasRefConditions: Boolean = target == "branch" || target == "tag"
   requiredLinearHistory: Boolean = false
   noForcePushes: Boolean = false
   /// Whether branches must be up to date before merging.
@@ -301,6 +312,32 @@ typealias SecuritySetting = "enabled" | "disabled" | "not_set"
 typealias AdvancedSecuritySetting = "enabled" | "disabled" | "code_security" | "secret_protection"
 typealias SecurityEnforcement = "enforced" | "unenforced"
 typealias DefaultForNewRepos = "none" | "public" | "private_and_internal" | "all"
+typealias CodeScanningRunnerType = "standard" | "labeled" | "not_set"
+typealias SecretScanningBypassReviewerMode = "ALWAYS" | "EXEMPT"
+
+/// Runner options for code scanning default setup on a code security
+/// configuration. runnerLabel names the self-hosted runner label and is
+/// required exactly when runnerType is "labeled".
+class CodeScanningDefaultSetupOptions {
+  runnerType: CodeScanningRunnerType = "standard"
+  runnerLabel: String?((runnerType == "labeled") == (this != null))
+}
+
+/// A bypass reviewer on a code security configuration: the repository-level
+/// SecretScanningBypassReviewer's two fields plus the mode GitHub gives it.
+/// Not a subclass, since that would widen the repository's listing type on
+/// the Java side.
+class CodeSecurityBypassReviewer {
+  reviewerId: Int
+  reviewerType: SecretScanningBypassReviewerType
+  mode: SecretScanningBypassReviewerMode = "ALWAYS"
+}
+
+/// Reviewer options for secret scanning delegated bypass on a code security
+/// configuration. An empty listing wants no reviewers.
+class SecretScanningDelegatedBypassOptions {
+  reviewers: Listing<CodeSecurityBypassReviewer> = new {}
+}
 
 /// A code security configuration. The name is the key in
 /// Organization.codeSecurityConfigurations; the defaults are GitHub's, so a
@@ -326,6 +363,12 @@ class CodeSecurityConfiguration {
   secretScanningDelegatedAlertDismissal: SecuritySetting = "not_set"
   privateVulnerabilityReporting: SecuritySetting = "disabled"
   enforcement: SecurityEnforcement = "enforced"
+  /// Runner type and label for code scanning default setup. Omit to leave
+  /// GitHub's untouched; set to compare and write both fields.
+  codeScanningDefaultSetupOptions: CodeScanningDefaultSetupOptions?
+  /// Reviewers for secret scanning delegated bypass. Omit to leave GitHub's
+  /// untouched; set — even with no reviewers — to compare and write them.
+  secretScanningDelegatedBypassOptions: SecretScanningDelegatedBypassOptions?
   /// Which new repositories get this configuration by default.
   defaultForNewRepos: DefaultForNewRepos = "none"
   /// Repositories this configuration is attached to. Missing ones are
@@ -435,8 +478,9 @@ class Repository {
 
   /// Keyed by branch pattern (e.g. "main")
   branchProtections: Mapping<String, BranchProtection> = new {}
-  /// Keyed by ruleset name
-  rulesets: Mapping<String, Ruleset> = new {}
+  /// Keyed by ruleset name. A "repository" target is an organization
+  /// ruleset's; a repository ruleset targets branches, tags or pushes.
+  rulesets: Mapping<String, Ruleset(target != "repository")> = new {}
   /// Keyed by environment name
   environments: Mapping<String, Environment> = new {}
   /// Keyed by a name of your choosing; the url is the identity on GitHub

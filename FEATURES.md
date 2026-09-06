@@ -438,3 +438,26 @@ gained `selectedRepositories`, read whenever GitHub answers
 and written through `PUT /orgs/{org}/actions/permissions/repositories` — the
 item the spec had deferred. `OrgActionsPermissionsDriftGroup` now receives the
 repository id map the secrets group already did.
+
+## ~~47. Push and Repository-Target Rulesets~~ DONE
+
+Implemented: `RulesetTarget` gained `push` and `repository`. A push ruleset
+is the same group on the same endpoints with no conditions: the schema
+refuses ref patterns on one, `RulesetComparison.refName` returns null for
+the two ref-less targets, and `RulesetRequest.conditions` is omitted when
+null rather than sent as `{}`. The `repository` target is an organization
+ruleset's — `Repository.rulesets` is a `Mapping<String, Ruleset(target !=
+"repository")>` — and carries the repository conditions without a ref-name
+one. The file rules a push ruleset takes were already in `Ruleset`; drifty
+does not check which rules a target accepts, so a rejected one is a failed
+fix with GitHub's message.
+
+## ~~48. Code Security Configuration Sub-Options~~ DONE
+
+Implemented: `codeScanningDefaultSetupOptions` (runner type and label) and
+`secretScanningDelegatedBypassOptions` (reviewers with id, type and mode) on
+`CodeSecurityConfiguration`, both nullable: a config that leaves one out
+says nothing about it, the group neither compares it nor sends it, and
+GitHub keeps what it has. `ActualCodeSecurityConfiguration` carries them
+flattened — a null runner object reads as `not_set`, a reviewer without a
+`mode` as `ALWAYS` — and the settings PATCH carries them beside the toggles.

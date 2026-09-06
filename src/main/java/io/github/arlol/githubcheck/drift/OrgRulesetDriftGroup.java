@@ -172,7 +172,9 @@ public class OrgRulesetDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 	 * The request always carries a repository name condition: GitHub requires
 	 * one on an organization ruleset, and an empty include list is how "every
 	 * repository" is spelled. The property condition is only sent when the
-	 * config names one, since an empty one is rejected.
+	 * config names one, since an empty one is rejected, and the ref-name
+	 * condition only for a branch or tag target — a push or repository ruleset
+	 * has no refs.
 	 */
 	private static RulesetRequest request(String name, Drifty.OrgRuleset args) {
 		var repositoryName = new RulesetRequest.Conditions.RepositoryName(
