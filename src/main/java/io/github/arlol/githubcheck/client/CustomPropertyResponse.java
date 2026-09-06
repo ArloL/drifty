@@ -19,4 +19,10 @@ public record CustomPropertyResponse(
 		List<String> allowedValues,
 		String valuesEditableBy
 ) {
+
+	public CustomPropertyResponse {
+		allowedValues = allowedValues == null ? null
+				: List.copyOf(allowedValues);
+	}
+
 }

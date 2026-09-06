@@ -511,6 +511,15 @@
   ],
   "resources": [
     {
+      "bundle": "jakarta.servlet.LocalStrings"
+    },
+    {
+      "bundle": "jakarta.servlet.http.LocalStrings"
+    },
+    {
+      "bundle": "org.pkl.core.errorMessages"
+    },
+    {
       "glob": "META-INF/graalvm/org.graalvm.polyglot/version"
     },
     {
@@ -518,6 +527,9 @@
     },
     {
       "glob": "META-INF/resources/engine/libtruffleattach/darwin/aarch64/sha256"
+    },
+    {
+      "glob": "META-INF/resources/engine/libtruffleattach/linux/amd64/sha256"
     },
     {
       "glob": "META-INF/services/com.github.tomakehurst.wiremock.extension.Extension"
@@ -607,13 +619,10 @@
       "glob": "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib"
     },
     {
+      "glob": "com/sun/jna/linux-x86-64/libjnidispatch.so"
+    },
+    {
       "glob": "helpers.nashorn.js"
-    },
-    {
-      "bundle": "jakarta.servlet.LocalStrings"
-    },
-    {
-      "bundle": "jakarta.servlet.http.LocalStrings"
     },
     {
       "glob": "jakarta/servlet/LocalStrings.properties"
@@ -625,6 +634,9 @@
       "glob": "jakarta/servlet/LocalStrings_en_DE.properties"
     },
     {
+      "glob": "jakarta/servlet/LocalStrings_en_US.properties"
+    },
+    {
       "glob": "jakarta/servlet/http/LocalStrings.properties"
     },
     {
@@ -634,21 +646,13 @@
       "glob": "jakarta/servlet/http/LocalStrings_en_DE.properties"
     },
     {
-      "module": "java.base",
-      "glob": "jdk/internal/icu/impl/data/icudt76b/nfc.nrm"
-    },
-    {
-      "module": "jdk.jfr",
-      "glob": "jdk/jfr/internal/query/view.ini"
+      "glob": "jakarta/servlet/http/LocalStrings_en_US.properties"
     },
     {
       "glob": "junit-platform.properties"
     },
     {
       "glob": "keystore"
-    },
-    {
-      "bundle": "org.pkl.core.errorMessages"
     },
     {
       "glob": "org/eclipse/jetty/http/encoding.properties"
@@ -667,6 +671,14 @@
     },
     {
       "glob": "version.properties"
+    },
+    {
+      "module": "java.base",
+      "glob": "jdk/internal/icu/impl/data/icudt76b/nfc.nrm"
+    },
+    {
+      "module": "jdk.jfr",
+      "glob": "jdk/jfr/internal/query/view.ini"
     }
   ]
 }

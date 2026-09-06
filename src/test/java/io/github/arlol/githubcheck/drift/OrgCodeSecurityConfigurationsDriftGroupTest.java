@@ -13,6 +13,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +21,7 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
@@ -48,7 +50,7 @@ class OrgCodeSecurityConfigurationsDriftGroupTest {
 			String defaultForNewRepos,
 			Set<String> repositories
 	) {
-		var settings = new java.util.HashMap<String, String>();
+		var settings = new HashMap<String, String>();
 		for (String disabled : List.of(
 				"advanced_security",
 				"dependency_graph_autosubmit_action",
@@ -272,7 +274,7 @@ class OrgCodeSecurityConfigurationsDriftGroupTest {
 				.contains("does not delete code security configurations");
 	}
 
-	private static com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder okJson() {
+	private static ResponseDefinitionBuilder okJson() {
 		return aResponse().withStatus(200).withBody("{}");
 	}
 

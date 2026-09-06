@@ -1,6 +1,7 @@
 package io.github.arlol.githubcheck;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -339,7 +340,7 @@ public class OrganizationChecker {
 		if (configurations.isEmpty()) {
 			return List.of();
 		}
-		Map<Long, String> defaults = new java.util.HashMap<>();
+		Map<Long, String> defaults = new HashMap<>();
 		for (CodeSecurityDefaultResponse d : client
 				.getCodeSecurityDefaults(login)) {
 			if (d.configuration() != null) {
