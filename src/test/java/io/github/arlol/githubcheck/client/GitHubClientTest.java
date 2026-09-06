@@ -12,6 +12,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.patch;
 import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.put;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
@@ -1101,14 +1103,18 @@ class GitHubClientTest {
 				"owner",
 				"my-repo",
 				"prod",
-				new EnvironmentUpdateRequest(5, null, null)
+				new EnvironmentUpdateRequest(5, null, null, null)
 		);
 
 		assertThat(env.name()).isEqualTo("prod");
 		verify(
 				putRequestedFor(
 						urlEqualTo("/repos/owner/my-repo/environments/prod")
-				).withRequestBody(equalToJson("{\"wait_timer\":5}"))
+				).withRequestBody(
+						equalToJson(
+								"{\"wait_timer\":5, \"deployment_branch_policy\": null}"
+						)
+				)
 		);
 	}
 
@@ -1124,7 +1130,7 @@ class GitHubClientTest {
 						"owner",
 						"my-repo",
 						"prod",
-						new EnvironmentUpdateRequest(5, null, null)
+						new EnvironmentUpdateRequest(5, null, null, null)
 				)
 		).isInstanceOf(GitHubApiException.class)
 				.hasMessageContaining("HTTP 422");
@@ -1483,6 +1489,171 @@ class GitHubClientTest {
 										equalTo("2")
 								)
 						)
+		);
+	}
+
+	// ─── Deployment branch policies, users and teams
+	// ────────────────────────────────────────────────────────
+
+	@Test
+	void getDeploymentBranchPolicies_parsesTypeAndName() {
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/owner/my-repo/environments/prod/deployment-branch-policies"
+						)
+				).willReturn(okJson("""
+						{"total_count": 2, "branch_policies": [
+						  {"id": 1, "name": "release/*", "type": "branch"},
+						  {"id": 2, "name": "v*", "type": "tag"}
+						]}
+						"""))
+		);
+
+		var policies = client
+				.getDeploymentBranchPolicies("owner", "my-repo", "prod");
+
+		assertThat(policies).extracting(DeploymentBranchPolicyResponse::type)
+				.containsExactly(BranchPolicyType.BRANCH, BranchPolicyType.TAG);
+		assertThat(policies).extracting(DeploymentBranchPolicyResponse::id)
+				.containsExactly(1L, 2L);
+	}
+
+	@Test
+	void createDeploymentBranchPolicy_postsNameAndType() {
+		stubFor(
+				post(
+						urlPathEqualTo(
+								"/repos/owner/my-repo/environments/prod/deployment-branch-policies"
+						)
+				).willReturn(okJson("""
+						{"id": 3, "name": "v*", "type": "tag"}
+						"""))
+		);
+
+		var created = client.createDeploymentBranchPolicy(
+				"owner",
+				"my-repo",
+				"prod",
+				new DeploymentBranchPolicyRequest("v*", BranchPolicyType.TAG)
+		);
+
+		assertThat(created.id()).isEqualTo(3L);
+		verify(
+				postRequestedFor(
+						urlPathEqualTo(
+								"/repos/owner/my-repo/environments/prod/deployment-branch-policies"
+						)
+				).withRequestBody(equalToJson("""
+						{"name": "v*", "type": "tag"}
+						"""))
+		);
+	}
+
+	@Test
+	void deleteDeploymentBranchPolicy_expects204() {
+		stubFor(
+				delete(
+						urlPathEqualTo(
+								"/repos/owner/my-repo/environments/prod/deployment-branch-policies/3"
+						)
+				).willReturn(aResponse().withStatus(204))
+		);
+
+		assertThatCode(
+				() -> client.deleteDeploymentBranchPolicy(
+						"owner",
+						"my-repo",
+						"prod",
+						3
+				)
+		).doesNotThrowAnyException();
+		verify(
+				deleteRequestedFor(
+						urlPathEqualTo(
+								"/repos/owner/my-repo/environments/prod/deployment-branch-policies/3"
+						)
+				)
+		);
+	}
+
+	@Test
+	void getUserId_readsTheId_andNamesAMissingUser() {
+		stubFor(
+				get(urlPathEqualTo("/users/alice")).willReturn(
+						okJson("{\"login\": \"alice\", \"id\": 42}")
+				)
+		);
+		stubFor(
+				get(urlPathEqualTo("/users/nobody"))
+						.willReturn(aResponse().withStatus(404))
+		);
+
+		assertThat(client.getUserId("alice")).isEqualTo(42L);
+		assertThatThrownBy(() -> client.getUserId("nobody"))
+				.isInstanceOf(GitHubApiException.class)
+				.hasMessage("no user nobody");
+	}
+
+	@Test
+	void getTeam_readsTheTeam_andIsEmptyWhenMissing() {
+		stubFor(
+				get(urlPathEqualTo("/orgs/owner/teams/ops")).willReturn(
+						okJson(
+								"""
+										{"id": 7, "name": "Ops", "slug": "ops", "privacy": "closed",
+										 "notification_setting": "notifications_enabled",
+										 "permission": "pull", "parent": null}
+										"""
+						)
+				)
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/owner/teams/none"))
+						.willReturn(aResponse().withStatus(404))
+		);
+
+		assertThat(client.getTeam("owner", "ops")).get()
+				.extracting(TeamResponse::privacy)
+				.isEqualTo(TeamResponse.Privacy.CLOSED);
+		assertThat(client.getTeamId("owner", "ops")).isEqualTo(7L);
+		assertThat(client.getTeam("owner", "none")).isEmpty();
+		assertThatThrownBy(() -> client.getTeamId("owner", "none"))
+				.hasMessage("no team none in owner");
+	}
+
+	@Test
+	void updateEnvironment_writesANullPolicyAndEveryReviewer() {
+		stubFor(
+				put(urlPathEqualTo("/repos/owner/my-repo/environments/prod"))
+						.willReturn(okJson("{\"name\": \"prod\"}"))
+		);
+
+		client.updateEnvironment(
+				"owner",
+				"my-repo",
+				"prod",
+				new EnvironmentUpdateRequest(
+						0,
+						true,
+						List.of(
+								new EnvironmentUpdateRequest.Reviewer(
+										EnvironmentReviewerType.USER,
+										42
+								)
+						),
+						null
+				)
+		);
+
+		verify(
+				putRequestedFor(
+						urlPathEqualTo("/repos/owner/my-repo/environments/prod")
+				).withRequestBody(equalToJson("""
+						{"wait_timer": 0, "prevent_self_review": true,
+						 "reviewers": [{"type": "User", "id": 42}],
+						 "deployment_branch_policy": null}
+						"""))
 		);
 	}
 

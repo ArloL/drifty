@@ -200,13 +200,13 @@ class GitHubClientRecordingTest {
 					owner,
 					repo,
 					envName,
-					new EnvironmentUpdateRequest(15, null, null)
+					new EnvironmentUpdateRequest(15, null, null, null)
 			);
 			client.updateEnvironment(
 					owner,
 					repo,
 					envName,
-					new EnvironmentUpdateRequest(30, null, null)
+					new EnvironmentUpdateRequest(30, null, null, null)
 			);
 			var envKey = client
 					.getEnvironmentSecretPublicKey(owner, repo, envName);

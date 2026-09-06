@@ -22,7 +22,10 @@ import io.github.arlol.githubcheck.actual.StatusCheck;
 import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
+import io.github.arlol.githubcheck.client.BranchPolicyType;
+import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
+import io.github.arlol.githubcheck.client.EnvironmentReviewerType;
 import io.github.arlol.githubcheck.client.OrgActionsPermissionsResponse;
 import io.github.arlol.githubcheck.client.OrganizationResponse;
 import io.github.arlol.githubcheck.client.PagesBuildType;
@@ -422,11 +425,30 @@ class ActualTypesTest {
 						new EnvironmentDetailsResponse.ProtectionRule(
 								EnvironmentDetailsResponse.ProtectionRuleType.REQUIRED_REVIEWERS,
 								null,
-								List.of()
+								true,
+								List.of(
+										new EnvironmentDetailsResponse.Reviewer(
+												EnvironmentReviewerType.USER,
+												new EnvironmentDetailsResponse.ReviewerEntity(
+														1L,
+														"alice",
+														null
+												)
+										),
+										new EnvironmentDetailsResponse.Reviewer(
+												EnvironmentReviewerType.TEAM,
+												new EnvironmentDetailsResponse.ReviewerEntity(
+														2L,
+														null,
+														"ops"
+												)
+										)
+								)
 						),
 						new EnvironmentDetailsResponse.ProtectionRule(
 								EnvironmentDetailsResponse.ProtectionRuleType.WAIT_TIMER,
 								30,
+								null,
 								null
 						)
 				),
@@ -439,8 +461,45 @@ class ActualTypesTest {
 		ActualEnvironment environment = ActualTypes.environment(response);
 
 		assertThat(environment.waitTimer()).isEqualTo(30);
+		assertThat(environment.preventSelfReview()).isTrue();
+		assertThat(environment.reviewers())
+				.containsExactlyInAnyOrder("User:alice", "Team:ops");
 		assertThat(environment.protectedBranches()).isTrue();
 		assertThat(environment.customBranchPolicies()).isFalse();
+		assertThat(environment.branchPolicies()).isEmpty();
+	}
+
+	@Test
+	void branchPoliciesKeepTheirIdAndRenderAsTypeAndName() {
+		ActualEnvironment environment = ActualTypes.environment(
+				new EnvironmentDetailsResponse(
+						"production",
+						null,
+						new EnvironmentDetailsResponse.DeploymentBranchPolicy(
+								false,
+								true
+						)
+				),
+				List.of(
+						new DeploymentBranchPolicyResponse(
+								7L,
+								"release/*",
+								BranchPolicyType.BRANCH
+						),
+						new DeploymentBranchPolicyResponse(
+								8L,
+								"v*",
+								BranchPolicyType.TAG
+						)
+				)
+		);
+
+		assertThat(environment.customBranchPolicies()).isTrue();
+		assertThat(environment.branchPolicies())
+				.extracting(ActualEnvironment.BranchPolicy::id)
+				.containsExactly(7L, 8L);
+		assertThat(environment.branchPolicies()).extracting(Object::toString)
+				.containsExactly("branch:release/*", "tag:v*");
 	}
 
 	@Test

@@ -161,8 +161,18 @@ class Pages {
 class Environment {
   secrets: Listing<String> = new {}
   waitTimer: Int = 0
+  preventSelfReview: Boolean = false
+  /// Logins of the users who must approve deployments.
+  reviewerUsers: Listing<String> = new {}
+  /// Slugs of the teams whose members may approve deployments. Only a
+  /// repository owned by an organization can name one.
+  reviewerTeams: Listing<String> = new {}
   protectedBranches: Boolean = false
   customBranchPolicies: Boolean = false
+  /// Branch name patterns allowed to deploy; needs customBranchPolicies.
+  deploymentBranchPatterns: Listing<String> = new {}
+  /// Tag name patterns allowed to deploy; needs customBranchPolicies.
+  deploymentTagPatterns: Listing<String> = new {}
 }
 
 /// Desired state for a single GitHub repository.

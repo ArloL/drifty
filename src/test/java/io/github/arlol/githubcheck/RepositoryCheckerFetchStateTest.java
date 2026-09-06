@@ -391,6 +391,94 @@ class RepositoryCheckerFetchStateTest {
 		);
 	}
 
+	/**
+	 * The policy listing 404s on an environment without custom policies, so it
+	 * is only sent for the one that has them — and not at all when only
+	 * {@code environment_secrets} wants the environments.
+	 */
+	@Test
+	void branchPoliciesAreReadOnlyForEnvironmentsWithCustomPolicies()
+			throws Exception {
+		stubRepoDetails("");
+		stubSecurityEndpoints();
+		stubStandardEndpoints();
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/environments"))
+						.willReturn(
+								okJson(
+										"""
+												{"environments": [
+												  {"name": "prod", "deployment_branch_policy": {"protected_branches": false, "custom_branch_policies": true}},
+												  {"name": "staging"}
+												]}
+												"""
+								)
+						)
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/owner/repo/environments/prod/deployment-branch-policies"
+						)
+				).willReturn(
+						okJson(
+								"""
+										{"total_count": 1, "branch_policies": [{"id": 5, "name": "main", "type": "branch"}]}
+										"""
+						)
+				)
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/owner/repo/environments/staging/secrets"
+						)
+				).willReturn(okJson("{\"secrets\": []}"))
+		);
+
+		ManagedGroups<Drifty.GroupName> environments = ManagedGroups.of(
+				new Drifty.Managed(
+						Drifty.ManageMode.ONLY,
+						List.of(
+								Drifty.GroupName.ENVIRONMENT_CONFIG,
+								Drifty.GroupName.ENVIRONMENT_SECRETS
+						)
+				)
+		);
+		RepositoryState state = checker
+				.fetchState(REF, summary(false, "public"), environments);
+
+		assertThat(state.environments().get("prod").branchPolicies())
+				.extracting(Object::toString)
+				.containsExactly("branch:main");
+		assertThat(state.environments().get("staging").branchPolicies())
+				.isEmpty();
+		verify(
+				0,
+				getRequestedFor(
+						urlPathEqualTo(
+								"/repos/owner/repo/environments/staging/deployment-branch-policies"
+						)
+				)
+		);
+
+		ManagedGroups<Drifty.GroupName> secretsOnly = ManagedGroups.of(
+				new Drifty.Managed(
+						Drifty.ManageMode.ONLY,
+						List.of(Drifty.GroupName.ENVIRONMENT_SECRETS)
+				)
+		);
+		checker.fetchState(REF, summary(false, "public"), secretsOnly);
+		verify(
+				1,
+				getRequestedFor(
+						urlPathEqualTo(
+								"/repos/owner/repo/environments/prod/deployment-branch-policies"
+						)
+				)
+		);
+	}
+
 	private static RepositorySummaryResponse summary(
 			boolean archived,
 			String visibility

@@ -2319,7 +2319,12 @@ class RepositoryCheckerFixTest {
 				putRequestedFor(
 						urlEqualTo("/repos/owner/repo/environments/production")
 				).withRequestBody(equalToJson("""
-						{"wait_timer": 30}
+						{
+							"wait_timer": 30,
+							"prevent_self_review": false,
+							"reviewers": [],
+							"deployment_branch_policy": null
+						}
 						"""))
 		);
 	}
@@ -2371,6 +2376,9 @@ class RepositoryCheckerFixTest {
 						urlEqualTo("/repos/owner/repo/environments/production")
 				).withRequestBody(equalToJson("""
 						{
+							"wait_timer": 0,
+							"prevent_self_review": false,
+							"reviewers": [],
 							"deployment_branch_policy": {
 								"protected_branches": true,
 								"custom_branch_policies": false

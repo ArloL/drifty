@@ -327,6 +327,116 @@ public class GitHubClient {
 		}
 	}
 
+	/**
+	 * The custom deployment branch policies of an environment. GitHub answers
+	 * 404 unless the environment has {@code custom_branch_policies} on, so the
+	 * caller only asks for environments that do.
+	 */
+	public List<DeploymentBranchPolicyResponse> getDeploymentBranchPolicies(
+			String owner,
+			String repo,
+			String envName
+	) {
+		HttpResponse<String> resp = get(
+				environmentUrl(owner, repo, envName)
+						+ "/deployment-branch-policies?per_page=100"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " for deployment branch policies of " + envName
+							+ " on " + owner + "/" + repo + ": " + resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, "branch_policies").stream()
+				.map(
+						node -> mapper.convertValue(
+								node,
+								DeploymentBranchPolicyResponse.class
+						)
+				)
+				.toList();
+	}
+
+	public DeploymentBranchPolicyResponse createDeploymentBranchPolicy(
+			String owner,
+			String repo,
+			String envName,
+			DeploymentBranchPolicyRequest payload
+	) {
+		HttpResponse<String> resp = post(
+				environmentUrl(owner, repo, envName)
+						+ "/deployment-branch-policies",
+				writeValue(payload)
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " creating deployment branch policy "
+							+ payload.name() + " for " + envName + " on "
+							+ owner + "/" + repo + ": " + resp.body()
+			);
+		}
+		return readValue(resp.body(), DeploymentBranchPolicyResponse.class);
+	}
+
+	public void deleteDeploymentBranchPolicy(
+			String owner,
+			String repo,
+			String envName,
+			long policyId
+	) {
+		HttpResponse<String> resp = delete(
+				environmentUrl(owner, repo, envName)
+						+ "/deployment-branch-policies/" + policyId
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " deleting deployment branch policy " + policyId
+							+ " for " + envName + " on " + owner + "/" + repo
+							+ ": " + resp.body()
+			);
+		}
+	}
+
+	/** The numeric id behind a login, for endpoints that want ids. */
+	public long getUserId(String login) {
+		HttpResponse<String> resp = get(baseUrl + "/users/" + login);
+		if (resp.statusCode() == 404) {
+			throw new GitHubApiException("no user " + login);
+		}
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " GET user " + login + ": "
+							+ resp.body()
+			);
+		}
+		return readValue(resp.body(), SimpleUser.class).id();
+	}
+
+	/** A team by slug, or empty when the organization has no such team. */
+	public Optional<TeamResponse> getTeam(String org, String slug) {
+		HttpResponse<String> resp = get(orgUrl(org) + "/teams/" + slug);
+		if (resp.statusCode() == 404) {
+			return Optional.empty();
+		}
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " GET team " + slug + " on "
+							+ org + ": " + resp.body()
+			);
+		}
+		return Optional.of(readValue(resp.body(), TeamResponse.class));
+	}
+
+	/** The numeric id behind a team slug, for endpoints that want ids. */
+	public long getTeamId(String org, String slug) {
+		return getTeam(org, slug).orElseThrow(
+				() -> new GitHubApiException("no team " + slug + " in " + org)
+		).id();
+	}
+
 	public List<Secret> getEnvironmentSecrets(
 			String owner,
 			String repo,
