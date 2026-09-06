@@ -593,4 +593,153 @@ class RulesetDriftGroupTest {
 		assertThat(items).anyMatch(i -> i instanceof DriftItem.SectionExtra);
 	}
 
+	private static List<DriftItem> items(
+			Drifty.Ruleset wanted,
+			ActualRuleset actual
+	) {
+		return new RulesetDriftGroup(
+				Map.of("rs", wanted),
+				List.of(actual),
+				null,
+				new RepoRef("owner", "repo")
+		).detect().stream().flatMap(f -> f.items().stream()).toList();
+	}
+
+	private static List<String> paths(
+			Drifty.Ruleset wanted,
+			ActualRuleset actual
+	) {
+		return items(wanted, actual).stream().map(DriftItem::path).toList();
+	}
+
+	@Test
+	void detectsTargetEnforcementAndExcludePatterns() {
+		var wanted = Desired.ruleset()
+				.withTarget(Drifty.RulesetTarget.TAG)
+				.withEnforcement(Drifty.RulesetEnforcement.EVALUATE)
+				.withExcludePatterns(List.of("refs/tags/v0*"));
+
+		assertThat(paths(wanted, matchingResponse("rs")))
+				.containsExactlyInAnyOrder(
+						"rulesets.rs.target",
+						"rulesets.rs.enforcement",
+						"rulesets.rs.exclude_patterns"
+				);
+	}
+
+	@Test
+	void aPullRequestRuleOnlyOneSideHasIsMissingOrExtra() {
+		var withRule = responseWith(
+				"rs",
+				List.of(),
+				List.of(
+						new Rule.PullRequest(
+								new Rule.PullRequest.Parameters(
+										1,
+										true,
+										false,
+										false,
+										true,
+										List.of("squash")
+								)
+						)
+				)
+		);
+
+		assertThat(items(Desired.ruleset(), withRule)).singleElement()
+				.isInstanceOf(DriftItem.SectionExtra.class)
+				.extracting(DriftItem::path)
+				.isEqualTo("rulesets.rs.pull_request");
+		assertThat(
+				items(
+						Desired.ruleset()
+								.withPullRequest(Desired.pullRequestRule()),
+						matchingResponse("rs")
+				)
+		).singleElement()
+				.isInstanceOf(DriftItem.SectionMissing.class)
+				.extracting(DriftItem::path)
+				.isEqualTo("rulesets.rs.pull_request");
+
+		var wanted = Desired.ruleset()
+				.withPullRequest(
+						Desired.pullRequestRule()
+								.withRequiredApprovingReviewCount(2L)
+								.withRequireCodeOwnerReview(true)
+								.withAllowedMergeMethods(
+										List.of(Drifty.MergeMethod.SQUASH)
+								)
+				);
+		assertThat(paths(wanted, withRule)).containsExactlyInAnyOrder(
+				"rulesets.rs.pull_request.required_approving_review_count",
+				"rulesets.rs.pull_request.dismiss_stale_reviews_on_push",
+				"rulesets.rs.pull_request.require_code_owner_review",
+				"rulesets.rs.pull_request.required_review_thread_resolution"
+		);
+	}
+
+	@Test
+	void mergeQueueWorkflowsAndFileRulesAreComparedWhenEitherSideHasThem() {
+		var wanted = Desired.ruleset()
+				.withMergeQueue(
+						Desired.mergeQueueRule().withMaxEntriesToMerge(10L)
+				)
+				.withWorkflows(
+						List.of(
+								Desired.workflowRule(
+										".github/workflows/ci.yml",
+										7
+								)
+						)
+				)
+				.withFilePathRestrictions(List.of("secrets/*"))
+				.withFileExtensionRestrictions(List.of("*.exe"))
+				.withMaxFilePathLength(200L)
+				.withMaxFileSize(50L);
+		var actual = responseWith(
+				"rs",
+				List.of(),
+				List.of(
+						new Rule.MergeQueue(
+								new Rule.MergeQueue.Parameters(
+										60,
+										"ALLGREEN",
+										5,
+										5,
+										"MERGE",
+										1,
+										5
+								)
+						),
+						new Rule.MaxFileSize(
+								new Rule.MaxFileSize.Parameters(50)
+						)
+				)
+		);
+
+		assertThat(paths(wanted, actual)).containsExactlyInAnyOrder(
+				"rulesets.rs.merge_queue.max_entries_to_merge",
+				"rulesets.rs.workflows",
+				"rulesets.rs.file_path_restrictions",
+				"rulesets.rs.file_extension_restrictions",
+				"rulesets.rs.max_file_path_length"
+		);
+		assertThat(paths(Desired.ruleset(), matchingResponse("rs"))).isEmpty();
+	}
+
+	@Test
+	void strictStatusChecksAreComparedOnlyWithChecks() {
+		var wanted = Desired.ruleset().withStrictRequiredStatusChecks(true);
+		assertThat(paths(wanted, matchingResponse("rs"))).isEmpty();
+
+		var withChecks = wanted.withRequiredStatusChecks(
+				List.of(Desired.statusCheck("build"))
+		);
+		assertThat(paths(withChecks, matchingResponse("rs")))
+				.containsExactlyInAnyOrder(
+						"rulesets.rs.required_status_checks",
+						"rulesets.rs.required_status_checks.strict"
+				);
+	}
+
 }

@@ -31,6 +31,12 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 	@JsonSubTypes.Type(value = Rule.BranchNamePattern.class, name = "branch_name_pattern"),
 	@JsonSubTypes.Type(value = Rule.TagNamePattern.class, name = "tag_name_pattern"),
 	@JsonSubTypes.Type(value = Rule.RequiredDeployments.class, name = "required_deployments"),
+	@JsonSubTypes.Type(value = Rule.MergeQueue.class, name = "merge_queue"),
+	@JsonSubTypes.Type(value = Rule.Workflows.class, name = "workflows"),
+	@JsonSubTypes.Type(value = Rule.FilePathRestriction.class, name = "file_path_restriction"),
+	@JsonSubTypes.Type(value = Rule.MaxFilePathLength.class, name = "max_file_path_length"),
+	@JsonSubTypes.Type(value = Rule.FileExtensionRestriction.class, name = "file_extension_restriction"),
+	@JsonSubTypes.Type(value = Rule.MaxFileSize.class, name = "max_file_size"),
 })
 // @formatter:on
 public sealed interface Rule
@@ -39,7 +45,9 @@ public sealed interface Rule
 		Rule.Creation, Rule.Update, Rule.Deletion, Rule.RequiredSignatures,
 		Rule.CommitMessagePattern, Rule.CommitAuthorEmailPattern,
 		Rule.CommitterEmailPattern, Rule.BranchNamePattern, Rule.TagNamePattern,
-		Rule.RequiredDeployments, Rule.Unknown {
+		Rule.RequiredDeployments, Rule.MergeQueue, Rule.Workflows,
+		Rule.FilePathRestriction, Rule.MaxFilePathLength,
+		Rule.FileExtensionRestriction, Rule.MaxFileSize, Rule.Unknown {
 
 	@JsonIgnore
 	RulesetRuleType type();
@@ -98,8 +106,32 @@ public sealed interface Rule
 				Integer requiredApprovingReviewCount,
 				Boolean dismissStaleReviewsOnPush,
 				Boolean requireCodeOwnerReview,
-				Boolean requireLastPushApproval
+				Boolean requireLastPushApproval,
+				Boolean requiredReviewThreadResolution,
+				List<String> allowedMergeMethods
 		) {
+
+			public Parameters {
+				allowedMergeMethods = allowedMergeMethods == null ? null
+						: List.copyOf(allowedMergeMethods);
+			}
+
+			public Parameters(
+					Integer requiredApprovingReviewCount,
+					Boolean dismissStaleReviewsOnPush,
+					Boolean requireCodeOwnerReview,
+					Boolean requireLastPushApproval
+			) {
+				this(
+						requiredApprovingReviewCount,
+						dismissStaleReviewsOnPush,
+						requireCodeOwnerReview,
+						requireLastPushApproval,
+						null,
+						null
+				);
+			}
+
 		}
 
 	}
@@ -247,6 +279,132 @@ public sealed interface Rule
 						: List.copyOf(requiredDeploymentEnvironments);
 			}
 
+		}
+
+	}
+
+	record MergeQueue(
+			Parameters parameters
+	) implements Rule {
+
+		public RulesetRuleType type() {
+			return RulesetRuleType.MERGE_QUEUE;
+		}
+
+		@JsonInclude(JsonInclude.Include.NON_NULL)
+		public record Parameters(
+				Integer checkResponseTimeoutMinutes,
+				String groupingStrategy,
+				Integer maxEntriesToBuild,
+				Integer maxEntriesToMerge,
+				String mergeMethod,
+				Integer minEntriesToMerge,
+				Integer minEntriesToMergeWaitMinutes
+		) {
+		}
+
+	}
+
+	record Workflows(
+			Parameters parameters
+	) implements Rule {
+
+		public RulesetRuleType type() {
+			return RulesetRuleType.WORKFLOWS;
+		}
+
+		@JsonInclude(JsonInclude.Include.NON_NULL)
+		public record Parameters(
+				Boolean doNotEnforceOnCreate,
+				List<Workflow> workflows
+		) {
+
+			public Parameters {
+				workflows = workflows == null ? null : List.copyOf(workflows);
+			}
+
+		}
+
+		@JsonInclude(JsonInclude.Include.NON_NULL)
+		public record Workflow(
+				String path,
+				Long repositoryId,
+				String ref,
+				String sha
+		) {
+		}
+
+	}
+
+	record FilePathRestriction(
+			Parameters parameters
+	) implements Rule {
+
+		public RulesetRuleType type() {
+			return RulesetRuleType.FILE_PATH_RESTRICTION;
+		}
+
+		public record Parameters(
+				List<String> restrictedFilePaths
+		) {
+
+			public Parameters {
+				restrictedFilePaths = restrictedFilePaths == null ? null
+						: List.copyOf(restrictedFilePaths);
+			}
+
+		}
+
+	}
+
+	record MaxFilePathLength(
+			Parameters parameters
+	) implements Rule {
+
+		public RulesetRuleType type() {
+			return RulesetRuleType.MAX_FILE_PATH_LENGTH;
+		}
+
+		public record Parameters(
+				Integer maxFilePathLength
+		) {
+		}
+
+	}
+
+	record FileExtensionRestriction(
+			Parameters parameters
+	) implements Rule {
+
+		public RulesetRuleType type() {
+			return RulesetRuleType.FILE_EXTENSION_RESTRICTION;
+		}
+
+		public record Parameters(
+				List<String> restrictedFileExtensions
+		) {
+
+			public Parameters {
+				restrictedFileExtensions = restrictedFileExtensions == null
+						? null
+						: List.copyOf(restrictedFileExtensions);
+			}
+
+		}
+
+	}
+
+	record MaxFileSize(
+			Parameters parameters
+	) implements Rule {
+
+		public RulesetRuleType type() {
+			return RulesetRuleType.MAX_FILE_SIZE;
+		}
+
+		public record Parameters(
+				Integer maxFileSize
+		) {
 		}
 
 	}

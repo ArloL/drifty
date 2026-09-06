@@ -7,6 +7,9 @@ import "../../../config/drifty.pkl" as drifty
 organization: drifty.Organization = new {}
 repository: drifty.Repository = new { name = "repo" }
 ruleset: drifty.Ruleset = new {}
+pullRequestRule: drifty.PullRequestRule = new {}
+mergeQueueRule: drifty.MergeQueueRule = new {}
+workflowRule: drifty.WorkflowRule = new { path = ".github/workflows/ci.yml"; repositoryId = 1 }
 branchProtection: drifty.BranchProtection = new {}
 environment: drifty.Environment = new {}
 pages: drifty.Pages = new {}

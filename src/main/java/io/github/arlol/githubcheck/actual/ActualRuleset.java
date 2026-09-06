@@ -4,8 +4,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * A repository ruleset as it exists on GitHub, flattened to the settings drifty
- * compares.
+ * A ruleset as it exists on GitHub, flattened to the settings drifty compares.
+ * Repository and organization rulesets share the shape; the repository
+ * conditions at the end are empty on a repository ruleset, which has none.
  * <p>
  * GitHub returns rulesets as a list of typed rule objects, each with its own
  * nested parameters. Unpicking that shape is the client's job, not the drift
@@ -15,7 +16,10 @@ import java.util.Set;
 public record ActualRuleset(
 		long id,
 		String name,
+		String target,
+		String enforcement,
 		Set<String> includePatterns,
+		Set<String> excludePatterns,
 		boolean creation,
 		boolean deletion,
 		boolean update,
@@ -23,8 +27,9 @@ public record ActualRuleset(
 		boolean requiredSignatures,
 		boolean requiredLinearHistory,
 		boolean noForcePushes,
+		boolean strictRequiredStatusChecks,
 		Set<StatusCheck> requiredStatusChecks,
-		Integer requiredReviewCount,
+		PullRequest pullRequest,
 		Set<String> requiredCodeScanningTools,
 		Set<String> requiredDeployments,
 		String commitMessagePattern,
@@ -32,8 +37,86 @@ public record ActualRuleset(
 		String committerEmailPattern,
 		String branchNamePattern,
 		String tagNamePattern,
-		List<BypassActor> bypassActors
+		MergeQueue mergeQueue,
+		Set<Workflow> workflows,
+		Set<String> filePathRestrictions,
+		Integer maxFilePathLength,
+		Set<String> fileExtensionRestrictions,
+		Integer maxFileSize,
+		List<BypassActor> bypassActors,
+		Set<String> repositoryNameInclude,
+		Set<String> repositoryNameExclude,
+		boolean repositoryNameProtected,
+		Set<PropertyCondition> repositoryPropertyInclude,
+		Set<PropertyCondition> repositoryPropertyExclude
 ) {
+
+	/** The pull_request rule's parameters; null when the rule is absent. */
+	public record PullRequest(
+			int requiredApprovingReviewCount,
+			boolean dismissStaleReviewsOnPush,
+			boolean requireCodeOwnerReview,
+			boolean requireLastPushApproval,
+			boolean requiredReviewThreadResolution,
+			Set<String> allowedMergeMethods
+	) {
+
+		public PullRequest {
+			allowedMergeMethods = Set.copyOf(allowedMergeMethods);
+		}
+
+	}
+
+	/** The merge_queue rule's parameters; null when the rule is absent. */
+	public record MergeQueue(
+			int checkResponseTimeoutMinutes,
+			String groupingStrategy,
+			int maxEntriesToBuild,
+			int maxEntriesToMerge,
+			String mergeMethod,
+			int minEntriesToMerge,
+			int minEntriesToMergeWaitMinutes
+	) {
+	}
+
+	/**
+	 * One required workflow. Rendered as {@code <path>@<ref>#<repositoryId>}
+	 * when compared, with the ref part left out when none is set.
+	 */
+	public record Workflow(
+			String path,
+			long repositoryId,
+			String ref
+	) {
+
+		@Override
+		public String toString() {
+			return path + (ref == null ? "" : "@" + ref) + "#" + repositoryId;
+		}
+
+	}
+
+	/**
+	 * A repository property an organization ruleset selects by. Rendered as
+	 * {@code <source>:<name>=<values>} when compared.
+	 */
+	public record PropertyCondition(
+			String name,
+			Set<String> propertyValues,
+			String source
+	) {
+
+		public PropertyCondition {
+			propertyValues = Set.copyOf(propertyValues);
+		}
+
+		@Override
+		public String toString() {
+			return source + ":" + name + "="
+					+ propertyValues.stream().sorted().toList();
+		}
+
+	}
 
 	/**
 	 * An actor allowed to bypass the ruleset. Rendered as a single string when
@@ -58,10 +141,18 @@ public record ActualRuleset(
 
 	public ActualRuleset {
 		includePatterns = Set.copyOf(includePatterns);
+		excludePatterns = Set.copyOf(excludePatterns);
 		requiredStatusChecks = Set.copyOf(requiredStatusChecks);
 		requiredCodeScanningTools = Set.copyOf(requiredCodeScanningTools);
 		requiredDeployments = Set.copyOf(requiredDeployments);
+		workflows = Set.copyOf(workflows);
+		filePathRestrictions = Set.copyOf(filePathRestrictions);
+		fileExtensionRestrictions = Set.copyOf(fileExtensionRestrictions);
 		bypassActors = List.copyOf(bypassActors);
+		repositoryNameInclude = Set.copyOf(repositoryNameInclude);
+		repositoryNameExclude = Set.copyOf(repositoryNameExclude);
+		repositoryPropertyInclude = Set.copyOf(repositoryPropertyInclude);
+		repositoryPropertyExclude = Set.copyOf(repositoryPropertyExclude);
 	}
 
 }

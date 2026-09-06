@@ -153,7 +153,12 @@ class ActualTypesTest {
 		assertThat(ruleset.requiredLinearHistory()).isFalse();
 		assertThat(ruleset.noForcePushes()).isFalse();
 		assertThat(ruleset.requiredStatusChecks()).isEmpty();
-		assertThat(ruleset.requiredReviewCount()).isNull();
+		assertThat(ruleset.pullRequest()).isNull();
+		assertThat(ruleset.target()).isEqualTo("branch");
+		assertThat(ruleset.enforcement()).isEqualTo("active");
+		assertThat(ruleset.mergeQueue()).isNull();
+		assertThat(ruleset.workflows()).isEmpty();
+		assertThat(ruleset.repositoryNameInclude()).isEmpty();
 		assertThat(ruleset.requiredCodeScanningTools()).isEmpty();
 		assertThat(ruleset.bypassActors()).isEmpty();
 	}
