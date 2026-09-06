@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualRuleset;
@@ -146,7 +147,7 @@ public class OrgRulesetDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 		);
 	}
 
-	private static java.util.Set<String> propertyConditions(
+	private static Set<String> propertyConditions(
 			List<Drifty.PropertyCondition> conditions
 	) {
 		return conditions.stream()
@@ -154,7 +155,7 @@ public class OrgRulesetDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 						c -> new ActualRuleset.PropertyCondition(
 								c.name,
 								new HashSet<>(c.propertyValues),
-								c.source.toString()
+								c.source
 						).toString()
 				)
 				.collect(Collectors.toSet());
@@ -207,7 +208,7 @@ public class OrgRulesetDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 						c -> new RulesetRequest.Conditions.RepositoryProperty.PropertyCondition(
 								c.name,
 								c.propertyValues,
-								c.source.toString()
+								c.source
 						)
 				)
 				.toList();
