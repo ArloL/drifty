@@ -251,6 +251,128 @@ public class GitHubClient {
 		return readValue(resp.body(), Secret.class);
 	}
 
+	// ─── Webhooks
+	// ──────────────────────────────────────────────────────────
+
+	public List<WebhookResponse> getRepoWebhooks(String owner, String repo) {
+		return webhooks(
+				repoUrl(owner, repo) + "/hooks",
+				"webhooks on " + owner + "/" + repo
+		);
+	}
+
+	public List<WebhookResponse> getOrgWebhooks(String org) {
+		return webhooks(orgUrl(org) + "/hooks", "webhooks on " + org);
+	}
+
+	private List<WebhookResponse> webhooks(String url, String what) {
+		HttpResponse<String> resp = get(url + "?per_page=100");
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " for " + what + ": "
+							+ resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, null).stream()
+				.map(h -> mapper.convertValue(h, WebhookResponse.class))
+				.toList();
+	}
+
+	public WebhookResponse createRepoWebhook(
+			String owner,
+			String repo,
+			WebhookRequest hook
+	) {
+		return createWebhook(
+				repoUrl(owner, repo) + "/hooks",
+				hook,
+				"webhook on " + owner + "/" + repo
+		);
+	}
+
+	public WebhookResponse createOrgWebhook(String org, WebhookRequest hook) {
+		return createWebhook(orgUrl(org) + "/hooks", hook, "webhook on " + org);
+	}
+
+	private WebhookResponse createWebhook(
+			String url,
+			WebhookRequest hook,
+			String what
+	) {
+		HttpResponse<String> resp = post(url, writeValue(hook));
+		if (resp.statusCode() != 201) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " creating " + what + ": "
+							+ resp.body()
+			);
+		}
+		return readValue(resp.body(), WebhookResponse.class);
+	}
+
+	public WebhookResponse updateRepoWebhook(
+			String owner,
+			String repo,
+			long hookId,
+			WebhookRequest hook
+	) {
+		return updateWebhook(
+				repoUrl(owner, repo) + "/hooks/" + hookId,
+				hook,
+				"webhook " + hookId + " on " + owner + "/" + repo
+		);
+	}
+
+	public WebhookResponse updateOrgWebhook(
+			String org,
+			long hookId,
+			WebhookRequest hook
+	) {
+		return updateWebhook(
+				orgUrl(org) + "/hooks/" + hookId,
+				hook,
+				"webhook " + hookId + " on " + org
+		);
+	}
+
+	private WebhookResponse updateWebhook(
+			String url,
+			WebhookRequest hook,
+			String what
+	) {
+		HttpResponse<String> resp = patch(url, writeValue(hook));
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " updating " + what + ": "
+							+ resp.body()
+			);
+		}
+		return readValue(resp.body(), WebhookResponse.class);
+	}
+
+	public void deleteRepoWebhook(String owner, String repo, long hookId) {
+		deleteWebhook(
+				repoUrl(owner, repo) + "/hooks/" + hookId,
+				"webhook " + hookId + " on " + owner + "/" + repo
+		);
+	}
+
+	public void deleteOrgWebhook(String org, long hookId) {
+		deleteWebhook(
+				orgUrl(org) + "/hooks/" + hookId,
+				"webhook " + hookId + " on " + org
+		);
+	}
+
+	private void deleteWebhook(String url, String what) {
+		HttpResponse<String> resp = delete(url);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " deleting " + what + ": "
+							+ resp.body()
+			);
+		}
+	}
+
 	// ─── Actions variables
 	// ──────────────────────────────────────────────────────────
 

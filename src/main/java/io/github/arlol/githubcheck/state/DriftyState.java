@@ -32,6 +32,11 @@ public class DriftyState {
 
 		ConcurrentHashMap<String, SecretRecord> actionSecrets = new ConcurrentHashMap<>();
 		ConcurrentHashMap<String, ConcurrentHashMap<String, SecretRecord>> environmentSecrets = new ConcurrentHashMap<>();
+		/**
+		 * Webhook secrets, keyed by the config's name for the hook. Added
+		 * without a version bump, like {@code organizations}.
+		 */
+		ConcurrentHashMap<String, SecretRecord> webhookSecrets = new ConcurrentHashMap<>();
 
 	}
 
@@ -39,6 +44,7 @@ public class DriftyState {
 	public static class OrgState {
 
 		ConcurrentHashMap<String, SecretRecord> actionSecrets = new ConcurrentHashMap<>();
+		ConcurrentHashMap<String, SecretRecord> webhookSecrets = new ConcurrentHashMap<>();
 
 	}
 
@@ -66,14 +72,48 @@ public class DriftyState {
 		return repositories.values().stream().allMatch(DriftyState::isEmpty)
 				&& organizations.values()
 						.stream()
-						.allMatch(orgState -> orgState.actionSecrets.isEmpty());
+						.allMatch(
+								orgState -> orgState.actionSecrets.isEmpty()
+										&& orgState.webhookSecrets.isEmpty()
+						);
 	}
 
 	private static boolean isEmpty(RepoState repoState) {
 		return repoState.actionSecrets.isEmpty()
+				&& repoState.webhookSecrets.isEmpty()
 				&& repoState.environmentSecrets.values()
 						.stream()
 						.allMatch(Map::isEmpty);
+	}
+
+	public SecretRecord webhookSecretRecord(String repo, String name) {
+		RepoState repoState = repositories.get(repo);
+		return repoState == null ? null : repoState.webhookSecrets.get(name);
+	}
+
+	public SecretRecord orgWebhookSecretRecord(String org, String name) {
+		OrgState orgState = organizations.get(org);
+		return orgState == null ? null : orgState.webhookSecrets.get(name);
+	}
+
+	public void recordWebhookSecret(
+			String repo,
+			String name,
+			String updatedAt,
+			String valueHash
+	) {
+		repoState(repo).webhookSecrets
+				.put(name, new SecretRecord(updatedAt, valueHash));
+	}
+
+	public void recordOrgWebhookSecret(
+			String org,
+			String name,
+			String updatedAt,
+			String valueHash
+	) {
+		organizations.computeIfAbsent(org, key -> new OrgState()).webhookSecrets
+				.put(name, new SecretRecord(updatedAt, valueHash));
 	}
 
 	public SecretRecord actionSecretRecord(String repo, String name) {

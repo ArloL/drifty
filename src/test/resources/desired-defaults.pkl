@@ -20,3 +20,4 @@ actionsPermissions: drifty.ActionsPermissions = new {}
 selectedActions: drifty.SelectedActions = new {}
 orgSecret: drifty.OrgSecret = new {}
 orgVariable: drifty.OrgVariable = new { value = "value" }
+webhook: drifty.Webhook = new { url = "https://example.com/hook" }

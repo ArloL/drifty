@@ -24,6 +24,7 @@ import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.actual.ActualSelectedActions;
 import io.github.arlol.githubcheck.actual.ActualVariable;
+import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.actual.StatusCheck;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
@@ -45,6 +46,7 @@ import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.SelectedActions;
 import io.github.arlol.githubcheck.client.SimpleUser;
 import io.github.arlol.githubcheck.client.VariableResponse;
+import io.github.arlol.githubcheck.client.WebhookResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 
 /**
@@ -740,6 +742,26 @@ public final class ActualTypes {
 
 	public static ActualSecret secret(Secret response) {
 		return new ActualSecret(response.name(), response.updatedAt());
+	}
+
+	/**
+	 * {@code insecure_ssl} is {@code "1"} for on, and {@code secret} is a
+	 * placeholder when one is set — GitHub never returns the value.
+	 */
+	public static ActualWebhook webhook(WebhookResponse response) {
+		var config = response.config();
+		return new ActualWebhook(
+				response.id(),
+				config == null ? null : config.url(),
+				config == null || config.contentType() == null ? "form"
+						: config.contentType(),
+				config != null && "1".equals(config.insecureSsl()),
+				response.active(),
+				new HashSet<>(response.events()),
+				config != null && config.secret() != null
+						&& !config.secret().isEmpty(),
+				response.updatedAt()
+		);
 	}
 
 	public static ActualVariable variable(VariableResponse response) {

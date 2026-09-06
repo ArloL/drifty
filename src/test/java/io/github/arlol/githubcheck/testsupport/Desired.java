@@ -46,6 +46,7 @@ public final class Desired {
 	private static final Drifty.SelectedActions SELECTED_ACTIONS;
 	private static final Drifty.OrgSecret ORG_SECRET;
 	private static final Drifty.OrgVariable ORG_VARIABLE;
+	private static final Drifty.Webhook WEBHOOK;
 
 	static {
 		try (var evaluator = ConfigEvaluator.preconfigured()) {
@@ -74,6 +75,7 @@ public final class Desired {
 					.as(Drifty.SelectedActions.class);
 			ORG_SECRET = root.get("orgSecret").as(Drifty.OrgSecret.class);
 			ORG_VARIABLE = root.get("orgVariable").as(Drifty.OrgVariable.class);
+			WEBHOOK = root.get("webhook").as(Drifty.Webhook.class);
 		}
 	}
 
@@ -176,6 +178,11 @@ public final class Desired {
 	/** An organization variable with the default {@code private} visibility. */
 	public static Drifty.OrgVariable orgVariable(String value) {
 		return ORG_VARIABLE.withValue(value);
+	}
+
+	/** A webhook with GitHub's defaults: form content, push events, active. */
+	public static Drifty.Webhook webhook(String url) {
+		return WEBHOOK.withUrl(url);
 	}
 
 	public static Drifty.BypassActor bypassActor(

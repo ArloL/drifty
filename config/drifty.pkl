@@ -47,6 +47,7 @@ typealias GroupName =
   | "secret_scanning_validity_checks"
   | "topics"
   | "vulnerability_alerts"
+  | "webhooks"
   | "workflow_permissions"
 
 /// Every drift group drifty can check on an organization. Separate from
@@ -58,6 +59,7 @@ typealias OrgGroupName =
   | "org_workflow_permissions"
   | "org_action_secrets"
   | "org_action_variables"
+  | "org_webhooks"
 
 typealias SecretVisibility = "all" | "private" | "selected"
 
@@ -229,6 +231,23 @@ class Pages {
   sourcePath: String?
 }
 
+typealias WebhookContentType = "json" | "form"
+
+/// A webhook. GitHub has no name for one — every hook is called "web" — so
+/// the key in `webhooks` is yours, and the url is what matches an entry to a
+/// hook on GitHub.
+class Webhook {
+  url: String
+  contentType: WebhookContentType = "form"
+  insecureSsl: Boolean = false
+  active: Boolean = true
+  events: Listing<String> = new { "push" }
+  /// Whether the hook carries a secret. GitHub never returns it; the value
+  /// comes from DRIFTY_GITHUB_SECRETS under `<repo>-webhook-<name>` (or
+  /// `org-<org>-webhook-<name>`) and the state file remembers what was pushed.
+  secret: Boolean = false
+}
+
 /// Deployment environment. The environment name is the key in Repository.environments.
 class Environment {
   secrets: Listing<String> = new {}
@@ -309,6 +328,8 @@ class Repository {
   rulesets: Mapping<String, Ruleset> = new {}
   /// Keyed by environment name
   environments: Mapping<String, Environment> = new {}
+  /// Keyed by a name of your choosing; the url is the identity on GitHub
+  webhooks: Mapping<String, Webhook> = new {}
 }
 
 class SelectedActions {
@@ -394,6 +415,8 @@ class Organization {
   actionsSecrets: Mapping<String, OrgSecret> = new {}
   /// Keyed by variable name
   actionsVariables: Mapping<String, OrgVariable> = new {}
+  /// Keyed by a name of your choosing; the url is the identity on GitHub
+  webhooks: Mapping<String, Webhook> = new {}
 
   repositories: Listing<Repository> = new {}
 }
