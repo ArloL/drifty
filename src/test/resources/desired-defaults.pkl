@@ -24,3 +24,4 @@ webhook: drifty.Webhook = new { url = "https://example.com/hook" }
 customProperty: drifty.CustomProperty = new { valueType = "string" }
 orgRuleset: drifty.OrgRuleset = new {}
 propertyCondition: drifty.PropertyCondition = new { name = "team"; propertyValues = new { "core" } }
+codeSecurityConfiguration: drifty.CodeSecurityConfiguration = new {}

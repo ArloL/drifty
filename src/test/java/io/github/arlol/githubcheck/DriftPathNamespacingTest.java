@@ -305,6 +305,12 @@ class DriftPathNamespacingTest {
 										Desired.orgRuleset()
 												.withNoForcePushes(true)
 								)
+						)
+						.withCodeSecurityConfigurations(
+								Map.of(
+										"baseline",
+										Desired.codeSecurityConfiguration()
+								)
 						),
 				Map.of()
 		);
