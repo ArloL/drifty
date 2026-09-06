@@ -42,7 +42,7 @@ One commit per task; each task leaves `./mvnw -DskipNativeTests test` green.
 
 - [x] **Task 6: Custom properties** (org definitions, repo values)
 
-- [ ] **Task 7: Org rulesets** on top of `RulesetComparison`.
+- [x] **Task 7: Org rulesets** on top of `RulesetComparison`.
 
 - [ ] **Task 8: Code security configurations**
 

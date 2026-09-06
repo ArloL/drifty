@@ -18,14 +18,14 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  */
 public class RulesetDriftGroup extends DriftGroup<Drifty.GroupName> {
 
-	private final Map<String, Drifty.Ruleset> desired;
+	private final Map<String, ? extends Drifty.Ruleset> desired;
 	private final List<ActualRuleset> actual;
 	private final GitHubClient client;
 	private final String owner;
 	private final String repo;
 
 	public RulesetDriftGroup(
-			Map<String, Drifty.Ruleset> desired,
+			Map<String, ? extends Drifty.Ruleset> desired,
 			List<ActualRuleset> actual,
 			GitHubClient client,
 			RepoRef ref

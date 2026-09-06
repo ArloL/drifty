@@ -10,12 +10,14 @@ import io.github.arlol.githubcheck.actual.ActualCustomProperty;
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.actual.ActualOrgVariable;
+import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.OrgSecretResponse;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
+import io.github.arlol.githubcheck.client.RulesetSourceType;
 import io.github.arlol.githubcheck.client.SecretVisibility;
 import io.github.arlol.githubcheck.drift.DriftFix;
 import io.github.arlol.githubcheck.drift.DriftFixer;
@@ -26,6 +28,7 @@ import io.github.arlol.githubcheck.drift.OrgActionSecretsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgActionVariablesDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgActionsPermissionsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgCustomPropertiesDriftGroup;
+import io.github.arlol.githubcheck.drift.OrgRulesetDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgSettingsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgWebhooksDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgWorkflowPermissionsDriftGroup;
@@ -205,6 +208,10 @@ public class OrganizationChecker {
 						? customProperties(login)
 						: List.of();
 
+		List<ActualRuleset> rulesets = managed
+				.manages(Drifty.OrgGroupName.ORG_RULESETS) ? orgRulesets(login)
+						: List.of();
+
 		return new OrganizationState(
 				login,
 				settings,
@@ -213,8 +220,27 @@ public class OrganizationChecker {
 				secrets,
 				variables,
 				webhooks,
-				customProperties
+				customProperties,
+				rulesets
 		);
+	}
+
+	/**
+	 * One request per ruleset after the listing, as on the repository side: the
+	 * listing carries no rules or conditions. Enterprise rulesets arrive in the
+	 * listing and are dropped — the organization cannot change them.
+	 */
+	private List<ActualRuleset> orgRulesets(String login) {
+		var rulesets = new ArrayList<ActualRuleset>();
+		for (var rs : client.listOrgRulesets(login)) {
+			if (rs.sourceType() == RulesetSourceType.ENTERPRISE) {
+				continue;
+			}
+			rulesets.add(
+					ActualTypes.ruleset(client.getOrgRuleset(login, rs.id()))
+			);
+		}
+		return rulesets;
 	}
 
 	/**
@@ -372,6 +398,14 @@ public class OrganizationChecker {
 				new OrgCustomPropertiesDriftGroup(
 						desired.customProperties,
 						actual.customProperties(),
+						client,
+						actual.login()
+				)
+		);
+		groups.add(
+				new OrgRulesetDriftGroup(
+						desired.rulesets,
+						actual.rulesets(),
 						client,
 						actual.login()
 				)

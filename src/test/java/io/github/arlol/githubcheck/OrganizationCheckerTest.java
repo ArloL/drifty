@@ -99,7 +99,8 @@ class OrganizationCheckerTest {
 				"org_action_secrets",
 				"org_action_variables",
 				"org_webhooks",
-				"org_custom_properties"
+				"org_custom_properties",
+				"org_rulesets"
 		);
 	}
 
@@ -227,6 +228,10 @@ class OrganizationCheckerTest {
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/properties/schema"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/rulesets"))
 						.willReturn(okJson("[]"))
 		);
 
@@ -443,6 +448,63 @@ class OrganizationCheckerTest {
 						urlPathEqualTo("/orgs/my-org/properties/schema")
 				)
 		);
+	}
+
+	/**
+	 * Rulesets are read only when their group is managed, one detail request
+	 * per listed ruleset, and enterprise rulesets are dropped without one.
+	 */
+	@Test
+	void rulesetsAreReadOnlyWhenManagedAndEnterpriseOnesDropped() {
+		stubOrg("null");
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/rulesets")).willReturn(
+						okJson(
+								"""
+										[
+										  {"id": 1, "name": "main", "source_type": "Organization", "enforcement": "active"},
+										  {"id": 2, "name": "corp", "source_type": "Enterprise", "enforcement": "active"}
+										]
+										"""
+						)
+				)
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/rulesets/1")).willReturn(
+						okJson(
+								"""
+										{"id": 1, "name": "main", "target": "branch", "enforcement": "active",
+										 "source_type": "Organization",
+										 "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []},
+										                "repository_name": {"include": ["~ALL"], "exclude": [], "protected": true}},
+										 "rules": [{"type": "non_fast_forward"}]}
+										"""
+						)
+				)
+		);
+
+		OrganizationState state = checker.fetchState(
+				"my-org",
+				ManagedGroups.of(
+						new Drifty.OrgManaged(
+								Drifty.ManageMode.ONLY,
+								List.of(Drifty.OrgGroupName.ORG_RULESETS)
+						)
+				)
+		);
+
+		assertThat(state.rulesets()).singleElement().satisfies(ruleset -> {
+			assertThat(ruleset.name()).isEqualTo("main");
+			assertThat(ruleset.noForcePushes()).isTrue();
+			assertThat(ruleset.repositoryNameInclude()).containsExactly("~ALL");
+			assertThat(ruleset.repositoryNameProtected()).isTrue();
+		});
+		verify(0, getRequestedFor(urlPathEqualTo("/orgs/my-org/rulesets/2")));
+
+		OrganizationState settingsOnly = checker
+				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
+		assertThat(settingsOnly.rulesets()).isEmpty();
+		verify(1, getRequestedFor(urlPathEqualTo("/orgs/my-org/rulesets")));
 	}
 
 }

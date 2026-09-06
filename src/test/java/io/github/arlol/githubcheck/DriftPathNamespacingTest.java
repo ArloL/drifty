@@ -298,6 +298,13 @@ class DriftPathNamespacingTest {
 												Drifty.CustomPropertyValueType.STRING
 										)
 								)
+						)
+						.withRulesets(
+								Map.of(
+										"main",
+										Desired.orgRuleset()
+												.withNoForcePushes(true)
+								)
 						),
 				Map.of()
 		);
