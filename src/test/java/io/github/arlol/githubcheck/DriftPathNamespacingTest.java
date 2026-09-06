@@ -165,11 +165,13 @@ class DriftPathNamespacingTest {
 				.withDefaultBranch("main")
 				.withTopics(List.of("java"))
 				.withActionsSecrets(List.of("PAT"))
+				.withActionsVariables(Map.of("REGION", "eu"))
 				.withEnvironments(
 						Map.of(
 								"production",
 								Desired.environment()
 										.withSecrets(List.of("TOKEN"))
+										.withVariables(Map.of("TIER", "prod"))
 						)
 				)
 				.withPages(Desired.pages())
@@ -272,7 +274,10 @@ class DriftPathNamespacingTest {
 						List.of()
 				),
 				Desired.organization()
-						.withActionsSecrets(Map.of("PAT", Desired.orgSecret())),
+						.withActionsSecrets(Map.of("PAT", Desired.orgSecret()))
+						.withActionsVariables(
+								Map.of("REGION", Desired.orgVariable("eu"))
+						),
 				Map.of()
 		);
 	}

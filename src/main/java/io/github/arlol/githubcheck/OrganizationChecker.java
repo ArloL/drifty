@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
+import io.github.arlol.githubcheck.actual.ActualOrgVariable;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -20,6 +21,7 @@ import io.github.arlol.githubcheck.drift.DriftGroup;
 import io.github.arlol.githubcheck.drift.DriftItem;
 import io.github.arlol.githubcheck.drift.ManagedGroups;
 import io.github.arlol.githubcheck.drift.OrgActionSecretsDriftGroup;
+import io.github.arlol.githubcheck.drift.OrgActionVariablesDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgActionsPermissionsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgSettingsDriftGroup;
 import io.github.arlol.githubcheck.drift.OrgWorkflowPermissionsDriftGroup;
@@ -181,13 +183,41 @@ public class OrganizationChecker {
 						? orgSecrets(login)
 						: List.of();
 
+		List<ActualOrgVariable> variables = managed
+				.manages(Drifty.OrgGroupName.ORG_ACTION_VARIABLES)
+						? orgVariables(login)
+						: List.of();
+
 		return new OrganizationState(
 				login,
 				settings,
 				permissions,
 				workflowPermissions,
-				secrets
+				secrets,
+				variables
 		);
+	}
+
+	private List<ActualOrgVariable> orgVariables(String login) {
+		return client.getOrgActionVariables(login)
+				.stream()
+				.map(
+						variable -> ActualTypes.orgVariable(
+								variable,
+								variable.visibility() == SecretVisibility.SELECTED
+										? client.getOrgActionVariableRepositories(
+												login,
+												variable.name()
+										)
+												.stream()
+												.map(
+														RepositorySummaryResponse::name
+												)
+												.toList()
+										: List.of()
+						)
+				)
+				.toList();
 	}
 
 	private List<ActualOrgSecret> orgSecrets(String login) {
@@ -283,6 +313,15 @@ public class OrganizationChecker {
 						repositoryIds,
 						githubSecrets,
 						state,
+						client,
+						actual.login()
+				)
+		);
+		groups.add(
+				new OrgActionVariablesDriftGroup(
+						desired.actionsVariables,
+						actual.actionVariables(),
+						repositoryIds,
 						client,
 						actual.login()
 				)

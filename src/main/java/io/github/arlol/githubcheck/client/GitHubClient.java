@@ -251,6 +251,202 @@ public class GitHubClient {
 		return readValue(resp.body(), Secret.class);
 	}
 
+	// ─── Actions variables
+	// ──────────────────────────────────────────────────────────
+
+	public List<VariableResponse> getActionVariables(
+			String owner,
+			String repo
+	) {
+		return variables(
+				repoUrl(owner, repo) + "/actions/variables",
+				"action variables on " + owner + "/" + repo
+		);
+	}
+
+	public List<VariableResponse> getEnvironmentVariables(
+			String owner,
+			String repo,
+			String envName
+	) {
+		return variables(
+				environmentUrl(owner, repo, envName) + "/variables",
+				"variables of " + envName + " on " + owner + "/" + repo
+		);
+	}
+
+	private List<VariableResponse> variables(String url, String what) {
+		HttpResponse<String> resp = get(url + "?per_page=100");
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " for " + what + ": "
+							+ resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, "variables").stream()
+				.map(v -> mapper.convertValue(v, VariableResponse.class))
+				.toList();
+	}
+
+	public void createActionVariable(
+			String owner,
+			String repo,
+			VariableRequest variable
+	) {
+		createVariable(
+				repoUrl(owner, repo) + "/actions/variables",
+				variable,
+				"action variable " + variable.name() + " on " + owner + "/"
+						+ repo
+		);
+	}
+
+	public void updateActionVariable(
+			String owner,
+			String repo,
+			VariableRequest variable
+	) {
+		updateVariable(
+				repoUrl(owner, repo) + "/actions/variables/" + variable.name(),
+				variable,
+				"action variable " + variable.name() + " on " + owner + "/"
+						+ repo
+		);
+	}
+
+	public void createEnvironmentVariable(
+			String owner,
+			String repo,
+			String envName,
+			VariableRequest variable
+	) {
+		createVariable(
+				environmentUrl(owner, repo, envName) + "/variables",
+				variable,
+				"variable " + variable.name() + " of " + envName + " on "
+						+ owner + "/" + repo
+		);
+	}
+
+	public void updateEnvironmentVariable(
+			String owner,
+			String repo,
+			String envName,
+			VariableRequest variable
+	) {
+		updateVariable(
+				environmentUrl(owner, repo, envName) + "/variables/"
+						+ variable.name(),
+				variable,
+				"variable " + variable.name() + " of " + envName + " on "
+						+ owner + "/" + repo
+		);
+	}
+
+	private void createVariable(
+			String url,
+			VariableRequest variable,
+			String what
+	) {
+		HttpResponse<String> resp = post(url, writeValue(variable));
+		if (resp.statusCode() != 201) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " creating " + what + ": "
+							+ resp.body()
+			);
+		}
+	}
+
+	private void updateVariable(
+			String url,
+			VariableRequest variable,
+			String what
+	) {
+		HttpResponse<String> resp = patch(url, writeValue(variable));
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " updating " + what + ": "
+							+ resp.body()
+			);
+		}
+	}
+
+	public List<OrgVariableResponse> getOrgActionVariables(String org) {
+		HttpResponse<String> resp = get(
+				orgUrl(org) + "/actions/variables?per_page=100"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " for org action variables on " + org + ": "
+							+ resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, "variables").stream()
+				.map(v -> mapper.convertValue(v, OrgVariableResponse.class))
+				.toList();
+	}
+
+	/** The repositories a {@code selected} variable is shared with. */
+	public List<RepositorySummaryResponse> getOrgActionVariableRepositories(
+			String org,
+			String name
+	) {
+		HttpResponse<String> resp = get(
+				orgUrl(org) + "/actions/variables/" + name
+						+ "/repositories?per_page=100"
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " for repositories of org "
+							+ "variable " + name + " on " + org + ": "
+							+ resp.body()
+			);
+		}
+		return collectPaginatedArrayItems(resp, "repositories").stream()
+				.map(
+						node -> mapper.convertValue(
+								node,
+								RepositorySummaryResponse.class
+						)
+				)
+				.toList();
+	}
+
+	public void createOrgActionVariable(
+			String org,
+			OrgVariableRequest variable
+	) {
+		HttpResponse<String> resp = post(
+				orgUrl(org) + "/actions/variables",
+				writeValue(variable)
+		);
+		if (resp.statusCode() != 201) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " creating org action variable " + variable.name()
+							+ " on " + org + ": " + resp.body()
+			);
+		}
+	}
+
+	public void updateOrgActionVariable(
+			String org,
+			OrgVariableRequest variable
+	) {
+		HttpResponse<String> resp = patch(
+				orgUrl(org) + "/actions/variables/" + variable.name(),
+				writeValue(variable)
+		);
+		if (resp.statusCode() != 204) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " updating org action variable " + variable.name()
+							+ " on " + org + ": " + resp.body()
+			);
+		}
+	}
+
 	public List<EnvironmentDetailsResponse> getEnvironments(
 			String owner,
 			String repo

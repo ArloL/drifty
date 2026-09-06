@@ -2,9 +2,11 @@ package io.github.arlol.githubcheck;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
@@ -17,6 +19,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
+import io.github.arlol.githubcheck.actual.ActualOrgVariable;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.SecretVisibility;
 import io.github.arlol.githubcheck.drift.ManagedGroups;
@@ -90,7 +93,8 @@ class OrganizationCheckerTest {
 		assertThat(entry.unmanaged()).containsExactlyInAnyOrder(
 				"org_actions_permissions",
 				"org_workflow_permissions",
-				"org_action_secrets"
+				"org_action_secrets",
+				"org_action_variables"
 		);
 	}
 
@@ -208,6 +212,10 @@ class OrganizationCheckerTest {
 				get(urlPathEqualTo("/orgs/my-org/actions/secrets"))
 						.willReturn(okJson("{\"secrets\": []}"))
 		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/variables"))
+						.willReturn(okJson("{\"variables\": []}"))
+		);
 
 		CheckResult.Entry entry = checker
 				.check("my-org", Desired.organization(), List.of());
@@ -233,6 +241,81 @@ class OrganizationCheckerTest {
 				.check("my-org", onlySettings(), List.of());
 
 		assertThat(entry.status()).isEqualTo(CheckResult.Status.MISSING);
+	}
+
+	/**
+	 * Variables are read only when their group is managed, and the repositories
+	 * of a variable only under {@code selected} visibility.
+	 */
+	@Test
+	void variablesAreReadOnlyWhenManaged() {
+		stubOrg("null");
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/variables"))
+						.willReturn(
+								okJson(
+										"""
+												{
+												  "total_count": 2,
+												  "variables": [
+												    {"name": "REGION", "value": "eu", "visibility": "all"},
+												    {"name": "SHARED", "value": "x", "visibility": "selected"}
+												  ]
+												}
+												"""
+								)
+						)
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/orgs/my-org/actions/variables/SHARED/repositories"
+						)
+				).willReturn(
+						okJson(
+								"""
+										{"total_count": 1, "repositories": [{"id": 1, "name": "one", "archived": false}]}
+										"""
+						)
+				)
+		);
+
+		OrganizationState state = checker.fetchState(
+				"my-org",
+				ManagedGroups.of(
+						new Drifty.OrgManaged(
+								Drifty.ManageMode.ONLY,
+								List.of(
+										Drifty.OrgGroupName.ORG_ACTION_VARIABLES
+								)
+						)
+				)
+		);
+
+		assertThat(state.actionVariables()).containsExactly(
+				new ActualOrgVariable(
+						"REGION",
+						"eu",
+						SecretVisibility.ALL,
+						List.of()
+				),
+				new ActualOrgVariable(
+						"SHARED",
+						"x",
+						SecretVisibility.SELECTED,
+						List.of("one")
+				)
+		);
+
+		OrganizationState settingsOnly = checker
+				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
+		assertThat(settingsOnly.actionVariables()).isEmpty();
+		verify(
+				1,
+				getRequestedFor(
+						urlPathEqualTo("/orgs/my-org/actions/variables")
+				)
+		);
 	}
 
 }

@@ -15,6 +15,7 @@ import io.github.arlol.githubcheck.actual.ActualBranchProtection;
 import io.github.arlol.githubcheck.actual.ActualEnvironment;
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
+import io.github.arlol.githubcheck.actual.ActualOrgVariable;
 import io.github.arlol.githubcheck.actual.ActualOrganization;
 import io.github.arlol.githubcheck.actual.ActualPages;
 import io.github.arlol.githubcheck.actual.ActualRepository;
@@ -22,6 +23,7 @@ import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.actual.ActualSelectedActions;
+import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.actual.StatusCheck;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
@@ -31,6 +33,7 @@ import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.EnvironmentReviewerType;
 import io.github.arlol.githubcheck.client.OrgActionsPermissionsResponse;
 import io.github.arlol.githubcheck.client.OrgSecretResponse;
+import io.github.arlol.githubcheck.client.OrgVariableResponse;
 import io.github.arlol.githubcheck.client.OrganizationResponse;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
@@ -41,6 +44,7 @@ import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.SelectedActions;
 import io.github.arlol.githubcheck.client.SimpleUser;
+import io.github.arlol.githubcheck.client.VariableResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 
 /**
@@ -736,6 +740,22 @@ public final class ActualTypes {
 
 	public static ActualSecret secret(Secret response) {
 		return new ActualSecret(response.name(), response.updatedAt());
+	}
+
+	public static ActualVariable variable(VariableResponse response) {
+		return new ActualVariable(response.name(), response.value());
+	}
+
+	public static ActualOrgVariable orgVariable(
+			OrgVariableResponse response,
+			List<String> selectedRepositories
+	) {
+		return new ActualOrgVariable(
+				response.name(),
+				response.value(),
+				response.visibility(),
+				selectedRepositories
+		);
 	}
 
 	public static ActualWorkflowPermissions workflowPermissions(

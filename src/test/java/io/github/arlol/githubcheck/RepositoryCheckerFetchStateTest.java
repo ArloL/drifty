@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
+import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
@@ -175,6 +176,12 @@ class RepositoryCheckerFetchStateTest {
 		assertThat(state.environments()).containsOnlyKeys("prod");
 		assertThat(state.environmentSecrets().get("prod")).singleElement()
 				.satisfies(s -> assertThat(s.name()).isEqualTo("DEPLOY_KEY"));
+		assertThat(state.actionVariables()).singleElement()
+				.extracting(ActualVariable::value)
+				.isEqualTo("eu");
+		assertThat(state.environmentVariables().get("prod")).singleElement()
+				.extracting(ActualVariable::name)
+				.isEqualTo("TIER");
 		assertThat(state.workflowPermissions().defaultWorkflowPermissions())
 				.isEqualTo(
 						WorkflowPermissions.DefaultWorkflowPermissions.WRITE
@@ -356,6 +363,17 @@ class RepositoryCheckerFetchStateTest {
 						.willReturn(aResponse().withStatus(403))
 		);
 		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/actions/variables"))
+						.willReturn(aResponse().withStatus(403))
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/owner/repo/environments/prod/variables"
+						)
+				).willReturn(aResponse().withStatus(403))
+		);
+		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo/branches"))
 						.willReturn(okJson("[]"))
 		);
@@ -369,7 +387,9 @@ class RepositoryCheckerFetchStateTest {
 						Drifty.ManageMode.ALL_EXCEPT,
 						List.of(
 								Drifty.GroupName.ACTION_SECRETS,
-								Drifty.GroupName.RULESETS
+								Drifty.GroupName.RULESETS,
+								Drifty.GroupName.ACTION_VARIABLES,
+								Drifty.GroupName.ENVIRONMENT_VARIABLES
 						)
 				)
 		);
@@ -379,6 +399,22 @@ class RepositoryCheckerFetchStateTest {
 
 		assertThat(state.actionSecrets()).isEmpty();
 		assertThat(state.rulesets()).isEmpty();
+		assertThat(state.actionVariables()).isEmpty();
+		assertThat(state.environmentVariables()).isEmpty();
+		verify(
+				0,
+				getRequestedFor(
+						urlPathEqualTo("/repos/owner/repo/actions/variables")
+				)
+		);
+		verify(
+				0,
+				getRequestedFor(
+						urlPathEqualTo(
+								"/repos/owner/repo/environments/prod/variables"
+						)
+				)
+		);
 		verify(
 				0,
 				getRequestedFor(
@@ -549,6 +585,22 @@ class RepositoryCheckerFetchStateTest {
 						.willReturn(okJson("""
 								{"secrets": [{"name": "TOKEN"}]}
 								"""))
+		);
+		stubFor(
+				get(
+						urlPathEqualTo("/repos/owner/repo/actions/variables")
+				).willReturn(okJson("""
+						{"variables": [{"name": "REGION", "value": "eu"}]}
+						"""))
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/owner/repo/environments/prod/variables"
+						)
+				).willReturn(okJson("""
+						{"variables": [{"name": "TIER", "value": "prod"}]}
+						"""))
 		);
 		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo/environments"))

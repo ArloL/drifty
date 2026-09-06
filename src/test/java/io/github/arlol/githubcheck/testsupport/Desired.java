@@ -45,6 +45,7 @@ public final class Desired {
 	private static final Drifty.ActionsPermissions ACTIONS_PERMISSIONS;
 	private static final Drifty.SelectedActions SELECTED_ACTIONS;
 	private static final Drifty.OrgSecret ORG_SECRET;
+	private static final Drifty.OrgVariable ORG_VARIABLE;
 
 	static {
 		try (var evaluator = ConfigEvaluator.preconfigured()) {
@@ -72,6 +73,7 @@ public final class Desired {
 			SELECTED_ACTIONS = root.get("selectedActions")
 					.as(Drifty.SelectedActions.class);
 			ORG_SECRET = root.get("orgSecret").as(Drifty.OrgSecret.class);
+			ORG_VARIABLE = root.get("orgVariable").as(Drifty.OrgVariable.class);
 		}
 	}
 
@@ -169,6 +171,11 @@ public final class Desired {
 	/** An organization secret with the default {@code private} visibility. */
 	public static Drifty.OrgSecret orgSecret() {
 		return ORG_SECRET;
+	}
+
+	/** An organization variable with the default {@code private} visibility. */
+	public static Drifty.OrgVariable orgVariable(String value) {
+		return ORG_VARIABLE.withValue(value);
 	}
 
 	public static Drifty.BypassActor bypassActor(

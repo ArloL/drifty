@@ -4,6 +4,7 @@ import java.util.List;
 
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
+import io.github.arlol.githubcheck.actual.ActualOrgVariable;
 import io.github.arlol.githubcheck.actual.ActualOrganization;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 
@@ -21,11 +22,31 @@ public record OrganizationState(
 		ActualOrganization settings,
 		ActualOrgActionsPermissions actionsPermissions,
 		ActualWorkflowPermissions workflowPermissions,
-		List<ActualOrgSecret> actionSecrets
+		List<ActualOrgSecret> actionSecrets,
+		List<ActualOrgVariable> actionVariables
 ) {
 
 	public OrganizationState {
 		actionSecrets = List.copyOf(actionSecrets);
+		actionVariables = List.copyOf(actionVariables);
+	}
+
+	/** A state with nothing in the sections added after the first five. */
+	public OrganizationState(
+			String login,
+			ActualOrganization settings,
+			ActualOrgActionsPermissions actionsPermissions,
+			ActualWorkflowPermissions workflowPermissions,
+			List<ActualOrgSecret> actionSecrets
+	) {
+		this(
+				login,
+				settings,
+				actionsPermissions,
+				workflowPermissions,
+				actionSecrets,
+				List.of()
+		);
 	}
 
 }
