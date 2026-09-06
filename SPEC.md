@@ -96,7 +96,7 @@ Group names come from the `GroupName` typealias in `config/drifty.pkl`, which li
 
 An unmanaged group is not fetched, not compared, and not fixed. Skipping only the comparison would still send the request, and a repo in an org someone else administers — the case this exists for — is where those requests return 403.
 
-The same goes for the `--fix` preflight that aborts over secrets missing from `DRIFTY_GITHUB_SECRETS`: it only counts secrets in a managed group. An unmanaged `action_secrets` or `environment_secrets` declaration needs no value, because nothing will ever push it.
+The same goes for the `--fix` preflight that aborts over secrets missing from `DRIFTY_GITHUB_SECRETS`: it only counts secrets in a managed group. An unmanaged `action_secrets`, `environment_secrets` or `webhooks` declaration needs no value, because nothing will ever push it.
 
 The report names unmanaged groups but not their values:
 
@@ -112,6 +112,13 @@ An archived repo whose `archived` group is unmanaged is checked for nothing at a
 ### Missing Repos
 
 If a repo is listed in config but does not exist on GitHub, it is reported as `MISSING` and causes a non-zero exit code. drifty does not create repos — it only manages settings of existing repos.
+
+### What `--fix` Deletes
+
+Every keyed section reports an entry GitHub has and the config does not declare as `extra`. Whether `--fix` removes it depends on what the removal would discard:
+
+- **Deleted** when the config can recreate everything the deletion discards: rulesets, branch protections, webhooks, deployment branch policies, and runner groups other than the default.
+- **Reported and left alone** when the deletion discards something the config never held: secrets and variables (their values), environments (their secrets and history), custom property definitions (their values on every repository), code security configurations (their attachments), and every kind of membership — organization members, team members, collaborators, and repositories attached to a configuration. Each is reported with the reason `--fix` gives for not touching it.
 
 ## CLI Interface
 
@@ -349,6 +356,77 @@ The `DRIFTY_GITHUB_SECRETS` env var contains a JSON map. Keys are formed by conc
 - Repo action secret: `<repo>-<secret_name>`
 - Environment secret: `<repo>-<environment>-<secret_name>`
 - Org action secret: `org-<org>-<secret_name>`
+- Repo webhook secret: `<repo>-webhook-<name>`, where `<name>` is the key in `webhooks`
+- Org webhook secret: `org-<org>-webhook-<name>`
+
+### Action Variables
+
+Actions variables are plaintext, so the value is compared directly and no state file is involved:
+
+```pkl
+(defaultRepo) {
+  name = "my-repo"
+  actionsVariables { ["REGION"] = "eu" }
+  environments {
+    ["production"] = new Environment { variables { ["TIER"] = "prod" } }
+  }
+}
+```
+
+A missing variable is created, a drifted one updated. Variables on GitHub that the config does not name are reported as extra and never deleted. Environment variables live on `Environment.variables` under the `environment_variables` group and are fetched one listing per environment, the way environment secrets are.
+
+### Webhooks
+
+GitHub has no name for a hook — every repository hook is called `web` — so the key in `webhooks` is drifty's, and the `url` is what matches a config entry to a hook on GitHub. Two config entries with the same url are a config error reported at check time; two GitHub hooks with the same url match the first.
+
+```pkl
+(defaultRepo) {
+  name = "my-repo"
+  webhooks {
+    ["ci"] = new Webhook {
+      url = "https://ci.example.com/hook"
+      contentType = "json"
+      events { "push"; "pull_request" }
+      secret = true   // value under "my-repo-webhook-ci" in DRIFTY_GITHUB_SECRETS
+    }
+  }
+}
+```
+
+| Setting | GitHub default | Check | Fix |
+|---|---|---|---|
+| `url` | — | identity | — |
+| `contentType` | `"form"` | Yes | Yes |
+| `insecureSsl` | `false` | Yes | Yes |
+| `active` | `true` | Yes | Yes |
+| `events` | `["push"]` | Yes | Yes |
+| `secret` | `false` | Yes | Yes |
+
+The secret is the one field GitHub never returns, so drift on it is detected the way secrets are: the [state file](#state-file) records the hook's `updated_at` and the salted hash of the value drifty last pushed, under `webhook_secrets` beside `action_secrets`. Every drift on a hook is fixed with one request carrying the whole desired config, secret included when declared, and the new `updated_at` is recorded. Hooks on GitHub that the config does not declare are deleted by `--fix`: a hook is nothing but its config.
+
+### Custom Property Values
+
+```pkl
+(defaultRepo) {
+  name = "my-repo"
+  customProperties { ["tier"] = "gold"; ["internal"] = "true" }
+  customMultiSelectProperties { ["tags"] { "java"; "cli" } }
+}
+```
+
+Two mappings because a `multi_select` property holds a list. `true_false` properties take the strings `"true"` and `"false"`, which is how GitHub stores them. Only the properties the config names are compared: a property with a value on GitHub that the config does not mention is not drift, since the organization's schema — not the repository — decides which properties exist. The fix is one PATCH listing the drifted properties.
+
+### Collaborators
+
+```pkl
+(defaultRepo) {
+  name = "my-repo"
+  collaborators { ["octocat"] = "push" }
+  teamPermissions { ["core"] = "maintain" }
+}
+```
+
+Direct collaborators only: a member who reaches the repository through an org role or a team is not a collaborator to reconcile. Permissions are the config's vocabulary (`pull`, `triage`, `push`, `maintain`, `admin`), read from the permission booleans GitHub returns. A user who has been invited but has not accepted appears in no listing, so the entry is reported missing until they accept; the PUT that fixes it is idempotent and does not resend the invitation. Team access is written through `PUT /orgs/{org}/teams/{slug}/repos/{owner}/{repo}`, so `teamPermissions` on a repository under a personal account is a config error reported at check time. Collaborators and teams on GitHub that the config does not list are reported and left in place.
 
 ### Environments
 
@@ -372,14 +450,24 @@ Per-repo setting:
 
 ## Organizations
 
-Every key of the `organizations` mapping is checked as well as its repositories. Four drift groups cover it, named in the `OrgGroupName` typealias in `config/drifty.pkl`:
+Every key of the `organizations` mapping is checked as well as its repositories. Thirteen drift groups cover it, named in the `OrgGroupName` typealias in `config/drifty.pkl`:
 
-| Group | Endpoint |
-|---|---|
-| `org_settings` | `GET`/`PATCH /orgs/{org}` |
-| `org_actions_permissions` | `/orgs/{org}/actions/permissions` and `.../selected-actions` |
-| `org_workflow_permissions` | `/orgs/{org}/actions/permissions/workflow` |
-| `org_action_secrets` | `/orgs/{org}/actions/secrets` |
+| Group | Endpoint | Extras |
+|---|---|---|
+| `org_settings` | `GET`/`PATCH /orgs/{org}` | — |
+| `org_actions_permissions` | `/orgs/{org}/actions/permissions`, `.../selected-actions` and `.../repositories` | — |
+| `org_workflow_permissions` | `/orgs/{org}/actions/permissions/workflow` | — |
+| `org_action_secrets` | `/orgs/{org}/actions/secrets` | reported |
+| `org_action_variables` | `/orgs/{org}/actions/variables` | reported |
+| `org_webhooks` | `/orgs/{org}/hooks` | deleted |
+| `org_custom_properties` | `/orgs/{org}/properties/schema` | reported |
+| `org_rulesets` | `/orgs/{org}/rulesets` | deleted |
+| `org_code_security_configurations` | `/orgs/{org}/code-security/configurations` | reported |
+| `org_teams` | `/orgs/{org}/teams` | reported |
+| `org_members` | `/orgs/{org}/members`, `/orgs/{org}/memberships/{username}` | reported |
+| `org_runner_groups` | `/orgs/{org}/actions/runner-groups` | deleted |
+
+`GET /orgs/{org}` is sent even when `org_settings` is unmanaged: it is how drifty learns the organization exists, and any member can read it. Every other request is guarded by its group, so an organization on a plan without runner groups excludes `org_runner_groups` through `managed` and never sends the request that would 404.
 
 Partial management works as it does per repository, through a `managed` block on the organization. Its `groups` listing is typed `OrgGroupName`, so naming a repository group there fails at config-eval rather than silently managing nothing.
 
@@ -437,8 +525,9 @@ Three groups of `PATCH` fields are deliberately absent from both tables. `billin
 | `allowedActions` | `"all"` | Yes | Yes |
 | `shaPinningRequired` | `false` | Yes | Yes |
 | `selectedActions` (GitHub-owned, verified, patterns) | unset | Yes | Yes |
+| `selectedRepositories` | `[]` | Yes | Yes |
 
-The allow-list lives on a second endpoint and only exists under `allowedActions = "selected"`. drifty reads it whenever GitHub answers `allowed_actions = "selected"` — so an organization already in that mode draws the second request even from a config that declares no `selectedActions` — and writes it only when the config does declare one. Which repositories are selected under `enabledRepositories = "selected"` is not managed — see [Future Considerations](#future-considerations).
+The allow-list lives on a second endpoint and only exists under `allowedActions = "selected"`. drifty reads it whenever GitHub answers `allowed_actions = "selected"` — so an organization already in that mode draws the second request even from a config that declares no `selectedActions` — and writes it only when the config does declare one. The repository selection is the same shape on a third endpoint: read whenever GitHub answers `enabled_repositories = "selected"`, compared when either side is `selected`, and written as ids resolved from the listing drifty already has for the account.
 
 ### Organization Workflow Permissions
 
@@ -460,6 +549,111 @@ Values come from `DRIFTY_GITHUB_SECRETS` under `org-<org>-<secret_name>`. The `o
 ```
 
 Secrets on GitHub that the config does not declare are reported as extra and never deleted.
+
+### Organization Action Variables
+
+`OrgVariable` is the org twin of `OrgSecret` with a value: `value`, `visibility` and — under `visibility = "selected"` — `selectedRepositories` are compared, and one request writes all three. No state file is involved. Extra variables are reported and never deleted.
+
+### Organization Webhooks
+
+The same `Webhook` class as [repository webhooks](#webhooks), keyed the same way, with the secret under `org-<org>-webhook-<name>` and the state under the organization's `webhook_secrets`. Extra hooks are deleted by `--fix`.
+
+### Custom Property Definitions
+
+```pkl
+customProperties {
+  ["tier"] = new CustomProperty {
+    valueType = "single_select"
+    required = true
+    defaultValue = "silver"
+    allowedValues { "gold"; "silver" }
+  }
+  ["tags"] = new CustomProperty { valueType = "multi_select"; allowedValues { "java"; "cli" } }
+}
+```
+
+| Setting | GitHub default | Check | Fix |
+|---|---|---|---|
+| `valueType` | — | Yes | Yes |
+| `required` | `false` | Yes | Yes |
+| `defaultValue` / `defaultValues` (multi_select) | unset | Yes | Yes |
+| `description` | unset | Yes | Yes |
+| `allowedValues` | `[]` | Yes | Yes |
+| `valuesEditableBy` | `"org_actors"` | Yes | Yes |
+
+One PUT per drifted property, which replaces the definition whole. Definitions whose `source_type` is `enterprise` are not the organization's to change and are dropped before comparing. Extra definitions are reported and never deleted: deleting one discards its value on every repository in the organization.
+
+### Organization Rulesets
+
+`OrgRuleset` extends `Ruleset`: every rule and condition the [repository group](#repository-rulesets) handles, plus the repository conditions only an organization ruleset has.
+
+| Condition | Check | Fix |
+|---|---|---|
+| `repositoryNameInclude` / `repositoryNameExclude` | Yes | Yes |
+| `repositoryNameProtected` | Yes | Yes |
+| `repositoryPropertyInclude` / `repositoryPropertyExclude` | Yes | Yes |
+
+`repository_id` conditions are not offered: the config names repositories, and a name condition covers the same ground without an id lookup. Rulesets whose `source_type` is `Enterprise` are dropped before comparing, on the organization side as on the repository side. Extra rulesets are deleted by `--fix`.
+
+### Code Security Configurations
+
+```pkl
+codeSecurityConfigurations {
+  ["baseline"] = new CodeSecurityConfiguration {
+    secretScanning = "enabled"
+    secretScanningPushProtection = "enabled"
+    defaultForNewRepos = "all"
+    repositories { "example-service" }
+  }
+}
+```
+
+Defaults are GitHub's POST defaults, so a configuration created with only a name reports no drift. Every one of the seventeen `enabled`/`disabled`/`not_set` toggles, the description and the enforcement are compared; only configurations whose `target_type` is `organization` are, since the GitHub-provided global ones are not the organization's to change. Three writes, each its own fix so a rejected one is not reported as having failed the others: the settings go to a PATCH (a POST for a missing configuration), `defaultForNewRepos` to `PUT .../{id}/defaults`, and missing attachments to `POST .../{id}/attach` with `scope = selected`. Repositories attached outside the config are reported and left attached; extra configurations are reported and never deleted. Runner-label and bypass-reviewer sub-options are not managed.
+
+### Teams
+
+```pkl
+teams {
+  ["core"] = new Team {
+    description = "Owns the services"
+    maintainers { "octocat" }
+    members { "hubot" }
+  }
+}
+```
+
+Teams are matched by slug. GitHub derives the slug from the name on creation, so a key that is not the slug of its own name is created under one slug and reported missing under the other on the next run; `name` defaults to the key. Membership is compared per role as two sets, read from `GET .../members?role=maintainer` and `?role=member`, and fixed with one `PUT .../memberships/{username}` per missing login. `parent` names a slug and is written as the id GitHub wants, resolved from the listing drifty already read. Members on GitHub that the config does not list, and teams the config does not declare, are reported and left in place. Team repository access is managed from the repository side by `teamPermissions`.
+
+### Organization Members
+
+```pkl
+members { ["octocat"] = "admin"; ["hubot"] = "member" }
+```
+
+Two listings, `?role=admin` and `?role=member`, give every member's role without a request per user. A login missing from both is reported missing and fixed with `PUT /orgs/{org}/memberships/{login}`, which invites the user; a pending invitation is in neither listing, so the entry stays missing until they accept. Extras are reported and never removed.
+
+### Runner Groups
+
+```pkl
+runnerGroups {
+  ["gpu"] = new RunnerGroup {
+    visibility = "selected"
+    selectedRepositories { "example-service" }
+    restrictedToWorkflows = true
+    selectedWorkflows { "example-org/example-service/.github/workflows/train.yml@refs/heads/main" }
+  }
+}
+```
+
+| Setting | GitHub default | Check | Fix |
+|---|---|---|---|
+| `visibility` | `"all"` | Yes | Yes |
+| `selectedRepositories` | `[]` | under `selected` | Yes |
+| `allowsPublicRepositories` | `false` | Yes | Yes |
+| `restrictedToWorkflows` | `false` | Yes | Yes |
+| `selectedWorkflows` | `[]` | Yes | Yes |
+
+The group GitHub marks `default` is never extra and never deleted; naming it in the config manages its settings. Selected repositories are read only for groups whose visibility is `selected` and written with `PUT .../repositories` as ids resolved from the account's listing. Every other undeclared group is deleted by `--fix`. Runner groups exist only on paid plans, so the group is one an operator on a free organization excludes through `managed`.
 
 ### Report
 
@@ -517,13 +711,19 @@ last observed and a salted SHA-256 hash of the value it last pushed.
           "updated_at": "2026-01-02T03:04:05Z",
           "value_hash": "ef56…"
         }
+      },
+      "webhook_secrets": {
+        "audit": {
+          "updated_at": "2026-01-02T03:04:05Z",
+          "value_hash": "0123…"
+        }
       }
     }
   }
 }
 ```
 
-`organizations` was added without a version bump: a file written before organization secrets existed simply has none, and the reader ignores properties it does not know, so `version` stays 1 and older state files load unchanged.
+`organizations` and `webhook_secrets` were added without a version bump: a file written before they existed simply has neither, and the reader ignores properties it does not know, so `version` stays 1 and older state files load unchanged. A repository record carries `webhook_secrets` beside its `action_secrets` and `environment_secrets`, keyed by the config's name for the hook.
 
 On each run drifty compares the recorded values against GitHub and the desired
 config:
@@ -596,14 +796,9 @@ The tool is run **on-demand** (e.g. via `workflow_dispatch`). No scheduled cron 
 
 These are explicitly out of scope for the initial version but acknowledged as potential additions:
 
-- **Org-level rulesets** — manage rulesets at the org level (full CRUD, same as repo-level). Repo-level first.
-- **Code security configurations** — the org-level replacement for the per-repo security toggles. The `*_enabled_for_new_repositories` fields left out of [Organization Settings](#organization-settings) are the API GitHub is closing down in their favour.
-- **Custom properties** — manage the org-level property definitions, and their values per repo.
-- **Org webhooks** — full lifecycle, alongside the repo webhooks below.
-- **Teams and members** — team membership, org membership and role, and collaborator access per repo.
-- **Runner groups** — self-hosted runner groups and which repositories may use them.
-- **Actions variables** — org- and repo-level Actions variables, which are plaintext and so need no state file.
-- **Actions repository selection** — which repositories are selected under `enabledRepositories = "selected"`. The config accepts the policy value and drifty writes it; GitHub keeps whatever selection the org already had.
 - **GraphQL for bulk reads** — REST first, profile and optimize later.
-- **Webhooks** — full lifecycle management of repo webhooks (URL, events, content type, secrets via `DRIFTY_GITHUB_SECRETS`).
 - **Repository lifecycle** — create/delete/transfer repos is out of scope. drifty only manages settings of existing repos plus archival.
+- **Push and repository-target rulesets** — different rule vocabularies from the branch and tag rulesets drifty manages.
+- **Code security configuration sub-options** — runner labels for default setup and bypass reviewers for delegated bypass.
+- **Custom repository roles** as collaborator permissions.
+- **Enterprise-owned entities** of any kind — rulesets, custom properties, teams — drifty drops before comparing; managing them is the enterprise's API, not the organization's.

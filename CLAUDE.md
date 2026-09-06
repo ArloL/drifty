@@ -75,6 +75,43 @@ status.
   ones that fail again. Collapsing that back to
   "the request threw, so nothing was fixed" is what made a run report every
   setting unfixed after GitHub had already changed most of them.
+- **`--fix` deletes only what the config can recreate.** Rulesets, branch
+  protections, webhooks, deployment branch policies and non-default runner
+  groups are deleted when extra; secrets, variables, environments, custom
+  property definitions, code security configurations and every kind of
+  membership are reported with a reason and left alone. A new keyed group
+  picks one of the two and says why in its class comment; SPEC.md's "What
+  `--fix` Deletes" lists both sets.
+- **Enterprise-owned entities never reach a group.** The checker drops
+  rulesets whose `source_type` is `Enterprise`, custom properties whose
+  `source_type` is `enterprise`, teams whose `type` is `enterprise` and code
+  security configurations whose `target_type` is `global` before building
+  the state, the way `RepositoryChecker.fetchRulesets` drops organization
+  rulesets. Reporting them as extra produces a fix that always fails.
+- **`Ruleset` is `open` so `OrgRuleset` can extend it.** The generated
+  `Repository.rulesets` is therefore `Map<String, ? extends Ruleset>`; a
+  method taking the repository's rulesets declares that wildcard, and
+  `RulesetComparison` takes a `Drifty.Ruleset` so both groups share it.
+- **A drifted entry with several endpoints gets one `DriftFix` per
+  endpoint.** `OrgActionsPermissionsDriftGroup` (policy, allow-list,
+  repository selection), `OrgCodeSecurityConfigurationsDriftGroup` (settings,
+  defaults, attachments), `OrgRunnerGroupsDriftGroup` (settings, selection)
+  and `OrgTeamsDriftGroup` (settings, members, maintainers) all do this so a
+  rejected write is not reported as having failed the others. A missing entry
+  is the exception: its POST returns the id the other writes need, so one fix
+  does all of them.
+- **Names are resolved to ids at fix time, never at check time.** Repository
+  names resolve through the id map the checker builds from the account's
+  listing (`repositoryIds`); a name that is not in it fails the whole fix
+  rather than writing a shorter list and reporting success. Logins and team
+  slugs the environment group needs resolve with one request each, only when
+  a fix runs.
+- **`schemas/` holds the endpoint shapes.** It is gitignored;
+  `python3 download-schemas.py --filter '/orgs/{org}/...'` recreates the
+  part you need. Check a new record's field names and enums there before
+  writing it — `dependabot_delegated_alert_dismissal` exists,
+  `code_security` is a separate field from `advanced_security`, and the
+  collaborator listing carries `permissions` booleans beside `role_name`.
 - `./mvnw test` also builds and runs the native test image when GraalVM is
   the JDK. Iterate with `-DskipNativeTests`, run the full thing once before
   pushing.

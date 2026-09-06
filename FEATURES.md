@@ -323,3 +323,118 @@ the key from colliding with a repository's `<repo>-<secret>` when an
 organization and a repository share a name. The key was added without a version
 bump, and `isEmpty()` accounts for org records so a run that records only those
 still writes the file.
+
+## ~~37. Environment Reviewers, Branch Policies and Extra Environments~~ DONE
+
+Implemented: `Environment` gained `preventSelfReview`, `reviewerUsers`,
+`reviewerTeams`, `protectedBranches`, `customBranchPolicies`,
+`deploymentBranchPatterns` and `deploymentTagPatterns`. Reviewers are compared
+as the set of `User:<login>` and `Team:<slug>` strings; GitHub's PUT wants
+numeric ids, so the fix resolves each through `GET /users/{login}` and
+`GET /orgs/{org}/teams/{slug}` at fix time only. Deployment branch policies are
+compared as `branch:<pattern>` / `tag:<pattern>` strings, read only when
+either side has custom policies on (the listing 404s otherwise), and each
+policy is its own `DriftFix`: a missing one is created, an extra one deleted.
+Extra environments are reported and left alone.
+
+## ~~38. Branch Protection Completions~~ DONE
+
+Implemented: `strictStatusChecks`, `allowDeletions`, `blockCreations`,
+`lockBranch`, `allowForkSyncing`, the dismissal restrictions
+(`dismissalUsers` / `dismissalTeams` / `dismissalApps`) and the bypass
+allowances (`bypassPullRequestUsers` / `-Teams` / `-Apps`) — the rest of the
+PUT body. `strictStatusChecks` replaces the `false` the comparison and the
+request had hardcoded.
+
+## ~~39. Ruleset Completions and `RulesetComparison`~~ DONE
+
+Implemented: `Ruleset` gained `target`, `enforcement`, `excludePatterns`,
+`strictRequiredStatusChecks`, the full `pullRequest` parameters (replacing
+`requiredReviewCount`; the rule's presence is what says pull requests are
+required), `mergeQueue`, `workflows`, `filePathRestrictions`,
+`maxFilePathLength`, `fileExtensionRestrictions` and `maxFileSize`. The
+comparison and request building moved out of `RulesetDriftGroup` into
+`RulesetComparison`, because the organization group needs the same code with
+a different endpoint.
+
+## ~~40. Actions Variables~~ DONE
+
+Implemented: `action_variables`, `environment_variables` and
+`org_action_variables`. Plaintext, so the value is compared directly and no
+state file is involved; a missing variable is POSTed and a drifted one
+PATCHed. `OrgVariable` is `OrgSecret` with a value, and its selected
+repositories are resolved and compared the way the org secrets group's are.
+Extras are reported and never deleted, since deleting one discards a value the
+config never held.
+
+## ~~41. Webhooks~~ DONE
+
+Implemented: `webhooks` and `org_webhooks` over one `Webhook` class, keyed by
+a name of the operator's choosing because GitHub has no name for a hook; the
+url is the identity. The secret is the one field GitHub never returns, so it
+is handled the way secrets are: `DriftyState` gained `webhook_secrets` on both
+the repository and the organization record, the `--fix` preflight counts a
+hook with `secret = true` under `<repo>-webhook-<name>` and
+`org-<org>-webhook-<name>`, and `WebhookReconciler` — the logic the two groups
+share — fixes every drift with one request carrying the whole config and
+records the new `updated_at`. Extra hooks are deleted: a hook is nothing but
+its config.
+
+## ~~42. Custom Properties~~ DONE
+
+Implemented: `org_custom_properties` manages the definitions and
+`custom_properties` the values. Two value mappings on the repository
+(`customProperties` and `customMultiSelectProperties`) because Pkl's codegen
+turns `String | Listing<String>` into `Object`; `ActualTypes` splits a
+`default_value` or `value` by its JSON shape the same way. Only the properties
+the config names are compared on a repository, since the organization's schema
+decides which exist. Enterprise-owned definitions are dropped before comparing
+and extra definitions are reported, never deleted.
+
+## ~~43. Organization Rulesets~~ DONE
+
+Implemented: `OrgRuleset extends Ruleset` in the schema — `Ruleset` became
+`open` for it, which turns `Repository.rulesets` into
+`Map<String, ? extends Ruleset>` on the Java side — with the repository name
+and property conditions only an organization ruleset has.
+`OrgRulesetDriftGroup` is `RulesetDriftGroup` on the organization endpoints
+plus those conditions; everything else is `RulesetComparison`'s.
+`RulesetSourceType` gained `Enterprise`, and both sides drop enterprise
+rulesets before comparing.
+
+## ~~44. Code Security Configurations~~ DONE
+
+Implemented: `org_code_security_configurations`. The seventeen
+`enabled`/`disabled`/`not_set` toggles sit in one map on
+`ActualCodeSecurityConfiguration`, keyed by wire name, and the group compares
+them from a table. Three writes per configuration, each its own `DriftFix`:
+settings (PATCH, or POST for a missing one), `defaultForNewRepos`
+(`PUT .../defaults`, read from the defaults listing) and attachments
+(`POST .../attach` with the ids resolved from the account's listing). Global
+configurations are dropped; extra configurations and repositories attached
+outside the config are reported and left alone.
+
+## ~~45. Teams, Organization Members and Collaborators~~ DONE
+
+Implemented: `org_teams`, `org_members` and `collaborators`. Teams are matched
+by slug, their members read per role and fixed with one membership PUT per
+missing login, and a `parent` slug is written as the id resolved from the
+listing already read. Members come from two role listings and are fixed with
+the membership PUT that also invites. Collaborators are the direct ones only;
+the permission is read from GitHub's permission booleans, which spell
+`triage` and `maintain` where `role_name` does not agree with the config's
+vocabulary, and team access is written through the organization's team
+endpoint — a repository under a personal account reports a `teamPermissions`
+entry as a config error. Every kind of membership GitHub has that the config
+does not list is reported and left in place.
+
+## ~~46. Runner Groups and Actions Repository Selection~~ DONE
+
+Implemented: `org_runner_groups`, matched by name, with settings on a PATCH
+and the repository selection on its own PUT; the default group is never extra
+and never deleted, every other undeclared group is. `ActionsPermissions`
+gained `selectedRepositories`, read whenever GitHub answers
+`enabled_repositories = "selected"`, compared when either side is `selected`
+and written through `PUT /orgs/{org}/actions/permissions/repositories` — the
+item the spec had deferred. `OrgActionsPermissionsDriftGroup` now receives the
+repository id map the secrets group already did.
