@@ -25,14 +25,18 @@ public final class Fields {
 	private Fields() {
 	}
 
+	private static PklNode.Scalar scalar(String value) {
+		return value == null ? PklNode.Scalar.nullValue()
+				: PklNode.Scalar.of(value);
+	}
+
 	public static Optional<PklNode.Member> field(
 			String name,
 			String actual,
 			String defaultValue
 	) {
 		return Objects.equals(actual, defaultValue) ? Optional.empty()
-				: Optional
-						.of(new PklNode.Field(name, PklNode.Scalar.of(actual)));
+				: Optional.of(new PklNode.Field(name, scalar(actual)));
 	}
 
 	public static Optional<PklNode.Member> field(
@@ -90,7 +94,7 @@ public final class Fields {
 	}
 
 	public static Optional<PklNode.Member> required(String name, String value) {
-		return Optional.of(new PklNode.Field(name, PklNode.Scalar.of(value)));
+		return Optional.of(new PklNode.Field(name, scalar(value)));
 	}
 
 	public static Optional<PklNode.Member> required(String name, long value) {
