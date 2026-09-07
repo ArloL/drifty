@@ -45,6 +45,37 @@ class DriftyFileExporterTest {
 		);
 	}
 
+	/**
+	 * {@code schemaUri} is interpolated straight into {@code amends "..."}, so
+	 * a Windows path's backslashes have to go through the same quoting every
+	 * other string in the file does — {@code \a} is not a valid Pkl escape
+	 * sequence, and an unescaped one made the exported file fail to parse at
+	 * all. This does not depend on actually running on Windows:
+	 * {@code SchemaDefaults.of} would normally normalize a filesystem path to a
+	 * {@code file:} URI before it reached here (see
+	 * {@code SchemaDefaultsTest}), but this test pins what happens if a raw
+	 * backslash-bearing string ever does reach this method directly.
+	 */
+	@Test
+	void aWindowsStylePathInTheSchemaUriIsEscapedRatherThanBreakingTheFile() {
+		var organizations = List.<PklNode.Member>of(
+				new PklNode.Field("acme", new PklNode.Obj(List.of()))
+		);
+
+		String file = DriftyFileExporter.file(
+				"D:\\a\\drifty\\drifty\\config\\drifty.pkl",
+				"1.2.3",
+				NOW,
+				organizations,
+				List.of()
+		);
+
+		assertThat(file).contains(
+				"amends \"D:\\\\a\\\\drifty\\\\drifty\\\\config\\\\drifty.pkl\"\n"
+		);
+		assertThat(file).doesNotContain("\\a\\drifty\\drifty");
+	}
+
 	@Test
 	void emptyUsersListOmitsTheUsersBlockEntirely() {
 		var organizations = List.<PklNode.Member>of(

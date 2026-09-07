@@ -106,8 +106,12 @@ final class ExportRunner {
 			return anyFailed ? 1 : 0;
 		}
 
+		// defaults.uri(), not the raw schemaUri: the file's amends line must
+		// name the exact URI the diff was evaluated against, and
+		// SchemaDefaults is what normalizes a filesystem path (a Windows one
+		// included) into the file: URI that both sides then agree on.
 		String text = DriftyFileExporter.file(
-				schemaUri,
+				defaults.uri(),
 				version(),
 				Instant.now(),
 				organizations,
