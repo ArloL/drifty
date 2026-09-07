@@ -64,7 +64,11 @@ public final class PklWriter {
 						scalar.quoted() ? quote(scalar.value()) : scalar.value()
 				)
 				.append('\n');
-		case PklNode.Note note -> writeNote(out, note, depth);
+		case PklNode.Note note -> throw new IllegalArgumentException(
+				"a Field's value is never a Note — " + field.name()
+						+ " would lose its name; add the Note as a sibling "
+						+ "Member instead"
+		);
 		case PklNode.Obj obj -> {
 			out.append(indent(depth)).append(name).append(" {\n");
 			writeMembers(out, obj.members(), depth + 1);

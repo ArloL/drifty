@@ -122,6 +122,21 @@ public final class Fields {
 		return Optional.of(new PklNode.Field(name, scalar(value)));
 	}
 
+	/**
+	 * A {@code name -> scalar value} mapping entry, unconditionally: an
+	 * organization member's role, a variable's value and a collaborator's
+	 * permission are all a listing key paired with GitHub's current value for
+	 * it, with no schema default to diff against and drop the entry for — the
+	 * mapping itself is what is present or absent, the way
+	 * {@code EnvironmentExporter.variableEntries},
+	 * {@code RepositoryExporter.actionsVariableEntries},
+	 * {@code RepositoryExporter.collaboratorEntries} and
+	 * {@code AccountExporter.memberEntry} each built this by hand before.
+	 */
+	public static PklNode.Member entry(String name, String value) {
+		return new PklNode.Field(name, scalar(value));
+	}
+
 	public static Optional<PklNode.Member> required(String name, long value) {
 		return Optional.of(new PklNode.Field(name, PklNode.Scalar.of(value)));
 	}

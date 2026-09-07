@@ -139,13 +139,11 @@ public final class EnvironmentExporter {
 			List<ActualVariable> variables
 	) {
 		return variables.stream()
-				.sorted(Comparator.comparing(ActualVariable::name)).<PklNode
-						.Member>map(
-								variable -> new PklNode.Field(
-										variable.name(),
-										PklNode.Scalar.of(variable.value())
-								)
-						)
+				.sorted(Comparator.comparing(ActualVariable::name))
+				.map(
+						variable -> Fields
+								.entry(variable.name(), variable.value())
+				)
 				.toList();
 	}
 

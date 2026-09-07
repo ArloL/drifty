@@ -28,6 +28,19 @@ class FieldsTest {
 				.contains(new PklNode.Field("name", PklNode.Scalar.of("")));
 	}
 
+	/**
+	 * The one shape common to a variable's value, a collaborator's permission
+	 * and an organization member's role: a mapping key paired with GitHub's
+	 * current value, unconditionally — there is no schema default for a key
+	 * that does not exist yet to compare against and drop the entry for.
+	 */
+	@Test
+	void anEntryPairsANameWithAScalarValueUnconditionally() {
+		assertThat(Fields.entry("region", "us-east-1")).isEqualTo(
+				new PklNode.Field("region", PklNode.Scalar.of("us-east-1"))
+		);
+	}
+
 	@Test
 	void aRequiredNullableFieldWritesAnExplicitNullRatherThanDroppingIt() {
 		assertThat(Fields.required("actorId", (Long) null)).contains(

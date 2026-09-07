@@ -524,13 +524,11 @@ public final class RepositoryExporter {
 			List<ActualVariable> variables
 	) {
 		return variables.stream()
-				.sorted(Comparator.comparing(ActualVariable::name)).<PklNode
-						.Member>map(
-								variable -> new PklNode.Field(
-										variable.name(),
-										PklNode.Scalar.of(variable.value())
-								)
-						)
+				.sorted(Comparator.comparing(ActualVariable::name))
+				.map(
+						variable -> Fields
+								.entry(variable.name(), variable.value())
+				)
 				.toList();
 	}
 
@@ -636,13 +634,8 @@ public final class RepositoryExporter {
 	) {
 		return permissions.entrySet()
 				.stream()
-				.sorted(Map.Entry.comparingByKey()).<PklNode
-						.Member>map(
-								entry -> new PklNode.Field(
-										entry.getKey(),
-										PklNode.Scalar.of(entry.getValue())
-								)
-						)
+				.sorted(Map.Entry.comparingByKey())
+				.map(e -> Fields.entry(e.getKey(), e.getValue()))
 				.toList();
 	}
 
