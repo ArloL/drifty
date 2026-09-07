@@ -11,7 +11,6 @@ import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis.BypassReviewer;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
-import io.github.arlol.githubcheck.client.WorkflowPermissions.DefaultWorkflowPermissions;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
 /**
@@ -49,7 +48,7 @@ public final class RepositoryExporter {
 
 	private static final String VISIBILITY_NOT_WRITABLE = "drifty reports it but never changes it: public to private breaks forks, private to public exposes code";
 
-	private static final String ARCHIVED_NOTE = "security settings are not read for an archived repository";
+	private static final String ARCHIVED_NOTE = "drifty checks only archived on an archived repository, so its other settings are neither compared nor exported";
 
 	private RepositoryExporter() {
 	}
@@ -314,7 +313,8 @@ public final class RepositoryExporter {
 		return Fields.members(
 				Fields.field(
 						"defaultWorkflowPermissions",
-						wire(actual.defaultWorkflowPermissions()),
+						AccountExporter
+								.wire(actual.defaultWorkflowPermissions()),
 						base.defaultWorkflowPermissions.toString()
 				),
 				Fields.field(
@@ -345,16 +345,6 @@ public final class RepositoryExporter {
 		case PUBLIC -> "public";
 		case PRIVATE -> "private";
 		case INTERNAL -> "internal";
-		};
-	}
-
-	/**
-	 * The same mismatch as {@link #wire(RepositoryVisibility)}, for READ/WRITE.
-	 */
-	private static String wire(DefaultWorkflowPermissions value) {
-		return switch (value) {
-		case READ -> "read";
-		case WRITE -> "write";
 		};
 	}
 

@@ -217,10 +217,13 @@ class RepositoryExporterTest {
 				base.mergeCommitTitle(),
 				base.mergeCommitMessage()
 		);
-		// Security flags read false (not their defaults) because the checker
-		// never fetches them for an archived repository; a broken archived
-		// guard would leak these as real drift instead of staying silent.
-		ActualSecurityAndAnalysis unreadSecurity = new ActualSecurityAndAnalysis(
+		// Values that differ from every default, so a broken archived guard
+		// would leak them as real drift instead of staying silent — not
+		// values the checker actually failed to read: security_and_analysis
+		// and workflow permissions are fetched regardless of archived state,
+		// they are just never compared once archived = true (see the class
+		// comment).
+		ActualSecurityAndAnalysis driftedSecurity = new ActualSecurityAndAnalysis(
 				false,
 				false,
 				false,
@@ -231,28 +234,31 @@ class RepositoryExporterTest {
 				false,
 				List.of()
 		);
-		ActualWorkflowPermissions unreadWorkflowPermissions = new ActualWorkflowPermissions(
+		ActualWorkflowPermissions driftedWorkflowPermissions = new ActualWorkflowPermissions(
 				DefaultWorkflowPermissions.READ,
 				false
 		);
 		RepositoryState state = state(
 				archived,
-				unreadSecurity,
+				driftedSecurity,
 				false,
 				false,
 				false,
 				false,
 				false,
-				unreadWorkflowPermissions
+				driftedWorkflowPermissions
 		);
 
 		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
 
-		assertThat(PklWriter.write(entry)).isEqualTo("""
-				name = "api"
-				archived = true
-				// security settings are not read for an archived repository
-				""");
+		assertThat(PklWriter.write(entry)).isEqualTo(
+				"""
+						name = "api"
+						archived = true
+						// drifty checks only archived on an archived repository, so its other settings
+						// are neither compared nor exported
+						"""
+		);
 	}
 
 	@Test
