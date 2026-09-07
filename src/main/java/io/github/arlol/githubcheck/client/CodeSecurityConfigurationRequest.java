@@ -7,9 +7,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 /**
  * Body of the code security configuration POST and PATCH. The same shape serves
  * both: the config object is the whole desired state, so every field is sent
- * either way. The two option objects are the exception: a config that leaves
- * them out says nothing about them, and they are omitted so GitHub keeps
- * whatever it has.
+ * either way. The nullable option objects are the exception: a config that
+ * leaves one out says nothing about it, and it is omitted so GitHub keeps
+ * whatever it has. {@code dependency_graph_autosubmit_action_options} is not
+ * one of them — GitHub returns it on every configuration, so it is an ordinary
+ * field and always sent.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CodeSecurityConfigurationRequest(
@@ -18,11 +20,13 @@ public record CodeSecurityConfigurationRequest(
 		String advancedSecurity,
 		String dependencyGraph,
 		String dependencyGraphAutosubmitAction,
+		DependencyGraphAutosubmitActionOptions dependencyGraphAutosubmitActionOptions,
 		String dependabotAlerts,
 		String dependabotSecurityUpdates,
 		String dependabotDelegatedAlertDismissal,
 		String codeScanningDefaultSetup,
 		CodeScanningDefaultSetupOptions codeScanningDefaultSetupOptions,
+		CodeScanningOptions codeScanningOptions,
 		String codeScanningDelegatedAlertDismissal,
 		String secretScanning,
 		String secretScanningPushProtection,
@@ -35,6 +39,18 @@ public record CodeSecurityConfigurationRequest(
 		String privateVulnerabilityReporting,
 		String enforcement
 ) {
+
+	/** {@code dependency_graph_autosubmit_action_options}. */
+	public record DependencyGraphAutosubmitActionOptions(
+			boolean labeledRunners
+	) {
+	}
+
+	/** {@code code_scanning_options}, sent only when the config sets it. */
+	public record CodeScanningOptions(
+			boolean allowAdvanced
+	) {
+	}
 
 	/**
 	 * {@code runner_label} is sent as null when the runner type is not

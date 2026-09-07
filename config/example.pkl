@@ -59,6 +59,15 @@ organizations {
     }
     codeSecurityConfigurations {
       ["baseline"] = new CodeSecurityConfiguration {
+        dependencyGraphAutosubmitAction = "enabled"
+        // Submit dependencies from runners labeled "dependency-submission",
+        // e.g. because the public registries are unreachable from the build
+        // network. Always compared: GitHub answers it on every configuration.
+        dependencyGraphAutosubmitLabeledRunners = true
+        codeScanningDefaultSetup = "enabled"
+        // Repositories running their own code scanning workflow stay
+        // attached; omit the block to leave GitHub's value alone.
+        codeScanningOptions { allowAdvanced = true }
         secretScanning = "enabled"
         secretScanningPushProtection = "enabled"
         secretScanningDelegatedBypass = "enabled"

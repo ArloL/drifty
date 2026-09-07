@@ -97,3 +97,37 @@ test/compile goals fail with `NoClassDefFoundError` without it.
 **How to check whether it can go:** drop the `<dependencies>` block from the
 plugin declaration and run `./mvnw verify`. If it completes, the upstream
 plugin has fixed its own classpath and the workaround can be deleted.
+
+## 4. `secret_scanning_extended_metadata` has no established default
+
+**Carrying:** nothing in the code — `CodeSecurityConfiguration` in
+`config/drifty.pkl` does not declare the field, so drifty neither compares nor
+sends it.
+
+**Why:** GitHub's OpenAPI spec (2026-03-10) has
+`secret_scanning_extended_metadata` on the code security configuration GET,
+POST and PATCH as the usual `enabled | disabled | not_set` toggle, so it is
+managed exactly like the other seventeen once it has a default. The spec
+supplies none: the field carries no `default`, and every example response in
+`schemas/orgs/{org}/code-security/configurations/` predates it and answers
+`null`. Every other field's Pkl default is GitHub's own, which is what lets a
+configuration created with only a name report no drift; guessing this one
+would make drifty report drift on configurations nobody has touched, in
+whichever direction the guess was wrong.
+
+**Waiting on:** one live read, not an upstream change. Run drifty against an
+organization with a configuration created bare, or:
+
+```bash
+curl -H "Authorization: Bearer $DRIFTY_GITHUB_TOKEN" \
+  https://api.github.com/orgs/<org>/code-security/configurations \
+  | jq '.[] | {name, secret_scanning_extended_metadata}'
+```
+
+**When it lands:** add the field to `CodeSecurityConfiguration` with the value
+GitHub returns for an untouched configuration, a `Setting` row in
+`OrgCodeSecurityConfigurationsDriftGroup`, a `settings.put` in
+`ActualTypes.codeSecurityConfiguration`, the response and request record
+components, and the SPEC.md table; then delete this entry. If GitHub answers
+the field as null on a bare configuration, it reads as `not_set` — the
+`settings.replaceAll` in `ActualTypes` already does that for every toggle.

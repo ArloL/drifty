@@ -461,3 +461,23 @@ says nothing about it, the group neither compares it nor sends it, and
 GitHub keeps what it has. `ActualCodeSecurityConfiguration` carries them
 flattened — a null runner object reads as `not_set`, a reviewer without a
 `mode` as `ALWAYS` — and the settings PATCH carries them beside the toggles.
+
+## ~~49. The Remaining Code Security Sub-Options~~ DONE
+
+Implemented: `CodeSecurityConfiguration` gains `codeScanningOptions`
+(`allowAdvanced`) and `dependencyGraphAutosubmitLabeledRunners`.
+
+The two are not the same shape, because GitHub does not return them the same
+way. `code_scanning_options` is omitted on a configuration that never set it,
+and answers `allow_advanced` as null within the object when it has one, so it
+is a nullable object like `codeScanningDefaultSetupOptions`: compared and sent
+only when the config sets it. `dependency_graph_autosubmit_action_options`
+comes back on every configuration — GitHub's own provided ones included, which
+never set it — so its single field is flat, defaulted to GitHub's `false`, and
+compared and sent like any of the seventeen toggles.
+
+`secret_scanning_extended_metadata` is left out: the spec has it on GET, POST
+and PATCH but supplies no default, and every example response predates the
+field. See FOLLOWUPS.md item 4. `code_security` and `secret_protection` are
+left out for good: POST and PATCH accept them, GET returns neither, and
+`advancedSecurity` already carries the same split.

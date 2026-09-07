@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration;
 import io.github.arlol.githubcheck.actual.ActualCustomProperty;
 import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
 import io.github.arlol.githubcheck.actual.ActualEnvironment;
@@ -808,6 +809,67 @@ class ActualTypesTest {
 		assertThat(full.secretScanningDelegatedBypassReviewers())
 				.extracting(Object::toString)
 				.containsExactlyInAnyOrder("TEAM:5:ALWAYS", "ROLE:9:EXEMPT");
+	}
+
+	/**
+	 * The labeled dependency-submission runner is a plain boolean — a missing
+	 * object reads as false — while {@code code_scanning_options} keeps the
+	 * null that means GitHub has no value, both for a missing object and for a
+	 * null field within one.
+	 */
+	@Test
+	void codeSecurityConfiguration_readsTheTwoRemainingOptions()
+			throws Exception {
+		var bare = MAPPER.readValue("""
+				{"id": 1, "name": "bare", "target_type": "organization"}
+				""", CodeSecurityConfigurationResponse.class);
+		var nulled = MAPPER.readValue(
+				"""
+						{"id": 2, "name": "nulled", "target_type": "organization",
+						 "dependency_graph_autosubmit_action_options": {"labeled_runners": false},
+						 "code_scanning_options": {"allow_advanced": null}}
+						""",
+				CodeSecurityConfigurationResponse.class
+		);
+		var set = MAPPER.readValue(
+				"""
+						{"id": 3, "name": "set", "target_type": "organization",
+						 "dependency_graph_autosubmit_action_options": {"labeled_runners": true},
+						 "code_scanning_options": {"allow_advanced": true}}
+						""",
+				CodeSecurityConfigurationResponse.class
+		);
+
+		assertThat(
+				ActualTypes.codeSecurityConfiguration(bare, null, List.of())
+		).returns(
+				false,
+				ActualCodeSecurityConfiguration::dependencyGraphAutosubmitLabeledRunners
+		)
+				.returns(
+						null,
+						ActualCodeSecurityConfiguration::codeScanningAllowAdvanced
+				);
+		assertThat(
+				ActualTypes.codeSecurityConfiguration(nulled, null, List.of())
+		).returns(
+				false,
+				ActualCodeSecurityConfiguration::dependencyGraphAutosubmitLabeledRunners
+		)
+				.returns(
+						null,
+						ActualCodeSecurityConfiguration::codeScanningAllowAdvanced
+				);
+		assertThat(
+				ActualTypes.codeSecurityConfiguration(set, null, List.of())
+		).returns(
+				true,
+				ActualCodeSecurityConfiguration::dependencyGraphAutosubmitLabeledRunners
+		)
+				.returns(
+						true,
+						ActualCodeSecurityConfiguration::codeScanningAllowAdvanced
+				);
 	}
 
 }

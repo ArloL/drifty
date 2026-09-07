@@ -615,10 +615,11 @@ codeSecurityConfigurations {
 
 Defaults are GitHub's POST defaults, so a configuration created with only a name reports no drift. Every one of the seventeen `enabled`/`disabled`/`not_set` toggles, the description and the enforcement are compared; only configurations whose `target_type` is `organization` are, since the GitHub-provided global ones are not the organization's to change. Three writes, each its own fix so a rejected one is not reported as having failed the others: the settings go to a PATCH (a POST for a missing configuration), `defaultForNewRepos` to `PUT .../{id}/defaults`, and missing attachments to `POST .../{id}/attach` with `scope = selected`. Repositories attached outside the config are reported and left attached; extra configurations are reported and never deleted.
 
-Two option sub-objects are managed only when the config sets them, so a configuration that leaves them out reports no drift for them and the PATCH omits them:
+Three option sub-objects are managed only when the config sets them, so a configuration that leaves them out reports no drift for them and the PATCH omits them:
 
 ```pkl
 codeScanningDefaultSetupOptions { runnerType = "labeled"; runnerLabel = "gpu" }
+codeScanningOptions { allowAdvanced = true }
 secretScanningDelegatedBypassOptions {
   reviewers { new { reviewerId = 5; reviewerType = "TEAM"; mode = "ALWAYS" } }
 }
@@ -628,9 +629,18 @@ secretScanningDelegatedBypassOptions {
 |---|---|---|
 | `codeScanningDefaultSetupOptions.runnerType` (`standard`, `labeled`, `not_set`) | Yes | Yes |
 | `codeScanningDefaultSetupOptions.runnerLabel` | Yes | Yes |
+| `codeScanningOptions.allowAdvanced` | Yes | Yes |
 | `secretScanningDelegatedBypassOptions.reviewers` (id, `TEAM`/`ROLE`, `ALWAYS`/`EXEMPT`) | Yes | Yes |
 
-A runner label is required exactly when the runner type is `labeled`, and the schema says so. GitHub answers a configuration with no runner chosen as a null options object or as `not_set` with a null label; both read as `not_set`. A reviewer GitHub returns without a `mode` predates the field and reads as `ALWAYS`, the schema's default. An empty `reviewers` listing wants none and clears them. The `labeled_runners` flag for dependency submission and `code_scanning_options.allow_advanced` are not managed.
+A runner label is required exactly when the runner type is `labeled`, and the schema says so. GitHub answers a configuration with no runner chosen as a null options object or as `not_set` with a null label; both read as `not_set`. `codeScanningOptions.allowAdvanced` decides whether repositories running their own code scanning workflow may stay attached to a configuration that enables default setup; GitHub omits the object, or answers the field within it as null, on a configuration that never set it. A reviewer GitHub returns without a `mode` predates the field and reads as `ALWAYS`, the schema's default. An empty `reviewers` listing wants none and clears them.
+
+`dependency_graph_autosubmit_action_options` is not one of the three. GitHub returns it on every configuration — including the ones it provides itself, which never set it — so its one field is a plain setting rather than a nullable object:
+
+| Setting | GitHub default | Check | Fix |
+|---|---|---|---|
+| `dependencyGraphAutosubmitLabeledRunners` | `false` | Yes | Yes |
+
+It is compared on every configuration and always sent, the way the seventeen toggles are. `secret_scanning_extended_metadata` is not managed; `code_security` and `secret_protection` are not either, since the POST and PATCH accept them but `GET` returns neither, which would make them write-only and unverifiable — the reason `billing_email` is absent from the organization settings. drifty covers the same split through `advancedSecurity`'s `code_security` and `secret_protection` values.
 
 ### Teams
 
@@ -821,6 +831,5 @@ These are explicitly out of scope for the initial version but acknowledged as po
 - **GraphQL for bulk reads** — REST first, profile and optimize later.
 - **Repository lifecycle** — create/delete/transfer repos is out of scope. drifty only manages settings of existing repos plus archival.
 - **Per-target rule validation for rulesets** — drifty writes whatever rules the config puts on a `push` or `repository` ruleset and lets GitHub reject the ones the target does not take; the schema could refuse them at config eval once the vocabulary is stable.
-- **The remaining code security sub-options** — `labeled_runners` for dependency submission and `code_scanning_options.allow_advanced`.
 - **Custom repository roles** as collaborator permissions.
 - **Enterprise-owned entities** of any kind — rulesets, custom properties, teams — drifty drops before comparing; managing them is the enterprise's API, not the organization's.

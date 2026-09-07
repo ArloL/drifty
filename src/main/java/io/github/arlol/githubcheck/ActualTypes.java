@@ -939,15 +939,20 @@ public final class ActualTypes {
 		);
 		settings.replaceAll((_, value) -> value == null ? "not_set" : value);
 		var runner = response.codeScanningDefaultSetupOptions();
+		var autosubmit = response.dependencyGraphAutosubmitActionOptions();
+		var codeScanning = response.codeScanningOptions();
 		return new ActualCodeSecurityConfiguration(
 				response.id(),
 				response.name(),
 				response.description() == null ? "" : response.description(),
 				settings,
 				response.enforcement(),
+				autosubmit != null
+						&& Boolean.TRUE.equals(autosubmit.labeledRunners()),
 				runner == null || runner.runnerType() == null ? "not_set"
 						: runner.runnerType(),
 				runner == null ? null : runner.runnerLabel(),
+				codeScanning == null ? null : codeScanning.allowAdvanced(),
 				bypassReviewers(
 						response.secretScanningDelegatedBypassOptions()
 				),

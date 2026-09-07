@@ -101,11 +101,18 @@ status.
   group. Which rules a target accepts is not checked anywhere: GitHub's 422
   is the report.
 - **Code security option sub-objects are nullable, and null means unmanaged.**
-  `codeScanningDefaultSetupOptions` and `secretScanningDelegatedBypassOptions`
-  are compared and sent only when the config sets them. Do not give them a
-  default: GitHub picks a runner type itself when default setup is enabled,
-  and a defaulted object would report drift on every configuration created
-  with only a name.
+  `codeScanningDefaultSetupOptions`, `codeScanningOptions` and
+  `secretScanningDelegatedBypassOptions` are compared and sent only when the
+  config sets them. Do not give them a default: GitHub picks a runner type
+  itself when default setup is enabled, omits `code_scanning_options`
+  entirely on a configuration that never set it, and a defaulted object would
+  report drift on every configuration created with only a name.
+  `dependencyGraphAutosubmitLabeledRunners` is the counter-example and is
+  therefore flat, not a fourth object: GitHub returns
+  `dependency_graph_autosubmit_action_options` on every configuration, its own
+  included, so the field is compared and sent like any of the seventeen
+  toggles. Which shape a new sub-option takes is decided by whether GitHub
+  returns the object unconditionally, not by it being nested on the wire.
 - **A drifted entry with several endpoints gets one `DriftFix` per
   endpoint.** `OrgActionsPermissionsDriftGroup` (policy, allow-list,
   repository selection), `OrgCodeSecurityConfigurationsDriftGroup` (settings,
