@@ -3257,6 +3257,34 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.TeamCreateRequest",
+      "methods": [
+        {
+          "name": "description",
+          "parameterTypes": []
+        },
+        {
+          "name": "name",
+          "parameterTypes": []
+        },
+        {
+          "name": "notificationSetting",
+          "parameterTypes": []
+        },
+        {
+          "name": "parentTeamId",
+          "parameterTypes": []
+        },
+        {
+          "name": "privacy",
+          "parameterTypes": []
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.TeamRequest",
       "methods": [
         {

@@ -75,6 +75,12 @@ status.
   ones that fail again. Collapsing that back to
   "the request threw, so nothing was fixed" is what made a run report every
   setting unfixed after GitHub had already changed most of them.
+- **The team POST and PATCH need different bodies.** `TeamRequest` serializes
+  `parent_team_id` even when null because that is how the PATCH removes a
+  parent, but `POST /orgs/{org}/teams` answers 422 to that null instead of
+  reading it as "no parent", so no top-level team could be created.
+  `TeamCreateRequest` is the same fields with the field omitted when null, and
+  `createTeam` takes only that record. Do not collapse the two back into one.
 - **`--fix` deletes only what the config can recreate.** Rulesets, branch
   protections, webhooks, deployment branch policies and non-default runner
   groups are deleted when extra; secrets, variables, environments, custom

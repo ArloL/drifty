@@ -11,6 +11,7 @@ import java.util.Set;
 
 import io.github.arlol.githubcheck.actual.ActualTeam;
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.TeamCreateRequest;
 import io.github.arlol.githubcheck.client.TeamRequest;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
@@ -205,7 +206,8 @@ public class OrgTeamsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 	}
 
 	private FixResult create(String slug, Drifty.Team wanted) {
-		var created = client.createTeam(org, request(slug, wanted));
+		var created = client
+				.createTeam(org, TeamCreateRequest.from(request(slug, wanted)));
 		for (String login : wanted.members) {
 			client.setTeamMembership(org, created.slug(), login, "member");
 		}
