@@ -167,7 +167,13 @@ public final class PklWriter {
 		return lines;
 	}
 
-	private static String quote(String value) {
+	/**
+	 * Package-visible so {@code DriftyFileExporter} can quote the
+	 * {@code amends} URI with it: that line is hand-assembled outside the node
+	 * tree, but it is still Pkl source, and a Windows path's backslashes are
+	 * not valid escape sequences unless they go through this same quoting.
+	 */
+	static String quote(String value) {
 		var out = new StringBuilder("\"");
 		for (char c : value.toCharArray()) {
 			switch (c) {

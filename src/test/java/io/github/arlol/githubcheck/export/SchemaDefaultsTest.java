@@ -51,6 +51,23 @@ class SchemaDefaultsTest {
 	}
 
 	/**
+	 * {@code uri()} is what {@code DriftyFileExporter} writes into the exported
+	 * file's {@code amends} line, and it has to be the same URI the schema was
+	 * actually evaluated against — a raw filesystem path (a Windows one
+	 * included, on Windows) is not by itself valid Pkl source dropped into a
+	 * string literal, so this has to be the normalized {@code file:} form, not
+	 * {@code SCHEMA} verbatim.
+	 */
+	@Test
+	void uriIsTheNormalizedFormNotTheRawSchemaUriArgument() {
+		var defaults = SchemaDefaults.of(SCHEMA);
+
+		assertThat(defaults.uri())
+				.isEqualTo(Path.of(SCHEMA).toUri().toString());
+		assertThat(defaults.uri()).startsWith("file:");
+	}
+
+	/**
 	 * {@code URI.create} — the naive way to tell a URL from a filesystem path —
 	 * throws on a space, which an ordinary home directory can contain. A schema
 	 * path under a space-bearing directory must still evaluate.

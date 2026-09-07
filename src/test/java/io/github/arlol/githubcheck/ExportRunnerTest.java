@@ -40,6 +40,16 @@ class ExportRunnerTest {
 			.toAbsolutePath()
 			.toString();
 
+	/**
+	 * What {@code SchemaDefaults.of} normalizes {@link #SCHEMA} to, and
+	 * therefore what the exported file's {@code amends} line actually names — a
+	 * {@code file:} URI, not the raw path passed in as {@code --schema}.
+	 */
+	private static final String SCHEMA_URI = Path.of("config/drifty.pkl")
+			.toAbsolutePath()
+			.toUri()
+			.toString();
+
 	@Test
 	void organizationExportWritesSettingsAndItsRepository(
 			WireMockRuntimeInfo wm,
@@ -82,7 +92,7 @@ class ExportRunnerTest {
 				    }
 				  }
 				}
-				""".formatted(SCHEMA));
+				""".formatted(SCHEMA_URI));
 	}
 
 	/**
@@ -125,7 +135,7 @@ class ExportRunnerTest {
 				    }
 				  }
 				}
-				""".formatted(SCHEMA));
+				""".formatted(SCHEMA_URI));
 	}
 
 	/**
@@ -191,7 +201,7 @@ class ExportRunnerTest {
 				    }
 				  }
 				}
-				""".formatted(SCHEMA));
+				""".formatted(SCHEMA_URI));
 	}
 
 	/**
@@ -247,7 +257,7 @@ class ExportRunnerTest {
 				    }
 				  }
 				}
-				""".formatted(SCHEMA));
+				""".formatted(SCHEMA_URI));
 	}
 
 	/**
@@ -291,8 +301,12 @@ class ExportRunnerTest {
 		}
 
 		assertThat(exitCode).isZero();
+		// System.err.println emits the platform line separator (\r\n on
+		// Windows), not necessarily \n — a hardcoded \n here is what made
+		// this fail on Windows CI while passing on Linux and macOS.
 		assertThat(capturedErr.toString(StandardCharsets.UTF_8)).isEqualTo(
-				"1 group(s) could not be read and are noted in the file instead: action_secrets\n"
+				"1 group(s) could not be read and are noted in the file instead: action_secrets"
+						+ System.lineSeparator()
 		);
 	}
 
@@ -337,8 +351,11 @@ class ExportRunnerTest {
 		}
 
 		assertThat(exitCode).isEqualTo(1);
+		// System.err.println emits the platform line separator (\r\n on
+		// Windows), not necessarily \n.
 		assertThat(capturedErr.toString(StandardCharsets.UTF_8)).isEqualTo(
-				"ERROR: someone-else is not an organization, and a personal account can only be exported by its own token\n"
+				"ERROR: someone-else is not an organization, and a personal account can only be exported by its own token"
+						+ System.lineSeparator()
 		);
 		// Nothing exported, so nothing is written — an empty
 		// `organizations {}` would silently overwrite whatever export.pkl

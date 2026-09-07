@@ -40,7 +40,13 @@ public final class DriftyFileExporter {
 				"/// Only settings that differ from the schema defaults are listed; everything\n"
 		);
 		out.append("/// absent is at GitHub's default.\n");
-		out.append("amends \"").append(schemaUri).append("\"\n");
+		// PklWriter.quote, not raw interpolation: schemaUri reaches here
+		// already normalized to a file: URI by SchemaDefaults when it names a
+		// filesystem path, but quoting it too is defence in depth against the
+		// same class of bug an early review already caught once for mapping
+		// keys — a string dropped straight into Pkl source is not
+		// necessarily valid Pkl source.
+		out.append("amends ").append(PklWriter.quote(schemaUri)).append('\n');
 		out.append('\n');
 		out.append(
 				PklWriter.write(new PklNode.Obj(file(organizations, users)))

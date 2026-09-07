@@ -29,6 +29,7 @@ public final class SchemaDefaults {
 
 	private static final String TEMPLATE = "/export-defaults.pkl";
 
+	private final String uri;
 	private final Drifty.Organization organization;
 	private final Drifty.Repository repository;
 	private final Drifty.Ruleset ruleset;
@@ -52,7 +53,8 @@ public final class SchemaDefaults {
 	private final Drifty.ActionsPermissions actionsPermissions;
 	private final Drifty.SelectedActions selectedActions;
 
-	private SchemaDefaults(Config root) {
+	private SchemaDefaults(String uri, Config root) {
+		this.uri = uri;
 		organization = root.get("organization").as(Drifty.Organization.class);
 		repository = root.get("repository").as(Drifty.Repository.class);
 		ruleset = root.get("ruleset").as(Drifty.Ruleset.class);
@@ -90,20 +92,21 @@ public final class SchemaDefaults {
 
 	/**
 	 * @param schemaUri where the schema lives — the main-branch URL by default,
-	 *                  a local path in tests. Substituted into the bundled
-	 *                  template's import, so both the diff and the file's
-	 *                  {@code amends} name the same schema.
+	 *                  a local path in tests. Normalized once, here, into the
+	 *                  URI both the evaluation below and {@link #uri()} use:
+	 *                  the file's {@code amends} line is built from the latter,
+	 *                  so the two can never name the schema differently the way
+	 *                  a raw Windows path interpolated separately into each
+	 *                  did.
 	 */
 	public static SchemaDefaults of(String schemaUri) {
+		String uri = importUri(schemaUri);
 		try (var evaluator = ConfigEvaluator.preconfigured()) {
 			return new SchemaDefaults(
+					uri,
 					evaluator.evaluate(
-							ModuleSource.text(
-									template().replace(
-											"@schema@",
-											importUri(schemaUri)
-									)
-							)
+							ModuleSource
+									.text(template().replace("@schema@", uri))
 					)
 			);
 		}
@@ -140,6 +143,18 @@ public final class SchemaDefaults {
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}
+	}
+
+	/**
+	 * The normalized URI the schema was actually evaluated from — a
+	 * {@code file:} URI with forward slashes when {@code schemaUri} named a
+	 * filesystem path, unchanged when it was already an {@code http(s)} URL.
+	 * This, not the raw {@code schemaUri} passed to {@link #of}, is what
+	 * {@code DriftyFileExporter} writes into the exported file's {@code amends}
+	 * line.
+	 */
+	public String uri() {
+		return uri;
 	}
 
 	public Drifty.Organization organization() {
