@@ -77,6 +77,31 @@ public final class Fields {
 	}
 
 	/**
+	 * A tri-state boolean whose schema default is itself nullable — GitHub
+	 * omits an unset value rather than defaulting it, the way
+	 * {@code BranchProtection.requireLastPushApproval} has no default of
+	 * {@code true} or {@code false} to fall back to.
+	 */
+	public static Optional<PklNode.Member> field(
+			String name,
+			Boolean actual,
+			Boolean defaultValue
+	) {
+		if (Objects.equals(actual, defaultValue)) {
+			return Optional.empty();
+		}
+		return Optional
+				.of(
+						new PklNode.Field(
+								name,
+								actual == null ? PklNode.Scalar.nullValue()
+										: PklNode.Scalar
+												.of(actual.booleanValue())
+						)
+				);
+	}
+
+	/**
 	 * An enum against the string the schema defaults it to. Every enum
 	 * generated from a Pkl union spells its constants the way the union does,
 	 * so comparing the two as text is comparing like with like.
