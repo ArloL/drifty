@@ -60,6 +60,7 @@ public class OrganizationChecker {
 	// last wrote, since GitHub never reads one back.
 	private final Map<String, String> githubSecrets;
 	private final DriftyState state;
+	private final FetchFailures failures;
 
 	OrganizationChecker(
 			GitHubClient client,
@@ -67,10 +68,21 @@ public class OrganizationChecker {
 			Map<String, String> githubSecrets,
 			DriftyState state
 	) {
+		this(client, fix, githubSecrets, state, FetchFailures.STRICT);
+	}
+
+	OrganizationChecker(
+			GitHubClient client,
+			boolean fix,
+			Map<String, String> githubSecrets,
+			DriftyState state,
+			FetchFailures failures
+	) {
 		this.client = client;
 		this.fix = fix;
 		this.githubSecrets = githubSecrets;
 		this.state = state;
+		this.failures = failures;
 	}
 
 	/**
@@ -180,82 +192,131 @@ public class OrganizationChecker {
 
 		ActualOrgActionsPermissions permissions = null;
 		if (managed.manages(Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS)) {
-			var response = client.getOrgActionsPermissions(login);
-			// The allow-list only exists in "selected" mode; asking for it in
-			// any other mode is a 404.
-			var selected = response.allowedActions() == AllowedActions.SELECTED
-					? client.getOrgSelectedActions(login)
-					: null;
-			// Same for the repository selection: it is only there under
-			// "selected".
-			List<String> selectedRepositories = response
-					.enabledRepositories() == ActionsEnabledRepositories.SELECTED
-							? client.getOrgActionsPermissionsRepositories(login)
-									.stream()
-									.map(RepositorySummaryResponse::name)
-									.toList()
-							: List.of();
-			permissions = ActualTypes.orgActionsPermissions(
-					response,
-					selected,
-					selectedRepositories
-			);
+			permissions = failures
+					.read(Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS, () -> {
+						var response = client.getOrgActionsPermissions(login);
+						// The allow-list only exists in "selected" mode; asking
+						// for it in any other mode is a 404.
+						var selected = response
+								.allowedActions() == AllowedActions.SELECTED
+										? client.getOrgSelectedActions(login)
+										: null;
+						// Same for the repository selection: it is only there
+						// under "selected".
+						List<String> selectedRepositories = response
+								.enabledRepositories() == ActionsEnabledRepositories.SELECTED
+										? client.getOrgActionsPermissionsRepositories(
+												login
+										)
+												.stream()
+												.map(
+														RepositorySummaryResponse::name
+												)
+												.toList()
+										: List.of();
+						return ActualTypes.orgActionsPermissions(
+								response,
+								selected,
+								selectedRepositories
+						);
+					}, null);
 		}
 
 		var workflowPermissions = managed
 				.manages(Drifty.OrgGroupName.ORG_WORKFLOW_PERMISSIONS)
-						? ActualTypes.workflowPermissions(
-								client.getOrgWorkflowPermissions(login)
+						? failures.read(
+								Drifty.OrgGroupName.ORG_WORKFLOW_PERMISSIONS,
+								() -> ActualTypes.workflowPermissions(
+										client.getOrgWorkflowPermissions(login)
+								),
+								null
 						)
 						: null;
 
 		List<ActualOrgSecret> secrets = managed
 				.manages(Drifty.OrgGroupName.ORG_ACTION_SECRETS)
-						? orgSecrets(login)
+						? failures.read(
+								Drifty.OrgGroupName.ORG_ACTION_SECRETS,
+								() -> orgSecrets(login),
+								List.of()
+						)
 						: List.of();
 
 		List<ActualOrgVariable> variables = managed
 				.manages(Drifty.OrgGroupName.ORG_ACTION_VARIABLES)
-						? orgVariables(login)
+						? failures.read(
+								Drifty.OrgGroupName.ORG_ACTION_VARIABLES,
+								() -> orgVariables(login),
+								List.of()
+						)
 						: List.of();
 
 		List<ActualWebhook> webhooks = managed
 				.manages(Drifty.OrgGroupName.ORG_WEBHOOKS)
-						? client.getOrgWebhooks(login)
-								.stream()
-								.map(ActualTypes::webhook)
-								.toList()
+						? failures.read(
+								Drifty.OrgGroupName.ORG_WEBHOOKS,
+								() -> client.getOrgWebhooks(login)
+										.stream()
+										.map(ActualTypes::webhook)
+										.toList(),
+								List.of()
+						)
 						: List.of();
 
 		List<ActualCustomProperty> customProperties = managed
 				.manages(Drifty.OrgGroupName.ORG_CUSTOM_PROPERTIES)
-						? customProperties(login)
+						? failures.read(
+								Drifty.OrgGroupName.ORG_CUSTOM_PROPERTIES,
+								() -> customProperties(login),
+								List.of()
+						)
 						: List.of();
 
 		List<ActualRuleset> rulesets = managed
-				.manages(Drifty.OrgGroupName.ORG_RULESETS) ? orgRulesets(login)
+				.manages(Drifty.OrgGroupName.ORG_RULESETS)
+						? failures.read(
+								Drifty.OrgGroupName.ORG_RULESETS,
+								() -> orgRulesets(login),
+								List.of()
+						)
 						: List.of();
 
 		List<ActualCodeSecurityConfiguration> codeSecurityConfigurations = managed
 				.manages(Drifty.OrgGroupName.ORG_CODE_SECURITY_CONFIGURATIONS)
-						? codeSecurityConfigurations(login)
+						? failures.read(
+								Drifty.OrgGroupName.ORG_CODE_SECURITY_CONFIGURATIONS,
+								() -> codeSecurityConfigurations(login),
+								List.of()
+						)
 						: List.of();
 
 		List<ActualTeam> teams = managed.manages(Drifty.OrgGroupName.ORG_TEAMS)
-				? teams(login)
+				? failures.read(
+						Drifty.OrgGroupName.ORG_TEAMS,
+						() -> teams(login),
+						List.of()
+				)
 				: List.of();
 
 		List<ActualOrgMember> members = managed
 				.manages(Drifty.OrgGroupName.ORG_MEMBERS)
-						? ActualTypes.orgMembers(
-								client.listOrgMembers(login, "admin"),
-								client.listOrgMembers(login, "member")
+						? failures.read(
+								Drifty.OrgGroupName.ORG_MEMBERS,
+								() -> ActualTypes.orgMembers(
+										client.listOrgMembers(login, "admin"),
+										client.listOrgMembers(login, "member")
+								),
+								List.of()
 						)
 						: List.of();
 
 		List<ActualRunnerGroup> runnerGroups = managed
 				.manages(Drifty.OrgGroupName.ORG_RUNNER_GROUPS)
-						? runnerGroups(login)
+						? failures.read(
+								Drifty.OrgGroupName.ORG_RUNNER_GROUPS,
+								() -> runnerGroups(login),
+								List.of()
+						)
 						: List.of();
 
 		return new OrganizationState(
@@ -273,6 +334,13 @@ public class OrganizationChecker {
 				members,
 				runnerGroups
 		);
+	}
+
+	/**
+	 * The groups {@link #fetchState} could not read, for the exporter to note.
+	 */
+	List<FetchFailures.Failure> fetchFailures() {
+		return failures.failures();
 	}
 
 	/**

@@ -272,6 +272,25 @@ class OrganizationCheckerTest {
 				.containsExactly("org_workflow_permissions");
 	}
 
+	/**
+	 * Check mode is unchanged: {@link FetchFailures#STRICT} still rethrows, so
+	 * a 403 on any group still ends the whole entry as an error rather than a
+	 * comparison against half the state.
+	 */
+	@Test
+	void aForbiddenGroupStillFailsTheWholeEntryInCheckMode() {
+		stubOrg("null");
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/teams"))
+						.willReturn(aResponse().withStatus(403))
+		);
+
+		CheckResult.Entry entry = checker
+				.check("my-org", Desired.organization(), List.of());
+
+		assertThat(entry.status()).isEqualTo(CheckResult.Status.ERROR);
+	}
+
 	@Test
 	void unknownOrganizationIsMissing() {
 		stubFor(
