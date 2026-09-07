@@ -77,7 +77,9 @@ class OrgCodeSecurityConfigurationsDriftGroupTest {
 				"",
 				settings,
 				"enforced",
+				false,
 				"not_set",
+				null,
 				null,
 				Set.of(),
 				defaultForNewRepos,
@@ -214,6 +216,7 @@ class OrgCodeSecurityConfigurationsDriftGroupTest {
 										{"name": "new", "description": "baseline",
 										 "advanced_security": "disabled", "dependency_graph": "enabled",
 										 "dependency_graph_autosubmit_action": "disabled",
+										 "dependency_graph_autosubmit_action_options": {"labeled_runners": false},
 										 "dependabot_alerts": "disabled", "dependabot_security_updates": "disabled",
 										 "dependabot_delegated_alert_dismissal": "disabled",
 										 "code_scanning_default_setup": "disabled",
@@ -314,7 +317,9 @@ class OrgCodeSecurityConfigurationsDriftGroupTest {
 				current.description(),
 				current.settings(),
 				current.enforcement(),
+				current.dependencyGraphAutosubmitLabeledRunners(),
 				"not_set",
+				null,
 				null,
 				Set.of(
 						new ActualCodeSecurityConfiguration.BypassReviewer(
@@ -379,8 +384,10 @@ class OrgCodeSecurityConfigurationsDriftGroupTest {
 				current.description(),
 				current.settings(),
 				current.enforcement(),
+				current.dependencyGraphAutosubmitLabeledRunners(),
 				"labeled",
 				"gpu",
+				true,
 				Set.of(
 						new ActualCodeSecurityConfiguration.BypassReviewer(
 								"TEAM",
@@ -408,6 +415,7 @@ class OrgCodeSecurityConfigurationsDriftGroupTest {
 										{"name": "baseline", "description": "changed",
 										 "advanced_security": "disabled", "dependency_graph": "enabled",
 										 "dependency_graph_autosubmit_action": "disabled",
+										 "dependency_graph_autosubmit_action_options": {"labeled_runners": false},
 										 "dependabot_alerts": "disabled", "dependabot_security_updates": "disabled",
 										 "dependabot_delegated_alert_dismissal": "disabled",
 										 "code_scanning_default_setup": "disabled",
@@ -423,6 +431,76 @@ class OrgCodeSecurityConfigurationsDriftGroupTest {
 										"""
 						)
 				)
+		);
+	}
+
+	/**
+	 * The labeled dependency-submission runner is not one of the nullable
+	 * option objects: GitHub returns it on every configuration, so it is always
+	 * compared and always sent.
+	 */
+	@Test
+	void labeledRunners_areComparedAndSentWithoutAnOptionsObject() {
+		stubFor(patch(urlPathEqualTo(BASE + "/7")).willReturn(okJson()));
+		var wanted = Desired.codeSecurityConfiguration()
+				.withDependencyGraphAutosubmitAction(
+						Drifty.SecuritySetting.ENABLED
+				)
+				.withDependencyGraphAutosubmitLabeledRunners(true);
+
+		var fixes = group(
+				Map.of("baseline", wanted),
+				List.of(defaults("baseline", "none", Set.of()))
+		).detect();
+
+		assertThat(fixes).flatExtracting(DriftFix::items)
+				.extracting(DriftItem::path)
+				.containsExactlyInAnyOrder(
+						"org_code_security_configurations.baseline.dependency_graph_autosubmit_action",
+						"org_code_security_configurations.baseline.dependency_graph_autosubmit_action_options.labeled_runners"
+				);
+		assertThat(fixes.getFirst().fix().execute().unfixedItems()).isEmpty();
+		verify(
+				patchRequestedFor(urlPathEqualTo(BASE + "/7")).withRequestBody(
+						equalToJson(
+								"""
+										{"dependency_graph_autosubmit_action": "enabled",
+										 "dependency_graph_autosubmit_action_options": {"labeled_runners": true}}
+										""",
+								true,
+								true
+						)
+				)
+		);
+	}
+
+	/**
+	 * {@code code_scanning_options} is one of the nullable objects: set here
+	 * against a configuration GitHub answers without one.
+	 */
+	@Test
+	void allowAdvanced_isComparedAndSentWhenTheConfigSetsIt() {
+		stubFor(patch(urlPathEqualTo(BASE + "/7")).willReturn(okJson()));
+		var wanted = Desired.codeSecurityConfiguration()
+				.withCodeScanningOptions(new Drifty.CodeScanningOptions(true));
+
+		var fixes = group(
+				Map.of("baseline", wanted),
+				List.of(defaults("baseline", "none", Set.of()))
+		).detect();
+
+		assertThat(fixes).flatExtracting(DriftFix::items)
+				.extracting(DriftItem::path)
+				.containsExactly(
+						"org_code_security_configurations.baseline.code_scanning_options.allow_advanced"
+				);
+		assertThat(fixes.getFirst().fix().execute().unfixedItems()).isEmpty();
+		verify(
+				patchRequestedFor(
+						urlPathEqualTo(BASE + "/7")
+				).withRequestBody(equalToJson("""
+						{"code_scanning_options": {"allow_advanced": true}}
+						""", true, true))
 		);
 	}
 

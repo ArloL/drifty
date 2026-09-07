@@ -339,6 +339,13 @@ class SecretScanningDelegatedBypassOptions {
   reviewers: Listing<CodeSecurityBypassReviewer> = new {}
 }
 
+/// Code scanning feature options on a code security configuration.
+/// allowAdvanced lets repositories that run their own code scanning workflow
+/// stay attached to a configuration that enables default setup.
+class CodeScanningOptions {
+  allowAdvanced: Boolean = false
+}
+
 /// A code security configuration. The name is the key in
 /// Organization.codeSecurityConfigurations; the defaults are GitHub's, so a
 /// configuration created with only a name reports no drift. Extra
@@ -349,6 +356,12 @@ class CodeSecurityConfiguration {
   advancedSecurity: AdvancedSecuritySetting = "disabled"
   dependencyGraph: SecuritySetting = "enabled"
   dependencyGraphAutosubmitAction: SecuritySetting = "disabled"
+  /// Whether automatic dependency submission runs on runners labeled
+  /// "dependency-submission" rather than standard GitHub runners. Flat rather
+  /// than a nullable options object like the two below: GitHub returns
+  /// dependency_graph_autosubmit_action_options on every configuration,
+  /// including ones that never set it, so a default reports no false drift.
+  dependencyGraphAutosubmitLabeledRunners: Boolean = false
   dependabotAlerts: SecuritySetting = "disabled"
   dependabotSecurityUpdates: SecuritySetting = "disabled"
   dependabotDelegatedAlertDismissal: SecuritySetting = "disabled"
@@ -369,6 +382,11 @@ class CodeSecurityConfiguration {
   /// Reviewers for secret scanning delegated bypass. Omit to leave GitHub's
   /// untouched; set — even with no reviewers — to compare and write them.
   secretScanningDelegatedBypassOptions: SecretScanningDelegatedBypassOptions?
+  /// Whether repositories on advanced code scanning setup may be attached.
+  /// Omit to leave GitHub's untouched: GitHub omits the object entirely on a
+  /// configuration that never set it, so a default would report drift on
+  /// every one of them.
+  codeScanningOptions: CodeScanningOptions?
   /// Which new repositories get this configuration by default.
   defaultForNewRepos: DefaultForNewRepos = "none"
   /// Repositories this configuration is attached to. Missing ones are

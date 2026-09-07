@@ -27,11 +27,14 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * one detaches every repository it covers. Only the organization's own
  * configurations reach this group; the checker drops GitHub's global ones.
  * <p>
- * The two option sub-objects — the code scanning default setup runner and the
- * delegated bypass reviewers — are compared and sent only when the config sets
- * them. A config that leaves one out says nothing about it, and GitHub keeps
- * whatever it has; that is what lets a configuration created with only a name
- * report no drift whatever runner GitHub picked for it.
+ * Three option sub-objects — the code scanning default setup runner, the
+ * delegated bypass reviewers and {@code code_scanning_options} — are compared
+ * and sent only when the config sets them. A config that leaves one out says
+ * nothing about it, and GitHub keeps whatever it has; that is what lets a
+ * configuration created with only a name report no drift whatever runner GitHub
+ * picked for it. {@code dependency_graph_autosubmit_action_options} is not
+ * among them: GitHub returns it on every configuration, so its one field is
+ * compared and sent like any other setting.
  */
 public class OrgCodeSecurityConfigurationsDriftGroup
 		extends DriftGroup<Drifty.OrgGroupName> {
@@ -216,6 +219,13 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 		}
 		items.addAll(
 				compare(
+						name + ".dependency_graph_autosubmit_action_options.labeled_runners",
+						wanted.dependencyGraphAutosubmitLabeledRunners,
+						current.dependencyGraphAutosubmitLabeledRunners()
+				)
+		);
+		items.addAll(
+				compare(
 						name + ".enforcement",
 						wanted.enforcement.toString(),
 						current.enforcement()
@@ -246,6 +256,16 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 							prefix + ".runner_label",
 							runner.runnerLabel,
 							current.codeScanningRunnerLabel()
+					)
+			);
+		}
+		var codeScanning = wanted.codeScanningOptions;
+		if (codeScanning != null) {
+			items.addAll(
+					compare(
+							name + ".code_scanning_options.allow_advanced",
+							codeScanning.allowAdvanced,
+							current.codeScanningAllowAdvanced()
 					)
 			);
 		}
@@ -369,11 +389,15 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 				c.advancedSecurity.toString(),
 				c.dependencyGraph.toString(),
 				c.dependencyGraphAutosubmitAction.toString(),
+				new CodeSecurityConfigurationRequest.DependencyGraphAutosubmitActionOptions(
+						c.dependencyGraphAutosubmitLabeledRunners
+				),
 				c.dependabotAlerts.toString(),
 				c.dependabotSecurityUpdates.toString(),
 				c.dependabotDelegatedAlertDismissal.toString(),
 				c.codeScanningDefaultSetup.toString(),
 				runnerOptions(c),
+				codeScanningOptions(c),
 				c.codeScanningDelegatedAlertDismissal.toString(),
 				c.secretScanning.toString(),
 				c.secretScanningPushProtection.toString(),
@@ -398,6 +422,18 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 		return new CodeSecurityConfigurationRequest.CodeScanningDefaultSetupOptions(
 				options.runnerType.toString(),
 				options.runnerLabel
+		);
+	}
+
+	private static CodeSecurityConfigurationRequest.CodeScanningOptions codeScanningOptions(
+			Drifty.CodeSecurityConfiguration c
+	) {
+		var options = c.codeScanningOptions;
+		if (options == null) {
+			return null;
+		}
+		return new CodeSecurityConfigurationRequest.CodeScanningOptions(
+				options.allowAdvanced
 		);
 	}
 

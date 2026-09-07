@@ -10,9 +10,13 @@ import java.util.Set;
  * default-for-new-repositories value and the attached repositories come from
  * their own requests. The description is {@code ""} when GitHub has none.
  * <p>
- * The two option sub-objects arrive flattened: the code scanning runner is
- * {@code not_set} with a null label when GitHub has no options object, and the
- * bypass reviewers are an empty set when it has none.
+ * The option sub-objects arrive flattened: the code scanning runner is
+ * {@code not_set} with a null label when GitHub has no options object, the
+ * bypass reviewers are an empty set when it has none, and
+ * {@code codeScanningAllowAdvanced} is null when GitHub omits
+ * {@code code_scanning_options} or answers the field within it as null. The
+ * labeled dependency-submission runner is a plain boolean instead: GitHub
+ * returns its options object on every configuration.
  */
 public record ActualCodeSecurityConfiguration(
 		long id,
@@ -20,8 +24,10 @@ public record ActualCodeSecurityConfiguration(
 		String description,
 		Map<String, String> settings,
 		String enforcement,
+		boolean dependencyGraphAutosubmitLabeledRunners,
 		String codeScanningRunnerType,
 		String codeScanningRunnerLabel,
+		Boolean codeScanningAllowAdvanced,
 		Set<BypassReviewer> secretScanningDelegatedBypassReviewers,
 		String defaultForNewRepos,
 		Set<String> repositories

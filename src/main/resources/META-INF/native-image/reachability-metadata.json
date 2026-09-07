@@ -949,6 +949,10 @@
           "parameterTypes": []
         },
         {
+          "name": "codeScanningOptions",
+          "parameterTypes": []
+        },
+        {
           "name": "dependabotAlerts",
           "parameterTypes": []
         },
@@ -966,6 +970,10 @@
         },
         {
           "name": "dependencyGraphAutosubmitAction",
+          "parameterTypes": []
+        },
+        {
+          "name": "dependencyGraphAutosubmitActionOptions",
           "parameterTypes": []
         },
         {
@@ -1058,6 +1066,30 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.CodeSecurityConfigurationRequest$CodeScanningOptions",
+      "methods": [
+        {
+          "name": "allowAdvanced",
+          "parameterTypes": []
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.CodeSecurityConfigurationRequest$DependencyGraphAutosubmitActionOptions",
+      "methods": [
+        {
+          "name": "labeledRunners",
+          "parameterTypes": []
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.CodeSecurityConfigurationRequest$SecretScanningDelegatedBypassOptions",
       "methods": [
         {
@@ -1082,11 +1114,13 @@
             "java.lang.String",
             "java.lang.String",
             "java.lang.String",
+            "io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse$DependencyGraphAutosubmitActionOptions",
             "java.lang.String",
             "java.lang.String",
             "java.lang.String",
             "java.lang.String",
             "io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse$CodeScanningDefaultSetupOptions",
+            "io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse$CodeScanningOptions",
             "java.lang.String",
             "java.lang.String",
             "java.lang.String",
@@ -1130,6 +1164,34 @@
           "parameterTypes": [
             "java.lang.String",
             "java.lang.String"
+          ]
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse$CodeScanningOptions",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean"
+          ]
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse$DependencyGraphAutosubmitActionOptions",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean"
           ]
         }
       ],
@@ -3619,6 +3681,18 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$CodeScanningOptions",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean"
+          ]
+        }
+      ],
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$CodeScanningRunnerType",
       "allPublicConstructors": true
     },
@@ -3660,6 +3734,7 @@
             "io.github.arlol.githubcheck.pkl.Drifty$AdvancedSecuritySetting",
             "io.github.arlol.githubcheck.pkl.Drifty$SecuritySetting",
             "io.github.arlol.githubcheck.pkl.Drifty$SecuritySetting",
+            "boolean",
             "io.github.arlol.githubcheck.pkl.Drifty$SecuritySetting",
             "io.github.arlol.githubcheck.pkl.Drifty$SecuritySetting",
             "io.github.arlol.githubcheck.pkl.Drifty$SecuritySetting",
@@ -3676,6 +3751,7 @@
             "io.github.arlol.githubcheck.pkl.Drifty$SecurityEnforcement",
             "io.github.arlol.githubcheck.pkl.Drifty$CodeScanningDefaultSetupOptions",
             "io.github.arlol.githubcheck.pkl.Drifty$SecretScanningDelegatedBypassOptions",
+            "io.github.arlol.githubcheck.pkl.Drifty$CodeScanningOptions",
             "io.github.arlol.githubcheck.pkl.Drifty$DefaultForNewRepos",
             "java.util.List"
           ]
