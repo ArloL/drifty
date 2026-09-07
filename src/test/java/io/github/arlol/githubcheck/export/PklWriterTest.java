@@ -160,4 +160,72 @@ class PklWriterTest {
 				""");
 	}
 
+	@Test
+	void noteInsideMapping() {
+		var entry = new PklNode.Obj(
+				List.of(new PklNode.Field("value", PklNode.Scalar.of("a")))
+		);
+		var mapping = new PklNode.Mapping(
+				List.of(
+						new PklNode.Note("why this entry exists"),
+						new PklNode.Field("key1", entry)
+				)
+		);
+		var outer = new PklNode.Obj(
+				List.of(new PklNode.Field("data", mapping))
+		);
+
+		assertThat(PklWriter.write(outer)).isEqualTo("""
+				data {
+				  // why this entry exists
+				  ["key1"] {
+				    value = "a"
+				  }
+				}
+				""");
+	}
+
+	@Test
+	void noteInsideListing() {
+		var listing = new PklNode.Listing(
+				List.of(
+						new PklNode.Note("items in the list"),
+						PklNode.Scalar.of("item1"),
+						PklNode.Scalar.of("item2")
+				)
+		);
+		var outer = new PklNode.Obj(
+				List.of(new PklNode.Field("items", listing))
+		);
+
+		assertThat(PklWriter.write(outer)).isEqualTo("""
+				items {
+				  // items in the list
+				  "item1"
+				  "item2"
+				}
+				""");
+	}
+
+	@Test
+	void mappingKeyWithQuoteIsEscaped() {
+		var entry = new PklNode.Obj(
+				List.of(new PklNode.Field("val", PklNode.Scalar.of("x")))
+		);
+		var mapping = new PklNode.Mapping(
+				List.of(new PklNode.Field("key\"with\"quotes", entry))
+		);
+		var outer = new PklNode.Obj(
+				List.of(new PklNode.Field("data", mapping))
+		);
+
+		assertThat(PklWriter.write(outer)).isEqualTo("""
+				data {
+				  ["key\\"with\\"quotes"] {
+				    val = "x"
+				  }
+				}
+				""");
+	}
+
 }
