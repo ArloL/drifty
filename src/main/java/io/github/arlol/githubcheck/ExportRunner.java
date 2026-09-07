@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -217,6 +218,11 @@ final class ExportRunner {
 	 * /repos/{owner}/{repo}}, never wrapped by {@link FetchFailures}) cannot be
 	 * read at all becomes a note in the listing instead of losing every other
 	 * repository's export.
+	 * <p>
+	 * Sorted by name before fetching anything: GitHub's own listing order is
+	 * not stable across runs, and every other collection this export writes is
+	 * sorted for the same reason — two exports of an unchanged account must
+	 * produce the identical file.
 	 */
 	private static List<PklNode> exportRepositories(
 			GitHubClient client,
@@ -225,8 +231,11 @@ final class ExportRunner {
 			SchemaDefaults defaults,
 			List<FetchFailures.Failure> unreadableGroups
 	) {
+		var sorted = repos.stream()
+				.sorted(Comparator.comparing(RepositorySummaryResponse::name))
+				.toList();
 		var entries = new ArrayList<PklNode>();
-		for (RepositorySummaryResponse summary : repos) {
+		for (RepositorySummaryResponse summary : sorted) {
 			var repositoryChecker = new RepositoryChecker(
 					client,
 					false,

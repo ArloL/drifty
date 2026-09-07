@@ -85,6 +85,49 @@ class ExportRunnerTest {
 				""".formatted(SCHEMA));
 	}
 
+	/**
+	 * GitHub's listing order is not drifty's — creating a repository can
+	 * reorder the account's listing GitHub returns — so unlike every other
+	 * exported collection, {@code repositories} was the one left unsorted.
+	 */
+	@Test
+	void repositoriesAreExportedSortedByNameRegardlessOfListingOrder(
+			WireMockRuntimeInfo wm,
+			@TempDir Path dir
+	) throws Exception {
+		stubOrganizationAtItsDefaults("acme");
+		stubOrgReposListing("acme", "zebra", "api");
+		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "zebra");
+		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "api");
+
+		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
+		Path out = dir.resolve("export.pkl");
+
+		int exitCode = ExportRunner.run(client, List.of("acme"), out, SCHEMA);
+
+		assertThat(exitCode).isZero();
+		String text = Files.readString(out);
+		String body = text.substring(text.indexOf("amends "));
+		assertThat(body).isEqualTo("""
+				amends "%s"
+
+				organizations {
+				  ["acme"] {
+				    repositories {
+				      new {
+				        name = "api"
+				        hasDiscussions = true
+				      }
+				      new {
+				        name = "zebra"
+				        hasDiscussions = true
+				      }
+				    }
+				  }
+				}
+				""".formatted(SCHEMA));
+	}
+
 	@Test
 	void aRepositoryThatFailsToFetchBecomesANoteInsteadOfAbortingTheExport(
 			WireMockRuntimeInfo wm,
@@ -116,11 +159,11 @@ class ExportRunnerTest {
 				organizations {
 				  ["acme"] {
 				    repositories {
+				      // broken: HTTP 403 fetching repo acme/broken
 				      new {
 				        name = "widget"
 				        hasDiscussions = true
 				      }
-				      // broken: HTTP 403 fetching repo acme/broken
 				    }
 				  }
 				}
@@ -169,13 +212,13 @@ class ExportRunnerTest {
 				  ["acme"] {
 				    repositories {
 				      new {
-				        name = "widget"
-				        hasDiscussions = true
-				      }
-				      new {
 				        name = "leaky"
 				        hasDiscussions = true
 				        // action_secrets: HTTP 403 for action secrets on leaky
+				      }
+				      new {
+				        name = "widget"
+				        hasDiscussions = true
 				      }
 				    }
 				  }
