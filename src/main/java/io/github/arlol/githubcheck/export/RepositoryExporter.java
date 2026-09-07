@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.github.arlol.githubcheck.FetchFailures;
 import io.github.arlol.githubcheck.RepositoryState;
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
 import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
@@ -62,8 +63,20 @@ public final class RepositoryExporter {
 	private RepositoryExporter() {
 	}
 
+	/**
+	 * @param failures the groups this repository's own fetch could not read —
+	 *                 see {@code RepositoryChecker.fetchFailures()}. Rendered
+	 *                 as a note where that group's section would otherwise sit,
+	 *                 the same way {@link AccountExporter} places an
+	 *                 organization's. Without it, a 403 on one group reads
+	 *                 identically to that group being empty — the case
+	 *                 {@code branchProtections}, {@code rulesets} and
+	 *                 {@code webhooks} being empty already makes {@code --fix}
+	 *                 delete on a later run.
+	 */
 	public static PklNode entry(
 			RepositoryState state,
+			List<FetchFailures.Failure> failures,
 			SchemaDefaults defaults
 	) {
 		ActualRepository actual = state.repository();
@@ -75,8 +88,8 @@ public final class RepositoryExporter {
 		if (actual.archived()) {
 			members.add(Fields.note(ARCHIVED_NOTE));
 		} else {
-			members.addAll(securityMembers(state, base));
-			members.addAll(collectionMembers(state, defaults));
+			members.addAll(securityMembers(state, base, failures));
+			members.addAll(collectionMembers(state, defaults, failures));
 		}
 		return new PklNode.Obj(members);
 	}
@@ -198,39 +211,64 @@ public final class RepositoryExporter {
 	/**
 	 * Only called for a repository that is not archived; see the class comment
 	 * for why an archived one skips this entirely.
+	 * <p>
+	 * The five booleans up front are each their own endpoint and their own
+	 * {@code GroupName}, unlike the {@code secretScanning*}/{@code
+	 * advancedSecurity} block below them, which rides along on the repository
+	 * details response {@code RepositoryChecker.fetchState} always fetches — so
+	 * only the five get a failure note of their own; the rest cannot fail
+	 * independently of the repository details read that
+	 * {@code RepositoryExporter} is never called without.
 	 */
 	private static List<PklNode.Member> securityMembers(
 			RepositoryState state,
-			Drifty.Repository base
+			Drifty.Repository base,
+			List<FetchFailures.Failure> failures
 	) {
 		ActualSecurityAndAnalysis sa = state.securityAndAnalysis();
-		var members = new ArrayList<>(
+		var members = new ArrayList<PklNode.Member>();
+		Fields.field(
+				"vulnerabilityAlerts",
+				state.vulnerabilityAlerts(),
+				base.vulnerabilityAlerts
+		).ifPresent(members::add);
+		AccountExporter
+				.addFailureNote(members, failures, "vulnerability_alerts");
+		Fields.field(
+				"automatedSecurityFixes",
+				state.automatedSecurityFixes(),
+				base.automatedSecurityFixes
+		).ifPresent(members::add);
+		AccountExporter
+				.addFailureNote(members, failures, "automated_security_fixes");
+		Fields.field(
+				"immutableReleases",
+				state.immutableReleases(),
+				base.immutableReleases
+		).ifPresent(members::add);
+		AccountExporter.addFailureNote(members, failures, "immutable_releases");
+		Fields.field(
+				"privateVulnerabilityReporting",
+				state.privateVulnerabilityReporting(),
+				base.privateVulnerabilityReporting
+		).ifPresent(members::add);
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				"private_vulnerability_reporting"
+		);
+		Fields.field(
+				"codeScanningDefaultSetup",
+				state.codeScanningDefaultSetup(),
+				base.codeScanningDefaultSetup
+		).ifPresent(members::add);
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				"code_scanning_default_setup"
+		);
+		members.addAll(
 				Fields.members(
-						Fields.field(
-								"vulnerabilityAlerts",
-								state.vulnerabilityAlerts(),
-								base.vulnerabilityAlerts
-						),
-						Fields.field(
-								"automatedSecurityFixes",
-								state.automatedSecurityFixes(),
-								base.automatedSecurityFixes
-						),
-						Fields.field(
-								"immutableReleases",
-								state.immutableReleases(),
-								base.immutableReleases
-						),
-						Fields.field(
-								"privateVulnerabilityReporting",
-								state.privateVulnerabilityReporting(),
-								base.privateVulnerabilityReporting
-						),
-						Fields.field(
-								"codeScanningDefaultSetup",
-								state.codeScanningDefaultSetup(),
-								base.codeScanningDefaultSetup
-						),
 						Fields.field(
 								"secretScanning",
 								sa.secretScanning(),
@@ -285,6 +323,8 @@ public final class RepositoryExporter {
 					)
 			);
 		}
+		AccountExporter
+				.addFailureNote(members, failures, "workflow_permissions");
 		return members;
 	}
 
@@ -304,7 +344,8 @@ public final class RepositoryExporter {
 	 */
 	private static List<PklNode.Member> collectionMembers(
 			RepositoryState state,
-			SchemaDefaults defaults
+			SchemaDefaults defaults,
+			List<FetchFailures.Failure> failures
 	) {
 		var members = new ArrayList<PklNode.Member>();
 
@@ -320,13 +361,16 @@ public final class RepositoryExporter {
 								)
 						)
 				);
+		AccountExporter.addFailureNote(members, failures, "pages");
 
 		addActionsSecrets(members, state.actionSecrets());
+		AccountExporter.addFailureNote(members, failures, "action_secrets");
 
 		Fields.mapping(
 				"actionsVariables",
 				actionsVariableEntries(state.actionVariables())
 		).ifPresent(members::add);
+		AccountExporter.addFailureNote(members, failures, "action_variables");
 
 		Fields.mapping(
 				"branchProtections",
@@ -335,6 +379,7 @@ public final class RepositoryExporter {
 						defaults.branchProtection()
 				)
 		).ifPresent(members::add);
+		AccountExporter.addFailureNote(members, failures, "branch_protection");
 
 		Fields.mapping(
 				"rulesets",
@@ -347,11 +392,20 @@ public final class RepositoryExporter {
 						)
 						.toList()
 		).ifPresent(members::add);
+		AccountExporter.addFailureNote(members, failures, "rulesets");
 
 		Fields.mapping(
 				"environments",
 				environmentEntries(state, defaults.environment())
 		).ifPresent(members::add);
+		// One mapping serves three independently-guarded groups, the same way
+		// RepositoryChecker.fetchState reads it: each can fail on its own, so
+		// each gets its own note where the shared section sits.
+		AccountExporter.addFailureNote(members, failures, "environment_config");
+		AccountExporter
+				.addFailureNote(members, failures, "environment_secrets");
+		AccountExporter
+				.addFailureNote(members, failures, "environment_variables");
 
 		Fields.mapping(
 				"webhooks",
@@ -364,8 +418,10 @@ public final class RepositoryExporter {
 						)
 						.toList()
 		).ifPresent(members::add);
+		AccountExporter.addFailureNote(members, failures, "webhooks");
 
 		addCustomProperties(members, state.customPropertyValues());
+		AccountExporter.addFailureNote(members, failures, "custom_properties");
 
 		if (state.collaborators() != null) {
 			Fields.mapping(
@@ -377,6 +433,7 @@ public final class RepositoryExporter {
 					collaboratorEntries(state.collaborators().teams())
 			).ifPresent(members::add);
 		}
+		AccountExporter.addFailureNote(members, failures, "collaborators");
 
 		return members;
 	}

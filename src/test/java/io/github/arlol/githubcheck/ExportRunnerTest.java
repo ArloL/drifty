@@ -57,10 +57,13 @@ class ExportRunnerTest {
 		assertThat(exitCode).isZero();
 		String text = Files.readString(out);
 		String[] parts = text.split("\n", 4);
+		// Surefire never puts a manifest on the test classpath, so
+		// getImplementationVersion() reads null here every time — this pins
+		// the exact degraded text ("unknown"), not just "some version word",
+		// so a regression back to the literal "drifty null" fails this test.
 		assertThat(parts[0]).matches(
-				Pattern.quote("/// Exported by drifty ") + ".+"
-						+ Pattern.quote(" from acme on ") + ".+"
-						+ Pattern.quote(".")
+				Pattern.quote("/// Exported by drifty unknown from acme on ")
+						+ "[^ ]+\\."
 		);
 		assertThat(parts[1]).isEqualTo(
 				"/// Only settings that differ from the schema defaults are listed; everything"
@@ -118,6 +121,62 @@ class ExportRunnerTest {
 				        hasDiscussions = true
 				      }
 				      // broken: HTTP 403 fetching repo acme/broken
+				    }
+				  }
+				}
+				""".formatted(SCHEMA));
+	}
+
+	/**
+	 * Regression test for a bug review caught: one shared
+	 * {@code RepositoryChecker}/{@code FetchFailures.collecting()} across the
+	 * whole account loop would carry {@code leaky}'s failure into whichever
+	 * repository rendered next. Two repositories both fetch cleanly except
+	 * {@code leaky}'s own {@code actions/secrets} read, which 403s — the note
+	 * must land only on {@code leaky}, in {@code actionsSecrets}'s position,
+	 * and {@code widget} must carry none at all.
+	 */
+	@Test
+	void aGroupFailureOnOneRepositoryDoesNotLeakIntoAnother(
+			WireMockRuntimeInfo wm,
+			@TempDir Path dir
+	) throws Exception {
+		stubOrganizationAtItsDefaults("acme");
+		stubOrgReposListing("acme", "widget", "leaky");
+		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "widget");
+		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "leaky");
+		// Registered after the helper's own success stub for the same path;
+		// WireMock resolves a request to the most-recently-registered match.
+		stubFor(
+				get(urlPathEqualTo("/repos/acme/leaky/actions/secrets"))
+						.willReturn(aResponse().withStatus(403).withBody("""
+								{"message": "Forbidden"}
+								"""))
+		);
+
+		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
+		Path out = dir.resolve("export.pkl");
+
+		int exitCode = ExportRunner.run(client, List.of("acme"), out, SCHEMA);
+
+		assertThat(exitCode).isZero();
+		String text = Files.readString(out);
+		String body = text.substring(text.indexOf("amends "));
+		assertThat(body).isEqualTo("""
+				amends "%s"
+
+				organizations {
+				  ["acme"] {
+				    repositories {
+				      new {
+				        name = "widget"
+				        hasDiscussions = true
+				      }
+				      new {
+				        name = "leaky"
+				        hasDiscussions = true
+				        // action_secrets: HTTP 403 for action secrets on leaky
+				      }
 				    }
 				  }
 				}

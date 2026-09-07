@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
+import io.github.arlol.githubcheck.FetchFailures;
 import io.github.arlol.githubcheck.RepositoryState;
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
 import io.github.arlol.githubcheck.actual.ActualCollaborators;
@@ -273,10 +274,37 @@ class RepositoryExporterTest {
 
 	@Test
 	void aRepositoryAtGitHubsDefaultsExportsOnlyName() {
-		PklNode entry = RepositoryExporter.entry(defaultState(), DEFAULTS);
+		PklNode entry = RepositoryExporter
+				.entry(defaultState(), List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
+				""");
+	}
+
+	/**
+	 * A group the token could not read is a note where that group's section
+	 * would otherwise sit, not an empty section indistinguishable from "GitHub
+	 * has nothing there" — the same rule {@code AccountExporterTest} pins for
+	 * an organization. {@code action_secrets} and {@code collaborators} are
+	 * picked because they sit at opposite ends of {@code collectionMembers}:
+	 * this also proves a note earlier in the method doesn't swallow or reorder
+	 * one that comes later.
+	 */
+	@Test
+	void aGroupFailureBecomesANoteWhereTheGroupWouldSit() {
+		var failures = List.of(
+				new FetchFailures.Failure("action_secrets", "read failed"),
+				new FetchFailures.Failure("collaborators", "read failed")
+		);
+
+		PklNode entry = RepositoryExporter
+				.entry(defaultState(), failures, DEFAULTS);
+
+		assertThat(PklWriter.write(entry)).isEqualTo("""
+				name = "api"
+				// action_secrets: read failed
+				// collaborators: read failed
 				""");
 	}
 
@@ -320,7 +348,7 @@ class RepositoryExporterTest {
 				defaultWorkflowPermissions()
 		);
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -389,7 +417,7 @@ class RepositoryExporterTest {
 				driftedWorkflowPermissions
 		);
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo(
 				"""
@@ -441,7 +469,7 @@ class RepositoryExporterTest {
 				defaultWorkflowPermissions()
 		);
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo(
 				"""
@@ -496,7 +524,7 @@ class RepositoryExporterTest {
 				defaultWorkflowPermissions()
 		);
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -543,7 +571,7 @@ class RepositoryExporterTest {
 				defaultWorkflowPermissions()
 		);
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -581,7 +609,7 @@ class RepositoryExporterTest {
 				defaultWorkflowPermissions()
 		);
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -615,7 +643,7 @@ class RepositoryExporterTest {
 				)
 		);
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -637,7 +665,7 @@ class RepositoryExporterTest {
 				null
 		);
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -670,7 +698,7 @@ class RepositoryExporterTest {
 				)
 				.build();
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -732,7 +760,7 @@ class RepositoryExporterTest {
 				.rulesets(List.of(withRepositoryNameProtected))
 				.build();
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -767,7 +795,7 @@ class RepositoryExporterTest {
 				)
 				.build();
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo(
 				"""
@@ -818,7 +846,7 @@ class RepositoryExporterTest {
 				)
 				.build();
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -842,7 +870,7 @@ class RepositoryExporterTest {
 				)
 		).build();
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo(
 				"""
@@ -861,7 +889,7 @@ class RepositoryExporterTest {
 	void noActionsSecretsMeansNoNote() {
 		RepositoryState state = defaultState();
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry))
 				.doesNotContain("DRIFTY_GITHUB_SECRETS");
@@ -878,7 +906,7 @@ class RepositoryExporterTest {
 				)
 				.build();
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -908,7 +936,7 @@ class RepositoryExporterTest {
 				)
 				.build();
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -924,7 +952,7 @@ class RepositoryExporterTest {
 	void noPagesMeansNoPagesField() {
 		RepositoryState state = defaultState();
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).doesNotContain("pages");
 	}
@@ -956,7 +984,7 @@ class RepositoryExporterTest {
 				)
 		).build();
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -988,7 +1016,7 @@ class RepositoryExporterTest {
 				)
 				.build();
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -1008,7 +1036,7 @@ class RepositoryExporterTest {
 		// read.
 		RepositoryState state = new CollectionsBuilder().build();
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
@@ -1089,7 +1117,7 @@ class RepositoryExporterTest {
 				notArchived.collaborators()
 		);
 
-		PklNode entry = RepositoryExporter.entry(state, DEFAULTS);
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
 
 		assertThat(PklWriter.write(entry)).isEqualTo(
 				"""
