@@ -166,11 +166,16 @@ final class ExportRunner {
 	}
 
 	/**
-	 * One repository at a time, each through its own {@link RepositoryChecker}
-	 * failure collector: a group's read failing does not abort the repository,
-	 * and a repository whose own details ({@code GET /repos/{owner}/{repo}},
-	 * never wrapped by {@link FetchFailures}) cannot be read at all becomes a
-	 * note in the listing instead of losing every other repository's export.
+	 * One repository at a time, each through its own fresh
+	 * {@link RepositoryChecker} and its own {@link FetchFailures#collecting()}:
+	 * reusing one collector across the loop would attribute one repository's
+	 * group failures to whichever repository rendered next, since
+	 * {@code Failure} carries only a group name, not which repository it
+	 * belongs to. A group's read failing does not abort the repository either
+	 * way, and a repository whose own details ({@code GET
+	 * /repos/{owner}/{repo}}, never wrapped by {@link FetchFailures}) cannot be
+	 * read at all becomes a note in the listing instead of losing every other
+	 * repository's export.
 	 */
 	private static List<PklNode> exportRepositories(
 			GitHubClient client,
@@ -178,22 +183,28 @@ final class ExportRunner {
 			List<RepositorySummaryResponse> repos,
 			SchemaDefaults defaults
 	) {
-		var repositoryChecker = new RepositoryChecker(
-				client,
-				false,
-				Map.of(),
-				new DriftyState(),
-				FetchFailures.collecting()
-		);
 		var entries = new ArrayList<PklNode>();
 		for (RepositorySummaryResponse summary : repos) {
+			var repositoryChecker = new RepositoryChecker(
+					client,
+					false,
+					Map.of(),
+					new DriftyState(),
+					FetchFailures.collecting()
+			);
 			try {
 				RepositoryState state = repositoryChecker.fetchState(
 						new RepoRef(owner, summary.name()),
 						summary,
 						ManagedGroups.all(Drifty.GroupName.class)
 				);
-				entries.add(RepositoryExporter.entry(state, defaults));
+				entries.add(
+						RepositoryExporter.entry(
+								state,
+								repositoryChecker.fetchFailures(),
+								defaults
+						)
+				);
 			} catch (GitHubApiException e) {
 				entries.add(
 						new PklNode.Note(

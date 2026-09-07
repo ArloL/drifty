@@ -381,7 +381,12 @@ public final class AccountExporter {
 		return new PklNode.Field(variable.name(), new PklNode.Obj(fields));
 	}
 
-	private static void addFailureNote(
+	/**
+	 * Package-visible rather than {@code private}: {@link RepositoryExporter}
+	 * places a repository's own failure notes the same way, so the lookup lives
+	 * once instead of twice.
+	 */
+	static void addFailureNote(
 			List<PklNode.Member> members,
 			List<FetchFailures.Failure> failures,
 			String group
