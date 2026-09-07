@@ -26,6 +26,7 @@ import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.ImmutableReleasesResponse;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
@@ -80,6 +81,7 @@ public class RepositoryChecker {
 	private final boolean fix;
 	private final Map<String, String> githubSecrets;
 	private final DriftyState state;
+	private final FetchFailures failures;
 
 	public RepositoryChecker(String token, boolean fix) {
 		this(new GitHubClient(token), fix, Map.of(), new DriftyState());
@@ -103,10 +105,21 @@ public class RepositoryChecker {
 			Map<String, String> githubSecrets,
 			DriftyState state
 	) {
+		this(client, fix, githubSecrets, state, FetchFailures.STRICT);
+	}
+
+	RepositoryChecker(
+			GitHubClient client,
+			boolean fix,
+			Map<String, String> githubSecrets,
+			DriftyState state,
+			FetchFailures failures
+	) {
 		this.client = client;
 		this.fix = fix;
 		this.githubSecrets = githubSecrets;
 		this.state = state;
+		this.failures = failures;
 	}
 
 	/**
@@ -242,17 +255,38 @@ public class RepositoryChecker {
 
 		Map<String, ActualBranchProtection> branchProtections = managed
 				.manages(Drifty.GroupName.BRANCH_PROTECTION)
-						? fetchBranchProtections(summary, org, name, archived)
+						? failures.read(
+								Drifty.GroupName.BRANCH_PROTECTION,
+								() -> fetchBranchProtections(
+										summary,
+										org,
+										name,
+										archived
+								),
+								Map.of()
+						)
 						: Map.of();
 
 		List<ActualSecret> secrets = managed
 				.manages(Drifty.GroupName.ACTION_SECRETS)
-						? secrets(client.getActionSecrets(org, name))
+						? failures.read(
+								Drifty.GroupName.ACTION_SECRETS,
+								() -> secrets(
+										client.getActionSecrets(org, name)
+								),
+								List.of()
+						)
 						: List.of();
 
 		List<ActualVariable> variables = managed
 				.manages(Drifty.GroupName.ACTION_VARIABLES)
-						? variables(client.getActionVariables(org, name))
+						? failures.read(
+								Drifty.GroupName.ACTION_VARIABLES,
+								() -> variables(
+										client.getActionVariables(org, name)
+								),
+								List.of()
+						)
 						: List.of();
 
 		// One listing serves three groups, so it runs when any wants it; the
@@ -267,37 +301,63 @@ public class RepositoryChecker {
 				.manages(Drifty.GroupName.ENVIRONMENT_SECRETS);
 		boolean wantEnvVariables = managed
 				.manages(Drifty.GroupName.ENVIRONMENT_VARIABLES);
+		// The listing is one request shared by all three groups, but the
+		// per-environment secret and variable reads below are each their own
+		// request and fail independently of it and of each other — wrapping
+		// the whole block under one group name would blame a secrets-only
+		// 403 on environment_config, and would throw away an already-fetched
+		// listing when only the variables read failed.
 		if (wantEnvConfig || wantEnvSecrets || wantEnvVariables) {
-			for (EnvironmentDetailsResponse env : client
-					.getEnvironments(org, name)) {
+			for (EnvironmentDetailsResponse env : failures.read(
+					Drifty.GroupName.ENVIRONMENT_CONFIG,
+					() -> client.getEnvironments(org, name),
+					List.<EnvironmentDetailsResponse>of()
+			)) {
 				environments.put(
 						env.name(),
 						ActualTypes.environment(
 								env,
-								branchPolicies(org, name, env, wantEnvConfig)
+								failures.read(
+										Drifty.GroupName.ENVIRONMENT_CONFIG,
+										() -> branchPolicies(
+												org,
+												name,
+												env,
+												wantEnvConfig
+										),
+										List.of()
+								)
 						)
 				);
 				if (wantEnvSecrets) {
 					envSecrets.put(
 							env.name(),
-							secrets(
-									client.getEnvironmentSecrets(
-											org,
-											name,
-											env.name()
-									)
+							failures.read(
+									Drifty.GroupName.ENVIRONMENT_SECRETS,
+									() -> secrets(
+											client.getEnvironmentSecrets(
+													org,
+													name,
+													env.name()
+											)
+									),
+									List.of()
 							)
 					);
 				}
 				if (wantEnvVariables) {
 					envVariables.put(
 							env.name(),
-							variables(
-									client.getEnvironmentVariables(
-											org,
-											name,
-											env.name()
-									)
+							failures.read(
+									Drifty.GroupName.ENVIRONMENT_VARIABLES,
+									() -> variables(
+											client.getEnvironmentVariables(
+													org,
+													name,
+													env.name()
+											)
+									),
+									List.of()
 							)
 					);
 				}
@@ -306,33 +366,55 @@ public class RepositoryChecker {
 
 		var workflowPermissions = managed
 				.manages(Drifty.GroupName.WORKFLOW_PERMISSIONS)
-						? ActualTypes.workflowPermissions(
-								client.getWorkflowPermissions(org, name)
+						? failures.read(
+								Drifty.GroupName.WORKFLOW_PERMISSIONS,
+								() -> ActualTypes.workflowPermissions(
+										client.getWorkflowPermissions(org, name)
+								),
+								null
 						)
 						: null;
 
 		List<ActualRuleset> rulesets = archived
-				|| !managed.manages(Drifty.GroupName.RULESETS) ? List.of()
-						: fetchRulesets(org, name);
+				|| !managed.manages(Drifty.GroupName.RULESETS)
+						? List.of()
+						: failures.read(
+								Drifty.GroupName.RULESETS,
+								() -> fetchRulesets(org, name),
+								List.of()
+						);
 
 		var pages = archived || !managed.manages(Drifty.GroupName.PAGES)
 				? Optional.<PagesResponse>empty()
-				: client.getPages(org, name);
+				: failures.read(
+						Drifty.GroupName.PAGES,
+						() -> client.getPages(org, name),
+						Optional.<PagesResponse>empty()
+				);
 
 		List<ActualWebhook> webhooks = managed
 				.manages(Drifty.GroupName.WEBHOOKS)
-						? client.getRepoWebhooks(org, name)
-								.stream()
-								.map(ActualTypes::webhook)
-								.toList()
+						? failures.read(
+								Drifty.GroupName.WEBHOOKS,
+								() -> client.getRepoWebhooks(org, name)
+										.stream()
+										.map(ActualTypes::webhook)
+										.toList(),
+								List.of()
+						)
 						: List.of();
 
 		List<ActualCustomPropertyValue> customPropertyValues = managed
 				.manages(Drifty.GroupName.CUSTOM_PROPERTIES)
-						? client.getRepoCustomPropertyValues(org, name)
-								.stream()
-								.map(ActualTypes::customPropertyValue)
-								.toList()
+						? failures.read(
+								Drifty.GroupName.CUSTOM_PROPERTIES,
+								() -> client
+										.getRepoCustomPropertyValues(org, name)
+										.stream()
+										.map(ActualTypes::customPropertyValue)
+										.toList(),
+								List.of()
+						)
 						: List.of();
 
 		var repository = ActualTypes.repository(details);
@@ -341,11 +423,15 @@ public class RepositoryChecker {
 		// personal account's repository.
 		ActualCollaborators collaborators = null;
 		if (managed.manages(Drifty.GroupName.COLLABORATORS)) {
-			collaborators = ActualTypes.collaborators(
-					client.getCollaborators(org, name),
-					repository.organizationOwned()
-							? client.getRepoTeams(org, name)
-							: List.of()
+			collaborators = failures.read(
+					Drifty.GroupName.COLLABORATORS,
+					() -> ActualTypes.collaborators(
+							client.getCollaborators(org, name),
+							repository.organizationOwned()
+									? client.getRepoTeams(org, name)
+									: List.of()
+					),
+					null
 			);
 		}
 
@@ -377,6 +463,13 @@ public class RepositoryChecker {
 			List<VariableResponse> responses
 	) {
 		return responses.stream().map(ActualTypes::variable).toList();
+	}
+
+	/**
+	 * The groups {@link #fetchState} could not read, for the exporter to note.
+	 */
+	List<FetchFailures.Failure> fetchFailures() {
+		return failures.failures();
 	}
 
 	/**
@@ -414,22 +507,43 @@ public class RepositoryChecker {
 	) {
 		boolean vulnAlerts = managed
 				.manages(Drifty.GroupName.VULNERABILITY_ALERTS)
-				&& client.getVulnerabilityAlerts(org, name);
+				&& failures.read(
+						Drifty.GroupName.VULNERABILITY_ALERTS,
+						() -> client.getVulnerabilityAlerts(org, name),
+						false
+				);
 		boolean automatedSecurityFixes = managed
 				.manages(Drifty.GroupName.AUTOMATED_SECURITY_FIXES)
-				&& client.getAutomatedSecurityFixes(org, name);
+				&& failures.read(
+						Drifty.GroupName.AUTOMATED_SECURITY_FIXES,
+						() -> client.getAutomatedSecurityFixes(org, name),
+						false
+				);
 		boolean immutableReleases = false;
 		if (managed.manages(Drifty.GroupName.IMMUTABLE_RELEASES)) {
-			var response = client.getImmutableReleases(org, name);
+			var response = failures.read(
+					Drifty.GroupName.IMMUTABLE_RELEASES,
+					() -> client.getImmutableReleases(org, name),
+					Optional.<ImmutableReleasesResponse>empty()
+			);
 			immutableReleases = response.isPresent()
 					&& response.orElseThrow().enabled();
 		}
 		boolean privateVulnerabilityReporting = managed
 				.manages(Drifty.GroupName.PRIVATE_VULNERABILITY_REPORTING)
-				&& client.getPrivateVulnerabilityReporting(org, name);
+				&& failures.read(
+						Drifty.GroupName.PRIVATE_VULNERABILITY_REPORTING,
+						() -> client
+								.getPrivateVulnerabilityReporting(org, name),
+						false
+				);
 		boolean codeScanningDefaultSetup = managed
 				.manages(Drifty.GroupName.CODE_SCANNING_DEFAULT_SETUP)
-				&& client.getCodeScanningDefaultSetup(org, name);
+				&& failures.read(
+						Drifty.GroupName.CODE_SCANNING_DEFAULT_SETUP,
+						() -> client.getCodeScanningDefaultSetup(org, name),
+						false
+				);
 		return new SecurityFlags(
 				vulnAlerts,
 				automatedSecurityFixes,

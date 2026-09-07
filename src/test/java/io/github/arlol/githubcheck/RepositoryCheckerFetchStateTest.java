@@ -8,6 +8,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
 import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
+import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
@@ -203,6 +205,60 @@ class RepositoryCheckerFetchStateTest {
 				);
 		assertThat(state.workflowPermissions().canApprovePullRequestReviews())
 				.isTrue();
+	}
+
+	/**
+	 * Every other managed group is stubbed with a valid response so the
+	 * branch-protection read is the only one that can fail — proving the
+	 * default {@link FetchFailures#STRICT} still lets a group's failure end the
+	 * whole read, the way it always has. Only {@code --export} passes a
+	 * {@link FetchFailures#collecting()} that tolerates this.
+	 */
+	@Test
+	void aForbiddenGroupStillFailsFetchStateByDefault() throws Exception {
+		stubRepoDetails("""
+				,"security_and_analysis": {
+					"secret_scanning": {"status": "enabled"},
+					"secret_scanning_push_protection": {"status": "enabled"},
+					"secret_scanning_non_provider_patterns": {
+						"status": "disabled"
+					},
+					"secret_scanning_validity_checks": {"status": "enabled"}
+				}
+				""");
+		stubSecurityEndpoints();
+		stubStandardEndpoints();
+
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/branches"))
+						.willReturn(okJson("""
+								[{"name": "main", "protected": true}]
+								"""))
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/owner/repo/branches/main/protection"
+						)
+				).willReturn(aResponse().withStatus(403))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/rulesets"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/pages"))
+						.willReturn(aResponse().withStatus(404))
+		);
+
+		assertThatThrownBy(
+				() -> checker.fetchState(
+						REF,
+						summary(false, "public"),
+						ManagedGroups.all(Drifty.GroupName.class)
+				)
+		).isInstanceOf(GitHubApiException.class)
+				.hasMessageContaining("GET branch protection");
 	}
 
 	@Test
