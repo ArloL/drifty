@@ -1,0 +1,26 @@
+/// Instantiates every type the export diffs against, so the defaults come
+/// from the schema rather than a second copy of it. `amends` is not enough:
+/// a module that only amends the schema declares no accounts and hands out
+/// nothing to compare against.
+module exportDefaults
+
+import "@schema@" as schema
+
+organization: schema.Organization = new {}
+repository: schema.Repository = new { name = "" }
+ruleset: schema.Ruleset = new {}
+orgRuleset: schema.OrgRuleset = new {}
+pullRequestRule: schema.PullRequestRule = new {}
+mergeQueueRule: schema.MergeQueueRule = new {}
+branchProtection: schema.BranchProtection = new {}
+environment: schema.Environment = new {}
+pages: schema.Pages = new {}
+webhook: schema.Webhook = new { url = "" }
+customProperty: schema.CustomProperty = new { valueType = "string" }
+codeSecurityConfiguration: schema.CodeSecurityConfiguration = new {}
+team: schema.Team = new {}
+runnerGroup: schema.RunnerGroup = new {}
+orgSecret: schema.OrgSecret = new {}
+orgVariable: schema.OrgVariable = new { value = "" }
+actionsPermissions: schema.ActionsPermissions = new {}
+selectedActions: schema.SelectedActions = new {}

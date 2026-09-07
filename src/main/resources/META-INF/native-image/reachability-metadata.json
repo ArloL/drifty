@@ -4488,6 +4488,9 @@
       "glob": "**/libsodium.*"
     },
     {
+      "glob": "export-defaults.pkl"
+    },
+    {
       "glob": "META-INF/org/pkl/config/java/mapper/classes/drifty.properties"
     },
     {
