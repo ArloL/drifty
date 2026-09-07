@@ -2,7 +2,6 @@ package io.github.arlol.githubcheck.export;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -100,14 +99,21 @@ public final class SchemaDefaults {
 
 	/**
 	 * A module evaluated from text has no base URI, so Pkl refuses a relative
-	 * import outright rather than guessing what it is relative to. A bare
-	 * filesystem path — what the test schema and a user's {@code --config} both
-	 * are — has no scheme and reads as relative; a {@code file:} URI is what
-	 * makes it absolute instead. A URI that already carries a scheme, like the
-	 * production {@code https:} default, passes through unchanged.
+	 * import outright rather than guessing what it is relative to. The two
+	 * shapes this ever receives are an {@code http(s)} URL (the production
+	 * default, and whatever a user's {@code --schema} names) and a bare
+	 * filesystem path (what a local {@code --schema} or the tests give it) — so
+	 * those are the two cases handled, rather than parsed as a generic URI:
+	 * {@link URI#create(String)} throws on a space, which an ordinary home
+	 * directory can contain, and silently misreads a Windows {@code C:/...}
+	 * path as an already-schemed URI with scheme {@code C}.
+	 * {@link Path#toUri()} both escapes correctly and resolves the path against
+	 * the working directory, giving an absolute {@code file:} URI in every
+	 * case.
 	 */
 	private static String importUri(String schemaUri) {
-		if (URI.create(schemaUri).getScheme() != null) {
+		if (schemaUri.startsWith("http://")
+				|| schemaUri.startsWith("https://")) {
 			return schemaUri;
 		}
 		return Path.of(schemaUri).toUri().toString();
