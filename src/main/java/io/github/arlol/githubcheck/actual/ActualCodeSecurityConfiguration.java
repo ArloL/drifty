@@ -5,7 +5,7 @@ import java.util.Set;
 
 /**
  * A code security configuration on an organization. The security settings sit
- * in one map keyed by GitHub's field name, since all seventeen are the same
+ * in one map keyed by GitHub's field name, since all sixteen are the same
  * three-valued toggle and the drift group compares them from a table; the
  * default-for-new-repositories value and the attached repositories come from
  * their own requests. The description is {@code ""} when GitHub has none.

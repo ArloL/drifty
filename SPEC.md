@@ -168,6 +168,33 @@ A diff path is the drift group's name followed by the setting's name within that
 
 **With `--fix`:** Same output, but diffs are replaced with per-setting fix results (FIXED or FAILED with reason). Failed fixes are also collected in a summary at the end.
 
+### Export
+
+```
+drifty --export <login> [<login> ...]  # Write current state as a starting config
+drifty --export <login> --out <path>   # Write it somewhere other than ./export.pkl
+drifty --export <login> --schema <uri> # Diff against, and amend, a schema other than main
+```
+
+`--export` reads every account named instead of checking one, and takes no `--config` and no `--fix` — combining either with `--export` is an error. It still needs `DRIFTY_GITHUB_TOKEN`; a personal account can only be exported by its own token, since `/user/repos` serves the authenticated user alone. The output defaults to `./export.pkl`; `--out` writes elsewhere. The exit code is 0 unless a named login could not be read at all, in which case it is 1 — a group within an account failing to read does not count, since that becomes a note instead (below).
+
+The file amends the schema at `SchemaDefaults.MAIN_SCHEMA_URI` — `https://raw.githubusercontent.com/ArloL/drifty/refs/heads/main/config/drifty.pkl` — unless `--schema` names a different one. Whichever URI is used is both written into the file's `amends` line and evaluated locally to get the defaults the export diffs against: exporting against one schema and amending another would put fields in the file that the schema it actually amends already implies, or leave out ones it does not.
+
+**Only settings that differ from the schema's defaults are written.** A field at its default is omitted entirely rather than written with the default value — an organization or repository with nothing configured beyond GitHub's own defaults exports an empty entry. This is what lets the round-trip acceptance test (`ExportRoundTripTest`) tell a real gap in the exporter apart from a field that simply had nothing to say: a fixture built entirely at GitHub's defaults would pass whether or not the exporter worked at all, so its state is deliberately not at any defaults.
+
+The file carries four kinds of `//` comment, each marking something a bare field could not say on its own:
+
+| Note | Where it appears | What it means |
+|---|---|---|
+| Check-only setting | Beside a field GitHub returns but drifty never writes — `visibility` on a repository, and ten organization settings such as `twoFactorRequirementEnabled` | The field is exported so the file matches GitHub and reports no drift; the note says `--fix` will never act on it |
+| Unreadable group | Where that group's section would otherwise sit | The token lacked the scope (or permission) for that group's own request; the section is empty rather than absent, which is not the same as an empty section on GitHub |
+| Secret value | Beside a section with a secret — action/environment secrets, webhooks with one configured | GitHub never returns a secret's value; supply it through `DRIFTY_GITHUB_SECRETS` before running `--fix` |
+| Informational | A ruleset pattern rule, or an archived repository | A ruleset pattern's operator/negate flag is compared and exported as text only, so the note says the flag exists on GitHub but not in the file; an archived repository skips every setting `RepositoryChecker` stops fetching once it is archived, replacing them all with one note rather than exporting stale or absent values |
+
+The check-only note is paired with its field, never instead of it: leaving the field out would mean the file carries the schema's default forever while GitHub carries the real value, reporting drift no `--fix` could ever clear. The other three kinds of note stand alone, in place of the field or section they describe.
+
+**What does not round-trip.** A freshly exported config that has any Actions secret, environment secret, or webhook with a secret configured reports `SecretMissingBaseline` drift ("exists but has no recorded baseline") on the very first `drifty` run against it — see [State File](#state-file). That is not a defect in the export: the state file is what records that a secret's value has been seen before, a freshly exported config has no state file yet, and GitHub never returns a secret's value for the export to seed one with. A hand-written config with the same secrets configured has the identical first-run drift. Every other exported field is expected to report zero drift against the account it came from, which is what `ExportRoundTripTest` checks.
+
 ## Managed Settings
 
 All settings below are fields on the `Repository` type in `config/drifty.pkl`. Their defaults match GitHub's defaults for newly created repos — the "GitHub default" column documents these. Non-default desired values are set in shared templates in the config file.
@@ -613,7 +640,7 @@ codeSecurityConfigurations {
 }
 ```
 
-Defaults are GitHub's POST defaults, so a configuration created with only a name reports no drift. Every one of the seventeen `enabled`/`disabled`/`not_set` toggles, the description and the enforcement are compared; only configurations whose `target_type` is `organization` are, since the GitHub-provided global ones are not the organization's to change. Three writes, each its own fix so a rejected one is not reported as having failed the others: the settings go to a PATCH (a POST for a missing configuration), `defaultForNewRepos` to `PUT .../{id}/defaults`, and missing attachments to `POST .../{id}/attach` with `scope = selected`. Repositories attached outside the config are reported and left attached; extra configurations are reported and never deleted.
+Defaults are GitHub's POST defaults, so a configuration created with only a name reports no drift. Every one of the sixteen `enabled`/`disabled`/`not_set` toggles, the description and the enforcement are compared; only configurations whose `target_type` is `organization` are, since the GitHub-provided global ones are not the organization's to change. Three writes, each its own fix so a rejected one is not reported as having failed the others: the settings go to a PATCH (a POST for a missing configuration), `defaultForNewRepos` to `PUT .../{id}/defaults`, and missing attachments to `POST .../{id}/attach` with `scope = selected`. Repositories attached outside the config are reported and left attached; extra configurations are reported and never deleted.
 
 Three option sub-objects are managed only when the config sets them, so a configuration that leaves them out reports no drift for them and the PATCH omits them:
 

@@ -39,7 +39,7 @@ import io.github.arlol.githubcheck.pkl.Drifty;
 public class OrgCodeSecurityConfigurationsDriftGroup
 		extends DriftGroup<Drifty.OrgGroupName> {
 
-	/** One of the seventeen toggles: its wire name and the config's value. */
+	/** One of the sixteen toggles: its wire name and the config's value. */
 	private record Setting(
 			String wire,
 			Function<Drifty.CodeSecurityConfiguration, Object> wanted

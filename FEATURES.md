@@ -404,7 +404,7 @@ rulesets before comparing.
 
 ## ~~44. Code Security Configurations~~ DONE
 
-Implemented: `org_code_security_configurations`. The seventeen
+Implemented: `org_code_security_configurations`. The sixteen
 `enabled`/`disabled`/`not_set` toggles sit in one map on
 `ActualCodeSecurityConfiguration`, keyed by wire name, and the group compares
 them from a table. Three writes per configuration, each its own `DriftFix`:
@@ -481,3 +481,26 @@ and PATCH but supplies no default, and every example response predates the
 field. See FOLLOWUPS.md item 4. `code_security` and `secret_protection` are
 left out for good: POST and PATCH accept them, GET returns neither, and
 `advancedSecurity` already carries the same split.
+
+## ~~50. Export~~ DONE
+
+Implemented: `drifty --export <login>...` reads every group `RepositoryChecker`
+and `OrganizationChecker` know how to fetch, with everything managed, and
+writes a Pkl file amending `config/drifty.pkl` that carries only the settings
+that differ from the schema's defaults — `SchemaDefaults` evaluates the
+schema for those, the same way `testsupport.Desired` does for tests.
+`PklNode`/`PklWriter` are a small node tree and renderer shared by every
+section exporter, so a section is a list of field comparisons rather than a
+string builder. A group whose own read fails (`FetchFailures.collecting()`)
+becomes a `//` note where its section would sit instead of aborting the
+account, and a repository whose own details cannot be read becomes a note in
+the listing instead of losing every other repository's export. A check-only
+setting (`visibility`, ten organization settings) is exported as a field with
+a note beside it — the field keeps the file round-tripping, the note says
+`--fix` will never act on it. `ExportRoundTripTest` loads the exported file
+back through the real checker against the same fixture the export was taken
+from and asserts zero drift; `SchemaCoverageTest` fails the build when a
+schema field has no corresponding exporter line, which is what keeps that
+round trip meaningful rather than two omissions agreeing with each other.
+Secret values are never returned by GitHub and are exported as a note instead
+of a field.
