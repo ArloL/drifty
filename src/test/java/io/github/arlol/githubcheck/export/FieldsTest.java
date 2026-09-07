@@ -29,6 +29,15 @@ class FieldsTest {
 	}
 
 	@Test
+	void aRequiredNullableFieldWritesAnExplicitNullRatherThanDroppingIt() {
+		assertThat(Fields.required("actorId", (Long) null)).contains(
+				new PklNode.Field("actorId", PklNode.Scalar.nullValue())
+		);
+		assertThat(Fields.required("actorId", (Long) 7L))
+				.contains(new PklNode.Field("actorId", PklNode.Scalar.of(7L)));
+	}
+
+	@Test
 	void nullableIntegersCompareBothWays() {
 		assertThat(Fields.field("maxFileSize", (Integer) null, (Integer) null))
 				.isEmpty();

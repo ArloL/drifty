@@ -47,6 +47,7 @@ class SchemaDefaultsTest {
 				.isZero();
 		assertThat(defaults.mergeQueueRule().checkResponseTimeoutMinutes)
 				.isEqualTo(60);
+		assertThat(defaults.propertyCondition().source).isEqualTo("custom");
 	}
 
 	/**
