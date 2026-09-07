@@ -20,6 +20,7 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.Secrets;
 import io.github.arlol.githubcheck.drift.ManagedGroups;
+import io.github.arlol.githubcheck.export.SchemaDefaults;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 import io.github.arlol.githubcheck.state.StateStore;
@@ -49,6 +50,32 @@ public class GitHubCheck {
 		boolean fix = argsList.contains("--fix");
 		String configArg = optionValue(argsList, "--config");
 		String statePath = optionValue(argsList, "--state");
+
+		List<String> exportLogins = exportLogins(argsList);
+		if (!exportLogins.isEmpty()) {
+			if (fix || configArg != null) {
+				System.err.println(
+						"ERROR: --export takes no --config and no --fix"
+				);
+				System.exit(1);
+				return;
+			}
+			String schema = optionValue(argsList, "--schema");
+			System.exit(
+					ExportRunner.run(
+							new GitHubClient(token),
+							exportLogins,
+							Path.of(
+									optionValue(argsList, "--out") == null
+											? "export.pkl"
+											: optionValue(argsList, "--out")
+							),
+							schema == null ? SchemaDefaults.MAIN_SCHEMA_URI
+									: schema
+					)
+			);
+			return;
+		}
 
 		Map<String, String> githubSecrets = loadGithubSecrets();
 
