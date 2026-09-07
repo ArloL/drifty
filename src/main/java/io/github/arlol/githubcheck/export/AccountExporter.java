@@ -375,7 +375,7 @@ public final class AccountExporter {
 	}
 
 	/**
-	 * These four client enums carry GitHub's wire values only in their
+	 * These client enums carry GitHub's wire values only in their
 	 * {@code @JsonProperty} annotations, unlike a {@code Drifty.*} enum
 	 * generated from a Pkl union, whose {@code toString} already spells them —
 	 * see {@link PklNode.Scalar#of(Enum)}. Comparing against the schema's
@@ -407,7 +407,15 @@ public final class AccountExporter {
 		};
 	}
 
-	private static String wire(DefaultWorkflowPermissions value) {
+	/**
+	 * Package-visible rather than {@code private}: {@code RepositoryExporter}
+	 * compares the same client enum against the same schema union
+	 * ({@code defaultWorkflowPermissions} exists on both {@code Organization}
+	 * and {@code Repository}), so this is the one place the translation lives
+	 * rather than a second copy that could drift from this one if the enum ever
+	 * grew a third value.
+	 */
+	static String wire(DefaultWorkflowPermissions value) {
 		return switch (value) {
 		case READ -> "read";
 		case WRITE -> "write";
