@@ -23,6 +23,7 @@ webhook: schema.Webhook = new { url = "" }
 customProperty: schema.CustomProperty = new { valueType = "string" }
 codeSecurityConfiguration: schema.CodeSecurityConfiguration = new {}
 codeScanningDefaultSetupOptions: schema.CodeScanningDefaultSetupOptions = new {}
+codeScanningOptions: schema.CodeScanningOptions = new {}
 team: schema.Team = new {}
 runnerGroup: schema.RunnerGroup = new {}
 orgSecret: schema.OrgSecret = new {}

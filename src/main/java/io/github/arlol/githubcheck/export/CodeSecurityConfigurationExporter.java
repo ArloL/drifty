@@ -20,13 +20,19 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * compares it with, so a wrong pairing here fails the same way a wrong one
  * would there.
  * <p>
- * The two option sub-objects are written only when GitHub reports them as set:
- * {@code codeScanningRunnerType} comes back {@code "not_set"} rather than
- * {@code null} when the configuration has no runner options — see
- * {@code ActualTypes.codeSecurityConfiguration} — so the guard compares against
- * that sentinel string, not nullness. Setting either one is what turns it from
- * "GitHub's own choice" into a value drifty compares and fixes from then on, so
- * a note explains that beside both.
+ * The three option sub-objects — the default setup runner,
+ * {@code codeScanningOptions} and the secret scanning bypass reviewers — are
+ * written only when GitHub reports them as set: {@code codeScanningRunnerType}
+ * comes back {@code "not_set"} rather than {@code null} when the configuration
+ * has no runner options — see {@code ActualTypes.codeSecurityConfiguration} —
+ * so that guard compares against the sentinel string, not nullness, while
+ * {@code codeScanningAllowAdvanced} is a plain nullable field and is guarded on
+ * nullness directly. Setting any one of them is what turns it from "GitHub's
+ * own choice" into a value drifty compares and fixes from then on, so a single
+ * note explains that once, beside whichever of the three appear.
+ * {@code dependencyGraphAutosubmitLabeledRunners} is not among them: GitHub
+ * returns its options object on every configuration, so it is an ordinary flat
+ * toggle compared unconditionally, like the sixteen wire settings.
  */
 public final class CodeSecurityConfigurationExporter {
 
@@ -66,6 +72,11 @@ public final class CodeSecurityConfigurationExporter {
 												"dependency_graph_autosubmit_action"
 										),
 								base.dependencyGraphAutosubmitAction.toString()
+						),
+						Fields.field(
+								"dependencyGraphAutosubmitLabeledRunners",
+								actual.dependencyGraphAutosubmitLabeledRunners(),
+								base.dependencyGraphAutosubmitLabeledRunners
 						),
 						Fields.field(
 								"dependabotAlerts",
@@ -174,6 +185,7 @@ public final class CodeSecurityConfigurationExporter {
 						)
 				)
 		);
+		boolean anyOptions = false;
 		if (!"not_set".equals(actual.codeScanningRunnerType())) {
 			members.add(
 					codeScanningDefaultSetupOptions(
@@ -181,7 +193,13 @@ public final class CodeSecurityConfigurationExporter {
 							defaults.codeScanningDefaultSetupOptions()
 					)
 			);
-			members.add(Fields.note(OPTIONS_NOTE));
+			anyOptions = true;
+		}
+		if (actual.codeScanningAllowAdvanced() != null) {
+			members.add(
+					codeScanningOptions(actual, defaults.codeScanningOptions())
+			);
+			anyOptions = true;
 		}
 		if (!actual.secretScanningDelegatedBypassReviewers().isEmpty()) {
 			members.add(
@@ -189,6 +207,9 @@ public final class CodeSecurityConfigurationExporter {
 							actual.secretScanningDelegatedBypassReviewers()
 					)
 			);
+			anyOptions = true;
+		}
+		if (anyOptions) {
 			members.add(Fields.note(OPTIONS_NOTE));
 		}
 		return new PklNode.Field(actual.name(), new PklNode.Obj(members));
@@ -212,6 +233,23 @@ public final class CodeSecurityConfigurationExporter {
 		);
 		return new PklNode.Field(
 				"codeScanningDefaultSetupOptions",
+				new PklNode.Obj(members)
+		);
+	}
+
+	private static PklNode.Member codeScanningOptions(
+			ActualCodeSecurityConfiguration actual,
+			Drifty.CodeScanningOptions base
+	) {
+		List<PklNode.Member> members = Fields.members(
+				Fields.field(
+						"allowAdvanced",
+						actual.codeScanningAllowAdvanced(),
+						Boolean.valueOf(base.allowAdvanced)
+				)
+		);
+		return new PklNode.Field(
+				"codeScanningOptions",
 				new PklNode.Obj(members)
 		);
 	}

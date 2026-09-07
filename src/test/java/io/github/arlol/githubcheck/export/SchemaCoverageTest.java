@@ -295,6 +295,8 @@ class SchemaCoverageTest {
 								"",
 								Map.of(),
 								"enforced",
+								false,
+								null,
 								null,
 								null,
 								Set.of(),

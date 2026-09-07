@@ -49,7 +49,9 @@ class CodeSecurityConfigurationExporterTest {
 				"",
 				defaultSettings(),
 				"enforced",
+				false,
 				"not_set",
+				null,
 				null,
 				Set.of(),
 				"none",
@@ -81,8 +83,10 @@ class CodeSecurityConfigurationExporterTest {
 				base.description(),
 				settings,
 				base.enforcement(),
+				base.dependencyGraphAutosubmitLabeledRunners(),
 				base.codeScanningRunnerType(),
 				base.codeScanningRunnerLabel(),
+				base.codeScanningAllowAdvanced(),
 				base.secretScanningDelegatedBypassReviewers(),
 				base.defaultForNewRepos(),
 				base.repositories()
@@ -93,6 +97,38 @@ class CodeSecurityConfigurationExporterTest {
 
 		assertThat(PklWriter.write(field.value())).isEqualTo("""
 				secretScanning = "enabled"
+				""");
+	}
+
+	/**
+	 * GitHub returns {@code dependency_graph_autosubmit_action_options} on
+	 * every configuration, its own included, so this toggle is compared
+	 * unconditionally like the sixteen wire settings — no presence guard to
+	 * exercise, unlike the three option sub-objects below.
+	 */
+	@Test
+	void dependencyGraphAutosubmitLabeledRunnersDifferingFromTheDefaultIsEmitted() {
+		var base = configuration("baseline");
+		var actual = new ActualCodeSecurityConfiguration(
+				base.id(),
+				base.name(),
+				base.description(),
+				base.settings(),
+				base.enforcement(),
+				true,
+				base.codeScanningRunnerType(),
+				base.codeScanningRunnerLabel(),
+				base.codeScanningAllowAdvanced(),
+				base.secretScanningDelegatedBypassReviewers(),
+				base.defaultForNewRepos(),
+				base.repositories()
+		);
+
+		var field = (PklNode.Field) CodeSecurityConfigurationExporter
+				.entry(actual, DEFAULTS);
+
+		assertThat(PklWriter.write(field.value())).isEqualTo("""
+				dependencyGraphAutosubmitLabeledRunners = true
 				""");
 	}
 
@@ -118,8 +154,10 @@ class CodeSecurityConfigurationExporterTest {
 				base.description(),
 				base.settings(),
 				base.enforcement(),
+				base.dependencyGraphAutosubmitLabeledRunners(),
 				"labeled",
 				"gpu",
+				base.codeScanningAllowAdvanced(),
 				base.secretScanningDelegatedBypassReviewers(),
 				base.defaultForNewRepos(),
 				base.repositories()
@@ -140,6 +178,55 @@ class CodeSecurityConfigurationExporterTest {
 		);
 	}
 
+	/**
+	 * {@code allowAdvanced} is a plain nullable field rather than a sentinel,
+	 * unlike {@code codeScanningRunnerType}: GitHub omits
+	 * {@code code_scanning_options} entirely, or answers the field within it as
+	 * null, on a configuration that never set it, so
+	 * {@code ActualTypes.codeSecurityConfiguration} already collapses both of
+	 * those cases to {@code null} and the guard here only needs nullness.
+	 */
+	@Test
+	void codeScanningOptionsIsOmittedWhenGitHubReportsItAsUnset() {
+		var field = (PklNode.Field) CodeSecurityConfigurationExporter
+				.entry(configuration("baseline"), DEFAULTS);
+
+		assertThat(PklWriter.write(field.value()))
+				.doesNotContain("codeScanningOptions");
+	}
+
+	@Test
+	void codeScanningOptionsIsEmittedWithANoteWhenGitHubHasSetIt() {
+		var base = configuration("baseline");
+		var actual = new ActualCodeSecurityConfiguration(
+				base.id(),
+				base.name(),
+				base.description(),
+				base.settings(),
+				base.enforcement(),
+				base.dependencyGraphAutosubmitLabeledRunners(),
+				base.codeScanningRunnerType(),
+				base.codeScanningRunnerLabel(),
+				true,
+				base.secretScanningDelegatedBypassReviewers(),
+				base.defaultForNewRepos(),
+				base.repositories()
+		);
+
+		var field = (PklNode.Field) CodeSecurityConfigurationExporter
+				.entry(actual, DEFAULTS);
+
+		assertThat(PklWriter.write(field.value())).isEqualTo(
+				"""
+						codeScanningOptions {
+						  allowAdvanced = true
+						}
+						// setting these options means drifty compares them from now on; GitHub picks a
+						// runner type itself when default setup is enabled
+						"""
+		);
+	}
+
 	@Test
 	void secretScanningBypassOptionsAreEmittedWithANoteWhenGitHubHasReviewers() {
 		var base = configuration("baseline");
@@ -149,8 +236,10 @@ class CodeSecurityConfigurationExporterTest {
 				base.description(),
 				base.settings(),
 				base.enforcement(),
+				base.dependencyGraphAutosubmitLabeledRunners(),
 				base.codeScanningRunnerType(),
 				base.codeScanningRunnerLabel(),
+				base.codeScanningAllowAdvanced(),
 				Set.of(new BypassReviewer("Team", 7L, "ALWAYS")),
 				base.defaultForNewRepos(),
 				base.repositories()
@@ -174,6 +263,40 @@ class CodeSecurityConfigurationExporterTest {
 						// runner type itself when default setup is enabled
 						"""
 		);
+	}
+
+	/**
+	 * The note explains all three option sub-objects at once; emitting it once
+	 * per sub-object present would repeat the same line when more than one is
+	 * set on the same configuration.
+	 */
+	@Test
+	void theOptionsNoteIsEmittedOnceWhenTwoOptionSubObjectsAreSet() {
+		var base = configuration("baseline");
+		var actual = new ActualCodeSecurityConfiguration(
+				base.id(),
+				base.name(),
+				base.description(),
+				base.settings(),
+				base.enforcement(),
+				base.dependencyGraphAutosubmitLabeledRunners(),
+				"labeled",
+				"gpu",
+				base.codeScanningAllowAdvanced(),
+				Set.of(new BypassReviewer("Team", 7L, "ALWAYS")),
+				base.defaultForNewRepos(),
+				base.repositories()
+		);
+
+		var field = (PklNode.Field) CodeSecurityConfigurationExporter
+				.entry(actual, DEFAULTS);
+
+		String written = PklWriter.write(field.value());
+		int noteCount = written.split(
+				"setting these options means drifty compares them",
+				-1
+		).length - 1;
+		assertThat(noteCount).isEqualTo(1);
 	}
 
 }
