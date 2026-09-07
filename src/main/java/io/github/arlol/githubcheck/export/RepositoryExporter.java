@@ -232,21 +232,31 @@ public final class RepositoryExporter {
 				state.vulnerabilityAlerts(),
 				base.vulnerabilityAlerts
 		).ifPresent(members::add);
-		AccountExporter
-				.addFailureNote(members, failures, "vulnerability_alerts");
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				Drifty.GroupName.VULNERABILITY_ALERTS
+		);
 		Fields.field(
 				"automatedSecurityFixes",
 				state.automatedSecurityFixes(),
 				base.automatedSecurityFixes
 		).ifPresent(members::add);
-		AccountExporter
-				.addFailureNote(members, failures, "automated_security_fixes");
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				Drifty.GroupName.AUTOMATED_SECURITY_FIXES
+		);
 		Fields.field(
 				"immutableReleases",
 				state.immutableReleases(),
 				base.immutableReleases
 		).ifPresent(members::add);
-		AccountExporter.addFailureNote(members, failures, "immutable_releases");
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				Drifty.GroupName.IMMUTABLE_RELEASES
+		);
 		Fields.field(
 				"privateVulnerabilityReporting",
 				state.privateVulnerabilityReporting(),
@@ -255,7 +265,7 @@ public final class RepositoryExporter {
 		AccountExporter.addFailureNote(
 				members,
 				failures,
-				"private_vulnerability_reporting"
+				Drifty.GroupName.PRIVATE_VULNERABILITY_REPORTING
 		);
 		Fields.field(
 				"codeScanningDefaultSetup",
@@ -265,7 +275,7 @@ public final class RepositoryExporter {
 		AccountExporter.addFailureNote(
 				members,
 				failures,
-				"code_scanning_default_setup"
+				Drifty.GroupName.CODE_SCANNING_DEFAULT_SETUP
 		);
 		members.addAll(
 				Fields.members(
@@ -323,8 +333,11 @@ public final class RepositoryExporter {
 					)
 			);
 		}
-		AccountExporter
-				.addFailureNote(members, failures, "workflow_permissions");
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				Drifty.GroupName.WORKFLOW_PERMISSIONS
+		);
 		return members;
 	}
 
@@ -361,16 +374,25 @@ public final class RepositoryExporter {
 								)
 						)
 				);
-		AccountExporter.addFailureNote(members, failures, "pages");
+		AccountExporter
+				.addFailureNote(members, failures, Drifty.GroupName.PAGES);
 
 		addActionsSecrets(members, state.actionSecrets());
-		AccountExporter.addFailureNote(members, failures, "action_secrets");
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				Drifty.GroupName.ACTION_SECRETS
+		);
 
 		Fields.mapping(
 				"actionsVariables",
 				actionsVariableEntries(state.actionVariables())
 		).ifPresent(members::add);
-		AccountExporter.addFailureNote(members, failures, "action_variables");
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				Drifty.GroupName.ACTION_VARIABLES
+		);
 
 		Fields.mapping(
 				"branchProtections",
@@ -379,7 +401,11 @@ public final class RepositoryExporter {
 						defaults.branchProtection()
 				)
 		).ifPresent(members::add);
-		AccountExporter.addFailureNote(members, failures, "branch_protection");
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				Drifty.GroupName.BRANCH_PROTECTION
+		);
 
 		Fields.mapping(
 				"rulesets",
@@ -392,7 +418,8 @@ public final class RepositoryExporter {
 						)
 						.toList()
 		).ifPresent(members::add);
-		AccountExporter.addFailureNote(members, failures, "rulesets");
+		AccountExporter
+				.addFailureNote(members, failures, Drifty.GroupName.RULESETS);
 
 		Fields.mapping(
 				"environments",
@@ -401,11 +428,21 @@ public final class RepositoryExporter {
 		// One mapping serves three independently-guarded groups, the same way
 		// RepositoryChecker.fetchState reads it: each can fail on its own, so
 		// each gets its own note where the shared section sits.
-		AccountExporter.addFailureNote(members, failures, "environment_config");
-		AccountExporter
-				.addFailureNote(members, failures, "environment_secrets");
-		AccountExporter
-				.addFailureNote(members, failures, "environment_variables");
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				Drifty.GroupName.ENVIRONMENT_CONFIG
+		);
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				Drifty.GroupName.ENVIRONMENT_SECRETS
+		);
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				Drifty.GroupName.ENVIRONMENT_VARIABLES
+		);
 
 		Fields.mapping(
 				"webhooks",
@@ -418,10 +455,15 @@ public final class RepositoryExporter {
 						)
 						.toList()
 		).ifPresent(members::add);
-		AccountExporter.addFailureNote(members, failures, "webhooks");
+		AccountExporter
+				.addFailureNote(members, failures, Drifty.GroupName.WEBHOOKS);
 
 		addCustomProperties(members, state.customPropertyValues());
-		AccountExporter.addFailureNote(members, failures, "custom_properties");
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				Drifty.GroupName.CUSTOM_PROPERTIES
+		);
 
 		if (state.collaborators() != null) {
 			Fields.mapping(
@@ -433,7 +475,11 @@ public final class RepositoryExporter {
 					collaboratorEntries(state.collaborators().teams())
 			).ifPresent(members::add);
 		}
-		AccountExporter.addFailureNote(members, failures, "collaborators");
+		AccountExporter.addFailureNote(
+				members,
+				failures,
+				Drifty.GroupName.COLLABORATORS
+		);
 
 		return members;
 	}

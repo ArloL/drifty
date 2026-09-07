@@ -90,7 +90,9 @@ public final class AccountExporter {
 							.settings(state.settings(), defaults.organization())
 			);
 		}
-		addFailureNote(members, failures, "org_settings");
+		// No addFailureNote for org_settings: OrganizationChecker.fetchState
+		// calls client.getOrganization directly, unwrapped by FetchFailures,
+		// so no Failure with that group can ever exist to look up.
 
 		if (state.actionsPermissions() != null) {
 			Fields.nested(
@@ -101,7 +103,11 @@ public final class AccountExporter {
 					)
 			).ifPresent(members::add);
 		}
-		addFailureNote(members, failures, "org_actions_permissions");
+		addFailureNote(
+				members,
+				failures,
+				Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS
+		);
 
 		if (state.workflowPermissions() != null) {
 			members.addAll(
@@ -111,17 +117,29 @@ public final class AccountExporter {
 					)
 			);
 		}
-		addFailureNote(members, failures, "org_workflow_permissions");
+		addFailureNote(
+				members,
+				failures,
+				Drifty.OrgGroupName.ORG_WORKFLOW_PERMISSIONS
+		);
 
 		addActionsSecrets(members, state.actionSecrets(), defaults.orgSecret());
-		addFailureNote(members, failures, "org_action_secrets");
+		addFailureNote(
+				members,
+				failures,
+				Drifty.OrgGroupName.ORG_ACTION_SECRETS
+		);
 
 		addActionsVariables(
 				members,
 				state.actionVariables(),
 				defaults.orgVariable()
 		);
-		addFailureNote(members, failures, "org_action_variables");
+		addFailureNote(
+				members,
+				failures,
+				Drifty.OrgGroupName.ORG_ACTION_VARIABLES
+		);
 
 		Fields.mapping(
 				"webhooks",
@@ -134,7 +152,7 @@ public final class AccountExporter {
 						)
 						.toList()
 		).ifPresent(members::add);
-		addFailureNote(members, failures, "org_webhooks");
+		addFailureNote(members, failures, Drifty.OrgGroupName.ORG_WEBHOOKS);
 
 		Fields.mapping(
 				"customProperties",
@@ -151,7 +169,11 @@ public final class AccountExporter {
 						)
 						.toList()
 		).ifPresent(members::add);
-		addFailureNote(members, failures, "org_custom_properties");
+		addFailureNote(
+				members,
+				failures,
+				Drifty.OrgGroupName.ORG_CUSTOM_PROPERTIES
+		);
 
 		Fields.mapping(
 				"rulesets",
@@ -164,7 +186,7 @@ public final class AccountExporter {
 						)
 						.toList()
 		).ifPresent(members::add);
-		addFailureNote(members, failures, "org_rulesets");
+		addFailureNote(members, failures, Drifty.OrgGroupName.ORG_RULESETS);
 
 		Fields.mapping(
 				"codeSecurityConfigurations",
@@ -181,7 +203,11 @@ public final class AccountExporter {
 						)
 						.toList()
 		).ifPresent(members::add);
-		addFailureNote(members, failures, "org_code_security_configurations");
+		addFailureNote(
+				members,
+				failures,
+				Drifty.OrgGroupName.ORG_CODE_SECURITY_CONFIGURATIONS
+		);
 
 		Fields.mapping(
 				"teams",
@@ -191,7 +217,7 @@ public final class AccountExporter {
 						.map(team -> TeamExporter.entry(team, defaults.team()))
 						.toList()
 		).ifPresent(members::add);
-		addFailureNote(members, failures, "org_teams");
+		addFailureNote(members, failures, Drifty.OrgGroupName.ORG_TEAMS);
 
 		Fields.mapping(
 				"members",
@@ -201,7 +227,7 @@ public final class AccountExporter {
 						.map(AccountExporter::memberEntry)
 						.toList()
 		).ifPresent(members::add);
-		addFailureNote(members, failures, "org_members");
+		addFailureNote(members, failures, Drifty.OrgGroupName.ORG_MEMBERS);
 
 		Fields.mapping(
 				"runnerGroups",
@@ -216,7 +242,11 @@ public final class AccountExporter {
 						)
 						.toList()
 		).ifPresent(members::add);
-		addFailureNote(members, failures, "org_runner_groups");
+		addFailureNote(
+				members,
+				failures,
+				Drifty.OrgGroupName.ORG_RUNNER_GROUPS
+		);
 
 		Fields.objects("repositories", repositories).ifPresent(members::add);
 
@@ -385,14 +415,20 @@ public final class AccountExporter {
 	 * Package-visible rather than {@code private}: {@link RepositoryExporter}
 	 * places a repository's own failure notes the same way, so the lookup lives
 	 * once instead of twice.
+	 * <p>
+	 * Takes the config's own {@code Drifty.GroupName}/{@code OrgGroupName}
+	 * constant rather than its wire string: {@code Failure.group()} is
+	 * {@code Enum.toString()}, so a typo in a hand-typed literal here would
+	 * silently drop a note instead of failing to compile.
 	 */
 	static void addFailureNote(
 			List<PklNode.Member> members,
 			List<FetchFailures.Failure> failures,
-			String group
+			Enum<?> group
 	) {
+		String name = group.toString();
 		for (FetchFailures.Failure failure : failures) {
-			if (failure.group().equals(group)) {
+			if (failure.group().equals(name)) {
 				members.add(
 						Fields.note(failure.group() + ": " + failure.reason())
 				);
