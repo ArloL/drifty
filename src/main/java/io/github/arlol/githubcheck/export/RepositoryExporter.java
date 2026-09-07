@@ -3,12 +3,19 @@ package io.github.arlol.githubcheck.export;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import io.github.arlol.githubcheck.RepositoryState;
+import io.github.arlol.githubcheck.actual.ActualBranchProtection;
+import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
 import io.github.arlol.githubcheck.actual.ActualRepository;
+import io.github.arlol.githubcheck.actual.ActualRuleset;
+import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis.BypassReviewer;
+import io.github.arlol.githubcheck.actual.ActualVariable;
+import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.pkl.Drifty;
@@ -50,6 +57,8 @@ public final class RepositoryExporter {
 
 	private static final String ARCHIVED_NOTE = "drifty checks only archived on an archived repository, so its other settings are neither compared nor exported";
 
+	private static final String ACTIONS_SECRET_VALUES_NOTE = "secret values are never returned by GitHub; supply them through DRIFTY_GITHUB_SECRETS";
+
 	private RepositoryExporter() {
 	}
 
@@ -67,6 +76,7 @@ public final class RepositoryExporter {
 			members.add(Fields.note(ARCHIVED_NOTE));
 		} else {
 			members.addAll(securityMembers(state, base));
+			members.addAll(collectionMembers(state, defaults));
 		}
 		return new PklNode.Obj(members);
 	}
@@ -276,6 +286,238 @@ public final class RepositoryExporter {
 			);
 		}
 		return members;
+	}
+
+	/**
+	 * Only called for a repository that is not archived, for the reason
+	 * {@link #securityMembers} is: once {@code archived = true},
+	 * {@code RepositoryChecker.createDriftGroups} runs only
+	 * {@code ArchivedDriftGroup}, so none of these groups are compared against
+	 * this file again either.
+	 * <p>
+	 * Order follows {@code config/drifty.pkl}'s {@code Repository} class:
+	 * {@code pages}, {@code actionsSecrets}, {@code actionsVariables},
+	 * {@code branchProtections}, {@code rulesets}, {@code environments},
+	 * {@code webhooks}, {@code customProperties},
+	 * {@code customMultiSelectProperties}, {@code collaborators},
+	 * {@code teamPermissions}.
+	 */
+	private static List<PklNode.Member> collectionMembers(
+			RepositoryState state,
+			SchemaDefaults defaults
+	) {
+		var members = new ArrayList<PklNode.Member>();
+
+		state.pages()
+				.ifPresent(
+						actualPages -> members.add(
+								new PklNode.Field(
+										"pages",
+										PagesExporter.node(
+												actualPages,
+												defaults.pages()
+										)
+								)
+						)
+				);
+
+		addActionsSecrets(members, state.actionSecrets());
+
+		Fields.mapping(
+				"actionsVariables",
+				actionsVariableEntries(state.actionVariables())
+		).ifPresent(members::add);
+
+		Fields.mapping(
+				"branchProtections",
+				branchProtectionEntries(
+						state.branchProtections(),
+						defaults.branchProtection()
+				)
+		).ifPresent(members::add);
+
+		Fields.mapping(
+				"rulesets",
+				state.rulesets()
+						.stream()
+						.sorted(Comparator.comparing(ActualRuleset::name))
+						.map(
+								ruleset -> RulesetExporter
+										.entry(ruleset, defaults, false)
+						)
+						.toList()
+		).ifPresent(members::add);
+
+		Fields.mapping(
+				"environments",
+				environmentEntries(state, defaults.environment())
+		).ifPresent(members::add);
+
+		Fields.mapping(
+				"webhooks",
+				state.webhooks()
+						.stream()
+						.sorted(Comparator.comparing(ActualWebhook::url))
+						.map(
+								webhook -> WebhookExporter
+										.entry(webhook, defaults.webhook())
+						)
+						.toList()
+		).ifPresent(members::add);
+
+		addCustomProperties(members, state.customPropertyValues());
+
+		if (state.collaborators() != null) {
+			Fields.mapping(
+					"collaborators",
+					collaboratorEntries(state.collaborators().users())
+			).ifPresent(members::add);
+			Fields.mapping(
+					"teamPermissions",
+					collaboratorEntries(state.collaborators().teams())
+			).ifPresent(members::add);
+		}
+
+		return members;
+	}
+
+	private static void addActionsSecrets(
+			List<PklNode.Member> members,
+			List<ActualSecret> secrets
+	) {
+		Fields.strings(
+				"actionsSecrets",
+				secrets.stream().map(ActualSecret::name).toList(),
+				List.of()
+		).ifPresent(members::add);
+		if (!secrets.isEmpty()) {
+			members.add(Fields.note(ACTIONS_SECRET_VALUES_NOTE));
+		}
+	}
+
+	private static List<PklNode.Member> actionsVariableEntries(
+			List<ActualVariable> variables
+	) {
+		return variables.stream()
+				.sorted(Comparator.comparing(ActualVariable::name)).<PklNode
+						.Member>map(
+								variable -> new PklNode.Field(
+										variable.name(),
+										PklNode.Scalar.of(variable.value())
+								)
+						)
+				.toList();
+	}
+
+	private static List<PklNode.Member> branchProtectionEntries(
+			Map<String, ActualBranchProtection> branchProtections,
+			Drifty.BranchProtection base
+	) {
+		return branchProtections.entrySet()
+				.stream()
+				.sorted(Map.Entry.comparingByKey())
+				.map(
+						entry -> BranchProtectionExporter
+								.entry(entry.getKey(), entry.getValue(), base)
+				)
+				.toList();
+	}
+
+	private static List<PklNode.Member> environmentEntries(
+			RepositoryState state,
+			Drifty.Environment base
+	) {
+		return state.environments()
+				.entrySet()
+				.stream()
+				.sorted(Map.Entry.comparingByKey())
+				.map(
+						entry -> EnvironmentExporter.entry(
+								entry.getKey(),
+								entry.getValue(),
+								state.environmentSecrets()
+										.getOrDefault(
+												entry.getKey(),
+												List.of()
+										),
+								state.environmentVariables()
+										.getOrDefault(
+												entry.getKey(),
+												List.of()
+										),
+								base
+						)
+				)
+				.toList();
+	}
+
+	/**
+	 * {@code CustomPropertiesDriftGroup} keeps single-valued and multi-select
+	 * property values in two separate maps because the schema does — a
+	 * {@code multi_select} property's current value lives in
+	 * {@link ActualCustomPropertyValue#values()}, every other type's in
+	 * {@link ActualCustomPropertyValue#value()} — so a value is routed by which
+	 * of the two GitHub actually populated, and a property GitHub lists with
+	 * neither (never set on this repository) contributes nothing.
+	 */
+	private static void addCustomProperties(
+			List<PklNode.Member> members,
+			List<ActualCustomPropertyValue> values
+	) {
+		var single = new ArrayList<PklNode.Member>();
+		var multi = new ArrayList<PklNode.Member>();
+		values.stream()
+				.sorted(Comparator.comparing(ActualCustomPropertyValue::name))
+				.forEach(value -> {
+					if (!value.values().isEmpty()) {
+						multi.add(
+								new PklNode.Field(
+										value.name(),
+										new PklNode.Listing(
+												value.values()
+														.stream()
+														.sorted()
+														.<PklNode>map(
+																PklNode.Scalar::of
+														)
+														.toList()
+										)
+								)
+						);
+					} else if (value.value() != null) {
+						single.add(
+								new PklNode.Field(
+										value.name(),
+										PklNode.Scalar.of(value.value())
+								)
+						);
+					}
+				});
+		Fields.mapping("customProperties", single).ifPresent(members::add);
+		Fields.mapping("customMultiSelectProperties", multi)
+				.ifPresent(members::add);
+	}
+
+	/**
+	 * {@code ActualCollaborators} already carries each permission in the
+	 * config's own vocabulary ({@code pull}, {@code triage}, {@code push},
+	 * {@code maintain}, {@code admin}) — see its class comment — so this writes
+	 * the string straight through rather than translating it, the way
+	 * {@code AccountExporter.memberEntry} writes a member's role.
+	 */
+	private static List<PklNode.Member> collaboratorEntries(
+			Map<String, String> permissions
+	) {
+		return permissions.entrySet()
+				.stream()
+				.sorted(Map.Entry.comparingByKey()).<PklNode
+						.Member>map(
+								entry -> new PklNode.Field(
+										entry.getKey(),
+										PklNode.Scalar.of(entry.getValue())
+								)
+						)
+				.toList();
 	}
 
 	/**
