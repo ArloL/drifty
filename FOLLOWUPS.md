@@ -175,3 +175,49 @@ that gives one repository in a batch a client that throws
 `GitHubApiException` from a managed group's request and asserts the other
 repositories still report and the failing one comes back as
 `CheckResult.Status.ERROR` rather than aborting `check()`.
+
+## 6. `ExportRoundTripTest` covers roughly a third of the exporters
+
+Unlike 1–3, nothing upstream needs to move for this one either — it is a
+test-coverage gap, carried here instead of closed because closing it
+properly (a dedicated all-drifted fixture per section, the way
+`SchemaCoverageTest`'s own "Not covered" list already admits for the plain
+field-name check) is a task in its own right, not something to fold into
+whichever change happens to touch the export next.
+
+**Carrying:** `ExportRoundTripTest`'s single WireMock fixture exercises an
+organization's settings, actions permissions, one ruleset and one repository
+with a handful of its own settings. It does not touch: org secrets and
+variables, custom properties, code security configurations, runner groups,
+org members, `selected` Actions mode, repository webhooks, branch
+protections, repository rulesets, collaborators, custom property values,
+Pages, bypass actors, status checks, workflows, merge queue, an archived
+repository, or a `users` account.
+
+**Why it matters:** the round trip is what catches a field the assembler
+dropped, mis-keyed, or paired with the wrong schema default — a value that
+never round-trips looks identical to no value at all until something loads
+the file back and compares. Both Critical findings in the 2026-09-07 fix wave
+(a webhook's `events` listing unioning with the schema default instead of
+replacing it, and a ruleset pattern rule noted instead of exported and then
+deleted by the next `--fix`) lived in sections this fixture never reached;
+an exporter's own unit tests caught neither, because both assert what one
+field renders as, not whether the file the export produces is one drifty
+itself agrees has zero drift. Every section still outside this fixture is
+exposed to the same class of bug with nothing here to catch it.
+
+**What already closed the two known holes:** `WebhookExporterTest` gained a
+case whose `events` exclude `push`, and `ExportRoundTripTest`'s own webhook
+fixture had `push` removed from its `events` list, closing the listing-
+replacement hole directly; `RulesetExporterTest` and `ActualTypesTest` gained
+cases for a pattern rule's name, negate flag and operator, closing the
+pattern-rule hole. Neither addition widened `ExportRoundTripTest`'s account-
+level fixture — they cover the same ground at the unit level, which is
+narrower than a round trip but was enough to pin both specific regressions.
+
+**How to check whether it's fixed:** extend the WireMock stubs in
+`ExportRoundTripTest` (or add sibling tests using the same pattern) so each
+section in the list above appears at least once with a non-default value,
+export it, load the export back through `PklConfigLoader`, and assert
+`GitHubCheck.check` reports zero drift — the same property the existing test
+checks, just reaching further into the schema.
