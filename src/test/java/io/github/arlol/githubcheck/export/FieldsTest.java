@@ -74,4 +74,37 @@ class FieldsTest {
 				.containsExactly("description");
 	}
 
+	@Test
+	void enumEqualToDefaultIsOmitted() {
+		assertThat(Fields.field("visibility", TestEnum.PUBLIC, "PUBLIC"))
+				.isEmpty();
+	}
+
+	@Test
+	void enumDifferentFromDefaultIsEmitted() {
+		assertThat(
+				Fields.field("visibility", TestEnum.PRIVATE, "PUBLIC")
+		).contains(
+				new PklNode.Field("visibility", PklNode.Scalar.of("PRIVATE"))
+		);
+	}
+
+	@Test
+	void nullEnumAgainstNonNullDefaultEmitsNullAndRendersCorrectly() {
+		var field = Fields.field("visibility", (TestEnum) null, "PUBLIC");
+
+		assertThat(field).isPresent();
+		var member = field.orElseThrow();
+		assertThat(member).isInstanceOf(PklNode.Field.class);
+
+		// Verify the node can be rendered without NPE
+		var rendered = PklWriter.write(new PklNode.Obj(List.of(member)));
+
+		assertThat(rendered).contains("visibility = null");
+	}
+
+	enum TestEnum {
+		PUBLIC, PRIVATE
+	}
+
 }
