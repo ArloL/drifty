@@ -22,6 +22,7 @@ pages: schema.Pages = new {}
 webhook: schema.Webhook = new { url = "" }
 customProperty: schema.CustomProperty = new { valueType = "string" }
 codeSecurityConfiguration: schema.CodeSecurityConfiguration = new {}
+codeScanningDefaultSetupOptions: schema.CodeScanningDefaultSetupOptions = new {}
 team: schema.Team = new {}
 runnerGroup: schema.RunnerGroup = new {}
 orgSecret: schema.OrgSecret = new {}
