@@ -375,23 +375,35 @@ public final class ActualTypes {
 		return Set.of();
 	}
 
-	private static String pattern(
+	/**
+	 * The whole of a pattern rule's parameters, not just its text: the operator
+	 * and negate flag matter to what the rule actually does, and dropping them
+	 * here is what previously left the export with nothing to write back but a
+	 * note. A rule present with no parameters reads as absent, matching the
+	 * rest of this class's handling of a rule GitHub lists without the fields
+	 * it usually carries.
+	 */
+	private static ActualRuleset.RulePattern pattern(
 			Map<RulesetRuleType, Rule> rules,
 			RulesetRuleType type
 	) {
-		return switch (rules.get(type)) {
-		case Rule.CommitMessagePattern r ->
-			r.parameters() == null ? null : r.parameters().pattern();
-		case Rule.CommitAuthorEmailPattern r ->
-			r.parameters() == null ? null : r.parameters().pattern();
-		case Rule.CommitterEmailPattern r ->
-			r.parameters() == null ? null : r.parameters().pattern();
-		case Rule.BranchNamePattern r ->
-			r.parameters() == null ? null : r.parameters().pattern();
-		case Rule.TagNamePattern r ->
-			r.parameters() == null ? null : r.parameters().pattern();
+		Rule.PatternParameters p = switch (rules.get(type)) {
+		case Rule.CommitMessagePattern r -> r.parameters();
+		case Rule.CommitAuthorEmailPattern r -> r.parameters();
+		case Rule.CommitterEmailPattern r -> r.parameters();
+		case Rule.BranchNamePattern r -> r.parameters();
+		case Rule.TagNamePattern r -> r.parameters();
 		case null, default -> null;
 		};
+		if (p == null) {
+			return null;
+		}
+		return new ActualRuleset.RulePattern(
+				p.name(),
+				Boolean.TRUE.equals(p.negate()),
+				wire(p.operator()),
+				p.pattern()
+		);
 	}
 
 	private static List<ActualRuleset.BypassActor> bypassActors(

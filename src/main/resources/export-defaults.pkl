@@ -15,6 +15,7 @@ propertyCondition: schema.PropertyCondition = new {
   propertyValues = new {}
 }
 pullRequestRule: schema.PullRequestRule = new {}
+rulePattern: schema.RulePattern = new { operator = "starts_with"; pattern = "" }
 mergeQueueRule: schema.MergeQueueRule = new {}
 branchProtection: schema.BranchProtection = new {}
 environment: schema.Environment = new {}

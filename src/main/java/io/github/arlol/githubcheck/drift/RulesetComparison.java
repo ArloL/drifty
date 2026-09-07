@@ -453,15 +453,23 @@ final class RulesetComparison {
 		return new ActualRuleset.Workflow(w.path, w.repositoryId, w.ref);
 	}
 
+	/**
+	 * Text only, not the operator or negate flag — matching what this compared
+	 * before {@code ActualRuleset.RulePattern} carried the whole rule. Widening
+	 * this to the operator too would be straightforward (both sides already
+	 * have it), but it is a behaviour change beyond what exporting the rule's
+	 * full shape requires, so it is left for its own change.
+	 */
 	private static void checkPatternRule(
 			List<DriftItem> items,
 			String path,
 			Drifty.RulePattern wanted,
-			String got
+			ActualRuleset.RulePattern got
 	) {
 		String want = wanted != null ? wanted.pattern : null;
-		if (want != null || got != null) {
-			DriftGroup.ocompare(path, want, got).ifPresent(items::add);
+		String have = got != null ? got.pattern() : null;
+		if (want != null || have != null) {
+			DriftGroup.ocompare(path, want, have).ifPresent(items::add);
 		}
 	}
 

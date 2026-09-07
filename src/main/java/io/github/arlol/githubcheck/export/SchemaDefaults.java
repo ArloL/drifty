@@ -35,6 +35,7 @@ public final class SchemaDefaults {
 	private final Drifty.OrgRuleset orgRuleset;
 	private final Drifty.PropertyCondition propertyCondition;
 	private final Drifty.PullRequestRule pullRequestRule;
+	private final Drifty.RulePattern rulePattern;
 	private final Drifty.MergeQueueRule mergeQueueRule;
 	private final Drifty.BranchProtection branchProtection;
 	private final Drifty.Environment environment;
@@ -60,6 +61,7 @@ public final class SchemaDefaults {
 				.as(Drifty.PropertyCondition.class);
 		pullRequestRule = root.get("pullRequestRule")
 				.as(Drifty.PullRequestRule.class);
+		rulePattern = root.get("rulePattern").as(Drifty.RulePattern.class);
 		mergeQueueRule = root.get("mergeQueueRule")
 				.as(Drifty.MergeQueueRule.class);
 		branchProtection = root.get("branchProtection")
@@ -162,6 +164,10 @@ public final class SchemaDefaults {
 
 	public Drifty.PullRequestRule pullRequestRule() {
 		return pullRequestRule;
+	}
+
+	public Drifty.RulePattern rulePattern() {
+		return rulePattern;
 	}
 
 	public Drifty.MergeQueueRule mergeQueueRule() {

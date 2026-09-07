@@ -57,7 +57,8 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * new fixture: {@code Drifty.PullRequestRule}, {@code Drifty.MergeQueueRule},
  * {@code Drifty.WorkflowRule}, {@code Drifty.BypassActor},
  * {@code Drifty.StatusCheck}, {@code Drifty.CodeScanningTool},
- * {@code Drifty.OrgRuleset} and {@code Drifty.PropertyCondition}.
+ * {@code Drifty.RulePattern}, {@code Drifty.OrgRuleset} and
+ * {@code Drifty.PropertyCondition}.
  * <p>
  * A field added to {@code config/drifty.pkl} that no exporter emits is absent
  * from every exported file, and nothing else notices: the field simply keeps
@@ -93,16 +94,6 @@ class SchemaCoverageTest {
 			// disagree with GitHub about. Shared by Organization and
 			// Repository.
 			"managed",
-			// ActualTypes flattens a rule pattern to its text before it reaches
-			// the comparison, so the operator and negate flag GitHub reports
-			// are
-			// already gone by export time; RulesetExporter emits a note in the
-			// field's place instead of inventing them. See RulesetExporterTest.
-			"commitMessagePattern",
-			"commitAuthorEmailPattern",
-			"committerEmailPattern",
-			"branchNamePattern",
-			"tagNamePattern",
 			// requiredCodeScanningTools on ActualRuleset is a bare
 			// Set<String> of tool names; the alert thresholds a
 			// CodeScanningTool also carries never reach it, so
@@ -174,6 +165,7 @@ class SchemaCoverageTest {
 		assertEveryFieldAppears(Drifty.BypassActor.class, exported);
 		assertEveryFieldAppears(Drifty.StatusCheck.class, exported);
 		assertEveryFieldAppears(Drifty.CodeScanningTool.class, exported);
+		assertEveryFieldAppears(Drifty.RulePattern.class, exported);
 	}
 
 	/**
@@ -630,11 +622,31 @@ class SchemaCoverageTest {
 				),
 				Set.of("codeql"),
 				Set.of("production"),
-				"",
-				"",
-				"",
-				"",
-				"",
+				new ActualRuleset.RulePattern("no-wip", true, "regex", "^wip:"),
+				new ActualRuleset.RulePattern(
+						"corp-email",
+						true,
+						"ends_with",
+						"@example.com"
+				),
+				new ActualRuleset.RulePattern(
+						"corp-email",
+						true,
+						"ends_with",
+						"@example.com"
+				),
+				new ActualRuleset.RulePattern(
+						"release-branch",
+						false,
+						"starts_with",
+						"release/"
+				),
+				new ActualRuleset.RulePattern(
+						"version-tag",
+						false,
+						"starts_with",
+						"v"
+				),
 				// Every field here differs from MergeQueueRule's default
 				// (60, ALLGREEN, 5, 5, MERGE, 1, 5); an earlier draft of
 				// this fixture matched the default on all seven, so
@@ -688,11 +700,11 @@ class SchemaCoverageTest {
 				null,
 				Set.of(),
 				Set.of(),
-				"",
-				"",
-				"",
-				"",
-				"",
+				null,
+				null,
+				null,
+				null,
+				null,
 				null,
 				Set.of(),
 				Set.of(),
