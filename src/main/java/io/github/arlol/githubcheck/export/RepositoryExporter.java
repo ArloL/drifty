@@ -51,6 +51,15 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * only {@code ArchivedDriftGroup} and skips every other group, so none of these
  * settings would ever be compared against this file again — exporting them
  * would add fields nothing acts on.
+ * <p>
+ * {@code failures} is not skipped along with those members, though: rulesets
+ * and pages are the only two groups {@code fetchState} itself stops fetching
+ * once a repository is archived (alongside the five security-flag endpoints
+ * above) — branch protections, secrets, variables, environments, webhooks,
+ * custom properties, collaborators and workflow permissions are all still
+ * fetched and can still 403. Those failures are rendered as bare notes rather
+ * than positioned beside the member they would otherwise sit next to, since
+ * that member is never rendered here at all.
  */
 public final class RepositoryExporter {
 
@@ -87,6 +96,19 @@ public final class RepositoryExporter {
 		members.addAll(repositoryMembers(actual, base));
 		if (actual.archived()) {
 			members.add(Fields.note(ARCHIVED_NOTE));
+			// securityMembers and collectionMembers are skipped, but
+			// RepositoryChecker.fetchState still reads branchProtections,
+			// actionSecrets, actionVariables, environments, webhooks,
+			// customProperties, collaborators and workflowPermissions for an
+			// archived repository — only rulesets, pages and the five
+			// security-flag endpoints are skipped there. Any of those groups'
+			// own 403s would otherwise vanish along with the members they
+			// would have sat beside.
+			for (FetchFailures.Failure failure : failures) {
+				members.add(
+						Fields.note(failure.group() + ": " + failure.reason())
+				);
+			}
 		} else {
 			members.addAll(securityMembers(state, base, failures));
 			members.addAll(collectionMembers(state, defaults, failures));

@@ -128,6 +128,30 @@ class ExportRunnerTest {
 				""".formatted(SCHEMA));
 	}
 
+	/**
+	 * {@code Files.writeString} does not create the directories in its path, so
+	 * {@code --out reports/export.pkl} against a fresh checkout used to die
+	 * with an uncaught {@code NoSuchFileException} instead of just creating
+	 * {@code reports/}.
+	 */
+	@Test
+	void aNonExistentOutputDirectoryIsCreated(
+			WireMockRuntimeInfo wm,
+			@TempDir Path dir
+	) throws Exception {
+		stubOrganizationAtItsDefaults("acme");
+		stubOrgReposListing("acme", "widget");
+		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "widget");
+
+		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
+		Path out = dir.resolve("reports").resolve("export.pkl");
+
+		int exitCode = ExportRunner.run(client, List.of("acme"), out, SCHEMA);
+
+		assertThat(exitCode).isZero();
+		assertThat(out).exists();
+	}
+
 	@Test
 	void aRepositoryThatFailsToFetchBecomesANoteInsteadOfAbortingTheExport(
 			WireMockRuntimeInfo wm,
@@ -316,15 +340,50 @@ class ExportRunnerTest {
 		assertThat(capturedErr.toString(StandardCharsets.UTF_8)).isEqualTo(
 				"ERROR: someone-else is not an organization, and a personal account can only be exported by its own token\n"
 		);
-		// The file is still written, with no entry for the failed login.
-		String text = Files.readString(out);
-		String body = text.substring(text.indexOf("amends "));
-		assertThat(body).isEqualTo("""
-				amends "%s"
+		// Nothing exported, so nothing is written — an empty
+		// `organizations {}` would silently overwrite whatever export.pkl
+		// already existed with a file worse than no file at all.
+		assertThat(out).doesNotExist();
+	}
 
-				organizations {
+	/**
+	 * The same property
+	 * {@link #aPersonalLoginThatIsNotTheTokenOwnerFailsWithAClearMessage}
+	 * checks by way of a file that never existed: when every login fails, an
+	 * export.pkl a previous run left behind is not overwritten with an empty
+	 * one.
+	 */
+	@Test
+	void everyLoginFailingLeavesAnExistingExportUntouched(
+			WireMockRuntimeInfo wm,
+			@TempDir Path dir
+	) throws Exception {
+		stubFor(
+				get(urlPathEqualTo("/orgs/someone-else"))
+						.willReturn(aResponse().withStatus(404))
+		);
+		stubFor(get(urlPathEqualTo("/user")).willReturn(okJson("""
+				{
+				  "login": "token-owner",
+				  "id": 1,
+				  "node_id": "n1",
+				  "avatar_url": "https://example.com/a.png",
+				  "url": "https://api.github.com/users/token-owner",
+				  "html_url": "https://github.com/token-owner",
+				  "type": "User",
+				  "site_admin": false
 				}
-				""".formatted(SCHEMA));
+				""")));
+
+		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
+		Path out = dir.resolve("export.pkl");
+		Files.writeString(out, "a previous good export\n");
+
+		int exitCode = ExportRunner
+				.run(client, List.of("someone-else"), out, SCHEMA);
+
+		assertThat(exitCode).isEqualTo(1);
+		assertThat(Files.readString(out)).isEqualTo("a previous good export\n");
 	}
 
 	// ─── Stubs
