@@ -629,7 +629,7 @@ public class GitHubClient {
 				.toList();
 	}
 
-	public TeamResponse createTeam(String org, TeamRequest team) {
+	public TeamResponse createTeam(String org, TeamCreateRequest team) {
 		HttpResponse<String> resp = post(
 				orgUrl(org) + "/teams",
 				writeValue(team)

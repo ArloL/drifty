@@ -217,7 +217,7 @@ class OrgTeamsDriftGroupTest {
 								equalToJson(
 										"""
 												{"name": "platform", "description": "", "privacy": "closed",
-												 "notification_setting": "notifications_enabled", "parent_team_id": null}
+												 "notification_setting": "notifications_enabled"}
 												"""
 								)
 						)
@@ -228,6 +228,82 @@ class OrgTeamsDriftGroupTest {
 								"/orgs/my-org/teams/platform/memberships/bob"
 						)
 				).withRequestBody(equalToJson("{\"role\": \"maintainer\"}"))
+		);
+	}
+
+	@Test
+	void missingTeam_withAParent_sendsTheResolvedParentId() {
+		stubFor(
+				post(urlPathEqualTo("/orgs/my-org/teams")).willReturn(
+						aResponse().withStatus(201)
+								.withBody(
+										"{\"id\": 9, \"name\": \"platform\", \"slug\": \"platform\"}"
+								)
+				)
+		);
+
+		var fixes = group(
+				Map.of(
+						"platform",
+						Desired.team().withParent("parents"),
+						"parents",
+						Desired.team()
+				),
+				List.of(team(2, "parents", null, Set.of(), Set.of()))
+		).detect();
+
+		var missing = fixes.stream()
+				.filter(
+						f -> f.items()
+								.stream()
+								.anyMatch(
+										i -> i instanceof DriftItem.SectionMissing
+								)
+				)
+				.toList();
+		assertThat(missing).singleElement()
+				.extracting(f -> f.fix().execute().unfixedItems())
+				.asInstanceOf(
+						org.assertj.core.api.InstanceOfAssertFactories
+								.list(FixResult.Unfixed.class)
+				)
+				.isEmpty();
+		verify(
+				postRequestedFor(urlPathEqualTo("/orgs/my-org/teams"))
+						.withRequestBody(
+								equalToJson(
+										"""
+												{"name": "platform", "description": "", "privacy": "closed",
+												 "notification_setting": "notifications_enabled", "parent_team_id": 2}
+												"""
+								)
+						)
+		);
+	}
+
+	@Test
+	void droppingTheParent_patchesAnExplicitNull() {
+		stubFor(
+				patch(urlPathEqualTo("/orgs/my-org/teams/core"))
+						.willReturn(aResponse().withStatus(200).withBody("{}"))
+		);
+
+		var fixes = group(
+				Map.of("core", Desired.team()),
+				List.of(team(1, "core", "parents", Set.of(), Set.of()))
+		).detect();
+
+		assertThat(fixes.getFirst().fix().execute().unfixedItems()).isEmpty();
+		verify(
+				patchRequestedFor(urlPathEqualTo("/orgs/my-org/teams/core"))
+						.withRequestBody(
+								equalToJson(
+										"""
+												{"name": "core", "description": "", "privacy": "closed",
+												 "notification_setting": "notifications_enabled", "parent_team_id": null}
+												"""
+								)
+						)
 		);
 	}
 
