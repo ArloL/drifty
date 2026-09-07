@@ -89,7 +89,8 @@ class PklWriterTest {
 				List.of(
 						PklNode.Scalar.of("refs/heads/main"),
 						PklNode.Scalar.of("refs/heads/release/*")
-				)
+				),
+				false
 		);
 		var outer = new PklNode.Obj(
 				List.of(new PklNode.Field("includePatterns", listing))
@@ -103,6 +104,30 @@ class PklWriterTest {
 				""");
 	}
 
+	/**
+	 * {@code replace} is what {@code Fields.strings} sets: amending a listing
+	 * adds to whatever the schema default already holds rather than replacing
+	 * it, which is wrong for the one field in the schema whose default listing
+	 * is non-empty ({@code Webhook.events}). See {@code Fields.strings}'s own
+	 * javadoc.
+	 */
+	@Test
+	void listingRenderedAsReplacementUsesEqualsNewListing() {
+		var listing = new PklNode.Listing(
+				List.of(PklNode.Scalar.of("pull_request")),
+				true
+		);
+		var outer = new PklNode.Obj(
+				List.of(new PklNode.Field("events", listing))
+		);
+
+		assertThat(PklWriter.write(outer)).isEqualTo("""
+				events = new Listing {
+				  "pull_request"
+				}
+				""");
+	}
+
 	@Test
 	void listingOfObjectsUsesNew() {
 		var element = new PklNode.Obj(
@@ -112,7 +137,7 @@ class PklWriterTest {
 				List.of(
 						new PklNode.Field(
 								"repositories",
-								new PklNode.Listing(List.of(element))
+								new PklNode.Listing(List.of(element), false)
 						)
 				)
 		);
@@ -192,7 +217,8 @@ class PklWriterTest {
 						new PklNode.Note("items in the list"),
 						PklNode.Scalar.of("item1"),
 						PklNode.Scalar.of("item2")
-				)
+				),
+				false
 		);
 		var outer = new PklNode.Obj(
 				List.of(new PklNode.Field("items", listing))

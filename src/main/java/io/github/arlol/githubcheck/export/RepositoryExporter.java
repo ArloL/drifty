@@ -537,7 +537,8 @@ public final class RepositoryExporter {
 														.<PklNode>map(
 																PklNode.Scalar::of
 														)
-														.toList()
+														.toList(),
+												false
 										)
 								)
 						);

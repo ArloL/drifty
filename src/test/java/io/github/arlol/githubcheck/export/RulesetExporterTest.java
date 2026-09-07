@@ -636,7 +636,7 @@ class RulesetExporterTest {
 		var field = (PklNode.Field) member;
 		assertThat(field.name()).isEqualTo("main");
 		assertThat(PklWriter.write(field.value())).isEqualTo("""
-				includePatterns {
+				includePatterns = new Listing {
 				  "refs/heads/main"
 				}
 				requiredLinearHistory = true
@@ -714,7 +714,7 @@ class RulesetExporterTest {
 				.entry(withPr, DEFAULTS, false);
 
 		assertThat(PklWriter.write(field.value())).isEqualTo("""
-				includePatterns {
+				includePatterns = new Listing {
 				  "refs/heads/main"
 				}
 				pullRequest {
@@ -774,7 +774,7 @@ class RulesetExporterTest {
 				.entry(withMq, DEFAULTS, false);
 
 		assertThat(PklWriter.write(field.value())).isEqualTo("""
-				includePatterns {
+				includePatterns = new Listing {
 				  "refs/heads/main"
 				}
 				mergeQueue {
@@ -924,7 +924,7 @@ class RulesetExporterTest {
 				.entry(actual, DEFAULTS, true);
 
 		assertThat(PklWriter.write(field.value())).isEqualTo("""
-				repositoryNameInclude {
+				repositoryNameInclude = new Listing {
 				  "service-*"
 				}
 				repositoryPropertyInclude {

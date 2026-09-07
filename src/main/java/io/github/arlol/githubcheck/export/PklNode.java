@@ -92,9 +92,26 @@ public sealed interface PklNode {
 
 	/**
 	 * Positional entries: a bare scalar, or {@code new { … }} for an object.
+	 * <p>
+	 * {@code replace} decides how the enclosing field renders: {@code false}
+	 * writes {@code name { … }}, an <em>amendment</em> of whatever the schema
+	 * default already holds; {@code true} writes {@code name = new Listing { …
+	 * }}, which replaces it outright. Every scalar listing renders as a
+	 * replacement — see {@code Fields.strings} — because a scalar element
+	 * typechecks against {@code Listing<String>} whether or not the property
+	 * carries an explicit type argument. An object listing cannot use the same
+	 * rendering without one: {@code new Listing { new { … } }} gives each
+	 * element the untyped {@code Dynamic} class, which every typed element
+	 * class in the schema then refuses. {@code Fields.objects} keeps amendment,
+	 * which is exactly equivalent to a replacement as long as the schema
+	 * default is the empty listing every object-typed field in
+	 * {@code config/drifty.pkl} declares today — the same fact
+	 * {@code Webhook.events} broke for a scalar listing before this distinction
+	 * existed.
 	 */
 	record Listing(
-			List<PklNode> elements
+			List<PklNode> elements,
+			boolean replace
 	) implements PklNode {
 
 		public Listing {

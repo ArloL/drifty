@@ -93,10 +93,10 @@ class EnvironmentExporterTest {
 				List.of()
 		);
 		assertThat(render(actual, List.of(), List.of())).isEqualTo("""
-				reviewerUsers {
+				reviewerUsers = new Listing {
 				  "alice"
 				}
-				reviewerTeams {
+				reviewerTeams = new Listing {
 				  "platform"
 				}
 				""");
@@ -121,10 +121,10 @@ class EnvironmentExporterTest {
 		);
 		assertThat(render(actual, List.of(), List.of())).isEqualTo("""
 				customBranchPolicies = true
-				deploymentBranchPatterns {
+				deploymentBranchPatterns = new Listing {
 				  "main"
 				}
-				deploymentTagPatterns {
+				deploymentTagPatterns = new Listing {
 				  "v*"
 				}
 				""");
@@ -145,7 +145,7 @@ class EnvironmentExporterTest {
 				)
 		).isEqualTo(
 				"""
-						secrets {
+						secrets = new Listing {
 						  "token"
 						}
 						// secret values are never returned by GitHub; supply them through

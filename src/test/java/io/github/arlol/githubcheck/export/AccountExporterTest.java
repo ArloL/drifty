@@ -294,7 +294,7 @@ class AccountExporterTest {
 						    actionsPermissions {
 						      enabledRepositories = "selected"
 						      allowedActions = "selected"
-						      selectedRepositories {
+						      selectedRepositories = new Listing {
 						        "api"
 						      }
 						    }
@@ -302,7 +302,7 @@ class AccountExporterTest {
 						    actionsSecrets {
 						      ["ci-token"] {
 						        visibility = "selected"
-						        selectedRepositories {
+						        selectedRepositories = new Listing {
 						          "api"
 						        }
 						      }

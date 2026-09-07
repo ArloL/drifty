@@ -98,7 +98,7 @@ class TeamExporterTest {
 		var field = (PklNode.Field) TeamExporter.entry(actual, DEFAULTS.team());
 
 		assertThat(PklWriter.write(field.value())).isEqualTo("""
-				members {
+				members = new Listing {
 				  "amy"
 				  "zed"
 				}

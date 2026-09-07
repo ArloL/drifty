@@ -67,6 +67,38 @@ class WebhookExporterTest {
 				""");
 	}
 
+	/**
+	 * {@code Webhook.events} is the one schema field whose default listing is
+	 * non-empty ({@code new { "push" }}), so a hook wired only to
+	 * {@code pull_request} has to export as excluding {@code push}, not unioned
+	 * with it — {@code events { "pull_request" }} would amend the default and
+	 * keep {@code push} too. See {@code Fields.strings}'s javadoc.
+	 */
+	@Test
+	void eventsExcludingTheDefaultPushEventReplacesRatherThanUnions() {
+		var base = webhook("https://ci.example.com/hooks/build");
+		var actual = new ActualWebhook(
+				base.id(),
+				base.url(),
+				base.contentType(),
+				base.insecureSsl(),
+				base.active(),
+				Set.of("pull_request"),
+				base.hasSecret(),
+				base.updatedAt()
+		);
+
+		var field = (PklNode.Field) WebhookExporter
+				.entry(actual, DEFAULTS.webhook());
+
+		assertThat(PklWriter.write(field.value())).isEqualTo("""
+				url = "https://ci.example.com/hooks/build"
+				events = new Listing {
+				  "pull_request"
+				}
+				""");
+	}
+
 	@Test
 	void aSecretGetsAFieldAndANoteRatherThanAnInventedValue() {
 		var base = webhook("https://ci.example.com/hooks/build");

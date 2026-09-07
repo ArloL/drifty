@@ -178,7 +178,7 @@ class ExportRoundTripTest {
 				    "id": 7,
 				    "name": "web",
 				    "active": true,
-				    "events": ["push", "pull_request"],
+				    "events": ["pull_request"],
 				    "config": {
 				      "url": "https://example.com/hook",
 				      "content_type": "json",

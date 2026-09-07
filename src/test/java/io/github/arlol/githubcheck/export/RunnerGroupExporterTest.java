@@ -59,7 +59,7 @@ class RunnerGroupExporterTest {
 
 		assertThat(PklWriter.write(field.value())).isEqualTo("""
 				visibility = "selected"
-				selectedRepositories {
+				selectedRepositories = new Listing {
 				  "service-a"
 				}
 				""");
