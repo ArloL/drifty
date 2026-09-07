@@ -18,11 +18,15 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * both drift groups; {@code orgScope} picks {@code defaults.orgRuleset()} over
  * {@code defaults.ruleset()} and switches on the five extra fields.
  * <p>
- * Three things GitHub reports cannot be written back faithfully: a rule
- * pattern's operator and negate flag are gone by the time {@code ActualTypes}
- * flattens it to plain text, and a code scanning tool's alert thresholds never
- * reach {@link ActualRuleset} at all. Both become a note instead of an invented
- * value.
+ * A code scanning tool's alert thresholds are the one thing GitHub reports that
+ * this cannot write back faithfully — they never reach {@link ActualRuleset} at
+ * all — so a note stands in for a value there. {@code commitMessagePattern} and
+ * its four siblings used to get the same treatment, but a rule that is compared
+ * and fixed still needs a way to be written: {@code RulesetDriftGroup} rebuilds
+ * a drifted ruleset with a full {@code PUT} from the config alone, so a pattern
+ * the export could only note dropped out of that PUT and {@code --fix} deleted
+ * it from GitHub. {@link ActualRuleset.RulePattern} carries the whole rule now,
+ * so these five render as real objects instead.
  */
 public final class RulesetExporter {
 
@@ -184,7 +188,7 @@ public final class RulesetExporter {
 					)
 			);
 		}
-		members.addAll(patternNotes(actual));
+		members.addAll(patternRules(actual, defaults.rulePattern()));
 
 		return new PklNode.Field(actual.name(), new PklNode.Obj(members));
 	}
@@ -454,40 +458,71 @@ public final class RulesetExporter {
 		return new PklNode.Obj(members);
 	}
 
-	private static List<PklNode.Member> patternNotes(ActualRuleset actual) {
-		List<PklNode.Member> notes = new ArrayList<>();
-		patternNote(
-				notes,
+	private static List<PklNode.Member> patternRules(
+			ActualRuleset actual,
+			Drifty.RulePattern defaults
+	) {
+		List<PklNode.Member> members = new ArrayList<>();
+		addPatternRule(
+				members,
 				"commitMessagePattern",
-				actual.commitMessagePattern()
+				actual.commitMessagePattern(),
+				defaults
 		);
-		patternNote(
-				notes,
+		addPatternRule(
+				members,
 				"commitAuthorEmailPattern",
-				actual.commitAuthorEmailPattern()
+				actual.commitAuthorEmailPattern(),
+				defaults
 		);
-		patternNote(
-				notes,
+		addPatternRule(
+				members,
 				"committerEmailPattern",
-				actual.committerEmailPattern()
+				actual.committerEmailPattern(),
+				defaults
 		);
-		patternNote(notes, "branchNamePattern", actual.branchNamePattern());
-		patternNote(notes, "tagNamePattern", actual.tagNamePattern());
-		return notes;
+		addPatternRule(
+				members,
+				"branchNamePattern",
+				actual.branchNamePattern(),
+				defaults
+		);
+		addPatternRule(
+				members,
+				"tagNamePattern",
+				actual.tagNamePattern(),
+				defaults
+		);
+		return members;
 	}
 
-	private static void patternNote(
-			List<PklNode.Member> notes,
-			String field,
-			String value
+	/**
+	 * {@code operator} and {@code pattern} have no schema default — a pattern
+	 * rule GitHub reports always specifies both — so they are always written,
+	 * the way {@link #bypassActor} always writes every field of a bypass actor.
+	 * {@code negate} and {@code name} do have one ({@code
+	 * false} and the implicit {@code null} of an unset nullable field) and are
+	 * diffed like any other field, so a config that only sets a pattern with
+	 * GitHub's own defaults for the rest renders as just that.
+	 */
+	private static void addPatternRule(
+			List<PklNode.Member> members,
+			String name,
+			ActualRuleset.RulePattern actual,
+			Drifty.RulePattern defaults
 	) {
-		if (value != null && !value.isEmpty()) {
-			notes.add(
-					Fields.note(
-							field + " is set on GitHub; drifty compares the pattern text only, so its operator is not exported"
-					)
-			);
+		if (actual == null) {
+			return;
 		}
+		List<PklNode.Member> fields = new ArrayList<>(
+				Fields.members(
+						Fields.field("name", actual.name(), defaults.name),
+						Fields.field("negate", actual.negate(), defaults.negate)
+				)
+		);
+		fields.add(required("operator", actual.operator()));
+		fields.add(required("pattern", actual.pattern()));
+		members.add(new PklNode.Field(name, new PklNode.Obj(fields)));
 	}
 
 	/**

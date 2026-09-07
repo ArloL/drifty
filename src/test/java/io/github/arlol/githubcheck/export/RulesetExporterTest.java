@@ -42,11 +42,11 @@ class RulesetExporterTest {
 				null,
 				Set.of(),
 				Set.of(),
-				"",
-				"",
-				"",
-				"",
-				"",
+				null,
+				null,
+				null,
+				null,
+				null,
 				null,
 				Set.of(),
 				Set.of(),
@@ -408,7 +408,7 @@ class RulesetExporterTest {
 
 	private static ActualRuleset withCommitMessagePattern(
 			ActualRuleset base,
-			String commitMessagePattern
+			ActualRuleset.RulePattern commitMessagePattern
 	) {
 		return new ActualRuleset(
 				base.id(),
@@ -821,23 +821,63 @@ class RulesetExporterTest {
 				.contains("names only");
 	}
 
+	/**
+	 * The whole rule, not just its text: a fix built from a config missing the
+	 * operator and negate flag would PUT a rule GitHub does not have, which is
+	 * what a note in their place used to risk.
+	 */
 	@Test
-	void aNonEmptyRulePatternGetsANoteInsteadOfAnInventedOperator() {
+	void aRulePatternIsExportedAsARealObjectRatherThanANote() {
 		var withPattern = withCommitMessagePattern(
 				ruleset("main", "branch"),
-				"^JIRA-"
+				new ActualRuleset.RulePattern(
+						"no-jira",
+						true,
+						"regex",
+						"^JIRA-"
+				)
 		);
 
 		var field = (PklNode.Field) RulesetExporter
 				.entry(withPattern, DEFAULTS, false);
-		String written = PklWriter.write(field.value());
 
-		// The note wraps at 80 columns, so it is checked in the two pieces
-		// that land either side of the wrap rather than as one substring.
-		assertThat(written).contains("commitMessagePattern is set on GitHub")
-				.contains("so its operator is not exported");
-		// The flattened text itself is not recoverable as a field.
-		assertThat(written).doesNotContain("commitMessagePattern =");
+		assertThat(PklWriter.write(field.value())).isEqualTo("""
+				commitMessagePattern {
+				  name = "no-jira"
+				  negate = true
+				  operator = "regex"
+				  pattern = "^JIRA-"
+				}
+				""");
+	}
+
+	/**
+	 * {@code operator} and {@code pattern} are always written — GitHub never
+	 * reports a pattern rule without them — but {@code name} and {@code negate}
+	 * have schema defaults and are omitted when GitHub's values match them, the
+	 * same as any other defaulted field.
+	 */
+	@Test
+	void aRulePatternAtItsOtherFieldsDefaultsWritesOnlyOperatorAndPattern() {
+		var withPattern = withCommitMessagePattern(
+				ruleset("main", "branch"),
+				new ActualRuleset.RulePattern(
+						null,
+						false,
+						"starts_with",
+						"feat:"
+				)
+		);
+
+		var field = (PklNode.Field) RulesetExporter
+				.entry(withPattern, DEFAULTS, false);
+
+		assertThat(PklWriter.write(field.value())).isEqualTo("""
+				commitMessagePattern {
+				  operator = "starts_with"
+				  pattern = "feat:"
+				}
+				""");
 	}
 
 	@Test

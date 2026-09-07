@@ -82,11 +82,60 @@ class ActualTypesTest {
 				new Rule.TagNamePattern(patternParameters("^v"))
 		);
 
-		assertThat(ruleset.commitMessagePattern()).isEqualTo("^feat");
-		assertThat(ruleset.commitAuthorEmailPattern()).isEqualTo("@example");
-		assertThat(ruleset.committerEmailPattern()).isEqualTo("@corp");
-		assertThat(ruleset.branchNamePattern()).isEqualTo("^release/");
-		assertThat(ruleset.tagNamePattern()).isEqualTo("^v");
+		assertThat(ruleset.commitMessagePattern())
+				.isEqualTo(rulePattern("^feat"));
+		assertThat(ruleset.commitAuthorEmailPattern())
+				.isEqualTo(rulePattern("@example"));
+		assertThat(ruleset.committerEmailPattern())
+				.isEqualTo(rulePattern("@corp"));
+		assertThat(ruleset.branchNamePattern())
+				.isEqualTo(rulePattern("^release/"));
+		assertThat(ruleset.tagNamePattern()).isEqualTo(rulePattern("^v"));
+	}
+
+	/**
+	 * The name, negate flag and operator matter to what the rule actually does,
+	 * so a translation that flattened them to the pattern text alone — what
+	 * this read before {@code ActualRuleset.RulePattern} existed — would leave
+	 * nothing for the export to write back but a note, and the fix that clears
+	 * the resulting drift a full {@code PUT} rebuilds from the config alone.
+	 */
+	@Test
+	void patternRuleCarriesNameNegateAndOperator() {
+		ActualRuleset ruleset = ruleset(
+				new Rule.CommitMessagePattern(
+						new Rule.PatternParameters(
+								"no-wip",
+								true,
+								RulePatternOperator.REGEX,
+								"^wip:"
+						)
+				)
+		);
+
+		assertThat(ruleset.commitMessagePattern()).isEqualTo(
+				new ActualRuleset.RulePattern("no-wip", true, "regex", "^wip:")
+		);
+	}
+
+	/**
+	 * GitHub omits {@code negate} rather than answering {@code false}, the same
+	 * as {@code mode} on a secret scanning bypass reviewer.
+	 */
+	@Test
+	void patternRuleNegateDefaultsToFalseWhenGitHubOmitsIt() {
+		ActualRuleset ruleset = ruleset(
+				new Rule.CommitMessagePattern(
+						new Rule.PatternParameters(
+								null,
+								null,
+								RulePatternOperator.CONTAINS,
+								"wip"
+						)
+				)
+		);
+
+		assertThat(ruleset.commitMessagePattern().negate()).isFalse();
 	}
 
 	@Test
@@ -622,6 +671,15 @@ class ActualTypesTest {
 				null,
 				false,
 				RulePatternOperator.STARTS_WITH,
+				pattern
+		);
+	}
+
+	private static ActualRuleset.RulePattern rulePattern(String pattern) {
+		return new ActualRuleset.RulePattern(
+				null,
+				false,
+				"starts_with",
 				pattern
 		);
 	}

@@ -32,11 +32,11 @@ public record ActualRuleset(
 		PullRequest pullRequest,
 		Set<String> requiredCodeScanningTools,
 		Set<String> requiredDeployments,
-		String commitMessagePattern,
-		String commitAuthorEmailPattern,
-		String committerEmailPattern,
-		String branchNamePattern,
-		String tagNamePattern,
+		RulePattern commitMessagePattern,
+		RulePattern commitAuthorEmailPattern,
+		RulePattern committerEmailPattern,
+		RulePattern branchNamePattern,
+		RulePattern tagNamePattern,
 		MergeQueue mergeQueue,
 		Set<Workflow> workflows,
 		Set<String> filePathRestrictions,
@@ -50,6 +50,23 @@ public record ActualRuleset(
 		Set<PropertyCondition> repositoryPropertyInclude,
 		Set<PropertyCondition> repositoryPropertyExclude
 ) {
+
+	/**
+	 * A commit message, author email, committer email, branch name or tag name
+	 * pattern rule's parameters; null when the rule is absent, the same way
+	 * every other rule here reads. {@code operator} is the wire spelling
+	 * ({@code starts_with}, {@code regex}, ...), matching how every other
+	 * enum-shaped field on this record is compared and exported as a plain
+	 * string. A reviewer without a {@code negate} defaults to {@code false},
+	 * the schema's own default for the field.
+	 */
+	public record RulePattern(
+			String name,
+			boolean negate,
+			String operator,
+			String pattern
+	) {
+	}
 
 	/** The pull_request rule's parameters; null when the rule is absent. */
 	public record PullRequest(
