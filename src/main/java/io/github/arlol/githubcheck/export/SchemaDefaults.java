@@ -42,6 +42,7 @@ public final class SchemaDefaults {
 	private final Drifty.Webhook webhook;
 	private final Drifty.CustomProperty customProperty;
 	private final Drifty.CodeSecurityConfiguration codeSecurityConfiguration;
+	private final Drifty.CodeScanningDefaultSetupOptions codeScanningDefaultSetupOptions;
 	private final Drifty.Team team;
 	private final Drifty.RunnerGroup runnerGroup;
 	private final Drifty.OrgSecret orgSecret;
@@ -69,6 +70,9 @@ public final class SchemaDefaults {
 				.as(Drifty.CustomProperty.class);
 		codeSecurityConfiguration = root.get("codeSecurityConfiguration")
 				.as(Drifty.CodeSecurityConfiguration.class);
+		codeScanningDefaultSetupOptions = root
+				.get("codeScanningDefaultSetupOptions")
+				.as(Drifty.CodeScanningDefaultSetupOptions.class);
 		team = root.get("team").as(Drifty.Team.class);
 		runnerGroup = root.get("runnerGroup").as(Drifty.RunnerGroup.class);
 		orgSecret = root.get("orgSecret").as(Drifty.OrgSecret.class);
@@ -183,6 +187,10 @@ public final class SchemaDefaults {
 
 	public Drifty.CodeSecurityConfiguration codeSecurityConfiguration() {
 		return codeSecurityConfiguration;
+	}
+
+	public Drifty.CodeScanningDefaultSetupOptions codeScanningDefaultSetupOptions() {
+		return codeScanningDefaultSetupOptions;
 	}
 
 	public Drifty.Team team() {
