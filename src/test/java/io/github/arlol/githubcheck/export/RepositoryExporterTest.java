@@ -1129,4 +1129,85 @@ class RepositoryExporterTest {
 		);
 	}
 
+	/**
+	 * {@code RepositoryChecker.fetchState} keeps reading branch protections,
+	 * secrets, webhooks and the rest for an archived repository — only
+	 * rulesets, pages and the security-flag endpoints stop — so a 403 on one of
+	 * those groups is still real information about the token, even though
+	 * {@code entry} renders none of the members it would normally sit beside.
+	 * Dropping it here would be the same failure shape as an unreadable group
+	 * silently reading as empty.
+	 */
+	@Test
+	void anArchivedRepositoryStillRendersItsCollectedFailures() {
+		ActualRepository base = defaultRepository();
+		ActualRepository archived = new ActualRepository(
+				true,
+				base.organizationOwned(),
+				base.description(),
+				base.homepage(),
+				base.visibility(),
+				base.defaultBranch(),
+				base.topics(),
+				base.hasIssues(),
+				base.hasProjects(),
+				base.hasWiki(),
+				base.hasDiscussions(),
+				base.isTemplate(),
+				base.allowForking(),
+				base.webCommitSignoffRequired(),
+				base.allowMergeCommit(),
+				base.allowSquashMerge(),
+				base.allowRebaseMerge(),
+				base.allowAutoMerge(),
+				base.allowUpdateBranch(),
+				base.deleteBranchOnMerge(),
+				base.squashMergeCommitTitle(),
+				base.squashMergeCommitMessage(),
+				base.mergeCommitTitle(),
+				base.mergeCommitMessage()
+		);
+		RepositoryState state = new CollectionsBuilder().build();
+		state = new RepositoryState(
+				state.ref(),
+				archived,
+				state.securityAndAnalysis(),
+				state.vulnerabilityAlerts(),
+				state.automatedSecurityFixes(),
+				state.immutableReleases(),
+				state.privateVulnerabilityReporting(),
+				state.codeScanningDefaultSetup(),
+				state.branchProtections(),
+				state.rulesets(),
+				state.actionSecrets(),
+				state.environments(),
+				state.environmentSecrets(),
+				state.workflowPermissions(),
+				state.pages(),
+				state.actionVariables(),
+				state.environmentVariables(),
+				state.webhooks(),
+				state.customPropertyValues(),
+				state.collaborators()
+		);
+		List<FetchFailures.Failure> failures = List.of(
+				new FetchFailures.Failure(
+						"webhooks",
+						"HTTP 403 fetching webhooks"
+				)
+		);
+
+		PklNode entry = RepositoryExporter.entry(state, failures, DEFAULTS);
+
+		assertThat(PklWriter.write(entry)).isEqualTo(
+				"""
+						name = "api"
+						archived = true
+						// drifty checks only archived on an archived repository, so its other settings
+						// are neither compared nor exported
+						// webhooks: HTTP 403 fetching webhooks
+						"""
+		);
+	}
+
 }

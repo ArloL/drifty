@@ -53,8 +53,14 @@ public class GitHubCheck {
 		String configArg = optionValue(argsList, "--config");
 		String statePath = optionValue(argsList, "--state");
 
-		List<String> exportLogins = exportLogins(argsList);
-		if (!exportLogins.isEmpty()) {
+		if (argsList.contains("--export")) {
+			List<String> exportLogins = exportLogins(argsList);
+			if (exportLogins.isEmpty()) {
+				System.err
+						.println("ERROR: --export requires at least one login");
+				System.exit(1);
+				return;
+			}
 			if (fix || configArg != null) {
 				System.err.println(
 						"ERROR: --export takes no --config and no --fix"

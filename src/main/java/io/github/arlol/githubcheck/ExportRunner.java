@@ -43,6 +43,10 @@ import io.github.arlol.githubcheck.state.DriftyState;
  * to fix) — {@code fetchState} is called directly instead, wrapped in its own
  * {@code try/catch} per repository, so one repository's 403 does not discard
  * every other repository the account has.
+ * <p>
+ * The file is written only when at least one login produced an entry: writing
+ * an empty {@code organizations {}} because every login failed would silently
+ * discard whatever a previous good run left at {@code --out}.
  */
 final class ExportRunner {
 
@@ -95,6 +99,13 @@ final class ExportRunner {
 
 		reportUnreadableGroups(unreadableGroups);
 
+		// Every login failed outright (or none was given): writing would
+		// overwrite a good export.pkl from an earlier run with an empty
+		// organizations {}, which is worse than leaving it untouched.
+		if (organizations.isEmpty() && users.isEmpty()) {
+			return anyFailed ? 1 : 0;
+		}
+
 		String text = DriftyFileExporter.file(
 				schemaUri,
 				version(),
@@ -102,6 +113,10 @@ final class ExportRunner {
 				organizations,
 				users
 		);
+		Path outDir = out.toAbsolutePath().getParent();
+		if (outDir != null) {
+			Files.createDirectories(outDir);
+		}
 		Files.writeString(out, text);
 		System.out.printf("Wrote %s (%d lines)%n", out, text.lines().count());
 
