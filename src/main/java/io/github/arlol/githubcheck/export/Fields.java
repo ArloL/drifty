@@ -174,6 +174,22 @@ public final class Fields {
 		return new PklNode.Note(text);
 	}
 
+	/**
+	 * A note for a check-only setting: one the comparison still runs against
+	 * its default, even though nothing ever writes it. Shared by
+	 * {@code OrganizationExporter}'s ten unwritable settings and
+	 * {@code RepositoryExporter}'s {@code visibility}, so the equality guard
+	 * lives once instead of once per caller.
+	 */
+	public static Optional<PklNode.Member> note(
+			String text,
+			Object actual,
+			Object defaultValue
+	) {
+		return Objects.equals(actual, defaultValue) ? Optional.empty()
+				: Optional.of(new PklNode.Note(text));
+	}
+
 	@SafeVarargs
 	public static List<PklNode.Member> members(
 			Optional<PklNode.Member>... candidates
