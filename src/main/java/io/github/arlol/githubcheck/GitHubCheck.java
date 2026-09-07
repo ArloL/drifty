@@ -20,6 +20,8 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.Secrets;
 import io.github.arlol.githubcheck.drift.ManagedGroups;
+import io.github.arlol.githubcheck.export.PklNode;
+import io.github.arlol.githubcheck.export.PklWriter;
 import io.github.arlol.githubcheck.export.SchemaDefaults;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
@@ -256,17 +258,29 @@ public class GitHubCheck {
 	}
 
 	/**
-	 * Network- and token-free smoke test of the two paths only the shipped
-	 * binary can get wrong, both of them reflective and so both able to lose
-	 * their native-image metadata without a single JVM test noticing: libsodium
+	 * Network- and token-free smoke test of the paths only the shipped binary
+	 * can get wrong. {@code NativeExecutableIT} runs the built production
+	 * binary with this flag, so a regression here fails the build instead of
+	 * shipping.
+	 * <p>
+	 * Two of the three are reflective and so both able to lose their
+	 * native-image metadata without a single JVM test noticing: libsodium
 	 * through JNA, which crashes with {@code NoSuchMethodException} on
 	 * {@code com.sun.jna.Structure$FFIType.<init>()}, and — when a config path
 	 * is given — a full Pkl evaluation and mapping into {@link DriftyConfig},
-	 * which ends in a {@code ConversionException}. {@code NativeExecutableIT}
-	 * runs the built production binary with this flag, so those regressions
-	 * fail the build instead of shipping. The config is optional because a
-	 * user's binary has none of its own to read; the IT passes the project's
-	 * example config. The public key is a 32-byte all-zeros key, base64.
+	 * which ends in a {@code ConversionException}. The config is optional
+	 * because a user's binary has none of its own to read; the IT passes the
+	 * project's example config.
+	 * <p>
+	 * The third, {@code --export}'s render path, is not reflective — it is
+	 * covered here because it is otherwise untested against the production
+	 * binary at all: the acceptance test that exercises it needs a GitHub token
+	 * and network access, neither of which a self-test may assume. It evaluates
+	 * no schema, deliberately: that half of {@code --export} (loading and
+	 * mapping Pkl) is the same code the config branch above already runs, and a
+	 * self-test that reached the network for it would stop being one.
+	 * <p>
+	 * The public key is a 32-byte all-zeros key, base64.
 	 */
 	static int selfTest(String configPath) {
 		String publicKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
@@ -292,6 +306,22 @@ public class GitHubCheck {
 				);
 				return 1;
 			}
+		}
+		String exported = PklWriter
+				.write(
+						new PklNode.Obj(
+								List.of(
+										new PklNode.Field(
+												"displayName",
+												PklNode.Scalar
+														.of("drifty-self-test")
+										)
+								)
+						)
+				);
+		if (!exported.contains("displayName = \"drifty-self-test\"")) {
+			System.err.println("self-test FAILED: export render");
+			return 1;
 		}
 		System.out.println("self-test OK");
 		return 0;

@@ -133,6 +133,18 @@ status.
   rather than writing a shorter list and reporting success. Logins and team
   slugs the environment group needs resolve with one request each, only when
   a fix runs.
+- **A new schema field needs an exporter line.** `SchemaCoverageTest` fails
+  the build otherwise, and nothing else would: a field the export omits is one
+  the config leaves at its default, so the round-trip test agrees with itself
+  and passes.
+- **A setting drifty reports but cannot write is exported as a field AND a
+  note.** `OrgSettingsDriftGroup` compares a check-only setting like any
+  other and only its writer is null, so a file that omitted the field would
+  carry the schema default against GitHub's real value and report drift no
+  `--fix` could ever clear. The field is what makes the file round-trip; the
+  note is what tells a reader drifty will not change it. `visibility` on the
+  repository side and the ten check-only organization settings are the
+  cases.
 - **`schemas/` holds the endpoint shapes.** It is gitignored;
   `python3 download-schemas.py --filter '/orgs/{org}/...'` recreates the
   part you need. Check a new record's field names and enums there before

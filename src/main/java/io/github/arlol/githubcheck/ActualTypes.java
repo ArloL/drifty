@@ -870,9 +870,9 @@ public final class ActualTypes {
 	// ──────────────────────────────────────────────────────────
 
 	/**
-	 * The seventeen toggles land in a map keyed by GitHub's field name; a
-	 * toggle the response omits reads as {@code not_set}, which is what GitHub
-	 * means by leaving it out. The attached repositories are the ones whose
+	 * The sixteen toggles land in a map keyed by GitHub's field name; a toggle
+	 * the response omits reads as {@code not_set}, which is what GitHub means
+	 * by leaving it out. The attached repositories are the ones whose
 	 * attachment is in place or under way — a repository GitHub is still
 	 * detaching or failed to attach is not one the configuration covers.
 	 *
