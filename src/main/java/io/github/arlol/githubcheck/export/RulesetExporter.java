@@ -176,7 +176,13 @@ public final class RulesetExporter {
 			// A second call rather than casting base: base is declared
 			// Ruleset even when orgScope is true, since the base fields above
 			// only need what Ruleset itself has.
-			members.addAll(orgOnlyFields(defaults.orgRuleset(), actual));
+			members.addAll(
+					orgOnlyFields(
+							defaults.orgRuleset(),
+							actual,
+							defaults.propertyCondition()
+					)
+			);
 		}
 		members.addAll(patternNotes(actual));
 
@@ -194,7 +200,8 @@ public final class RulesetExporter {
 
 	private static List<PklNode.Member> orgOnlyFields(
 			Drifty.OrgRuleset base,
-			ActualRuleset actual
+			ActualRuleset actual,
+			Drifty.PropertyCondition propertyConditionDefaults
 	) {
 		return Fields.members(
 				Fields.strings(
@@ -214,11 +221,17 @@ public final class RulesetExporter {
 				),
 				Fields.objects(
 						"repositoryPropertyInclude",
-						propertyConditions(actual.repositoryPropertyInclude())
+						propertyConditions(
+								actual.repositoryPropertyInclude(),
+								propertyConditionDefaults
+						)
 				),
 				Fields.objects(
 						"repositoryPropertyExclude",
-						propertyConditions(actual.repositoryPropertyExclude())
+						propertyConditions(
+								actual.repositoryPropertyExclude(),
+								propertyConditionDefaults
+						)
 				)
 		);
 	}
@@ -384,6 +397,12 @@ public final class RulesetExporter {
 				.toList();
 	}
 
+	/**
+	 * {@code actorId} is null for an {@code OrganizationAdmin} bypass actor —
+	 * GitHub identifies that actor by role alone — so it is written as an
+	 * explicit {@code null} via the nullable overload rather than the primitive
+	 * one, which would NPE unboxing it.
+	 */
 	private static PklNode.Obj bypassActor(ActualRuleset.BypassActor actor) {
 		return new PklNode.Obj(
 				List.of(
@@ -395,7 +414,8 @@ public final class RulesetExporter {
 	}
 
 	private static List<PklNode> propertyConditions(
-			Set<ActualRuleset.PropertyCondition> conditions
+			Set<ActualRuleset.PropertyCondition> conditions,
+			Drifty.PropertyCondition defaults
 	) {
 		return conditions.stream()
 				.sorted(
@@ -403,29 +423,35 @@ public final class RulesetExporter {
 								ActualRuleset.PropertyCondition::toString
 						)
 				)
-				.<PklNode>map(RulesetExporter::propertyCondition)
+				.<PklNode>map(c -> propertyCondition(c, defaults))
 				.toList();
 	}
 
 	/**
-	 * {@code OrgRulesetDriftGroup} compares a property condition as one opaque
-	 * string rather than field by field, so {@code source} is written
-	 * unconditionally alongside {@code name} and {@code propertyValues} rather
-	 * than diffed against its own schema default.
+	 * {@code name} and {@code propertyValues} have no schema default and are
+	 * always written; {@code source} does (schema default {@code "custom"},
+	 * which {@code ActualTypes} also normalizes a missing wire value to) and is
+	 * diffed like any other defaulted field.
 	 */
 	private static PklNode.Obj propertyCondition(
-			ActualRuleset.PropertyCondition condition
+			ActualRuleset.PropertyCondition condition,
+			Drifty.PropertyCondition defaults
 	) {
-		return new PklNode.Obj(
-				List.of(
-						required("name", condition.name()),
-						requiredStrings(
-								"propertyValues",
-								condition.propertyValues()
-						),
-						required("source", condition.source())
+		List<PklNode.Member> members = new ArrayList<>();
+		members.add(required("name", condition.name()));
+		members.add(
+				requiredStrings("propertyValues", condition.propertyValues())
+		);
+		members.addAll(
+				Fields.members(
+						Fields.field(
+								"source",
+								condition.source(),
+								defaults.source
+						)
 				)
 		);
+		return new PklNode.Obj(members);
 	}
 
 	private static List<PklNode.Member> patternNotes(ActualRuleset actual) {
@@ -476,9 +502,13 @@ public final class RulesetExporter {
 		return Fields.required(name, value).orElseThrow();
 	}
 
+	private static PklNode.Member required(String name, Long value) {
+		return Fields.required(name, value).orElseThrow();
+	}
+
 	/**
-	 * propertyValues has no schema default either, so — like name and source —
-	 * it is written unconditionally, sorted for a reproducible file.
+	 * propertyValues has no schema default either, so — like name — it is
+	 * written unconditionally, sorted for a reproducible file.
 	 */
 	private static PklNode.Member requiredStrings(
 			String name,

@@ -105,6 +105,49 @@ class RulesetExporterTest {
 		);
 	}
 
+	private static ActualRuleset withExcludePatterns(
+			ActualRuleset base,
+			Set<String> excludePatterns
+	) {
+		return new ActualRuleset(
+				base.id(),
+				base.name(),
+				base.target(),
+				base.enforcement(),
+				base.includePatterns(),
+				excludePatterns,
+				base.creation(),
+				base.deletion(),
+				base.update(),
+				base.updateAllowsFetchAndMerge(),
+				base.requiredSignatures(),
+				base.requiredLinearHistory(),
+				base.noForcePushes(),
+				base.strictRequiredStatusChecks(),
+				base.requiredStatusChecks(),
+				base.pullRequest(),
+				base.requiredCodeScanningTools(),
+				base.requiredDeployments(),
+				base.commitMessagePattern(),
+				base.commitAuthorEmailPattern(),
+				base.committerEmailPattern(),
+				base.branchNamePattern(),
+				base.tagNamePattern(),
+				base.mergeQueue(),
+				base.workflows(),
+				base.filePathRestrictions(),
+				base.maxFilePathLength(),
+				base.fileExtensionRestrictions(),
+				base.maxFileSize(),
+				base.bypassActors(),
+				base.repositoryNameInclude(),
+				base.repositoryNameExclude(),
+				base.repositoryNameProtected(),
+				base.repositoryPropertyInclude(),
+				base.repositoryPropertyExclude()
+		);
+	}
+
 	private static ActualRuleset withRequiredLinearHistory(
 			ActualRuleset base,
 			boolean requiredLinearHistory
@@ -602,7 +645,16 @@ class RulesetExporterTest {
 
 	@Test
 	void aPushRulesetHasNoRefConditions() {
-		var push = withMaxFileSize(ruleset("no-big-files", "push"), 100);
+		// Non-empty on purpose: Fields.strings would omit an empty collection
+		// on its own, so an empty fixture here would pass whether or not the
+		// target guard exists. Only a non-empty set proves the guard fires.
+		var push = withExcludePatterns(
+				withIncludePatterns(
+						withMaxFileSize(ruleset("no-big-files", "push"), 100),
+						Set.of("refs/heads/main")
+				),
+				Set.of("refs/heads/release-*")
+		);
 
 		var field = (PklNode.Field) RulesetExporter
 				.entry(push, DEFAULTS, false);
@@ -638,6 +690,40 @@ class RulesetExporterTest {
 	}
 
 	@Test
+	void aPullRequestSubFieldDifferingFromDefaultIsEmitted() {
+		// Every other sub-field stays at PullRequestRule's default (0, false
+		// x4, empty set), so a wrong field/default pairing among the six
+		// would either wrongly omit this one or wrongly emit another.
+		var pr = new ActualRuleset.PullRequest(
+				2,
+				false,
+				false,
+				false,
+				false,
+				Set.of()
+		);
+		var withPr = withPullRequest(
+				withIncludePatterns(
+						ruleset("main", "branch"),
+						Set.of("refs/heads/main")
+				),
+				pr
+		);
+
+		var field = (PklNode.Field) RulesetExporter
+				.entry(withPr, DEFAULTS, false);
+
+		assertThat(PklWriter.write(field.value())).isEqualTo("""
+				includePatterns {
+				  "refs/heads/main"
+				}
+				pullRequest {
+				  requiredApprovingReviewCount = 2
+				}
+				""");
+	}
+
+	@Test
 	void aMergeQueueRuleIsEmittedEvenWhenAllItsFieldsAreDefault() {
 		var mq = new ActualRuleset.MergeQueue(
 				60,
@@ -660,6 +746,41 @@ class RulesetExporterTest {
 				.entry(withMq, DEFAULTS, false);
 
 		assertThat(PklWriter.write(field.value())).contains("mergeQueue {");
+	}
+
+	@Test
+	void aMergeQueueSubFieldDifferingFromDefaultIsEmitted() {
+		// Every other sub-field stays at MergeQueueRule's default (60, 5, 5,
+		// "MERGE", 1, 5), so a wrong field/default pairing among the seven
+		// would either wrongly omit this one or wrongly emit another.
+		var mq = new ActualRuleset.MergeQueue(
+				60,
+				"HEADGREEN",
+				5,
+				5,
+				"MERGE",
+				1,
+				5
+		);
+		var withMq = withMergeQueue(
+				withIncludePatterns(
+						ruleset("main", "branch"),
+						Set.of("refs/heads/main")
+				),
+				mq
+		);
+
+		var field = (PklNode.Field) RulesetExporter
+				.entry(withMq, DEFAULTS, false);
+
+		assertThat(PklWriter.write(field.value())).isEqualTo("""
+				includePatterns {
+				  "refs/heads/main"
+				}
+				mergeQueue {
+				  groupingStrategy = "HEADGREEN"
+				}
+				""");
 	}
 
 	@Test
@@ -751,7 +872,40 @@ class RulesetExporterTest {
 	}
 
 	@Test
+	void aBypassActorWithNoIdWritesAnExplicitNullRatherThanCrashing() {
+		// GitHub identifies an OrganizationAdmin bypass actor by role alone,
+		// so actor_id comes back null on the wire — the case that used to
+		// NPE unboxing a null Long into the primitive required(String,long).
+		var actual = withBypassActors(
+				ruleset("main", "branch"),
+				List.of(
+						new ActualRuleset.BypassActor(
+								"OrganizationAdmin",
+								null,
+								"always"
+						)
+				)
+		);
+
+		var field = (PklNode.Field) RulesetExporter
+				.entry(actual, DEFAULTS, false);
+
+		assertThat(PklWriter.write(field.value())).isEqualTo("""
+				bypassActors {
+				  new {
+				    actorId = null
+				    actorType = "OrganizationAdmin"
+				    bypassMode = "always"
+				  }
+				}
+				""");
+	}
+
+	@Test
 	void anOrganizationRulesetWritesTheRepositorySelectionFields() {
+		// source: "custom" matches PropertyCondition's schema default, so it
+		// is correctly absent here — only name and propertyValues have no
+		// default and are always written.
 		var actual = withRepositoryPropertyInclude(
 				withRepositoryNameInclude(
 						ruleset("protect-main", "branch"),
@@ -779,10 +933,29 @@ class RulesetExporterTest {
 				    propertyValues {
 				      "platform"
 				    }
-				    source = "custom"
 				  }
 				}
 				""");
+	}
+
+	@Test
+	void aPropertyConditionSourceDifferingFromDefaultIsEmitted() {
+		var actual = withRepositoryPropertyInclude(
+				ruleset("protect-main", "branch"),
+				Set.of(
+						new ActualRuleset.PropertyCondition(
+								"team",
+								Set.of("platform"),
+								"system"
+						)
+				)
+		);
+
+		var field = (PklNode.Field) RulesetExporter
+				.entry(actual, DEFAULTS, true);
+
+		assertThat(PklWriter.write(field.value()))
+				.contains("source = \"system\"");
 	}
 
 }

@@ -33,6 +33,7 @@ public final class SchemaDefaults {
 	private final Drifty.Repository repository;
 	private final Drifty.Ruleset ruleset;
 	private final Drifty.OrgRuleset orgRuleset;
+	private final Drifty.PropertyCondition propertyCondition;
 	private final Drifty.PullRequestRule pullRequestRule;
 	private final Drifty.MergeQueueRule mergeQueueRule;
 	private final Drifty.BranchProtection branchProtection;
@@ -53,6 +54,8 @@ public final class SchemaDefaults {
 		repository = root.get("repository").as(Drifty.Repository.class);
 		ruleset = root.get("ruleset").as(Drifty.Ruleset.class);
 		orgRuleset = root.get("orgRuleset").as(Drifty.OrgRuleset.class);
+		propertyCondition = root.get("propertyCondition")
+				.as(Drifty.PropertyCondition.class);
 		pullRequestRule = root.get("pullRequestRule")
 				.as(Drifty.PullRequestRule.class);
 		mergeQueueRule = root.get("mergeQueueRule")
@@ -144,6 +147,10 @@ public final class SchemaDefaults {
 
 	public Drifty.OrgRuleset orgRuleset() {
 		return orgRuleset;
+	}
+
+	public Drifty.PropertyCondition propertyCondition() {
+		return propertyCondition;
 	}
 
 	public Drifty.PullRequestRule pullRequestRule() {

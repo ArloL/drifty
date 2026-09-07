@@ -102,6 +102,22 @@ public final class Fields {
 	}
 
 	/**
+	 * A required field whose value is sometimes absent on GitHub's side — an
+	 * organization-admin bypass actor has no {@code actorId} — rather than
+	 * merely optional in the schema. Writes an explicit {@code null} instead of
+	 * dropping the field, since the schema still requires it.
+	 */
+	public static Optional<PklNode.Member> required(String name, Long value) {
+		return Optional.of(
+				new PklNode.Field(
+						name,
+						value == null ? PklNode.Scalar.nullValue()
+								: PklNode.Scalar.of(value.longValue())
+				)
+		);
+	}
+
+	/**
 	 * A collection of strings, compared as a set: GitHub's ordering is not
 	 * drifty's, and the checker compares these unordered too. Emitted sorted so
 	 * two exports of an unchanged account are identical files.

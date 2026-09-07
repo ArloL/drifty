@@ -10,6 +10,10 @@ organization: schema.Organization = new {}
 repository: schema.Repository = new { name = "" }
 ruleset: schema.Ruleset = new {}
 orgRuleset: schema.OrgRuleset = new {}
+propertyCondition: schema.PropertyCondition = new {
+  name = ""
+  propertyValues = new {}
+}
 pullRequestRule: schema.PullRequestRule = new {}
 mergeQueueRule: schema.MergeQueueRule = new {}
 branchProtection: schema.BranchProtection = new {}
