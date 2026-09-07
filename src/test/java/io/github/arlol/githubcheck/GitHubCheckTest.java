@@ -49,6 +49,30 @@ class GitHubCheckTest {
 		).isNull();
 	}
 
+	// ─── exportLogins
+	// ──────────────────────────────────────────────────────
+
+	@Test
+	void exportLogins_takesEveryArgumentUntilTheNextOption() {
+		assertThat(
+				GitHubCheck.exportLogins(
+						List.of("--export", "acme", "arlol", "--out", "x.pkl")
+				)
+		).containsExactly("acme", "arlol");
+	}
+
+	@Test
+	void exportLogins_emptyWhenExportIsAbsent() {
+		assertThat(GitHubCheck.exportLogins(List.of("--fix"))).isEmpty();
+	}
+
+	@Test
+	void exportLogins_emptyWhenExportNamesNoLogin() {
+		assertThat(
+				GitHubCheck.exportLogins(List.of("--export", "--out", "x.pkl"))
+		).isEmpty();
+	}
+
 	// ─── parseGithubSecrets
 	// ─────────────────────────────────────────────────────
 

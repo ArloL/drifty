@@ -270,6 +270,26 @@ public class GitHubCheck {
 		return 0;
 	}
 
+	/**
+	 * Every argument after {@code --export} up to the next {@code --}-prefixed
+	 * one — an option's own value never starts with {@code --}, so this is the
+	 * same rule {@code --config path --fix} argument parsing already relies on
+	 * elsewhere in this method, just applied to a variable-length list instead
+	 * of a single value.
+	 */
+	static List<String> exportLogins(List<String> argsList) {
+		int index = argsList.indexOf("--export");
+		if (index < 0) {
+			return List.of();
+		}
+		var logins = new ArrayList<String>();
+		for (int i = index + 1; i < argsList.size()
+				&& !argsList.get(i).startsWith("--"); i++) {
+			logins.add(argsList.get(i));
+		}
+		return List.copyOf(logins);
+	}
+
 	static String optionValue(List<String> argsList, String option) {
 		int index = argsList.indexOf(option);
 		return (index >= 0 && index + 1 < argsList.size())
