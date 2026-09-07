@@ -76,7 +76,9 @@ public final class PklWriter {
 			out.append(indent(depth)).append("}\n");
 		}
 		case PklNode.Listing listing -> {
-			out.append(indent(depth)).append(name).append(" {\n");
+			out.append(indent(depth))
+					.append(name)
+					.append(listing.replace() ? " = new Listing {\n" : " {\n");
 			writeListing(out, listing, depth + 1);
 			out.append(indent(depth)).append("}\n");
 		}

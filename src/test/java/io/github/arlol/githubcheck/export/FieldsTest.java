@@ -59,10 +59,58 @@ class FieldsTest {
 										List.of(
 												PklNode.Scalar.of("a"),
 												PklNode.Scalar.of("b")
-										)
+										),
+										true
 								)
 						)
 				);
+	}
+
+	/**
+	 * {@code Webhook.events} is the one schema listing whose default is
+	 * non-empty; an amending render would union the two rather than replace it,
+	 * wiring a hook to an event the account never configured. See
+	 * {@code Fields.strings}'s own javadoc and {@code PklWriter}'s
+	 * {@code Listing} case.
+	 */
+	@Test
+	void stringCollectionsAreRenderedAsAReplacementNotAnAmendment() {
+		var field = (PklNode.Field) Fields
+				.strings("events", Set.of("pull_request"), Set.of("push"))
+				.orElseThrow();
+
+		assertThat(PklWriter.write(new PklNode.Obj(List.of(field))))
+				.isEqualTo("""
+						events = new Listing {
+						  "pull_request"
+						}
+						""");
+	}
+
+	/**
+	 * Unlike {@link #stringCollectionsAreRenderedAsAReplacementNotAnAmendment},
+	 * an object listing keeps amendment rendering: replacing one without an
+	 * explicit element type hands every element the untyped {@code Dynamic}
+	 * class, which the schema's typed listings refuse. See
+	 * {@code Fields.objects}'s own javadoc.
+	 */
+	@Test
+	void objectListingsAreRenderedAsAnAmendmentNotAReplacement() {
+		var element = new PklNode.Obj(
+				List.of(new PklNode.Field("name", PklNode.Scalar.of("api")))
+		);
+		var field = (PklNode.Field) Fields
+				.objects("repositories", List.of(element))
+				.orElseThrow();
+
+		assertThat(PklWriter.write(new PklNode.Obj(List.of(field))))
+				.isEqualTo("""
+						repositories {
+						  new {
+						    name = "api"
+						  }
+						}
+						""");
 	}
 
 	@Test

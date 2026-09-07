@@ -146,6 +146,14 @@ public final class Fields {
 	 * A collection of strings, compared as a set: GitHub's ordering is not
 	 * drifty's, and the checker compares these unordered too. Emitted sorted so
 	 * two exports of an unchanged account are identical files.
+	 * <p>
+	 * Rendered as a replacement ({@code name = new Listing { … }}), not an
+	 * amendment: {@code Listing} member syntax ({@code name { … }}) adds to
+	 * whatever the schema default already holds rather than replacing it, so a
+	 * webhook wired only to {@code pull_request} would export as wired to
+	 * {@code push} too — {@code Webhook.events} is the one field in the schema
+	 * whose default listing is non-empty. A replacing scalar listing typechecks
+	 * with no explicit element type, unlike {@link #objects}.
 	 */
 	public static Optional<PklNode.Member> strings(
 			String name,
@@ -159,18 +167,33 @@ public final class Fields {
 				.sorted()
 				.map(value -> (PklNode) PklNode.Scalar.of(value))
 				.toList();
-		return Optional
-				.of(new PklNode.Field(name, new PklNode.Listing(elements)));
+		return Optional.of(
+				new PklNode.Field(name, new PklNode.Listing(elements, true))
+		);
 	}
 
-	/** A listing of objects, omitted when empty — empty is its default. */
+	/**
+	 * A listing of objects, omitted when empty — empty is its default.
+	 * <p>
+	 * Rendered as an amendment ({@code name { … }}), unlike {@link #strings}:
+	 * replacing an object listing without an explicit element type ({@code new
+	 * Listing { new { … } } }) hands every element the untyped {@code Dynamic}
+	 * class, which the schema's typed listings then refuse. Amendment is safe
+	 * here only because every object-typed listing in {@code config/drifty.pkl}
+	 * defaults to empty — amending nothing is indistinguishable from replacing
+	 * it — which is the same fact that made this the wrong choice for
+	 * {@link #strings}.
+	 */
 	public static Optional<PklNode.Member> objects(
 			String name,
 			List<PklNode> elements
 	) {
 		return elements.isEmpty() ? Optional.empty()
 				: Optional.of(
-						new PklNode.Field(name, new PklNode.Listing(elements))
+						new PklNode.Field(
+								name,
+								new PklNode.Listing(elements, false)
+						)
 				);
 	}
 

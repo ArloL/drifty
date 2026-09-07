@@ -518,7 +518,7 @@ public final class RulesetExporter {
 				.sorted()
 				.<PklNode>map(PklNode.Scalar::of)
 				.toList();
-		return new PklNode.Field(name, new PklNode.Listing(elements));
+		return new PklNode.Field(name, new PklNode.Listing(elements, false));
 	}
 
 }

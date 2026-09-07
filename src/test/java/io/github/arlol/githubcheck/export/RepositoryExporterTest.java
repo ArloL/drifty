@@ -575,7 +575,7 @@ class RepositoryExporterTest {
 
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
-				topics {
+				topics = new Listing {
 				  "alpha"
 				  "zebra"
 				}
@@ -802,7 +802,7 @@ class RepositoryExporterTest {
 						name = "api"
 						environments {
 						  ["production"] {
-						    secrets {
+						    secrets = new Listing {
 						      "token"
 						    }
 						    // secret values are never returned by GitHub; supply them through
@@ -875,7 +875,7 @@ class RepositoryExporterTest {
 		assertThat(PklWriter.write(entry)).isEqualTo(
 				"""
 						name = "api"
-						actionsSecrets {
+						actionsSecrets = new Listing {
 						  "alpha"
 						  "beta"
 						}

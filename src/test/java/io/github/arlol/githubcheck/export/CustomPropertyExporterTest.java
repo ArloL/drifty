@@ -114,11 +114,11 @@ class CustomPropertyExporterTest {
 
 		assertThat(PklWriter.write(field.value())).isEqualTo("""
 				valueType = "multi_select"
-				defaultValues {
+				defaultValues = new Listing {
 				  "go"
 				  "java"
 				}
-				allowedValues {
+				allowedValues = new Listing {
 				  "go"
 				  "java"
 				  "python"

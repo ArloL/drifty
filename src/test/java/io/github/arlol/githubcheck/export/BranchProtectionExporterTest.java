@@ -138,7 +138,7 @@ class BranchProtectionExporterTest {
 				)
 		);
 		assertThat(render(actual)).isEqualTo("""
-				users {
+				users = new Listing {
 				  "alice"
 				}
 				""");
@@ -220,22 +220,22 @@ class BranchProtectionExporterTest {
 				dismissStaleReviews = true
 				requireCodeOwnerReviews = true
 				requireLastPushApproval = true
-				dismissalUsers {
+				dismissalUsers = new Listing {
 				  "dismiss-user"
 				}
-				dismissalTeams {
+				dismissalTeams = new Listing {
 				  "dismiss-team"
 				}
-				dismissalApps {
+				dismissalApps = new Listing {
 				  "dismiss-app"
 				}
-				bypassPullRequestUsers {
+				bypassPullRequestUsers = new Listing {
 				  "bypass-user"
 				}
-				bypassPullRequestTeams {
+				bypassPullRequestTeams = new Listing {
 				  "bypass-team"
 				}
-				bypassPullRequestApps {
+				bypassPullRequestApps = new Listing {
 				  "bypass-app"
 				}
 				""");
@@ -264,13 +264,13 @@ class BranchProtectionExporterTest {
 				)
 		);
 		assertThat(render(actual)).isEqualTo("""
-				users {
+				users = new Listing {
 				  "alice"
 				}
-				teams {
+				teams = new Listing {
 				  "platform"
 				}
-				apps {
+				apps = new Listing {
 				  "ci-app"
 				}
 				""");
