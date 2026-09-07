@@ -289,9 +289,6 @@ public class RepositoryChecker {
 						)
 						: List.of();
 
-		// One listing serves three groups, so it runs when any wants it; the
-		// per-environment secret and variable calls only when their group
-		// does.
 		Map<String, ActualEnvironment> environments = new LinkedHashMap<>();
 		Map<String, List<ActualSecret>> envSecrets = new LinkedHashMap<>();
 		Map<String, List<ActualVariable>> envVariables = new LinkedHashMap<>();

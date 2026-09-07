@@ -254,10 +254,7 @@ public final class AccountExporter {
 	}
 
 	private static PklNode.Member memberEntry(ActualOrgMember member) {
-		return new PklNode.Field(
-				member.login(),
-				PklNode.Scalar.of(member.role())
-		);
+		return Fields.entry(member.login(), member.role());
 	}
 
 	private static List<PklNode.Member> actionsPermissionsMembers(

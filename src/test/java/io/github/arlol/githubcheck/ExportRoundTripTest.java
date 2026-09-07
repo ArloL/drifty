@@ -106,6 +106,15 @@ class ExportRoundTripTest {
 		if (entry.status() == CheckResult.Status.MISSING) {
 			problems.add(entry.name() + ": MISSING");
 		}
+		// UNKNOWN is a repository GitHub has that the config never names —
+		// exactly what happens to one the export could not fetch details
+		// for: it becomes a note in the listing rather than an entry, so the
+		// round trip's own config omits it too. That is real information
+		// this test exists to catch, not something to wave through the way
+		// skipping this status did.
+		if (entry.status() == CheckResult.Status.UNKNOWN) {
+			problems.add(entry.name() + ": UNKNOWN");
+		}
 		return problems;
 	}
 

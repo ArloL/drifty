@@ -1,12 +1,34 @@
 package io.github.arlol.githubcheck.export;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
 class PklWriterTest {
+
+	/**
+	 * {@code Field(name, Note)} is unreachable by design — a note belongs
+	 * beside a field as its own sibling {@code Member}, never as one's value —
+	 * so rendering it used to silently drop {@code name} and print only the
+	 * note text. No exporter builds this shape on purpose; a future one that
+	 * does should fail loudly rather than produce a file missing a field with
+	 * no trace of why.
+	 */
+	@Test
+	void aFieldWhoseValueIsANoteThrowsRatherThanDroppingTheName() {
+		var field = new PklNode.Field(
+				"secretScanning",
+				new PklNode.Note("not actually how notes are meant to be used")
+		);
+
+		assertThatThrownBy(
+				() -> PklWriter.write(new PklNode.Obj(List.of(field)))
+		).isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("secretScanning");
+	}
 
 	@Test
 	void scalarsRenderByType() {
