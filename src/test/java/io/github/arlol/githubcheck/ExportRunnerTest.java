@@ -183,6 +183,52 @@ class ExportRunnerTest {
 				""".formatted(SCHEMA));
 	}
 
+	/**
+	 * The file's own note is only visible to someone who opens it; a scripted
+	 * {@code drifty --export acme && drifty --fix} needs the same information
+	 * on stderr. Exit code stays 0 — an unreadable group is a gap in the file,
+	 * not a failed export, and this test pins that alongside the new stderr
+	 * line so a future change cannot fix one while breaking the other.
+	 */
+	@Test
+	void anUnreadableGroupIsSummarizedOnStderr(
+			WireMockRuntimeInfo wm,
+			@TempDir Path dir
+	) throws Exception {
+		stubOrganizationAtItsDefaults("acme");
+		stubOrgReposListing("acme", "widget", "leaky");
+		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "widget");
+		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "leaky");
+		stubFor(
+				get(urlPathEqualTo("/repos/acme/leaky/actions/secrets"))
+						.willReturn(aResponse().withStatus(403).withBody("""
+								{"message": "Forbidden"}
+								"""))
+		);
+
+		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
+		Path out = dir.resolve("export.pkl");
+
+		PrintStream originalErr = System.err;
+		var capturedErr = new ByteArrayOutputStream();
+		int exitCode;
+		try (var err = new PrintStream(
+				capturedErr,
+				true,
+				StandardCharsets.UTF_8
+		)) {
+			System.setErr(err);
+			exitCode = ExportRunner.run(client, List.of("acme"), out, SCHEMA);
+		} finally {
+			System.setErr(originalErr);
+		}
+
+		assertThat(exitCode).isZero();
+		assertThat(capturedErr.toString(StandardCharsets.UTF_8)).isEqualTo(
+				"1 group(s) could not be read and are noted in the file instead: action_secrets\n"
+		);
+	}
+
 	@Test
 	void aPersonalLoginThatIsNotTheTokenOwnerFailsWithAClearMessage(
 			WireMockRuntimeInfo wm,

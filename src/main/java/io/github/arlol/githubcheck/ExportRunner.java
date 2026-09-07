@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -56,6 +57,7 @@ final class ExportRunner {
 		SchemaDefaults defaults = SchemaDefaults.of(schemaUri);
 		List<PklNode.Member> organizations = new ArrayList<>();
 		List<PklNode.Member> users = new ArrayList<>();
+		List<FetchFailures.Failure> unreadableGroups = new ArrayList<>();
 		boolean anyFailed = false;
 
 		for (String login : logins) {
@@ -63,13 +65,20 @@ final class ExportRunner {
 				Optional<OrganizationResponse> organization = client
 						.getOrganization(login);
 				if (organization.isPresent()) {
-					organizations
-							.add(exportOrganization(client, login, defaults));
+					organizations.add(
+							exportOrganization(
+									client,
+									login,
+									defaults,
+									unreadableGroups
+							)
+					);
 				} else {
 					Optional<PklNode.Member> userEntry = exportUserIfOwnAccount(
 							client,
 							login,
-							defaults
+							defaults,
+							unreadableGroups
 					);
 					if (userEntry.isPresent()) {
 						users.add(userEntry.orElseThrow());
@@ -82,6 +91,8 @@ final class ExportRunner {
 				anyFailed = true;
 			}
 		}
+
+		reportUnreadableGroups(unreadableGroups);
 
 		String text = DriftyFileExporter.file(
 				schemaUri,
@@ -97,6 +108,31 @@ final class ExportRunner {
 	}
 
 	/**
+	 * The file's own {@code //} notes already say this per group, but a
+	 * scripted {@code drifty --export acme && drifty --fix} never reads the
+	 * file — this is what makes a token missing a scope visible without opening
+	 * it. Exit code 0 stands regardless: gaps inside a file are comments, not
+	 * failures, per the spec.
+	 */
+	private static void reportUnreadableGroups(
+			List<FetchFailures.Failure> unreadableGroups
+	) {
+		if (unreadableGroups.isEmpty()) {
+			return;
+		}
+		String names = unreadableGroups.stream()
+				.map(FetchFailures.Failure::group)
+				.distinct()
+				.sorted()
+				.collect(Collectors.joining(", "));
+		System.err.printf(
+				"%d group(s) could not be read and are noted in the file instead: %s%n",
+				unreadableGroups.size(),
+				names
+		);
+	}
+
+	/**
 	 * {@code /user/repos} serves the authenticated user alone, so a login that
 	 * is not an organization is exportable only when it is the token's own
 	 * account — otherwise this would silently emit the token owner's
@@ -109,7 +145,8 @@ final class ExportRunner {
 	private static Optional<PklNode.Member> exportUserIfOwnAccount(
 			GitHubClient client,
 			String login,
-			SchemaDefaults defaults
+			SchemaDefaults defaults,
+			List<FetchFailures.Failure> unreadableGroups
 	) {
 		SimpleUser authenticatedUser = client.getAuthenticatedUser();
 		if (!login.equals(authenticatedUser.login())) {
@@ -126,7 +163,8 @@ final class ExportRunner {
 				client,
 				login,
 				repos,
-				defaults
+				defaults,
+				unreadableGroups
 		);
 		return Optional.of(AccountExporter.user(login, repositories));
 	}
@@ -134,7 +172,8 @@ final class ExportRunner {
 	private static PklNode.Member exportOrganization(
 			GitHubClient client,
 			String login,
-			SchemaDefaults defaults
+			SchemaDefaults defaults,
+			List<FetchFailures.Failure> unreadableGroups
 	) {
 		System.out.println("Fetching repo list for organization: " + login);
 		var orgChecker = new OrganizationChecker(
@@ -148,6 +187,7 @@ final class ExportRunner {
 				login,
 				ManagedGroups.all(Drifty.OrgGroupName.class)
 		);
+		unreadableGroups.addAll(orgChecker.fetchFailures());
 		List<RepositorySummaryResponse> repos = client.listOrgRepos(login)
 				.orElse(List.of());
 		System.out.printf("Found %d repos.%n", repos.size());
@@ -155,7 +195,8 @@ final class ExportRunner {
 				client,
 				login,
 				repos,
-				defaults
+				defaults,
+				unreadableGroups
 		);
 		return AccountExporter.organization(
 				state,
@@ -181,7 +222,8 @@ final class ExportRunner {
 			GitHubClient client,
 			String owner,
 			List<RepositorySummaryResponse> repos,
-			SchemaDefaults defaults
+			SchemaDefaults defaults,
+			List<FetchFailures.Failure> unreadableGroups
 	) {
 		var entries = new ArrayList<PklNode>();
 		for (RepositorySummaryResponse summary : repos) {
@@ -198,6 +240,7 @@ final class ExportRunner {
 						summary,
 						ManagedGroups.all(Drifty.GroupName.class)
 				);
+				unreadableGroups.addAll(repositoryChecker.fetchFailures());
 				entries.add(
 						RepositoryExporter.entry(
 								state,
@@ -209,7 +252,8 @@ final class ExportRunner {
 				entries.add(
 						new PklNode.Note(
 								summary.name() + ": "
-										+ firstLine(e.getMessage())
+										+ FetchFailures.Collecting
+												.firstLine(e.getMessage())
 						)
 				);
 			} catch (InterruptedException e) {
@@ -224,20 +268,6 @@ final class ExportRunner {
 			}
 		}
 		return List.copyOf(entries);
-	}
-
-	/**
-	 * The failure's first line, the same trim {@link FetchFailures.Collecting}
-	 * applies: {@code GitHubApiException} carries the whole response body, and
-	 * a JSON blob does not belong in a config file's comment.
-	 */
-	private static String firstLine(String message) {
-		if (message == null) {
-			return "read failed";
-		}
-		String line = message.lines().findFirst().orElse(message);
-		int body = line.indexOf(": {");
-		return body < 0 ? line : line.substring(0, body);
 	}
 
 	/**

@@ -77,7 +77,13 @@ public sealed interface FetchFailures {
 			return List.copyOf(failures);
 		}
 
-		private static String firstLine(String message) {
+		/**
+		 * Package-visible so {@code ExportRunner} shares this rather than
+		 * repeating it for the one failure this class does not wrap: a
+		 * repository's own details request, which {@code fetchState} never
+		 * routes through {@link #read}.
+		 */
+		static String firstLine(String message) {
 			if (message == null) {
 				return "read failed";
 			}
