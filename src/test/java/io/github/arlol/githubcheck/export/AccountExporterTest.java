@@ -13,11 +13,14 @@ import io.github.arlol.githubcheck.OrganizationState;
 import io.github.arlol.githubcheck.actual.ActualCustomProperty;
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrgMember;
+import io.github.arlol.githubcheck.actual.ActualOrgSecret;
+import io.github.arlol.githubcheck.actual.ActualOrgVariable;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualTeam;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
+import io.github.arlol.githubcheck.client.SecretVisibility;
 import io.github.arlol.githubcheck.client.WorkflowPermissions.DefaultWorkflowPermissions;
 import io.github.arlol.githubcheck.testsupport.Actual;
 
@@ -223,6 +226,157 @@ class AccountExporterTest {
 				  }
 				}
 				""");
+	}
+
+	/**
+	 * The four {@code wire(...)} conversions in {@link AccountExporter} are
+	 * explicit switches over client enums with no {@code Drifty.*} equivalent
+	 * to fall back on, so nothing else in the codebase constrains their
+	 * strings. This covers {@code SELECTED} for enabled-repositories,
+	 * allowed-actions and secret visibility, plus {@code ALL} for variable
+	 * visibility and {@code READ} for workflow permissions — the branches
+	 * {@link #anUntouchedOrganizationExportsAnEmptyEntry} cannot reach because
+	 * every field there sits at its default.
+	 */
+	@Test
+	void nonDefaultActionsEnumsAreSpelledCorrectly() {
+		var base = defaultState("acme");
+		var state = new OrganizationState(
+				base.login(),
+				base.settings(),
+				new ActualOrgActionsPermissions(
+						ActionsEnabledRepositories.SELECTED,
+						AllowedActions.SELECTED,
+						false,
+						null,
+						List.of("api")
+				),
+				new ActualWorkflowPermissions(
+						DefaultWorkflowPermissions.READ,
+						true
+				),
+				List.of(
+						new ActualOrgSecret(
+								"ci-token",
+								"2024-01-01T00:00:00Z",
+								SecretVisibility.SELECTED,
+								List.of("api")
+						)
+				),
+				List.of(
+						new ActualOrgVariable(
+								"region",
+								"us-east-1",
+								SecretVisibility.ALL,
+								List.of()
+						)
+				),
+				List.of(),
+				List.of(),
+				List.of(),
+				List.of(),
+				List.of(),
+				List.of(),
+				List.of()
+		);
+
+		var entry = AccountExporter
+				.organization(state, List.of(), List.of(), DEFAULTS);
+
+		assertThat(render(entry)).isEqualTo(
+				"""
+						organizations {
+						  ["acme"] {
+						    actionsPermissions {
+						      enabledRepositories = "selected"
+						      allowedActions = "selected"
+						      selectedRepositories {
+						        "api"
+						      }
+						    }
+						    defaultWorkflowPermissions = "read"
+						    actionsSecrets {
+						      ["ci-token"] {
+						        visibility = "selected"
+						        selectedRepositories {
+						          "api"
+						        }
+						      }
+						      // secret values are never returned by GitHub; supply them through
+						      // DRIFTY_GITHUB_SECRETS
+						    }
+						    actionsVariables {
+						      ["region"] {
+						        value = "us-east-1"
+						        visibility = "all"
+						      }
+						    }
+						  }
+						}
+						"""
+		);
+	}
+
+	/**
+	 * The three branches {@link #nonDefaultActionsEnumsAreSpelledCorrectly}
+	 * cannot reach: {@code NONE} and {@code LOCAL_ONLY} render visibly, and
+	 * {@code PRIVATE} is GitHub's own default for a secret, so it is only
+	 * verified by the field it produces staying suppressed — a wrong spelling
+	 * there would make it differ from the schema default and render a spurious
+	 * {@code visibility} field instead.
+	 */
+	@Test
+	void remainingActionsEnumBranchesAreSpelledCorrectly() {
+		var base = defaultState("acme");
+		var state = new OrganizationState(
+				base.login(),
+				base.settings(),
+				new ActualOrgActionsPermissions(
+						ActionsEnabledRepositories.NONE,
+						AllowedActions.LOCAL_ONLY,
+						false,
+						null
+				),
+				base.workflowPermissions(),
+				List.of(
+						new ActualOrgSecret(
+								"ci-token",
+								"2024-01-01T00:00:00Z",
+								SecretVisibility.PRIVATE,
+								List.of()
+						)
+				),
+				List.of(),
+				List.of(),
+				List.of(),
+				List.of(),
+				List.of(),
+				List.of(),
+				List.of(),
+				List.of()
+		);
+
+		var entry = AccountExporter
+				.organization(state, List.of(), List.of(), DEFAULTS);
+
+		assertThat(render(entry)).isEqualTo(
+				"""
+						organizations {
+						  ["acme"] {
+						    actionsPermissions {
+						      enabledRepositories = "none"
+						      allowedActions = "local_only"
+						    }
+						    actionsSecrets {
+						      ["ci-token"] {
+						      }
+						      // secret values are never returned by GitHub; supply them through
+						      // DRIFTY_GITHUB_SECRETS
+						    }
+						  }
+						}
+						"""
+		);
 	}
 
 }
