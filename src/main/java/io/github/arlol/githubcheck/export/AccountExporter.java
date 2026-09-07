@@ -1,15 +1,22 @@
 package io.github.arlol.githubcheck.export;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import io.github.arlol.githubcheck.FetchFailures;
 import io.github.arlol.githubcheck.OrganizationState;
+import io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration;
+import io.github.arlol.githubcheck.actual.ActualCustomProperty;
 import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualOrgMember;
 import io.github.arlol.githubcheck.actual.ActualOrgSecret;
 import io.github.arlol.githubcheck.actual.ActualOrgVariable;
+import io.github.arlol.githubcheck.actual.ActualRunnerGroup;
+import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualSelectedActions;
+import io.github.arlol.githubcheck.actual.ActualTeam;
+import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
@@ -120,6 +127,7 @@ public final class AccountExporter {
 				"webhooks",
 				state.webhooks()
 						.stream()
+						.sorted(Comparator.comparing(ActualWebhook::url))
 						.map(
 								webhook -> WebhookExporter
 										.entry(webhook, defaults.webhook())
@@ -132,6 +140,9 @@ public final class AccountExporter {
 				"customProperties",
 				state.customProperties()
 						.stream()
+						.sorted(
+								Comparator.comparing(ActualCustomProperty::name)
+						)
 						.map(
 								property -> CustomPropertyExporter.entry(
 										property,
@@ -146,6 +157,7 @@ public final class AccountExporter {
 				"rulesets",
 				state.rulesets()
 						.stream()
+						.sorted(Comparator.comparing(ActualRuleset::name))
 						.map(
 								ruleset -> RulesetExporter
 										.entry(ruleset, defaults, true)
@@ -158,6 +170,11 @@ public final class AccountExporter {
 				"codeSecurityConfigurations",
 				state.codeSecurityConfigurations()
 						.stream()
+						.sorted(
+								Comparator.comparing(
+										ActualCodeSecurityConfiguration::name
+								)
+						)
 						.map(
 								configuration -> CodeSecurityConfigurationExporter
 										.entry(configuration, defaults)
@@ -170,6 +187,7 @@ public final class AccountExporter {
 				"teams",
 				state.teams()
 						.stream()
+						.sorted(Comparator.comparing(ActualTeam::slug))
 						.map(team -> TeamExporter.entry(team, defaults.team()))
 						.toList()
 		).ifPresent(members::add);
@@ -179,6 +197,7 @@ public final class AccountExporter {
 				"members",
 				state.members()
 						.stream()
+						.sorted(Comparator.comparing(ActualOrgMember::login))
 						.map(AccountExporter::memberEntry)
 						.toList()
 		).ifPresent(members::add);
@@ -188,6 +207,7 @@ public final class AccountExporter {
 				"runnerGroups",
 				state.runnerGroups()
 						.stream()
+						.sorted(Comparator.comparing(ActualRunnerGroup::name))
 						.map(
 								runnerGroup -> RunnerGroupExporter.entry(
 										runnerGroup,
@@ -301,9 +321,9 @@ public final class AccountExporter {
 			return;
 		}
 		var entries = new ArrayList<PklNode.Member>();
-		for (ActualOrgSecret secret : secrets) {
-			entries.add(orgSecretEntry(secret, base));
-		}
+		secrets.stream()
+				.sorted(Comparator.comparing(ActualOrgSecret::name))
+				.forEach(secret -> entries.add(orgSecretEntry(secret, base)));
 		entries.add(Fields.note(SECRET_VALUES_NOTE));
 		Fields.mapping("actionsSecrets", entries).ifPresent(members::add);
 	}
@@ -335,6 +355,7 @@ public final class AccountExporter {
 		Fields.mapping(
 				"actionsVariables",
 				variables.stream()
+						.sorted(Comparator.comparing(ActualOrgVariable::name))
 						.map(variable -> orgVariableEntry(variable, base))
 						.toList()
 		).ifPresent(members::add);
