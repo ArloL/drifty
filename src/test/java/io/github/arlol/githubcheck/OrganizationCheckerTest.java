@@ -275,20 +275,75 @@ class OrganizationCheckerTest {
 	/**
 	 * Check mode is unchanged: {@link FetchFailures#STRICT} still rethrows, so
 	 * a 403 on any group still ends the whole entry as an error rather than a
-	 * comparison against half the state.
+	 * comparison against half the state. Every other managed group is stubbed
+	 * with a valid response — the same set
+	 * {@link #fixPreviewNamesOnlyTheGroupThatDrifted} uses for this
+	 * organization — so the run actually reaches the teams read instead of
+	 * failing on an earlier, unstubbed one.
 	 */
 	@Test
 	void aForbiddenGroupStillFailsTheWholeEntryInCheckMode() {
 		stubOrg("null");
 		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/permissions"))
+						.willReturn(okJson("""
+								{
+								  "enabled_repositories": "all",
+								  "allowed_actions": "all"
+								}
+								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/permissions/workflow"))
+						.willReturn(okJson("""
+								{
+								  "default_workflow_permissions": "read",
+								  "can_approve_pull_request_reviews": true
+								}
+								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/secrets"))
+						.willReturn(okJson("{\"secrets\": []}"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/variables"))
+						.willReturn(okJson("{\"variables\": []}"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/hooks"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/properties/schema"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/rulesets"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/code-security/configurations"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/teams"))
 						.willReturn(aResponse().withStatus(403))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/members"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/actions/runner-groups"))
+						.willReturn(okJson("{\"runner_groups\": []}"))
 		);
 
 		CheckResult.Entry entry = checker
 				.check("my-org", Desired.organization(), List.of());
 
 		assertThat(entry.status()).isEqualTo(CheckResult.Status.ERROR);
+		assertThat(entry.error()).contains("teams");
 	}
 
 	@Test
