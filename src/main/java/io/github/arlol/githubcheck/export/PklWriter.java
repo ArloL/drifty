@@ -55,12 +55,14 @@ public final class PklWriter {
 			int depth,
 			boolean keyed
 	) {
-		String name = keyed ? "[\"" + field.name() + "\"]" : field.name();
+		String name = keyed ? "[" + quote(field.name()) + "]" : field.name();
 		switch (field.value()) {
 		case PklNode.Scalar scalar -> out.append(indent(depth))
 				.append(name)
 				.append(" = ")
-				.append(scalar.literal())
+				.append(
+						scalar.quoted() ? quote(scalar.value()) : scalar.value()
+				)
 				.append('\n');
 		case PklNode.Note note -> writeNote(out, note, depth);
 		case PklNode.Obj obj -> {
@@ -101,8 +103,12 @@ public final class PklWriter {
 	) {
 		for (PklNode element : listing.elements()) {
 			switch (element) {
-			case PklNode.Scalar scalar ->
-				out.append(indent(depth)).append(scalar.literal()).append('\n');
+			case PklNode.Scalar scalar -> out.append(indent(depth))
+					.append(
+							scalar.quoted() ? quote(scalar.value())
+									: scalar.value()
+					)
+					.append('\n');
 			case PklNode.Note note -> writeNote(out, note, depth);
 			case PklNode.Obj obj -> {
 				out.append(indent(depth)).append("new {\n");
@@ -153,6 +159,21 @@ public final class PklWriter {
 		}
 		lines.add(line.toString());
 		return lines;
+	}
+
+	private static String quote(String value) {
+		var out = new StringBuilder("\"");
+		for (char c : value.toCharArray()) {
+			switch (c) {
+			case '"' -> out.append("\\\"");
+			case '\\' -> out.append("\\\\");
+			case '\n' -> out.append("\\n");
+			case '\r' -> out.append("\\r");
+			case '\t' -> out.append("\\t");
+			default -> out.append(c);
+			}
+		}
+		return out.append('"').toString();
 	}
 
 	private static String indent(int depth) {

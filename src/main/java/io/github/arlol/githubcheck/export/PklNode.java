@@ -35,19 +35,20 @@ public sealed interface PklNode {
 
 	/** A rendered literal: {@code "text"}, {@code 3}, {@code true}. */
 	record Scalar(
-			String literal
+			String value,
+			boolean quoted
 	) implements PklNode {
 
 		public static Scalar of(String value) {
-			return new Scalar(quote(value));
+			return new Scalar(value, true);
 		}
 
 		public static Scalar of(boolean value) {
-			return new Scalar(Boolean.toString(value));
+			return new Scalar(Boolean.toString(value), false);
 		}
 
 		public static Scalar of(long value) {
-			return new Scalar(Long.toString(value));
+			return new Scalar(Long.toString(value), false);
 		}
 
 		/**
@@ -59,19 +60,11 @@ public sealed interface PklNode {
 			return of(value.toString());
 		}
 
-		private static String quote(String value) {
-			var out = new StringBuilder("\"");
-			for (char c : value.toCharArray()) {
-				switch (c) {
-				case '"' -> out.append("\\\"");
-				case '\\' -> out.append("\\\\");
-				case '\n' -> out.append("\\n");
-				case '\r' -> out.append("\\r");
-				case '\t' -> out.append("\\t");
-				default -> out.append(c);
-				}
-			}
-			return out.append('"').toString();
+		/**
+		 * A Pkl {@code null} literal.
+		 */
+		public static Scalar nullValue() {
+			return new Scalar("null", false);
 		}
 
 	}
