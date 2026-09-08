@@ -29,12 +29,41 @@ import io.github.arlol.githubcheck.state.StateStore;
 
 public class GitHubCheck {
 
+	/** Arguments that stand alone. */
+	static final List<String> BOOLEAN_FLAGS = List
+			.of("--fix", "--self-test", "--version", "--help", "-h");
+
+	/** Arguments that take the one argument after them. */
+	static final List<String> VALUE_OPTIONS = List
+			.of("--config", "--state", "--out", "--schema");
+
+	/** The one argument that takes a list — see {@link #exportLogins}. */
+	static final String EXPORT = "--export";
+
 	static void main(String[] args)
 			throws IOException, InterruptedException, ExecutionException {
-		if (handledVersion(args)) {
+		var argsList = List.of(args);
+		if (argsList.contains("--help") || argsList.contains("-h")) {
+			System.out.print(usage());
 			return;
 		}
-		var argsList = List.of(args);
+		List<String> unknown = unknownArguments(argsList);
+		if (!unknown.isEmpty()) {
+			System.err.println(
+					"ERROR: unrecognised argument"
+							+ (unknown.size() == 1 ? ": " : "s: ")
+							+ String.join(" ", unknown)
+			);
+			System.err.println(
+					"Run 'drifty --help' for the arguments drifty "
+							+ "does recognise."
+			);
+			System.exit(1);
+			return;
+		}
+		if (handledVersion(argsList)) {
+			return;
+		}
 		if (argsList.contains("--self-test")) {
 			System.exit(selfTest(optionValue(argsList, "--config")));
 			return;
@@ -252,8 +281,8 @@ public class GitHubCheck {
 				: listingErrors(desired, error);
 	}
 
-	static boolean handledVersion(String[] args) {
-		if (args.length != 1 || !"--version".equals(args[0])) {
+	static boolean handledVersion(List<String> argsList) {
+		if (!argsList.contains("--version")) {
 			return false;
 		}
 		Package pkg = GitHubCheck.class.getPackage();
@@ -261,6 +290,92 @@ public class GitHubCheck {
 		String version = pkg.getImplementationVersion();
 		System.out.println(title + " version \"" + version + "\"");
 		return true;
+	}
+
+	/**
+	 * The arguments drifty would otherwise discard, in the order they were
+	 * given. {@code main} refuses the whole invocation when this is not empty,
+	 * because every one of those arguments changes what the user asked for
+	 * without changing what drifty does: {@code --fixx} checks and exits 1 on
+	 * drift, which reads exactly like a fix that found nothing to do, and
+	 * {@code --confg other.pkl} reads the very file the flag was meant to
+	 * replace. That is issue #140.
+	 * <p>
+	 * An option swallows whatever follows it, flag-shaped or not, because
+	 * {@link #optionValue} does: reporting {@code --fix} in
+	 * {@code --config --fix} as unrecognised would reject an invocation whose
+	 * config path the rest of the run still reads. {@code --export} swallows
+	 * arguments the same way {@link #exportLogins} collects them, up to the
+	 * next one starting with {@code --}.
+	 */
+	static List<String> unknownArguments(List<String> argsList) {
+		var unknown = new ArrayList<String>();
+		for (int i = 0; i < argsList.size(); i++) {
+			String arg = argsList.get(i);
+			if (BOOLEAN_FLAGS.contains(arg)) {
+				continue;
+			}
+			if (VALUE_OPTIONS.contains(arg)) {
+				i++;
+				continue;
+			}
+			if (EXPORT.equals(arg)) {
+				while (i + 1 < argsList.size()
+						&& !argsList.get(i + 1).startsWith("--")) {
+					i++;
+				}
+				continue;
+			}
+			unknown.add(arg);
+		}
+		return List.copyOf(unknown);
+	}
+
+	/**
+	 * The only place a user is told which arguments exist.
+	 * {@code usage_namesEveryArgumentDriftyAccepts} checks it against
+	 * {@link #BOOLEAN_FLAGS}, {@link #VALUE_OPTIONS} and {@link #EXPORT}, so a
+	 * new argument cannot be accepted without being described here.
+	 */
+	static String usage() {
+		return """
+				drifty - report and fix drift between a GitHub account's \
+				settings and a Pkl config.
+
+				Usage:
+				  drifty [--fix] [--config <path>] [--state <path>]
+				  drifty --export <login> [<login> ...] [--out <path>] [--schema <uri>]
+				  drifty --self-test [--config <path>]
+				  drifty --version
+				  drifty --help
+
+				Options:
+				  --fix            Apply every fixable change instead of only reporting it.
+				  --config <path>  Config to check against. Default: ./drifty.pkl
+				  --state <path>   Secret baselines to read and write. Default:
+				                   drifty-state.json beside the config.
+				  --export <login> Write the named accounts' current settings as a
+				                   starting config instead of checking anything. Takes
+				                   neither --config nor --fix.
+				  --out <path>     Where --export writes. Default: ./export.pkl
+				  --schema <uri>   The schema --export amends and omits defaults from.
+				                   Default: config/drifty.pkl on drifty's main branch.
+				  --self-test      Run the token- and network-free smoke test and exit.
+				  --version        Print the version and exit.
+				  --help, -h       Print this and exit.
+
+				Environment:
+				  DRIFTY_GITHUB_TOKEN    Required, except by --help, --version and
+				                         --self-test. Needs the repo, admin:org and
+				                         workflow scopes.
+				  DRIFTY_GITHUB_SECRETS  A JSON object of secret values. --fix needs
+				                         one for every managed secret, and names the
+				                         keys it is missing before writing anything.
+
+				Exit codes:
+				  0  No drift, or the requested export, version or self-test succeeded.
+				  1  Drift found, a fix or export failed, or the arguments were refused.
+				""";
 	}
 
 	/**

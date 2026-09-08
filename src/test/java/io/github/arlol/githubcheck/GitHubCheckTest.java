@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -302,17 +303,113 @@ class GitHubCheckTest {
 	// ─── flags
 	// ──────────────────────────────────────────────────────────────
 
+	/**
+	 * {@code --version} used to have to be the single argument given, so
+	 * {@code drifty --version --fix} swept the account instead of printing a
+	 * version. An argument drifty does not recognise is now refused before this
+	 * runs, so "somewhere in the arguments" is enough.
+	 */
 	@Test
-	void handledVersion_onlyForTheVersionFlag() {
-		assertThat(GitHubCheck.handledVersion(new String[] { "--version" }))
-				.isTrue();
-		assertThat(GitHubCheck.handledVersion(new String[] { "--fix" }))
-				.isFalse();
-		assertThat(GitHubCheck.handledVersion(new String[] {})).isFalse();
+	void handledVersion_whereverTheVersionFlagAppears() {
+		assertThat(GitHubCheck.handledVersion(List.of("--version"))).isTrue();
 		assertThat(
 				GitHubCheck
-						.handledVersion(new String[] { "--version", "extra" })
+						.handledVersion(List.of("--fix", "--config", "x.pkl"))
 		).isFalse();
+		assertThat(GitHubCheck.handledVersion(List.of("--fix", "--version")))
+				.isTrue();
+		assertThat(GitHubCheck.handledVersion(List.of())).isFalse();
+	}
+
+	// ─── unknownArguments
+	// ──────────────────────────────────
+
+	@Test
+	void unknownArguments_acceptsNothingAndEveryKnownFlag() {
+		assertThat(GitHubCheck.unknownArguments(List.of())).isEmpty();
+		assertThat(
+				GitHubCheck.unknownArguments(
+						List.of(
+								"--fix",
+								"--config",
+								"drifty.pkl",
+								"--state",
+								"state.json",
+								"--self-test",
+								"--version",
+								"--help",
+								"-h"
+						)
+				)
+		).isEmpty();
+		assertThat(
+				GitHubCheck.unknownArguments(
+						List.of(
+								"--export",
+								"acme",
+								"arlol",
+								"--out",
+								"x.pkl",
+								"--schema",
+								"file:///schema.pkl"
+						)
+				)
+		).isEmpty();
+	}
+
+	/**
+	 * The three invocations issue #140 lists, each of which silently ran a
+	 * plain check instead of what was typed.
+	 */
+	@Test
+	void unknownArguments_reportsATypedFlagAndTheValueItSwallowed() {
+		assertThat(GitHubCheck.unknownArguments(List.of("--fixx")))
+				.containsExactly("--fixx");
+		assertThat(
+				GitHubCheck.unknownArguments(List.of("--confg", "other.pkl"))
+		).containsExactly("--confg", "other.pkl");
+		assertThat(GitHubCheck.unknownArguments(List.of("--exports", "ArloL")))
+				.containsExactly("--exports", "ArloL");
+	}
+
+	@Test
+	void unknownArguments_reportsABarePositional() {
+		assertThat(GitHubCheck.unknownArguments(List.of("acme")))
+				.containsExactly("acme");
+	}
+
+	/**
+	 * An option takes whatever follows it, the way
+	 * {@link GitHubCheck#optionValue(List, String)} reads it — so
+	 * {@code --config --fix} configures a file called {@code --fix} rather than
+	 * reporting an unknown argument, and drifty then fails on the file it
+	 * cannot find. Splitting the two apart here would report a value the rest
+	 * of the run still uses.
+	 */
+	@Test
+	void unknownArguments_letsAnOptionSwallowTheFlagAfterIt() {
+		assertThat(GitHubCheck.unknownArguments(List.of("--config", "--fix")))
+				.isEmpty();
+		assertThat(GitHubCheck.unknownArguments(List.of("--config"))).isEmpty();
+	}
+
+	// ─── usage
+	// ───────────────────────────────────────
+
+	/**
+	 * The help text is the only place a user learns which arguments exist, and
+	 * the accept-list is the only place drifty does. A flag added to one and
+	 * not the other is either undocumented or rejected, so they are checked
+	 * against each other rather than by eye.
+	 */
+	@Test
+	void usage_namesEveryArgumentDriftyAccepts() {
+		var known = new ArrayList<String>();
+		known.addAll(GitHubCheck.BOOLEAN_FLAGS);
+		known.addAll(GitHubCheck.VALUE_OPTIONS);
+		known.add(GitHubCheck.EXPORT);
+
+		assertThat(GitHubCheck.usage()).contains(known);
 	}
 
 	/**

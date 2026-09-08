@@ -504,3 +504,24 @@ schema field has no corresponding exporter line, which is what keeps that
 round trip meaningful rather than two omissions agreeing with each other.
 Secret values are never returned by GitHub and are exported as a note instead
 of a field.
+
+## ~~51. Reject unknown arguments and print a usage~~ DONE
+
+Implemented: `GitHubCheck.unknownArguments` walks the argument list against
+`BOOLEAN_FLAGS`, `VALUE_OPTIONS` and `EXPORT` and returns everything drifty
+would otherwise have discarded; `main` refuses the invocation with exit 1 when
+that list is not empty, before any request is sent. `usage()` is the text
+`--help` (and `-h`) prints, ahead of the token check so it works with no
+environment at all, and `usage_namesEveryArgumentDriftyAccepts` reads the
+accept-lists rather than a hand-kept copy, so an argument cannot be accepted
+without being documented. `handledVersion` moved from "the single argument is
+`--version`" to "the arguments contain `--version`", since an argument beside
+it is now refused rather than silently turning the run into a check.
+
+Issue #140: an unrecognised argument fell through to a plain check run, so
+`--fixx` checked and exited 1 on drift (reading as a fix with nothing to do),
+`--confg other.pkl` read the very file the flag was meant to replace, and
+`--exports ArloL` checked instead of exporting and dropped the login too. An
+option still swallows whatever follows it — `--config --fix` names a config
+file called `--fix` — because `optionValue` reads it that way and the rest of
+the run uses that value.
