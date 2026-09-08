@@ -571,3 +571,20 @@ on its first CI run — 85 diff lines on a 4165-line export of a
 `ExportRoundTripTest`'s repository fixture now carries a description long
 enough to wrap, so the round trip also proves a wrapped assignment is still
 the same string Pkl reads back.
+
+## ~~54. Count the export's unreadable groups the way it lists them~~ DONE
+
+Implemented: `ExportRunner.reportUnreadableGroups` counts the distinct group
+names it prints, and names the number of failed reads behind them — `2
+group(s) could not be read and are left unmanaged in the file (3 failed
+reads): action_secrets, rulesets` — whenever that number is larger. Both
+numbers survive, each saying what it counts; a single failure prints the line
+it always did, since there is nothing to tell apart.
+
+Issue #147: the count was `unreadableGroups.size()` against a `.distinct()`
+list, so the two disagreed for every account whose repositories share a
+permission gap — the common shape. A four-repository organization 403ing on
+three groups per repository and two of its own reported `14 group(s) ...` above
+five names, which reads left to right as nine names missing from the line. The
+reads still say what the names cannot: one repository lacking a scope and the
+whole token lacking it produce the same names.

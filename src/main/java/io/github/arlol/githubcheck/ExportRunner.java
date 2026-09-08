@@ -9,7 +9,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -146,15 +145,27 @@ final class ExportRunner {
 		if (unreadableGroups.isEmpty()) {
 			return;
 		}
-		String names = unreadableGroups.stream()
+		List<String> names = unreadableGroups.stream()
 				.map(FetchFailures.Failure::group)
 				.distinct()
 				.sorted()
-				.collect(Collectors.joining(", "));
+				.toList();
+		// The count is of the names, not of the failures behind them: a
+		// group that fails on every repository in the account is one name
+		// and as many failures as the account has repositories, and the
+		// larger number against a de-duplicated list read as names missing
+		// from the line (issue #147). The failures still say what the names
+		// cannot — one repository lacking a scope looks the same as the
+		// token lacking it — so they are named as what they are whenever
+		// they outnumber the names.
+		String reads = unreadableGroups.size() > names.size()
+				? " (%d failed reads)".formatted(unreadableGroups.size())
+				: "";
 		System.err.printf(
-				"%d group(s) could not be read and are left unmanaged in the file: %s%n",
-				unreadableGroups.size(),
-				names
+				"%d group(s) could not be read and are left unmanaged in the file%s: %s%n",
+				names.size(),
+				reads,
+				String.join(", ", names)
 		);
 	}
 
