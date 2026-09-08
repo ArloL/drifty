@@ -149,6 +149,14 @@ status.
   rather than writing a shorter list and reporting success. Logins and team
   slugs the environment group needs resolve with one request each, only when
   a fix runs.
+- **A new CLI argument goes in three places.** `GitHubCheck.BOOLEAN_FLAGS` or
+  `VALUE_OPTIONS` (so `unknownArguments` accepts it), `usage()` (so `--help`
+  names it), and the branch in `main` that reads it.
+  `usage_namesEveryArgumentDriftyAccepts` reads the two lists, so an accepted
+  argument missing from the help text fails the build; an argument missing
+  from the lists is refused with exit 1 instead of silently ignored, which is
+  the whole point of issue #140. Nothing checks the third place — an argument
+  in both lists that `main` never reads is accepted and does nothing.
 - **A new schema field needs an exporter line.** `SchemaCoverageTest` fails
   the build otherwise, and nothing else would: a field the export omits is one
   the config leaves at its default, so the round-trip test agrees with itself

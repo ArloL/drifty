@@ -125,29 +125,38 @@ Every keyed section reports an entry GitHub has and the config does not declare 
 ### Commands
 
 ```
-drifty                # Report drift; loads ./drifty.pkl by default
-drifty --fix          # Apply all fixable changes
+drifty                 # Report drift; loads ./drifty.pkl by default
+drifty --fix           # Apply all fixable changes
 drifty --config <path> # Use a config file at an explicit path
-drifty --state <path> # Use a state file at an explicit path
+drifty --state <path>  # Use a state file at an explicit path
+drifty --self-test     # Run the token- and network-free smoke test
+drifty --version       # Print the version
+drifty --help          # Print the usage; -h is the same flag
 ```
 
 The config file defaults to `./drifty.pkl` in the working directory. If the resolved file does not exist, drifty prints `ERROR: config file not found: <path>` and exits with code 1.
 
 The state file defaults to `drifty-state.json` next to the resolved config file. See [State File](#state-file).
 
+`--help` and `--version` are answered before anything else, so neither needs `DRIFTY_GITHUB_TOKEN` and neither is affected by the other arguments given alongside it. `--help` writes the usage to stdout and exits 0; it is the only place the flags are listed for a user, and `usage_namesEveryArgumentDriftyAccepts` checks that list against the one drifty accepts.
+
+**An argument drifty does not recognise refuses the whole invocation.** It prints `ERROR: unrecognised argument: <arg>` (`arguments:` for more than one, space-separated) and a line pointing at `--help`, and exits 1 without contacting GitHub. Ignoring them instead let a typo silently change what ran: `drifty --fixx` checked and exited 1 on drift, which reads as a fix that found nothing to do, and `drifty --confg other.pkl` checked `./drifty.pkl` — the file the flag was meant to replace. Every argument that would have been discarded is named, the value after an unrecognised flag included.
+
+An option still takes whatever argument follows it, flag-shaped or not: `--config --fix` asks for a config file called `--fix` and fails on the file it cannot find, rather than being refused here. Reporting it as unrecognised would reject an invocation whose config path the rest of the run goes on to use.
+
 ### Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DRIFTY_GITHUB_TOKEN` | Yes | GitHub personal access token with repo, admin:org, workflow scopes |
+| `DRIFTY_GITHUB_TOKEN` | Yes, except for `--help`, `--version` and `--self-test` | GitHub personal access token with repo, admin:org, workflow scopes |
 | `DRIFTY_GITHUB_SECRETS` | No | JSON map of secret values (required for secret creation via `--fix`) |
 
 ### Exit Codes
 
 | Code | Meaning |
 |------|---------|
-| 0 | No drift detected |
-| 1 | Drift detected, or errors occurred during fix |
+| 0 | No drift detected; or `--help`, `--version`, `--self-test` or `--export` succeeded |
+| 1 | Drift detected, errors occurred during fix, or the arguments were refused |
 
 ### Output
 

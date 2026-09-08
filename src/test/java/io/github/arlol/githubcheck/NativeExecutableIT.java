@@ -1,6 +1,7 @@
 package io.github.arlol.githubcheck;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -29,6 +30,34 @@ class NativeExecutableIT {
 
 		assertEquals(0, exitCode);
 		assertEquals(expected, output);
+	}
+
+	/**
+	 * The two argument paths a user reaches before drifty has a token, a config
+	 * or a network: printing the usage, and refusing an invocation it does not
+	 * understand. Both used to sweep the account instead — issue #140 — and
+	 * both end in {@link System#exit}, so the binary is where they are checked.
+	 */
+	@Test
+	void help() throws IOException, InterruptedException {
+		var run = run("--help");
+
+		assertEquals(0, run.exitCode(), run::output);
+		assertTrue(
+				run.output().contains("Usage:"),
+				() -> "no usage text: " + run.output()
+		);
+	}
+
+	@Test
+	void unrecognisedArgument() throws IOException, InterruptedException {
+		var run = run("--fixx");
+
+		assertEquals(1, run.exitCode(), run::output);
+		assertTrue(
+				run.output().contains("ERROR: unrecognised argument: --fixx"),
+				() -> "not refused: " + run.output()
+		);
 	}
 
 	/**
@@ -67,25 +96,40 @@ class NativeExecutableIT {
 
 	private static void assertSelfTestPasses(String... extraArgs)
 			throws IOException, InterruptedException {
+		var args = new ArrayList<String>();
+		args.add("--self-test");
+		args.addAll(List.of(extraArgs));
+		var run = run(args.toArray(String[]::new));
+
+		assertEquals(
+				0,
+				run.exitCode(),
+				() -> "native self-test failed: " + args + "\n" + run.output()
+		);
+		assertEquals("self-test OK", run.output());
+	}
+
+	private record Run(
+			int exitCode,
+			String output
+	) {
+	}
+
+	private static Run run(String... args)
+			throws IOException, InterruptedException {
 		String nativeExecutable = System.getProperty("native.executable");
 
 		var command = new ArrayList<String>();
 		command.add(Path.of(nativeExecutable).toAbsolutePath().toString());
-		command.add("--self-test");
-		command.addAll(List.of(extraArgs));
+		command.addAll(List.of(args));
 
 		Process process = new ProcessBuilder(command).redirectErrorStream(true)
 				.start();
 		int exitCode = process.waitFor();
-		String output = new String(process.getInputStream().readAllBytes())
-				.strip();
-
-		assertEquals(
-				0,
+		return new Run(
 				exitCode,
-				() -> "native self-test failed: " + command + "\n" + output
+				new String(process.getInputStream().readAllBytes()).strip()
 		);
-		assertEquals("self-test OK", output);
 	}
 
 }

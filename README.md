@@ -2,6 +2,13 @@
 
 A tool to detect and fix drift in GitHub organization and repository settings
 
+## Usage
+
+`drifty --help` lists every flag; `drifty` on its own reports what has drifted
+from `./drifty.pkl` and `drifty --fix` applies what it can. An argument drifty
+does not recognise is refused rather than ignored, so a typo cannot quietly
+turn a fix into a check. See [SPEC.md](SPEC.md#cli-interface).
+
 ## Export
 
 Starting a config by hand means guessing at every field GitHub already has an
