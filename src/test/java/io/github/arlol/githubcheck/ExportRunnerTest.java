@@ -222,14 +222,7 @@ class ExportRunnerTest {
 		stubOrgReposListing("acme", "widget", "leaky");
 		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "widget");
 		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "leaky");
-		// Registered after the helper's own success stub for the same path;
-		// WireMock resolves a request to the most-recently-registered match.
-		stubFor(
-				get(urlPathEqualTo("/repos/acme/leaky/actions/secrets"))
-						.willReturn(aResponse().withStatus(403).withBody("""
-								{"message": "Forbidden"}
-								"""))
-		);
+		stubForbidden("/repos/acme/leaky/actions/secrets");
 
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
 		Path out = dir.resolve("export.pkl");
@@ -288,12 +281,7 @@ class ExportRunnerTest {
 		stubOrgReposListing("acme", "widget", "leaky");
 		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "widget");
 		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "leaky");
-		stubFor(
-				get(urlPathEqualTo("/repos/acme/leaky/actions/secrets"))
-						.willReturn(aResponse().withStatus(403).withBody("""
-								{"message": "Forbidden"}
-								"""))
-		);
+		stubForbidden("/repos/acme/leaky/actions/secrets");
 
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
 		Path out = dir.resolve("export.pkl");
@@ -318,6 +306,52 @@ class ExportRunnerTest {
 		// this fail on Windows CI while passing on Linux and macOS.
 		assertThat(capturedErr.toString(StandardCharsets.UTF_8)).isEqualTo(
 				"1 group(s) could not be read and are left unmanaged in the file: action_secrets"
+						+ System.lineSeparator()
+		);
+	}
+
+	/**
+	 * The count and the names counted different things as soon as two
+	 * repositories failed the same group — every failed read against a
+	 * de-duplicated list — so the fourteen and the five in issue #147 read as
+	 * nine names missing from the line. The count is of the names now, and the
+	 * reads behind them keep a number of their own: a group that failed on one
+	 * repository and one that failed on every repository are worth telling
+	 * apart without opening the file.
+	 */
+	@Test
+	void groupsFailingOnSeveralRepositoriesAreCountedOnceEach(
+			WireMockRuntimeInfo wm,
+			@TempDir Path dir
+	) throws Exception {
+		stubOrganizationAtItsDefaults("acme");
+		stubOrgReposListing("acme", "widget", "leaky");
+		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "widget");
+		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "leaky");
+		stubForbidden("/repos/acme/widget/actions/secrets");
+		stubForbidden("/repos/acme/leaky/actions/secrets");
+		stubForbidden("/repos/acme/leaky/rulesets");
+
+		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
+		Path out = dir.resolve("export.pkl");
+
+		PrintStream originalErr = System.err;
+		var capturedErr = new ByteArrayOutputStream();
+		int exitCode;
+		try (var err = new PrintStream(
+				capturedErr,
+				true,
+				StandardCharsets.UTF_8
+		)) {
+			System.setErr(err);
+			exitCode = ExportRunner.run(client, List.of("acme"), out, SCHEMA);
+		} finally {
+			System.setErr(originalErr);
+		}
+
+		assertThat(exitCode).isZero();
+		assertThat(capturedErr.toString(StandardCharsets.UTF_8)).isEqualTo(
+				"2 group(s) could not be read and are left unmanaged in the file (3 failed reads): action_secrets, rulesets"
 						+ System.lineSeparator()
 		);
 	}
@@ -417,6 +451,20 @@ class ExportRunnerTest {
 
 	// ─── Stubs
 	// ──────────────────────────────────────────────────────────────
+
+	/**
+	 * Registered after the stub that already answers the same path — the
+	 * repository helper below stubs every endpoint — because WireMock resolves
+	 * a request to the most-recently-registered match.
+	 */
+	private static void stubForbidden(String path) {
+		stubFor(
+				get(urlPathEqualTo(path))
+						.willReturn(aResponse().withStatus(403).withBody("""
+								{"message": "Forbidden"}
+								"""))
+		);
+	}
 
 	private static void stubOrganizationAtItsDefaults(String login) {
 		stubFor(get(urlPathEqualTo("/orgs/" + login)).willReturn(okJson("""
