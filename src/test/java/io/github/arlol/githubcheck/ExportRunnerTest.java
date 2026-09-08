@@ -239,25 +239,37 @@ class ExportRunnerTest {
 		assertThat(exitCode).isZero();
 		String text = Files.readString(out);
 		String body = text.substring(text.indexOf("amends "));
-		assertThat(body).isEqualTo("""
-				amends "%s"
+		assertThat(body).isEqualTo(
+				"""
+						amends "%s"
 
-				organizations {
-				  ["acme"] {
-				    repositories {
-				      new {
-				        name = "leaky"
-				        hasDiscussions = true
-				        // action_secrets: HTTP 403 for action secrets on leaky
-				      }
-				      new {
-				        name = "widget"
-				        hasDiscussions = true
-				      }
-				    }
-				  }
-				}
-				""".formatted(SCHEMA_URI));
+						organizations {
+						  ["acme"] {
+						    repositories {
+						      new {
+						        name = "leaky"
+						        // drifty could not read these groups when exporting; leaving them
+						        // unmanaged is what makes this file checkable as written. The reason
+						        // for each is noted below; drop a name once the token can read that
+						        // group.
+						        managed {
+						          groups {
+						            "action_secrets"
+						          }
+						        }
+						        hasDiscussions = true
+						        // action_secrets: HTTP 403 for action secrets on leaky
+						      }
+						      new {
+						        name = "widget"
+						        hasDiscussions = true
+						      }
+						    }
+						  }
+						}
+						"""
+						.formatted(SCHEMA_URI)
+		);
 	}
 
 	/**
@@ -305,7 +317,7 @@ class ExportRunnerTest {
 		// Windows), not necessarily \n — a hardcoded \n here is what made
 		// this fail on Windows CI while passing on Linux and macOS.
 		assertThat(capturedErr.toString(StandardCharsets.UTF_8)).isEqualTo(
-				"1 group(s) could not be read and are noted in the file instead: action_secrets"
+				"1 group(s) could not be read and are left unmanaged in the file: action_secrets"
 						+ System.lineSeparator()
 		);
 	}

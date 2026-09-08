@@ -169,6 +169,14 @@ status.
   note is what tells a reader drifty will not change it. `visibility` on the
   repository side and the ten check-only organization settings are the
   cases.
+- **A group the export could not read is exported as a `managed` exclusion AND
+  a note.** `AccountExporter.addUnmanagedGroups` names every
+  `FetchFailures.Failure` in the entry's own `managed` block; the note beside
+  the section says why. The note alone is what issue #136 was: a `//` comment
+  is the one form a later run cannot act on, so the exported file failed on
+  exactly the request the export had already failed on. Emit the block before
+  the archived branch in `RepositoryExporter.entry` —
+  `RepositoryChecker.fetchState` reads a group for an archived repository too.
 - **`schemas/` holds the endpoint shapes.** It is gitignored;
   `python3 download-schemas.py --filter '/orgs/{org}/...'` recreates the
   part you need. Check a new record's field names and enums there before

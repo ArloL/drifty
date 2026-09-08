@@ -46,5 +46,12 @@ organizations {
 A setting drifty can see but never writes — a repository's `visibility`, ten
 check-only organization settings — is exported as a field with a `//` note
 beside it, so the file still matches GitHub without promising a `--fix` that
-can never happen. See [SPEC.md](SPEC.md#export) for the full set of flags and
-what does not round-trip.
+can never happen.
+
+A group the token could not read at all is named in that entry's `managed`
+block and gets a `//` note saying why, so the exported file is one drifty can
+check as written rather than one that fails on the same request the export
+did. Drop the name once the token can read the group.
+
+See [SPEC.md](SPEC.md#export) for the full set of flags and what does not
+round-trip.

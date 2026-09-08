@@ -59,7 +59,9 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * custom properties, collaborators and workflow permissions are all still
  * fetched and can still 403. Those failures are rendered as bare notes rather
  * than positioned beside the member they would otherwise sit next to, since
- * that member is never rendered here at all.
+ * that member is never rendered here at all — and they still reach
+ * {@code managed} through {@link AccountExporter#addUnmanagedGroups}, which
+ * runs before the archived branch for that reason.
  */
 public final class RepositoryExporter {
 
@@ -93,6 +95,11 @@ public final class RepositoryExporter {
 
 		var members = new ArrayList<PklNode.Member>();
 		members.add(Fields.required("name", state.name()).orElseThrow());
+		// Right after `name`, as the schema orders Repository's fields, and
+		// before the archived branch below: RepositoryChecker.fetchState reads
+		// a group for an archived repository too, so an unreadable one has to
+		// be excluded there as well.
+		AccountExporter.addUnmanagedGroups(members, failures);
 		members.addAll(repositoryMembers(actual, base));
 		if (actual.archived()) {
 			members.add(Fields.note(ARCHIVED_NOTE));

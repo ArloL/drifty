@@ -36,7 +36,11 @@ import io.github.arlol.githubcheck.state.DriftyState;
  * instance rather than the {@link FetchFailures#STRICT} a check or fix run
  * uses: a token missing one scope should produce a file with a note where that
  * group would sit, not abort the whole account the way a 403 aborts an entry in
- * {@code GitHubCheck.check}.
+ * {@code GitHubCheck.check}. What it collects does two things —
+ * {@code AccountExporter.addUnmanagedGroups} turns it into the entry's
+ * {@code managed} block, so the next run skips the request rather than
+ * repeating the failure, and each failure's reason becomes the note beside the
+ * section it would have filled.
  * <p>
  * {@link RepositoryChecker#checkOne} is not used here: it turns a repository
  * whose read failed into a {@code CheckResult.Entry}, and an export needs a
@@ -132,7 +136,9 @@ final class ExportRunner {
 	 * scripted {@code drifty --export acme && drifty --fix} never reads the
 	 * file — this is what makes a token missing a scope visible without opening
 	 * it. Exit code 0 stands regardless: gaps inside a file are comments, not
-	 * failures, per the spec.
+	 * failures, per the spec, and the file the export wrote leaves each of
+	 * these groups unmanaged, so the run that follows checks everything else
+	 * rather than failing on the same request again.
 	 */
 	private static void reportUnreadableGroups(
 			List<FetchFailures.Failure> unreadableGroups
@@ -146,7 +152,7 @@ final class ExportRunner {
 				.sorted()
 				.collect(Collectors.joining(", "));
 		System.err.printf(
-				"%d group(s) could not be read and are noted in the file instead: %s%n",
+				"%d group(s) could not be read and are left unmanaged in the file: %s%n",
 				unreadableGroups.size(),
 				names
 		);

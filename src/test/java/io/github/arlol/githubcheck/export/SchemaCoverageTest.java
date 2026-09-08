@@ -90,9 +90,11 @@ class SchemaCoverageTest {
 			.of(Path.of("config/drifty.pkl").toAbsolutePath().toString());
 
 	private static final Set<String> NOT_EXPORTED = Set.of(
-			// An export manages every group, so `managed` never has a value to
-			// disagree with GitHub about. Shared by Organization and
-			// Repository.
+			// An export manages every group it could read, and the fixtures
+			// below pass no failures — `managed` is emitted only to leave an
+			// unreadable group alone (AccountExporter.addUnmanagedGroups),
+			// which ExportRoundTripTest covers instead. Shared by
+			// Organization and Repository.
 			"managed",
 			// requiredCodeScanningTools on ActualRuleset is a bare
 			// Set<String> of tool names; the alert thresholds a

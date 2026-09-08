@@ -301,11 +301,22 @@ class RepositoryExporterTest {
 		PklNode entry = RepositoryExporter
 				.entry(defaultState(), failures, DEFAULTS);
 
-		assertThat(PklWriter.write(entry)).isEqualTo("""
-				name = "api"
-				// action_secrets: read failed
-				// collaborators: read failed
-				""");
+		assertThat(PklWriter.write(entry)).isEqualTo(
+				"""
+						name = "api"
+						// drifty could not read these groups when exporting; leaving them unmanaged is
+						// what makes this file checkable as written. The reason for each is noted
+						// below; drop a name once the token can read that group.
+						managed {
+						  groups {
+						    "action_secrets"
+						    "collaborators"
+						  }
+						}
+						// action_secrets: read failed
+						// collaborators: read failed
+						"""
+		);
 	}
 
 	@Test
@@ -1202,6 +1213,14 @@ class RepositoryExporterTest {
 		assertThat(PklWriter.write(entry)).isEqualTo(
 				"""
 						name = "api"
+						// drifty could not read these groups when exporting; leaving them unmanaged is
+						// what makes this file checkable as written. The reason for each is noted
+						// below; drop a name once the token can read that group.
+						managed {
+						  groups {
+						    "webhooks"
+						  }
+						}
 						archived = true
 						// drifty checks only archived on an archived repository, so its other settings
 						// are neither compared nor exported
