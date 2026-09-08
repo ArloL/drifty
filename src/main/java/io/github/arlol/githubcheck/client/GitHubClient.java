@@ -2325,31 +2325,10 @@ public class GitHubClient {
 	}
 
 	private HttpResponse<String> sendRequest(HttpRequest request) {
-		HttpResponse<String> resp = send(request);
-		// Outside the permit: a thread parked until the rate limit resets is
-		// not using a stream, and every other thread is about to wait too.
-		handleRateLimit(resp);
-		return resp;
-	}
-
-	/**
-	 * Sends one request, holding a permit for as long as it is in flight. The
-	 * permit is what keeps the callers' virtual threads — one per repository —
-	 * from all reserving a stream at once; see
-	 * {@link #MAX_CONCURRENT_REQUESTS}.
-	 */
-	private HttpResponse<String> send(HttpRequest request) {
 		try {
-			inFlight.acquire();
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new GitHubApiException(
-					request.method() + " " + request.uri() + " interrupted",
-					e
-			);
-		}
-		try {
-			return http.send(request, HttpResponse.BodyHandlers.ofString());
+			HttpResponse<String> resp = sendBounded(request);
+			handleRateLimit(resp);
+			return resp;
 		} catch (IOException e) {
 			throw new GitHubApiException(
 					request.method() + " " + request.uri() + " failed",
@@ -2361,6 +2340,20 @@ public class GitHubClient {
 					request.method() + " " + request.uri() + " interrupted",
 					e
 			);
+		}
+	}
+
+	/**
+	 * Sends one request, holding a permit for as long as it is in flight — see
+	 * {@link #MAX_CONCURRENT_REQUESTS}. The permit is gone by the time
+	 * {@code sendRequest} calls {@link #handleRateLimit}, so a thread parked
+	 * until the reset is not holding a stream while it waits.
+	 */
+	private HttpResponse<String> sendBounded(HttpRequest request)
+			throws IOException, InterruptedException {
+		inFlight.acquire();
+		try {
+			return http.send(request, HttpResponse.BodyHandlers.ofString());
 		} finally {
 			inFlight.release();
 		}
