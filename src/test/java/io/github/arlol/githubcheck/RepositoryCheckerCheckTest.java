@@ -258,6 +258,55 @@ class RepositoryCheckerCheckTest {
 		assertThat(output).contains("Unmanaged: action_secrets");
 	}
 
+	/**
+	 * A group's request failing is a {@code GitHubApiException}, which is a
+	 * {@code RuntimeException}: uncaught it escapes the virtual thread
+	 * {@code checkOne} runs on and comes back out of {@code Future.get()} as an
+	 * {@code ExecutionException} that nothing above {@code check} handles, so
+	 * one repository's 403 took the report for every repository with it. The
+	 * repository that failed is one ERROR entry and the rest still report.
+	 */
+	@Test
+	void oneRepositorysFailedRequestDoesNotEndTheRun() throws Exception {
+		stubFor(get(urlPathEqualTo("/orgs/alpha/repos")).willReturn(okJson("""
+				[
+				  {"name": "one", "archived": false, "visibility": "private"},
+				  {"name": "two", "archived": false, "visibility": "private"}
+				]
+				""")));
+		stubFor(
+				get(urlPathEqualTo("/repos/alpha/one"))
+						.willReturn(okJson(details("one")))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/alpha/two"))
+						.willReturn(okJson(details("two")))
+		);
+		stubRepoSubResources();
+		stubFor(
+				get(urlPathEqualTo("/repos/alpha/one/hooks"))
+						.willReturn(aResponse().withStatus(403))
+		);
+
+		List<CheckResult.Entry> results = check(
+				"alpha",
+				entry("one"),
+				entry("two")
+		);
+
+		assertThat(results)
+				.extracting(CheckResult.Entry::name, CheckResult.Entry::status)
+				.containsExactlyInAnyOrder(
+						tuple("one", CheckResult.Status.ERROR),
+						tuple("two", CheckResult.Status.DRIFT)
+				);
+		assertThat(results).filteredOn(result -> "one".equals(result.name()))
+				.singleElement()
+				.extracting(CheckResult.Entry::error)
+				.asString()
+				.contains("403");
+	}
+
 	private static String capturePrintReport(CheckResult result) {
 		PrintStream original = System.out;
 		var captured = new ByteArrayOutputStream();

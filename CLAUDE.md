@@ -46,6 +46,22 @@ status.
   `OrganizationChecker.fetchState` learns the organization exists — a 404 there
   is what makes the entry `MISSING` — and any member can read it. Every other
   org request is guarded by its group.
+- **Two repository endpoints exist only under an organization.** `GET
+  /repos/{owner}/{repo}/teams` and `GET /repos/{owner}/{repo}/properties/values`
+  answer 404 on a user-owned repository whatever the token can do, so
+  `RepositoryChecker.fetchState` guards both on
+  `ActualRepository.organizationOwned()` — which is why
+  `ActualTypes.repository(details)` is built before them, not after.
+  `CustomPropertiesDriftGroup` takes the same flag and reports the properties
+  the config names as unfixable there instead of sending a PATCH that 404s,
+  the way `CollaboratorsDriftGroup` does for team access. A new
+  organization-only endpoint takes that shape too: the guard alone turns an
+  abort into false drift and a fix that always fails.
+- **`RepositoryChecker.checkOne` catches `GitHubApiException`.** It runs inside
+  a virtual thread whose `Future.get()` nothing above `check` handles, so
+  without that arm one repository's 403 ends the run for every repository after
+  it — the shape of issue #135. `OrganizationChecker.checkOne` has the same
+  arm; keep both.
 - **Eight groups PATCH the same `/repos/{owner}/{repo}` resource.** Each
   request carries only its own fields because `RepositoryUpdateRequest` is
   all nullable wrappers under `NON_NULL`; keep it that way.

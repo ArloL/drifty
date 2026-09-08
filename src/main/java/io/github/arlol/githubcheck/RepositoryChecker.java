@@ -25,6 +25,7 @@ import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
+import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.ImmutableReleasesResponse;
 import io.github.arlol.githubcheck.client.PagesResponse;
@@ -233,6 +234,14 @@ public class RepositoryChecker {
 			return CheckResult.Entry.error(name, e.getMessage());
 		} catch (IOException e) {
 			return CheckResult.Entry.error(name, e.getMessage());
+		} catch (GitHubApiException e) {
+			// GitHubClient turns every failed request into this, and it is a
+			// RuntimeException: without this arm it escapes the virtual thread
+			// this runs on, resurfaces at Future.get() wrapped in an
+			// ExecutionException and ends the whole run, so one repository's
+			// 403 costs the report for every repository after it.
+			// OrganizationChecker.checkOne has had the same arm all along.
+			return CheckResult.Entry.error(name, e.getMessage());
 		}
 	}
 
@@ -401,8 +410,14 @@ public class RepositoryChecker {
 						)
 						: List.of();
 
-		List<ActualCustomPropertyValue> customPropertyValues = managed
-				.manages(Drifty.GroupName.CUSTOM_PROPERTIES)
+		var repository = ActualTypes.repository(details);
+
+		// Custom properties are an organization's schema; the values endpoint
+		// 404s on a personal account's repository, and no token scope changes
+		// that.
+		List<ActualCustomPropertyValue> customPropertyValues = repository
+				.organizationOwned()
+				&& managed.manages(Drifty.GroupName.CUSTOM_PROPERTIES)
 						? failures.read(
 								Drifty.GroupName.CUSTOM_PROPERTIES,
 								() -> client
@@ -413,8 +428,6 @@ public class RepositoryChecker {
 								List.of()
 						)
 						: List.of();
-
-		var repository = ActualTypes.repository(details);
 
 		// Teams only exist under an organization; the endpoint 404s on a
 		// personal account's repository.
@@ -789,6 +802,7 @@ public class RepositoryChecker {
 						desired.customProperties,
 						desired.customMultiSelectProperties,
 						actual.customPropertyValues(),
+						actual.repository().organizationOwned(),
 						client,
 						ref
 				)
