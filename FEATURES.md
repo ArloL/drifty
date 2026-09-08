@@ -551,3 +551,23 @@ check that follows, and asserts the round trip is clean — so it passes because
 the requests are no longer sent, not because the endpoints recovered. The
 stderr summary says "left unmanaged in the file" rather than "noted in the
 file instead" for the same reason.
+
+## ~~53. Export a file `pkl format` leaves alone~~ DONE
+
+Implemented: `PklWriter` writes an empty body as `{}` on the line that opens
+it, and moves a scalar assignment's value onto its own line once the
+assignment would pass `LINE_WIDTH` — 100 columns, the width `pkl format`
+0.32.1 breaks at, measured against the real formatter rather than assumed.
+`NOTE_WIDTH` stays at 80 and is only where comments wrap, which is drifty's
+own readability choice: the formatter never rewraps a comment. Those two
+shapes are the whole difference; a block header, a listing element and a
+comment are left where they are however long they get.
+
+Issue #138: the README points `--export` at people adopting drifty for an
+account that already exists, and drifty-arlol's `ci.yaml` runs `pkl format
+--diff-name-only drifty.pkl`, so the exported file failed a formatting check
+on its first CI run — 85 diff lines on a 4165-line export of a
+102-repository account, all of them one of those two shapes.
+`ExportRoundTripTest`'s repository fixture now carries a description long
+enough to wrap, so the round trip also proves a wrapped assignment is still
+the same string Pkl reads back.

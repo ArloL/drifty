@@ -131,8 +131,7 @@ class AccountExporterTest {
 
 		assertThat(render(entry)).isEqualTo("""
 				organizations {
-				  ["acme"] {
-				  }
+				  ["acme"] {}
 				}
 				""");
 	}
@@ -230,12 +229,10 @@ class AccountExporterTest {
 				organizations {
 				  ["acme"] {
 				    rulesets {
-				      ["main"] {
-				      }
+				      ["main"] {}
 				    }
 				    teams {
-				      ["platform"] {
-				      }
+				      ["platform"] {}
 				    }
 				  }
 				}
@@ -382,8 +379,7 @@ class AccountExporterTest {
 						      allowedActions = "local_only"
 						    }
 						    actionsSecrets {
-						      ["ci-token"] {
-						      }
+						      ["ci-token"] {}
 						      // secret values are never returned by GitHub; supply them through
 						      // DRIFTY_GITHUB_SECRETS
 						    }

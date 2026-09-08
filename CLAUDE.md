@@ -170,6 +170,17 @@ status.
   from the lists is refused with exit 1 instead of silently ignored, which is
   the whole point of issue #140. Nothing checks the third place — an argument
   in both lists that `main` never reads is accepted and does nothing.
+- **The exported file is `pkl format` output, not merely valid Pkl.** An
+  adopter commits it as their starting config and CI runs `pkl format
+  --diff-name-only` over it, so `PklWriter` writes what the formatter would:
+  an empty body is `{}` on the line that opens it, and a scalar assignment
+  past `LINE_WIDTH` moves its value to its own line one level in. 100 is the
+  formatter's width; the narrower `NOTE_WIDTH` is only where comments wrap,
+  which is drifty's own choice — `pkl format` never rewraps one. Those two
+  shapes are the whole of it: a block header, a listing element and a comment
+  are left where they are however long they get, so do not bring them to 80
+  columns too. Issue #138 was the export failing that check on its first CI
+  run.
 - **A new schema field needs an exporter line.** `SchemaCoverageTest` fails
   the build otherwise, and nothing else would: a field the export omits is one
   the config leaves at its default, so the round-trip test agrees with itself

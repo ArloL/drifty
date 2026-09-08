@@ -193,18 +193,123 @@ class PklWriterTest {
 		);
 	}
 
+	/**
+	 * {@code pkl format} collapses an empty body onto the line that opens it,
+	 * so the writer does too — an exported file is the first thing an adopter
+	 * commits, and a formatting check on it is what issue #138 was.
+	 */
 	@Test
-	void emptyObjectRendersNothingButBraces() {
+	void anEmptyBodyIsCollapsedOntoTheLineThatOpensIt() {
 		var outer = new PklNode.Obj(
 				List.of(
-						new PklNode.Field("managed", new PklNode.Obj(List.of()))
+						new PklNode.Field(
+								"managed",
+								new PklNode.Obj(List.of())
+						),
+						new PklNode.Field(
+								"organizations",
+								new PklNode.Mapping(List.of())
+						),
+						new PklNode.Field(
+								"topics",
+								new PklNode.Listing(List.of(), false)
+						),
+						new PklNode.Field(
+								"events",
+								new PklNode.Listing(List.of(), true)
+						),
+						new PklNode.Field(
+								"rules",
+								new PklNode.Listing(
+										List.of(new PklNode.Obj(List.of())),
+										false
+								)
+						)
 				)
 		);
 
 		assertThat(PklWriter.write(outer)).isEqualTo("""
-				managed {
+				managed {}
+				organizations {}
+				topics {}
+				events = new Listing {}
+				rules {
+				  new {}
 				}
 				""");
+	}
+
+	/**
+	 * The other half of issue #138: {@code pkl format} moves the value of an
+	 * assignment past a hundred columns onto its own line, indented one level
+	 * past the name. A forked repository's description is the case that hit it.
+	 */
+	@Test
+	void anAssignmentPastAHundredColumnsPutsItsValueOnTheNextLine() {
+		var inner = new PklNode.Obj(
+				List.of(
+						new PklNode.Field(
+								"description",
+								PklNode.Scalar.of(
+										"A GitHub Actions action that creates a new version using a CalVer-style derivative and pushes it"
+								)
+						)
+				)
+		);
+		var outer = new PklNode.Obj(
+				List.of(new PklNode.Field("repository", inner))
+		);
+
+		assertThat(PklWriter.write(outer)).isEqualTo(
+				"""
+						repository {
+						  description =
+						    "A GitHub Actions action that creates a new version using a CalVer-style derivative and pushes it"
+						}
+						"""
+		);
+	}
+
+	/**
+	 * The boundary the formatter actually breaks at, measured against
+	 * {@code pkl format} 0.32.1: a hundred columns fits, a hundred and one does
+	 * not. Indentation and a mapping key both count towards it, which is why
+	 * the two cases below are nested and keyed rather than bare.
+	 */
+	@Test
+	void aHundredColumnsFitsAndAHundredAndOneDoesNot() {
+		assertThat(PklWriter.write(keyed("a".repeat(85)))).isEqualTo(
+				"""
+						variables {
+						  ["NAME"] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+						}
+						"""
+		);
+		assertThat(PklWriter.write(keyed("a".repeat(86)))).isEqualTo(
+				"""
+						variables {
+						  ["NAME"] =
+						    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+						}
+						"""
+		);
+	}
+
+	/**
+	 * The width is counted over UTF-16 units, not characters — an emoji in a
+	 * description counts as two, which is what {@code pkl format} counts too.
+	 * Switching this to code points would leave a description full of them
+	 * unwrapped and the file no longer formatter-clean.
+	 */
+	@Test
+	void anEmojiCountsAsTheTwoUnitsTheFormatterCountsIt() {
+		String fits = "\uD83D\uDE00".repeat(42) + "a";
+		String doesNot = "\uD83D\uDE00".repeat(43);
+
+		assertThat(PklWriter.write(keyed(fits)))
+				.contains("[\"NAME\"] = \"" + fits + "\"");
+		assertThat(PklWriter.write(keyed(doesNot)))
+				.contains("[\"NAME\"] =\n    \"" + doesNot + "\"");
 	}
 
 	@Test
@@ -274,6 +379,15 @@ class PklWriterTest {
 				  }
 				}
 				""");
+	}
+
+	private static PklNode keyed(String value) {
+		var mapping = new PklNode.Mapping(
+				List.of(new PklNode.Field("NAME", PklNode.Scalar.of(value)))
+		);
+		return new PklNode.Obj(
+				List.of(new PklNode.Field("variables", mapping))
+		);
 	}
 
 }
