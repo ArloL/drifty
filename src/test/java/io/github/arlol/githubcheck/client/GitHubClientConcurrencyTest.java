@@ -5,6 +5,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -80,6 +81,31 @@ class GitHubClientConcurrencyTest {
 		// Guards the guard: a client that sent them one at a time would pass
 		// the assertion above without proving anything.
 		assertThat(observed).isGreaterThan(1);
+	}
+
+	@Test
+	void interruptedWaitingForAPermitFailsInsteadOfHanging() {
+		GitHubClient client = new GitHubClient(
+				wm.getRuntimeInfo().getHttpBaseUrl(),
+				"test-token",
+				LIMIT
+		);
+
+		// An interrupted thread never gets a permit — Semaphore.acquire throws
+		// rather than waiting — so this is the wait, without the other threads
+		// it would take to cause one.
+		Thread.currentThread().interrupt();
+		try {
+			assertThatThrownBy(
+					() -> client.getVulnerabilityAlerts("owner", "repo-0")
+			).isInstanceOf(GitHubApiException.class)
+					.hasMessageContaining("interrupted");
+			assertThat(Thread.currentThread().isInterrupted())
+					.as("the interrupt is passed on, not swallowed")
+					.isTrue();
+		} finally {
+			Thread.interrupted();
+		}
 	}
 
 	/**
