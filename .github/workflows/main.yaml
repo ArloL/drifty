@@ -160,6 +160,32 @@ jobs:
         path: target/artifacts
     - name: Make sure build did not change anything
       run: git diff --exit-code
+  pkl-format:
+    runs-on: ubuntu-latest
+    env:
+      # renovate: datasource=github-releases depName=apple/pkl
+      PKL_VERSION: 0.32.1
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - name: Install pkl
+      run: |
+        curl --location --fail --silent --show-error \
+          --output "${RUNNER_TEMP}/pkl" \
+          "https://github.com/apple/pkl/releases/download/${PKL_VERSION}/pkl-linux-amd64"
+        chmod +x "${RUNNER_TEMP}/pkl"
+    # Every tracked Pkl file, not a directory: the exported config an adopter
+    # commits is expected to be `pkl format` output (see SPEC.md), so the
+    # schema and the example it is diffed against are held to the same shape.
+    - name: Check that every Pkl file is formatted
+      run: |
+        git ls-files -z '*.pkl' \
+          | xargs -0 --no-run-if-empty "${RUNNER_TEMP}/pkl" format --diff-name-only \
+          || {
+            echo "::error::The files above are not formatted. Fix with: git ls-files -z '*.pkl' | xargs -0 pkl format -w"
+            exit 1
+          }
   release:
     needs:
     - version
@@ -239,6 +265,7 @@ jobs:
     - macos
     - linux
     - windows
+    - pkl-format
     # GitHub Actions skips this job when any of the dependents fail. And skips
     # are considered success in their weird logic. So we always run it and fail
     # ourselves if necessary

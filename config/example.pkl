@@ -34,7 +34,11 @@ organizations {
     actionsVariables { ["REGISTRY"] = new OrgVariable { value = "ghcr.io"; visibility = "all" } }
     // Secret under "org-example-org-webhook-audit".
     webhooks {
-      ["audit"] = new Webhook { url = "https://audit.example.com/github"; contentType = "json"; secret = true }
+      ["audit"] = new Webhook {
+        url = "https://audit.example.com/github"
+        contentType = "json"
+        secret = true
+      }
     }
     customProperties {
       ["tier"] = new CustomProperty {
@@ -95,7 +99,11 @@ organizations {
         actionsVariables { ["REGION"] = "eu" }
         // Secret under "example-service-webhook-ci".
         webhooks {
-          ["ci"] = new Webhook { url = "https://ci.example.com/hook"; events { "push"; "pull_request" }; secret = true }
+          ["ci"] = new Webhook {
+            url = "https://ci.example.com/hook"
+            events { "push"; "pull_request" }
+            secret = true
+          }
         }
         customProperties { ["tier"] = "gold" }
         teamPermissions { ["core"] = "maintain" }
