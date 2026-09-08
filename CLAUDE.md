@@ -57,6 +57,17 @@ status.
   the way `CollaboratorsDriftGroup` does for team access. A new
   organization-only endpoint takes that shape too: the guard alone turns an
   abort into false drift and a fix that always fails.
+- **`GitHubClient` bounds its own in-flight requests, not the checkers.** The
+  checkers start one virtual thread per repository, so in-flight requests equal
+  the number of configured repositories; GitHub's single HTTP/2 connection caps
+  concurrent streams at 100 and the JDK client throws `IOException: too many
+  concurrent streams` rather than queueing, which killed a run over ~100
+  repositories before it checked anything (issue #137). The semaphore sits in
+  `sendRequest` because every caller shares that one connection — a bound around
+  the per-repository threads would leave the export path and any future
+  parallelism unguarded. It is released before `handleRateLimit`, so a thread
+  parked until the reset is not holding a stream.
+  `GitHubClientConcurrencyTest` fails if more requests overlap than the limit.
 - **`RepositoryChecker.checkOne` catches `GitHubApiException`.** It runs inside
   a virtual thread whose `Future.get()` nothing above `check` handles, so
   without that arm one repository's 403 ends the run for every repository after
