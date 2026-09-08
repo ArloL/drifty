@@ -38,11 +38,11 @@ import io.github.arlol.githubcheck.state.DriftyState;
  * group would sit, not abort the whole account the way a 403 aborts an entry in
  * {@code GitHubCheck.check}.
  * <p>
- * {@link RepositoryChecker#checkOne} is not used here, because it does not
- * catch {@link GitHubApiException} at all (a pre-existing gap, not this class's
- * to fix) — {@code fetchState} is called directly instead, wrapped in its own
- * {@code try/catch} per repository, so one repository's 403 does not discard
- * every other repository the account has.
+ * {@link RepositoryChecker#checkOne} is not used here: it turns a repository
+ * whose read failed into a {@code CheckResult.Entry}, and an export needs a
+ * note in the file instead. {@code fetchState} is called directly, wrapped in
+ * its own {@code try/catch} per repository, so one repository's 403 does not
+ * discard every other repository the account has.
  * <p>
  * The file is written only when at least one login produced an entry: writing
  * an empty {@code organizations {}} because every login failed would silently

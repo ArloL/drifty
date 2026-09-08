@@ -132,53 +132,9 @@ components, and the SPEC.md table; then delete this entry. If GitHub answers
 the field as null on a bare configuration, it reads as `not_set` — the
 `settings.replaceAll` in `ActualTypes` already does that for every toggle.
 
-## 5. `RepositoryChecker.checkOne` does not catch `GitHubApiException`
+## 5. `ExportRoundTripTest` covers roughly a third of the exporters
 
-Unlike 1–3, nothing upstream needs to move for this one — it is a local bug,
-carried here instead of fixed because fixing it is a behavior change outside
-the work that found it.
-
-**Carrying:** the `catch (InterruptedException e)` / `catch (IOException e)`
-pair at the end of `RepositoryChecker.checkOne`
-(`src/main/java/io/github/arlol/githubcheck/RepositoryChecker.java`), with no
-`catch (GitHubApiException e)` beside them.
-
-**Why it's a bug:** `GitHubClient` converts every failed request into a
-`GitHubApiException`, which extends `RuntimeException`, not `IOException`. A
-403 or 5xx partway through `fetchState` — a group's own request, not the
-`GET /repos/{owner}/{repo}` already wrapped by `FetchFailures` — therefore
-escapes `checkOne` uncaught. `checkOne` runs inside a virtual-thread
-`Callable` (`check`'s `executor.submit`), so the exception resurfaces at
-`Future.get()` wrapped in an `ExecutionException`, which `check` does not
-catch either — it declares `throws ExecutionException` and lets it out.
-`GitHubCheck.main` has no handler for that above `check(...)`, so the whole
-run dies with a stack trace and exit code 1 instead of reporting the one
-repository as `CheckResult.Status.ERROR` and continuing with the rest.
-
-**Where it's asymmetric:** `OrganizationChecker.checkOne` already has a
-`catch (GitHubApiException e)` arm that returns an `error` entry. Only the
-repository side is missing it.
-
-**Why this surfaced now, and why it wasn't fixed here:** `--export`
-(`ExportRunner.exportRepositories`) calls `RepositoryChecker.fetchState`
-directly instead of going through `checkOne`, specifically to catch
-`GitHubApiException` itself per repository — a comment on `ExportRunner`
-points here. Fixing `checkOne` is a behavior change to the existing
-check/fix path (every repository after the one that 403s currently never
-gets reported at all; catching the exception changes that to one `ERROR`
-entry and the rest reported normally), which is outside the export feature
-this follow-up was written during.
-
-**How to check whether it's fixed:** add a `catch (GitHubApiException e)`
-arm to `checkOne` mirroring `OrganizationChecker.checkOne`'s, then a test
-that gives one repository in a batch a client that throws
-`GitHubApiException` from a managed group's request and asserts the other
-repositories still report and the failing one comes back as
-`CheckResult.Status.ERROR` rather than aborting `check()`.
-
-## 6. `ExportRoundTripTest` covers roughly a third of the exporters
-
-Unlike 1–3, nothing upstream needs to move for this one either — it is a
+Unlike 1–3, nothing upstream needs to move for this one — it is a
 test-coverage gap, carried here instead of closed because closing it
 properly (a dedicated all-drifted fixture per section, the way
 `SchemaCoverageTest`'s own "Not covered" list already admits for the plain

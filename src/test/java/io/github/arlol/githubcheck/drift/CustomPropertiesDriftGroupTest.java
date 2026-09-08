@@ -8,6 +8,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.list;
 
 import java.util.List;
 import java.util.Map;
@@ -38,10 +39,20 @@ class CustomPropertiesDriftGroupTest {
 			Map<String, List<String>> desiredMulti,
 			List<ActualCustomPropertyValue> actual
 	) {
+		return group(desired, desiredMulti, actual, true);
+	}
+
+	private CustomPropertiesDriftGroup group(
+			Map<String, String> desired,
+			Map<String, List<String>> desiredMulti,
+			List<ActualCustomPropertyValue> actual,
+			boolean organizationOwned
+	) {
 		return new CustomPropertiesDriftGroup(
 				desired,
 				desiredMulti,
 				actual,
+				organizationOwned,
 				client,
 				new RepoRef("owner", "repo")
 		);
@@ -132,6 +143,45 @@ class CustomPropertiesDriftGroupTest {
 			assertThat(mismatch.wanted()).isEqualTo("gold");
 			assertThat(mismatch.got()).isNull();
 		});
+	}
+
+	/**
+	 * A personal account has no custom property schema, so the PATCH 404s the
+	 * same way the read does. The properties the config names are still
+	 * reported — leaving them out would hide a config that cannot be satisfied
+	 * — but the fix says why it did not run instead of sending the request.
+	 */
+	@Test
+	void personalAccount_reportsThePropertiesAndSendsNoRequest() {
+		var group = group(
+				Map.of("tier", "gold"),
+				Map.of("tags", List.of("a", "b")),
+				List.of(),
+				false
+		);
+
+		var fixes = group.detect();
+
+		assertThat(fixes).singleElement()
+				.extracting(DriftFix::items, list(DriftItem.class))
+				.extracting(DriftItem::path)
+				.containsExactlyInAnyOrder(
+						"custom_properties.tier",
+						"custom_properties.tags"
+				);
+		assertThat(fixes.getFirst().fix().execute().unfixedItems()).hasSize(2)
+				.extracting(FixResult.Unfixed::reason)
+				.allSatisfy(
+						reason -> assertThat(reason)
+								.contains("organization-owned")
+				);
+		verify(0, patchRequestedFor(urlPathEqualTo("/repos/owner/repo")));
+		verify(
+				0,
+				patchRequestedFor(
+						urlPathEqualTo("/repos/owner/repo/properties/values")
+				)
+		);
 	}
 
 }

@@ -93,6 +93,7 @@ class RepositoryCheckerFetchStateTest {
 	@Test
 	void publicRepo_fetchesEverything() throws Exception {
 		stubRepoDetails("""
+				,"owner": {"login": "owner", "type": "Organization"}
 				,"security_and_analysis": {
 					"secret_scanning": {"status": "enabled"},
 					"secret_scanning_push_protection": {"status": "enabled"},
@@ -136,6 +137,10 @@ class RepositoryCheckerFetchStateTest {
 						.willReturn(okJson("""
 								{"id": 42, "name": "main-rules", "rules": []}
 								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/teams"))
+						.willReturn(okJson("[]"))
 		);
 		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo/pages"))
@@ -193,7 +198,6 @@ class RepositoryCheckerFetchStateTest {
 		assertThat(state.collaborators().users())
 				.containsExactly(Map.entry("alice", "push"));
 		assertThat(state.collaborators().teams()).isEmpty();
-		verify(0, getRequestedFor(urlPathEqualTo("/repos/owner/repo/teams")));
 		assertThat(state.customPropertyValues()).containsExactly(
 				new ActualCustomPropertyValue("tier", "gold", List.of()),
 				new ActualCustomPropertyValue("tags", null, List.of("a", "b")),
@@ -684,6 +688,55 @@ class RepositoryCheckerFetchStateTest {
 
 		assertThat(state.collaborators().teams())
 				.containsExactly(Map.entry("core", "maintain"));
+	}
+
+	/**
+	 * Custom property values are an organization feature: {@code GET
+	 * /repos/{owner}/{repo}/properties/values} answers 404 for a user-owned
+	 * repository whatever the token can do, and reading it unconditionally
+	 * aborted every check of a personal account. It is skipped for the same
+	 * reason the teams listing next to it is.
+	 */
+	@Test
+	void personalRepo_skipsTheOrganizationOnlyEndpoints() throws Exception {
+		stubRepoDetails(
+				", \"owner\": {\"login\": \"owner\", \"type\": \"User\"}"
+		);
+		stubSecurityEndpoints();
+		stubStandardEndpoints();
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/branches"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/rulesets"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/pages"))
+						.willReturn(aResponse().withStatus(404))
+		);
+		// The 404 GitHub really answers, so the test fails the way a run did
+		// if the guard goes away rather than passing on a friendly stub.
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/properties/values"))
+						.willReturn(aResponse().withStatus(404))
+		);
+
+		RepositoryState state = checker.fetchState(
+				REF,
+				summary(false, "public"),
+				ManagedGroups.all(Drifty.GroupName.class)
+		);
+
+		assertThat(state.customPropertyValues()).isEmpty();
+		verify(
+				0,
+				getRequestedFor(
+						urlPathEqualTo("/repos/owner/repo/properties/values")
+				)
+		);
+		verify(0, getRequestedFor(urlPathEqualTo("/repos/owner/repo/teams")));
 	}
 
 	private static void stubRepoDetails(String extraFields) {

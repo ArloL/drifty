@@ -17,12 +17,22 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * are compared: which properties exist is the organization's schema to decide,
  * so a value GitHub has for a property the config does not mention is not
  * drift. The fix is one PATCH listing the drifted properties.
+ * <p>
+ * A personal account has no such schema — both the values endpoint and the
+ * PATCH 404 there, whatever the token can do — so a repository under a
+ * {@code users} block reports every property the config names as drifted and
+ * unfixable rather than sending a request that cannot succeed. The checker does
+ * not read the values for such a repository either, so {@code actual} is empty
+ * and the comparison has nothing to compare against.
  */
 public class CustomPropertiesDriftGroup extends DriftGroup<Drifty.GroupName> {
+
+	private static final String PERSONAL_ACCOUNT = "custom properties exist only on organization-owned repositories";
 
 	private final Map<String, String> desired;
 	private final Map<String, List<String>> desiredMultiSelect;
 	private final Map<String, ActualCustomPropertyValue> actual;
+	private final boolean organizationOwned;
 	private final GitHubClient client;
 	private final RepoRef ref;
 
@@ -30,6 +40,7 @@ public class CustomPropertiesDriftGroup extends DriftGroup<Drifty.GroupName> {
 			Map<String, String> desired,
 			Map<String, List<String>> desiredMultiSelect,
 			List<ActualCustomPropertyValue> actual,
+			boolean organizationOwned,
 			GitHubClient client,
 			RepoRef ref
 	) {
@@ -42,6 +53,7 @@ public class CustomPropertiesDriftGroup extends DriftGroup<Drifty.GroupName> {
 			byName.put(value.name(), value);
 		}
 		this.actual = Collections.unmodifiableMap(byName);
+		this.organizationOwned = organizationOwned;
 		this.client = client;
 		this.ref = ref;
 	}
@@ -95,6 +107,23 @@ public class CustomPropertiesDriftGroup extends DriftGroup<Drifty.GroupName> {
 
 		if (items.isEmpty()) {
 			return List.of();
+		}
+		if (!organizationOwned) {
+			return List.of(
+					new DriftFix(
+							items,
+							() -> new FixResult(
+									items.stream()
+											.map(
+													item -> new FixResult.Unfixed(
+															item,
+															PERSONAL_ACCOUNT
+													)
+											)
+											.toList()
+							)
+					)
+			);
 		}
 		return List.of(new DriftFix(items, () -> {
 			client.updateRepoCustomPropertyValues(
