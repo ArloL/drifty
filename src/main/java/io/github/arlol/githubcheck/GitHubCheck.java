@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.ExecutionException;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -43,25 +44,9 @@ public class GitHubCheck {
 	static void main(String[] args)
 			throws IOException, InterruptedException, ExecutionException {
 		var argsList = List.of(args);
-		if (argsList.contains("--help") || argsList.contains("-h")) {
-			System.out.print(usage());
-			return;
-		}
-		List<String> unknown = unknownArguments(argsList);
-		if (!unknown.isEmpty()) {
-			System.err.println(
-					"ERROR: unrecognised argument"
-							+ (unknown.size() == 1 ? ": " : "s: ")
-							+ String.join(" ", unknown)
-			);
-			System.err.println(
-					"Run 'drifty --help' for the arguments drifty "
-							+ "does recognise."
-			);
-			System.exit(1);
-			return;
-		}
-		if (handledVersion(argsList)) {
+		OptionalInt answered = answerFromArgumentsAlone(argsList);
+		if (answered.isPresent()) {
+			System.exit(answered.orElseThrow());
 			return;
 		}
 		if (argsList.contains("--self-test")) {
@@ -279,6 +264,55 @@ public class GitHubCheck {
 		return desired.isEmpty()
 				? List.of(CheckResult.Entry.error(login, error))
 				: listingErrors(desired, error);
+	}
+
+	/**
+	 * The exit code for an invocation the arguments answer on their own, before
+	 * drifty needs a token, a config or a network — or empty to carry on with
+	 * the run. The three are ordered: {@code --help} describes every other
+	 * argument so it wins over refusing them, and an argument drifty does not
+	 * recognise refuses the invocation rather than being dropped from a
+	 * {@code --version} that would otherwise print.
+	 */
+	static OptionalInt answerFromArgumentsAlone(List<String> argsList) {
+		if (handledHelp(argsList)) {
+			return OptionalInt.of(0);
+		}
+		if (reportUnknownArguments(argsList)) {
+			return OptionalInt.of(1);
+		}
+		if (handledVersion(argsList)) {
+			return OptionalInt.of(0);
+		}
+		return OptionalInt.empty();
+	}
+
+	static boolean handledHelp(List<String> argsList) {
+		if (!argsList.contains("--help") && !argsList.contains("-h")) {
+			return false;
+		}
+		System.out.print(usage());
+		return true;
+	}
+
+	/**
+	 * Whether the invocation has to be refused, having said which arguments
+	 * refused it. {@code main} exits 1 on a true, before a request is sent.
+	 */
+	static boolean reportUnknownArguments(List<String> argsList) {
+		List<String> unknown = unknownArguments(argsList);
+		if (unknown.isEmpty()) {
+			return false;
+		}
+		System.err.println(
+				"ERROR: unrecognised argument"
+						+ (unknown.size() == 1 ? ": " : "s: ")
+						+ String.join(" ", unknown)
+		);
+		System.err.println(
+				"Run 'drifty --help' for the arguments drifty does recognise."
+		);
+		return true;
 	}
 
 	static boolean handledVersion(List<String> argsList) {

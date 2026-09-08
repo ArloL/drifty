@@ -2,12 +2,17 @@ package io.github.arlol.githubcheck;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.testsupport.Desired;
@@ -391,6 +396,127 @@ class GitHubCheckTest {
 		assertThat(GitHubCheck.unknownArguments(List.of("--config", "--fix")))
 				.isEmpty();
 		assertThat(GitHubCheck.unknownArguments(List.of("--config"))).isEmpty();
+	}
+
+	// ─── handledHelp / reportUnknownArguments
+	// ─────────────────────────────
+
+	/**
+	 * The precedence {@code main} runs on, and the only place it is checked:
+	 * {@code main} itself ends in {@link System#exit}. {@code --help} describes
+	 * every other argument, so it wins over refusing them; an unrecognised
+	 * argument refuses the invocation rather than being dropped from a
+	 * {@code --version} that would otherwise print.
+	 */
+	@Test
+	void answerFromArgumentsAlone_ordersHelpBeforeRefusalBeforeVersion() {
+		var answered = new ArrayList<OptionalInt>();
+		captureOut(
+				() -> captureErr(
+						() -> answered.addAll(
+								List.of(
+										GitHubCheck.answerFromArgumentsAlone(
+												List.of("--help", "--fixx")
+										),
+										GitHubCheck.answerFromArgumentsAlone(
+												List.of("--fixx", "--version")
+										),
+										GitHubCheck.answerFromArgumentsAlone(
+												List.of("--version")
+										),
+										GitHubCheck.answerFromArgumentsAlone(
+												List.of("--fix")
+										)
+								)
+						)
+				)
+		);
+
+		assertThat(answered).containsExactly(
+				OptionalInt.of(0),
+				OptionalInt.of(1),
+				OptionalInt.of(0),
+				OptionalInt.empty()
+		);
+	}
+
+	@Test
+	void handledHelp_printsTheUsageForEitherSpelling() {
+		assertThat(captureOut(() -> GitHubCheck.handledHelp(List.of("--help"))))
+				.contains("Usage:", "--fix");
+		assertThat(captureOut(() -> GitHubCheck.handledHelp(List.of("-h"))))
+				.contains("Usage:");
+	}
+
+	@Test
+	void handledHelp_leavesEveryOtherInvocationAlone() {
+		assertThat(captureOut(() -> GitHubCheck.handledHelp(List.of("--fix"))))
+				.isEmpty();
+	}
+
+	@Test
+	void reportUnknownArguments_namesThemAndPointsAtHelp() {
+		var refused = new AtomicBoolean();
+		String err = captureErr(
+				() -> refused.set(
+						GitHubCheck.reportUnknownArguments(
+								List.of("--confg", "other.pkl")
+						)
+				)
+		);
+
+		assertThat(refused).isTrue();
+		assertThat(err).contains(
+				"ERROR: unrecognised arguments: --confg other.pkl",
+				"drifty --help"
+		);
+	}
+
+	@Test
+	void reportUnknownArguments_saysNothingWhenEveryArgumentIsKnown() {
+		var refused = new AtomicBoolean();
+		String err = captureErr(
+				() -> refused.set(
+						GitHubCheck.reportUnknownArguments(
+								List.of("--fix", "--config", "drifty.pkl")
+						)
+				)
+		);
+
+		assertThat(refused).isFalse();
+		assertThat(err).isEmpty();
+	}
+
+	private static String captureOut(Runnable body) {
+		PrintStream original = System.out;
+		var captured = new ByteArrayOutputStream();
+		try (var out = new PrintStream(
+				captured,
+				true,
+				StandardCharsets.UTF_8
+		)) {
+			System.setOut(out);
+			body.run();
+		} finally {
+			System.setOut(original);
+		}
+		return captured.toString(StandardCharsets.UTF_8);
+	}
+
+	private static String captureErr(Runnable body) {
+		PrintStream original = System.err;
+		var captured = new ByteArrayOutputStream();
+		try (var err = new PrintStream(
+				captured,
+				true,
+				StandardCharsets.UTF_8
+		)) {
+			System.setErr(err);
+			body.run();
+		} finally {
+			System.setErr(original);
+		}
+		return captured.toString(StandardCharsets.UTF_8);
 	}
 
 	// ─── usage
