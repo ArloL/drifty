@@ -169,9 +169,13 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
+    # --proto/--proto-redir pin both the request and the release asset's
+    # redirect to https: a GitHub release download always redirects, and
+    # --location alone would follow one to plain http.
     - name: Install pkl
       run: |
-        curl --location --fail --silent --show-error \
+        curl --proto "=https" --proto-redir "=https" \
+          --location --fail --silent --show-error \
           --output "${RUNNER_TEMP}/pkl" \
           "https://github.com/apple/pkl/releases/download/${PKL_VERSION}/pkl-linux-amd64"
         chmod +x "${RUNNER_TEMP}/pkl"
