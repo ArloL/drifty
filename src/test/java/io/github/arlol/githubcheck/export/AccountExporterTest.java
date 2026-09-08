@@ -176,22 +176,32 @@ class AccountExporterTest {
 		var entry = AccountExporter
 				.organization(state, failures, List.of(), DEFAULTS);
 
-		assertThat(render(entry)).isEqualTo("""
-				organizations {
-				  ["acme"] {
-				    customProperties {
-				      ["priority"] {
-				        valueType = "string"
-				        required = true
-				      }
-				    }
-				    // org_teams: the token cannot read teams
-				    members {
-				      ["alice"] = "admin"
-				    }
-				  }
-				}
-				""");
+		assertThat(render(entry)).isEqualTo(
+				"""
+						organizations {
+						  ["acme"] {
+						    // drifty could not read these groups when exporting; leaving them unmanaged
+						    // is what makes this file checkable as written. The reason for each is
+						    // noted below; drop a name once the token can read that group.
+						    managed {
+						      groups {
+						        "org_teams"
+						      }
+						    }
+						    customProperties {
+						      ["priority"] {
+						        valueType = "string"
+						        required = true
+						      }
+						    }
+						    // org_teams: the token cannot read teams
+						    members {
+						      ["alice"] = "admin"
+						    }
+						  }
+						}
+						"""
+		);
 	}
 
 	@Test

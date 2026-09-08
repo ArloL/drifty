@@ -34,10 +34,16 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * Position is what tells a reader which section is missing rather than empty —
  * an absent keyed section would otherwise read as "delete all of these" to a
  * later {@code --fix} run.
+ * <p>
+ * It also owns {@link #addUnmanagedGroups}, the other half of what an
+ * unreadable group produces: the note says why, the entry's {@code managed}
+ * block is what a later run acts on.
  */
 public final class AccountExporter {
 
 	private static final String SECRET_VALUES_NOTE = "secret values are never returned by GitHub; supply them through DRIFTY_GITHUB_SECRETS";
+
+	private static final String UNREADABLE_GROUPS_NOTE = "drifty could not read these groups when exporting; leaving them unmanaged is what makes this file checkable as written. The reason for each is noted below; drop a name once the token can read that group.";
 
 	private AccountExporter() {
 	}
@@ -83,6 +89,9 @@ public final class AccountExporter {
 			SchemaDefaults defaults
 	) {
 		var members = new ArrayList<PklNode.Member>();
+
+		// First, as `managed` is Organization's first field in the schema.
+		addUnmanagedGroups(members, failures);
 
 		if (state.settings() != null) {
 			members.addAll(
@@ -406,6 +415,60 @@ public final class AccountExporter {
 				)
 		);
 		return new PklNode.Field(variable.name(), new PklNode.Obj(fields));
+	}
+
+	/**
+	 * The {@code managed} block that leaves every group this export could not
+	 * read unmanaged, so the file can be checked as written.
+	 * <p>
+	 * A note alone cannot carry this: {@code //} text is the one form a later
+	 * run has no way to act on, so an export whose token could not read
+	 * {@code custom_properties} produced a file whose very first {@code drifty}
+	 * run failed on exactly the request the export had already failed on.
+	 * {@code Managed} is the field that says "drifty does not touch this
+	 * group", which is precisely the fact the export has just learned.
+	 * <p>
+	 * {@code mode} is left out because its default is already
+	 * {@code "all_except"}, so naming a group excludes it — the same
+	 * omit-the-default rule every other exported field follows. The listing is
+	 * an amendment ({@code groups &#123; … &#125;}) rather than a replacement
+	 * for the reason {@link Fields#objects} is: the schema defaults it to
+	 * empty, so the two are equivalent, and amendment needs no element type.
+	 * <p>
+	 * The per-group notes stay where they are. They say <em>why</em> a group is
+	 * unmanaged, beside the section it would have filled; this says
+	 * <em>that</em> it is, in the one place a later run reads.
+	 */
+	static void addUnmanagedGroups(
+			List<PklNode.Member> members,
+			List<FetchFailures.Failure> failures
+	) {
+		List<PklNode> groups = failures.stream()
+				.map(FetchFailures.Failure::group)
+				.distinct()
+				.sorted()
+				.map(name -> (PklNode) PklNode.Scalar.of(name))
+				.toList();
+		if (groups.isEmpty()) {
+			return;
+		}
+		members.add(Fields.note(UNREADABLE_GROUPS_NOTE));
+		members.add(
+				new PklNode.Field(
+						"managed",
+						new PklNode.Obj(
+								List.of(
+										new PklNode.Field(
+												"groups",
+												new PklNode.Listing(
+														groups,
+														false
+												)
+										)
+								)
+						)
+				)
+		);
 	}
 
 	/**

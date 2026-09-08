@@ -20,6 +20,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 
 /**
@@ -77,6 +78,77 @@ class ExportRoundTripTest {
 		// hasDrift() alone would only say "something is wrong" — naming the
 		// diffs is what turns a failure here into "fix this exporter field"
 		// instead of an hour spent re-deriving which one from scratch.
+		assertThat(problems(result)).isEmpty();
+		assertThat(result.hasDrift()).isFalse();
+	}
+
+	/**
+	 * Issue #136: a group the export could not read has to come back as an
+	 * unmanaged group, not only as a {@code //} note.
+	 * <p>
+	 * The note says which request failed and why, but no later run can act on a
+	 * comment — so an export whose token could not read one group produced a
+	 * file whose very first {@code drifty} run died on exactly the request the
+	 * export had already given up on. Both 403s below stay stubbed for the
+	 * check that follows: the run passes because {@code managed} keeps the
+	 * requests from being sent at all, not because the endpoints recovered.
+	 * <p>
+	 * One organization group and one repository group, since {@code managed}
+	 * and {@code OrgManaged} are separate fields on separate types and an
+	 * export that filled in only one of them would still leave half its file
+	 * uncheckable.
+	 */
+	@Test
+	void aGroupTheExportCouldNotReadIsLeftUnmanagedSoTheFileStillChecks(
+			WireMockRuntimeInfo wm,
+			@TempDir Path dir
+	) throws Exception {
+		stubOrganization();
+		stubRepository();
+		// Registered last, so WireMock resolves these two paths to the 403
+		// rather than to the success stubs above.
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/teams"))
+						.willReturn(aResponse().withStatus(403).withBody("""
+								{"message": "Forbidden"}
+								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/my-org/widget/actions/secrets"))
+						.willReturn(aResponse().withStatus(403).withBody("""
+								{"message": "Forbidden"}
+								"""))
+		);
+
+		GitHubClient client = new GitHubClient(
+				wm.getHttpBaseUrl(),
+				"test-token"
+		);
+		Path out = dir.resolve("export.pkl");
+
+		int exitCode = ExportRunner.run(client, List.of("my-org"), out, SCHEMA);
+		assertThat(exitCode).isZero();
+
+		DriftyConfig config = PklConfigLoader.load(out);
+		assertThat(config.organizations().get("my-org").managed.groups)
+				.containsExactly(Drifty.OrgGroupName.ORG_TEAMS);
+		assertThat(
+				config.organizations().get("my-org").repositories
+						.getFirst().managed.groups
+		).containsExactly(Drifty.GroupName.ACTION_SECRETS);
+
+		CheckResult result = GitHubCheck.check(
+				config,
+				client,
+				new OrganizationChecker(
+						client,
+						false,
+						Map.of(),
+						new DriftyState()
+				),
+				new RepositoryChecker(client, false)
+		);
+
 		assertThat(problems(result)).isEmpty();
 		assertThat(result.hasDrift()).isFalse();
 	}

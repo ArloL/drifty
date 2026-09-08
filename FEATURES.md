@@ -492,9 +492,10 @@ schema for those, the same way `testsupport.Desired` does for tests.
 `PklNode`/`PklWriter` are a small node tree and renderer shared by every
 section exporter, so a section is a list of field comparisons rather than a
 string builder. A group whose own read fails (`FetchFailures.collecting()`)
-becomes a `//` note where its section would sit instead of aborting the
-account, and a repository whose own details cannot be read becomes a note in
-the listing instead of losing every other repository's export. A check-only
+is named in that entry's `managed` block and gets a `//` note where its
+section would sit, instead of aborting the account, and a repository whose own
+details cannot be read becomes a note in the listing instead of losing every
+other repository's export. A check-only
 setting (`visibility`, ten organization settings) is exported as a field with
 a note beside it — the field keeps the file round-tripping, the note says
 `--fix` will never act on it. `ExportRoundTripTest` loads the exported file
@@ -525,3 +526,28 @@ Issue #140: an unrecognised argument fell through to a plain check run, so
 option still swallows whatever follows it — `--config --fix` names a config
 file called `--fix` — because `optionValue` reads it that way and the rest of
 the run uses that value.
+
+## ~~52. Leave an unreadable group unmanaged in the exported file~~ DONE
+
+Implemented: `AccountExporter.addUnmanagedGroups` turns the failures
+`FetchFailures.collecting()` gathered into the entry's own `managed` block —
+`managed { groups { "custom_properties" } }`, with `mode` omitted because its
+schema default of `all_except` already reads a named group as excluded. It
+runs first for an organization and right after `name` for a repository, which
+is where the schema orders the field, and before the archived branch:
+`RepositoryChecker.fetchState` reads a group for an archived repository too.
+The per-group notes stay where they were — they say *why* a group is
+unmanaged, beside the section it would have filled; `managed` says *that* it
+is, in the one place a later run reads.
+
+Issue #136: the note was the only record, and a `//` comment is the one form a
+later run cannot act on, so the file the README points people at as their
+starting config was one drifty could not check — `drifty --export ArloL`
+noted `custom_properties` on all 102 entries and the next `drifty` run died on
+the first of those requests. `ExportRoundTripTest`'s
+`aGroupTheExportCouldNotReadIsLeftUnmanagedSoTheFileStillChecks` 403s one
+organization group and one repository group, keeps both 403s stubbed for the
+check that follows, and asserts the round trip is clean — so it passes because
+the requests are no longer sent, not because the endpoints recovered. The
+stderr summary says "left unmanaged in the file" rather than "noted in the
+file instead" for the same reason.
