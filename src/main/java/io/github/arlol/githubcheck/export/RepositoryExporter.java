@@ -52,6 +52,20 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * settings would ever be compared against this file again — exporting them
  * would add fields nothing acts on.
  * <p>
+ * The repository's own settings above that block are exported all the same,
+ * which is what {@code ARCHIVED_NOTE} says: they come out of the repository
+ * details response every export reads anyway, so none of them is stale or
+ * absent, and they are the values the config would hold the day someone
+ * unarchives the repository. Leaving them out would hand {@code defaultBranch},
+ * {@code hasIssues} and the rest the schema's defaults instead — a repository
+ * archived on {@code master} would come back wanting {@code main}, and
+ * {@code --fix} would rename its branch on the first run after
+ * {@code archived = false}. The security block cannot follow them: five of its
+ * booleans read false only because the checker never asked GitHub for them, so
+ * exporting it would write down values that were never read. Unarchiving does
+ * therefore leave those settings on the schema's defaults — the cost of not
+ * writing a value drifty does not have.
+ * <p>
  * {@code failures} is not skipped along with those members, though: rulesets
  * and pages are the only two groups {@code fetchState} itself stops fetching
  * once a repository is archived (alongside the five security-flag endpoints
@@ -67,7 +81,7 @@ public final class RepositoryExporter {
 
 	private static final String VISIBILITY_NOT_WRITABLE = "drifty reports it but never changes it: public to private breaks forks, private to public exposes code";
 
-	private static final String ARCHIVED_NOTE = "drifty checks only archived on an archived repository, so its other settings are neither compared nor exported";
+	private static final String ARCHIVED_NOTE = "drifty compares only archived while a repository is archived: the settings above are exported but not compared until it is unarchived, and its security settings and collections are not exported at all";
 
 	private static final String ACTIONS_SECRET_VALUES_NOTE = "secret values are never returned by GitHub; supply them through DRIFTY_GITHUB_SECRETS";
 

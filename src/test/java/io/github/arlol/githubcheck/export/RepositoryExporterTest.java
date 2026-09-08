@@ -434,8 +434,77 @@ class RepositoryExporterTest {
 				"""
 						name = "api"
 						archived = true
-						// drifty checks only archived on an archived repository, so its other settings
-						// are neither compared nor exported
+						// drifty compares only archived while a repository is archived: the settings
+						// above are exported but not compared until it is unarchived, and its security
+						// settings and collections are not exported at all
+						"""
+		);
+	}
+
+	/**
+	 * The settings an archived repository does export are the ones GitHub
+	 * returns in the repository details response, and they are what the config
+	 * would hold the day someone unarchives it — leaving them out would hand
+	 * {@code defaultBranch}, {@code hasIssues} and the rest the schema's
+	 * defaults instead of the repository's own values, and {@code --fix} would
+	 * apply that difference the moment {@code archived = false}. The note
+	 * therefore has to say they are exported but not compared, not that they
+	 * are neither.
+	 */
+	@Test
+	void anArchivedRepositoryExportsTheSettingsItsNoteSaysAreExported() {
+		ActualRepository base = defaultRepository();
+		ActualRepository archived = new ActualRepository(
+				true,
+				base.organizationOwned(),
+				"A Framework enabling Device Interaction using REST.",
+				"http://arlol.github.com/intairact.html",
+				base.visibility(),
+				"master",
+				base.topics(),
+				false,
+				base.hasProjects(),
+				false,
+				base.hasDiscussions(),
+				base.isTemplate(),
+				base.allowForking(),
+				base.webCommitSignoffRequired(),
+				base.allowMergeCommit(),
+				base.allowSquashMerge(),
+				base.allowRebaseMerge(),
+				base.allowAutoMerge(),
+				base.allowUpdateBranch(),
+				base.deleteBranchOnMerge(),
+				base.squashMergeCommitTitle(),
+				base.squashMergeCommitMessage(),
+				base.mergeCommitTitle(),
+				base.mergeCommitMessage()
+		);
+		RepositoryState state = state(
+				archived,
+				defaultSecurityAndAnalysis(),
+				false,
+				false,
+				false,
+				false,
+				false,
+				defaultWorkflowPermissions()
+		);
+
+		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
+
+		assertThat(PklWriter.write(entry)).isEqualTo(
+				"""
+						name = "api"
+						archived = true
+						description = "A Framework enabling Device Interaction using REST."
+						homepageUrl = "http://arlol.github.com/intairact.html"
+						defaultBranch = "master"
+						hasIssues = false
+						hasWiki = false
+						// drifty compares only archived while a repository is archived: the settings
+						// above are exported but not compared until it is unarchived, and its security
+						// settings and collections are not exported at all
 						"""
 		);
 	}
@@ -1134,8 +1203,9 @@ class RepositoryExporterTest {
 				"""
 						name = "api"
 						archived = true
-						// drifty checks only archived on an archived repository, so its other settings
-						// are neither compared nor exported
+						// drifty compares only archived while a repository is archived: the settings
+						// above are exported but not compared until it is unarchived, and its security
+						// settings and collections are not exported at all
 						"""
 		);
 	}
@@ -1222,8 +1292,9 @@ class RepositoryExporterTest {
 						  }
 						}
 						archived = true
-						// drifty checks only archived on an archived repository, so its other settings
-						// are neither compared nor exported
+						// drifty compares only archived while a repository is archived: the settings
+						// above are exported but not compared until it is unarchived, and its security
+						// settings and collections are not exported at all
 						// webhooks: HTTP 403 fetching webhooks
 						"""
 		);
