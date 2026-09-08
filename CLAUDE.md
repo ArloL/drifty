@@ -13,6 +13,15 @@ status.
 ./mvnw exec:java
 ```
 
+The repository's own Pkl files are held to `pkl format` as well — `main.yaml`'s
+`pkl-format` job fails the build on any tracked one the formatter would rewrite,
+which is the same rule the exporter follows for the file it writes (below).
+Fix them with:
+
+```bash
+git ls-files -z '*.pkl' | xargs -0 pkl format -w
+```
+
 ## Adding or changing a managed setting
 
 - **Drift groups never see GitHub response types.** `RepositoryChecker.fetchState`
