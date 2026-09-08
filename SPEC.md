@@ -836,7 +836,8 @@ The tool never fails fast — it always attempts all fixes and provides a comple
 - **Language:** Java 25
 - **Build:** Maven with Spring Boot parent POM (for dependency management, not Spring framework features)
 - **Distribution:** Run via `mvn exec:java`
-- **Parallelism:** Virtual threads for concurrent repo checks/fixes
+- **Parallelism:** Virtual threads for concurrent repo checks/fixes, bounded by
+  the client's in-flight request cap (see Rate Limiting)
 
 ### API Strategy
 
@@ -844,7 +845,13 @@ REST API only. Both reads and writes use the GitHub REST API v3. GraphQL for bul
 
 ### Rate Limiting
 
-Monitor `X-RateLimit-Remaining` header and sleep until reset when exhausted. No additional concurrency control.
+Monitor `X-RateLimit-Remaining` header and sleep until reset when exhausted.
+
+`GitHubClient` also caps its own in-flight requests at 50. GitHub answers over
+one HTTP/2 connection whose `SETTINGS_MAX_CONCURRENT_STREAMS` is 100, and the
+JDK client does not queue past it — an account with more than ~100 configured
+repositories would otherwise die on `too many concurrent streams` before
+checking anything.
 
 ### Authentication
 

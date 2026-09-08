@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Semaphore;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -26,6 +27,16 @@ public class GitHubClient {
 	private static final String PATH_PRIVATE_VULNERABILITY_REPORTING = "/private-vulnerability-reporting";
 	private static final String PATH_CODE_SCANNING_DEFAULT_SETUP = "/code-scanning/default-setup";
 
+	/**
+	 * GitHub answers over one HTTP/2 connection, and its
+	 * SETTINGS_MAX_CONCURRENT_STREAMS is 100. The JDK client does not queue
+	 * past that — {@code reserveStream0} throws {@code IOException: too many
+	 * concurrent streams} — so the bound has to be ours. It sits here rather
+	 * than around the per-repository threads because every caller's requests
+	 * share the one connection.
+	 */
+	private static final int MAX_CONCURRENT_REQUESTS = 50;
+
 	private static final String HEADER_CONTENT_TYPE = "Content-Type";
 	private static final String MEDIA_TYPE_JSON = "application/json";
 
@@ -36,14 +47,20 @@ public class GitHubClient {
 	private final String token;
 	private final HttpClient http;
 	private final ObjectMapper mapper;
+	private final Semaphore inFlight;
 
 	public GitHubClient(String token) {
 		this("https://api.github.com", token);
 	}
 
 	public GitHubClient(String baseUrl, String token) {
+		this(baseUrl, token, MAX_CONCURRENT_REQUESTS);
+	}
+
+	GitHubClient(String baseUrl, String token, int maxConcurrentRequests) {
 		this.baseUrl = baseUrl;
 		this.token = token;
+		this.inFlight = new Semaphore(maxConcurrentRequests);
 		this.http = HttpClient.newBuilder()
 				.version(HttpClient.Version.HTTP_2)
 				.connectTimeout(Duration.ofSeconds(10))
@@ -2308,11 +2325,31 @@ public class GitHubClient {
 	}
 
 	private HttpResponse<String> sendRequest(HttpRequest request) {
+		HttpResponse<String> resp = send(request);
+		// Outside the permit: a thread parked until the rate limit resets is
+		// not using a stream, and every other thread is about to wait too.
+		handleRateLimit(resp);
+		return resp;
+	}
+
+	/**
+	 * Sends one request, holding a permit for as long as it is in flight. The
+	 * permit is what keeps the callers' virtual threads — one per repository —
+	 * from all reserving a stream at once; see
+	 * {@link #MAX_CONCURRENT_REQUESTS}.
+	 */
+	private HttpResponse<String> send(HttpRequest request) {
 		try {
-			HttpResponse<String> resp = http
-					.send(request, HttpResponse.BodyHandlers.ofString());
-			handleRateLimit(resp);
-			return resp;
+			inFlight.acquire();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new GitHubApiException(
+					request.method() + " " + request.uri() + " interrupted",
+					e
+			);
+		}
+		try {
+			return http.send(request, HttpResponse.BodyHandlers.ofString());
 		} catch (IOException e) {
 			throw new GitHubApiException(
 					request.method() + " " + request.uri() + " failed",
@@ -2324,6 +2361,8 @@ public class GitHubClient {
 					request.method() + " " + request.uri() + " interrupted",
 					e
 			);
+		} finally {
+			inFlight.release();
 		}
 	}
 
