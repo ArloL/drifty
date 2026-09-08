@@ -714,8 +714,7 @@ class RepositoryExporterTest {
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
 				branchProtections {
-				  ["main"] {
-				  }
+				  ["main"] {}
 				  ["release/*"] {
 				    enforceAdmins = true
 				  }
@@ -776,8 +775,7 @@ class RepositoryExporterTest {
 		assertThat(PklWriter.write(entry)).isEqualTo("""
 				name = "api"
 				rulesets {
-				  ["main"] {
-				  }
+				  ["main"] {}
 				}
 				""");
 	}

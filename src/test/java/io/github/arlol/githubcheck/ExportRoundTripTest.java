@@ -360,9 +360,16 @@ class ExportRoundTripTest {
 
 	/**
 	 * One repository with a non-default merge setting
-	 * ({@code deleteBranchOnMerge}) and one environment with a non-default wait
+	 * ({@code deleteBranchOnMerge}), a description long enough that the
+	 * exported assignment wraps, and one environment with a non-default wait
 	 * timer. Every other field matches {@code config/drifty.pkl}'s repository
 	 * defaults.
+	 * <p>
+	 * The description is that long on purpose: {@code pkl format} moves the
+	 * value of an assignment past a hundred columns onto its own line, so
+	 * {@link io.github.arlol.githubcheck.export.PklWriter} does too, and only
+	 * evaluating the file again proves the wrapped form is still the same
+	 * string Pkl reads back (issue #138).
 	 */
 	private static void stubRepository() {
 		stubFor(
@@ -372,6 +379,7 @@ class ExportRoundTripTest {
 										{
 										  "id": 1,
 										  "name": "widget",
+										  "description": "A GitHub Actions action that creates a new version using a CalVer-style derivative and pushes it",
 										  "private": false,
 										  "fork": false,
 										  "archived": false,

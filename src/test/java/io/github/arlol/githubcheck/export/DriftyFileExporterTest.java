@@ -38,8 +38,7 @@ class DriftyFileExporterTest {
 						amends "https://example.com/drifty.pkl"
 
 						organizations {
-						  ["acme"] {
-						  }
+						  ["acme"] {}
 						}
 						"""
 		);
@@ -99,8 +98,7 @@ class DriftyFileExporterTest {
 						amends "https://example.com/drifty.pkl"
 
 						organizations {
-						  ["acme"] {
-						  }
+						  ["acme"] {}
 						}
 						"""
 		);
@@ -131,12 +129,10 @@ class DriftyFileExporterTest {
 						amends "https://example.com/drifty.pkl"
 
 						organizations {
-						  ["acme"] {
-						  }
+						  ["acme"] {}
 						}
 						users {
-						  ["arlol"] {
-						  }
+						  ["arlol"] {}
 						}
 						"""
 		);
