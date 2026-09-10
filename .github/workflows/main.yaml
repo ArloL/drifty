@@ -270,11 +270,6 @@ jobs:
         PLATFORMS
         cp "${ARTIFACT}-windows-${NEW_VERSION}/${ARTIFACT}-windows-${NEW_VERSION}.exe" "staging/${ARTIFACT}.exe"
         (cd staging && zip "../artifacts/${ARTIFACT}-windows-x64.zip" "${ARTIFACT}.exe")
-        # The Homebrew tap downloads these unversioned names. Drop them once its
-        # formula reads the archives above.
-        cp "${ARTIFACT}-linux-${NEW_VERSION}/${ARTIFACT}-linux-${NEW_VERSION}" "artifacts/${ARTIFACT}-linux"
-        cp "${ARTIFACT}-macos-${NEW_VERSION}/${ARTIFACT}-macos-${NEW_VERSION}" "artifacts/${ARTIFACT}-macos"
-        cp "${ARTIFACT}-windows-${NEW_VERSION}/${ARTIFACT}-windows-${NEW_VERSION}.exe" "artifacts/${ARTIFACT}-windows.exe"
         # Every job builds the same jars; publish one copy, named without an os
         # token so no installer scores it as a platform build.
         zip --junk-paths "artifacts/${ARTIFACT}-${NEW_VERSION}-jars.zip" \
