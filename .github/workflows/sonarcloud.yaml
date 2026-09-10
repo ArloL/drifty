@@ -62,13 +62,12 @@ jobs:
         # Sonar needs the full history to attribute new code to authors
         fetch-depth: 0
         persist-credentials: false
-    - # .tool-versions names graalvm-community, and setup-java takes the
-      # distribution from there rather than from the input below
-      uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+    - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
       with:
         cache: maven
-        distribution: graalvm
-        java-version-file: .tool-versions
+        distribution: temurin
+        # renovate: datasource=java-version depName=java
+        java-version: 25.0.4
     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ runner.os }}-sonar
@@ -80,14 +79,15 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
         set -o xtrace
-        # Sonar only needs the JVM tests JaCoCo instruments, so skip the
-        # native image build: 20s instead of 9min, same coverage report
+        # Sonar only needs the JVM tests JaCoCo instruments, and the
+        # Temurin above is what skips the native image build: the graal
+        # profile activates on a JAVA_HOME holding one, so it cannot fire
+        # here. 20s instead of 9min, same coverage report
         # Wait for the quality gate so a failure fails this workflow's own
         # required status check, which also reports on the bumps we skip
         ./mvnw \
           --batch-mode \
           -Dsha1="${GITHUB_SHA}" \
-          -P '!graal' \
           -Dsonar.qualitygate.wait=true \
           verify \
           sonar:sonar
