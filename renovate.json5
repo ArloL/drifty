@@ -3,6 +3,37 @@
     "addLabels": [
         "{{manager}}",
     ],
+    "customManagers": [
+        {
+            // Renovate's mise manager maps only temurin- and adoptopenjdk-
+            // java versions to a datasource, so nothing bumps a
+            // graalvm-community pin. The jdk-* tags are exactly what mise
+            // offers as graalvm-community-*; the graal-* and vm-* ones are
+            // GraalVM's own versioning and mise installs none of them.
+            "customType": "regex",
+            "datasourceTemplate": "github-releases",
+            "depNameTemplate": "graalvm/graalvm-ce-builds",
+            "extractVersionTemplate": "^jdk-(?<version>\\S+)",
+            "managerFilePatterns": [
+                "/^\\.tool-versions$/",
+            ],
+            "matchStrings": [
+                "java graalvm-community-(?<currentValue>\\S+)",
+            ],
+        },
+        {
+            // Adoptium's own semver is 25.0.4+101.0.LTS, which setup-java
+            // cannot resolve, so only the release version is kept.
+            "customType": "regex",
+            "extractVersionTemplate": "^(?<version>\\d+\\.\\d+\\.\\d+)",
+            "managerFilePatterns": [
+                "/^\\.github/workflows/[^/]+\\.yaml$/",
+            ],
+            "matchStrings": [
+                "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+java-version: (?<currentValue>\\S+)",
+            ],
+        },
+    ],
     "extends": [
         "config:recommended",
     ],
