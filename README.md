@@ -2,6 +2,18 @@
 
 A tool to detect and fix drift in GitHub organization and repository settings
 
+## Install
+
+```bash
+mise use github:ArloL/drifty
+brew install arlol/tap/drifty
+```
+
+Or take the archive for your platform from the
+[latest release](https://github.com/ArloL/drifty/releases/latest) — each one
+holds a single `drifty` binary. Apple silicon is the only macOS build: GraalVM
+cannot cross-compile and GitHub no longer runs Intel macOS runners.
+
 ## Usage
 
 `drifty --help` lists every flag; `drifty` on its own reports what has drifted
