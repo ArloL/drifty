@@ -132,6 +132,39 @@ jobs:
         path: target/artifacts
     - name: Make sure build did not change anything
       run: git diff --exit-code
+  linux-arm:
+    needs: version
+    runs-on: ubuntu-24.04-arm
+    env:
+      REVISION: ${{ needs.version.outputs.new_version }}
+      BUILD_TIMESTAMP: ${{ needs.version.outputs.build_timestamp }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+      with:
+        cache: maven
+        distribution: graalvm
+        java-version-file: .tool-versions
+    - name: Build with Maven
+      run: |
+        set -o xtrace
+        ./mvnw \
+          --batch-mode \
+          -Dsha1="${GITHUB_SHA}" \
+          -Drevision="${REVISION}" \
+          verify
+    - name: Move artifacts
+      run: |
+        mkdir target/artifacts
+        cp target/"${ARTIFACT}"-* target/artifacts
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ env.ARTIFACT }}-${{ github.job }}-${{ needs.version.outputs.new_version }}
+        path: target/artifacts
+    - name: Make sure build did not change anything
+      run: git diff --exit-code
   windows:
     needs: version
     runs-on: windows-latest
@@ -195,11 +228,14 @@ jobs:
     - version
     - macos
     - linux
+    - linux-arm
     - windows
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     permissions:
+      attestations: write
       contents: write
+      id-token: write
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
@@ -208,18 +244,47 @@ jobs:
       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
       with:
         path: ./target
+    # mise and every other binary installer picks a release asset by the os and
+    # arch tokens in its name and then runs the file inside under the name that
+    # file already has, so each archive holds exactly one executable called
+    # drifty. An asset naming only the os is what made `mise use
+    # github:ArloL/drifty` install an arch it had not checked, or a zip of jars
+    # with no `drifty` in it at all.
     - name: Prepare artifacts
       working-directory: target
       env:
         NEW_VERSION: ${{ needs.version.outputs.new_version }}
       run: |
-        mkdir artifacts
-        zip -r "artifacts/${ARTIFACT}-windows-${NEW_VERSION}.zip" "${ARTIFACT}-windows-${NEW_VERSION}/"
-        zip -r "artifacts/${ARTIFACT}-linux-${NEW_VERSION}.zip" "${ARTIFACT}-linux-${NEW_VERSION}/"
-        zip -r "artifacts/${ARTIFACT}-macos-${NEW_VERSION}.zip" "${ARTIFACT}-macos-${NEW_VERSION}/"
-        mv "${ARTIFACT}-windows-${NEW_VERSION}/${ARTIFACT}-windows-${NEW_VERSION}.exe" "artifacts/${ARTIFACT}-windows.exe"
-        mv "${ARTIFACT}-linux-${NEW_VERSION}/${ARTIFACT}-linux-${NEW_VERSION}" "artifacts/${ARTIFACT}-linux"
-        mv "${ARTIFACT}-macos-${NEW_VERSION}/${ARTIFACT}-macos-${NEW_VERSION}" "artifacts/${ARTIFACT}-macos"
+        mkdir artifacts staging
+        while read -r job os arch; do
+          cp "${ARTIFACT}-${job}-${NEW_VERSION}/${ARTIFACT}-${os}-${NEW_VERSION}" "staging/${ARTIFACT}"
+          chmod +x "staging/${ARTIFACT}"
+          tar --create --gzip \
+            --file "artifacts/${ARTIFACT}-${os}-${arch}.tar.gz" \
+            --directory staging "${ARTIFACT}"
+          rm "staging/${ARTIFACT}"
+        done <<'PLATFORMS'
+        linux linux x64
+        linux-arm linux arm64
+        macos macos arm64
+        PLATFORMS
+        cp "${ARTIFACT}-windows-${NEW_VERSION}/${ARTIFACT}-windows-${NEW_VERSION}.exe" "staging/${ARTIFACT}.exe"
+        (cd staging && zip "../artifacts/${ARTIFACT}-windows-x64.zip" "${ARTIFACT}.exe")
+        # The Homebrew tap downloads these unversioned names. Drop them once its
+        # formula reads the archives above.
+        cp "${ARTIFACT}-linux-${NEW_VERSION}/${ARTIFACT}-linux-${NEW_VERSION}" "artifacts/${ARTIFACT}-linux"
+        cp "${ARTIFACT}-macos-${NEW_VERSION}/${ARTIFACT}-macos-${NEW_VERSION}" "artifacts/${ARTIFACT}-macos"
+        cp "${ARTIFACT}-windows-${NEW_VERSION}/${ARTIFACT}-windows-${NEW_VERSION}.exe" "artifacts/${ARTIFACT}-windows.exe"
+        # Every job builds the same jars; publish one copy, named without an os
+        # token so no installer scores it as a platform build.
+        zip --junk-paths "artifacts/${ARTIFACT}-${NEW_VERSION}-jars.zip" \
+          "${ARTIFACT}-linux-${NEW_VERSION}"/*.jar
+    # mise verifies these when `github_attestations` is on, and cannot be told
+    # to trust an asset it cannot verify, so attest before the release exists.
+    - name: Attest the release assets
+      uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+      with:
+        subject-path: target/artifacts/*
     - name: Create Release
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -268,6 +333,7 @@ jobs:
     needs:
     - macos
     - linux
+    - linux-arm
     - windows
     - pkl-format
     # GitHub Actions skips this job when any of the dependents fail. And skips
