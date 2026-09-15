@@ -246,10 +246,10 @@ jobs:
         path: ./target
     # mise and every other binary installer picks a release asset by the os and
     # arch tokens in its name and then runs the file inside under the name that
-    # file already has, so each archive holds exactly one executable called
-    # drifty. An asset naming only the os is what made `mise use
-    # github:ArloL/drifty` install an arch it had not checked, or a zip of jars
-    # with no `drifty` in it at all.
+    # file already has, so each archive holds exactly one executable, named
+    # after this repository. An asset naming only the os is what made `mise use
+    # github:owner/repo` install an architecture it had never checked, or a zip
+    # of jars with no executable in it at all.
     - name: Prepare artifacts
       working-directory: target
       env:
