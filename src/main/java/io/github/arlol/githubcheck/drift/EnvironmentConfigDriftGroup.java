@@ -30,11 +30,25 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * resolved to the ids the PUT wants only when a fix runs. Environments GitHub
  * has that the config does not declare are reported and left alone: deleting
  * one discards its secrets and deployment history.
+ * <p>
+ * {@code github-pages} is the one exception. GitHub creates it itself the
+ * moment a site is published and the deployment writes to it, so a config that
+ * asks for Pages gets an environment it never declared — reporting it drifted
+ * every Pages repository against the config that asked for Pages (issue #157).
+ * It is skipped only on a repository whose config declares {@code pages}: where
+ * it does not, the environment a site that was turned off left behind is still
+ * worth reporting. Whether the {@code pages} group is managed does not enter
+ * into it — the declaration is the statement that the site is wanted. An
+ * environment the config declares is compared like any other, this one
+ * included.
  */
 public class EnvironmentConfigDriftGroup extends DriftGroup<Drifty.GroupName> {
 
+	private static final String GITHUB_PAGES = "github-pages";
+
 	private final Map<String, Drifty.Environment> desired;
 	private final Map<String, ActualEnvironment> actual;
+	private final boolean pagesDeclared;
 	private final GitHubClient client;
 	private final String owner;
 	private final String repo;
@@ -42,11 +56,13 @@ public class EnvironmentConfigDriftGroup extends DriftGroup<Drifty.GroupName> {
 	public EnvironmentConfigDriftGroup(
 			Map<String, Drifty.Environment> desired,
 			Map<String, ActualEnvironment> actual,
+			boolean pagesDeclared,
 			GitHubClient client,
 			RepoRef ref
 	) {
 		this.desired = new LinkedHashMap<>(desired);
 		this.actual = new LinkedHashMap<>(actual);
+		this.pagesDeclared = pagesDeclared;
 		this.client = client;
 		this.owner = ref.owner();
 		this.repo = ref.name();
@@ -94,15 +110,18 @@ public class EnvironmentConfigDriftGroup extends DriftGroup<Drifty.GroupName> {
 		}
 
 		for (String envName : actual.keySet()) {
-			if (!desired.containsKey(envName)) {
-				var item = new DriftItem.SectionExtra(envName);
-				fixes.add(
-						DriftFix.reported(
-								item,
-								"drifty does not delete environments"
-						)
-				);
+			if (desired.containsKey(envName)) {
+				continue;
 			}
+			if (pagesDeclared && GITHUB_PAGES.equals(envName)) {
+				continue;
+			}
+			fixes.add(
+					DriftFix.reported(
+							new DriftItem.SectionExtra(envName),
+							"drifty does not delete environments"
+					)
+			);
 		}
 
 		return fixes;

@@ -29,6 +29,7 @@ class EnvironmentConfigDriftGroupTest {
 		var group = new EnvironmentConfigDriftGroup(
 				desired.environments,
 				actual,
+				false,
 				null,
 				new RepoRef("owner", "repo")
 		);
@@ -55,6 +56,7 @@ class EnvironmentConfigDriftGroupTest {
 		var group = new EnvironmentConfigDriftGroup(
 				desired.environments,
 				actual,
+				false,
 				null,
 				new RepoRef("owner", "repo")
 		);
@@ -90,6 +92,7 @@ class EnvironmentConfigDriftGroupTest {
 		var group = new EnvironmentConfigDriftGroup(
 				desired.environments,
 				actual,
+				false,
 				null,
 				new RepoRef("owner", "repo")
 		);
@@ -130,6 +133,7 @@ class EnvironmentConfigDriftGroupTest {
 		var group = new EnvironmentConfigDriftGroup(
 				desired.environments,
 				actual,
+				false,
 				null,
 				new RepoRef("owner", "repo")
 		);
@@ -160,6 +164,7 @@ class EnvironmentConfigDriftGroupTest {
 		return new EnvironmentConfigDriftGroup(
 				Map.of("production", wanted),
 				actual == null ? Map.of() : Map.of("production", actual),
+				false,
 				null,
 				new RepoRef("owner", "repo")
 		);
@@ -273,6 +278,7 @@ class EnvironmentConfigDriftGroupTest {
 		var group = new EnvironmentConfigDriftGroup(
 				Map.of(),
 				Map.of("staging", new ActualEnvironment(0, false, false)),
+				false,
 				null,
 				new RepoRef("owner", "repo")
 		);
@@ -283,11 +289,53 @@ class EnvironmentConfigDriftGroupTest {
 					.isInstanceOf(DriftItem.SectionExtra.class)
 					.extracting(DriftItem::path)
 					.isEqualTo("environment_config.staging");
+			assertThat(fix.actionable()).isFalse();
 			assertThat(fix.fix().execute().unfixedItems()).singleElement()
 					.extracting(FixResult.Unfixed::reason)
 					.asString()
 					.contains("does not delete environments");
 		});
+	}
+
+	@Test
+	void githubPagesIsNotExtraWhenTheConfigDeclaresPages() {
+		var group = new EnvironmentConfigDriftGroup(
+				Map.of(),
+				Map.of("github-pages", new ActualEnvironment(0, false, false)),
+				true,
+				null,
+				new RepoRef("owner", "repo")
+		);
+
+		assertThat(items(group)).isEmpty();
+	}
+
+	@Test
+	void githubPagesIsExtraWhenTheConfigDeclaresNoPages() {
+		var group = new EnvironmentConfigDriftGroup(
+				Map.of(),
+				Map.of("github-pages", new ActualEnvironment(0, false, false)),
+				false,
+				null,
+				new RepoRef("owner", "repo")
+		);
+
+		assertThat(items(group)).extracting(DriftItem::path)
+				.containsExactly("environment_config.github-pages");
+	}
+
+	@Test
+	void aDeclaredGithubPagesEnvironmentIsComparedLikeAnyOther() {
+		var group = new EnvironmentConfigDriftGroup(
+				Map.of("github-pages", Desired.environment().withWaitTimer(30)),
+				Map.of("github-pages", new ActualEnvironment(0, false, false)),
+				true,
+				null,
+				new RepoRef("owner", "repo")
+		);
+
+		assertThat(items(group)).extracting(DriftItem::path)
+				.containsExactly("environment_config.github-pages.wait_timer");
 	}
 
 }

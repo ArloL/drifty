@@ -477,6 +477,8 @@ Direct collaborators only: a member who reaches the repository through an org ro
 
 Create and update environments. Extra environments (on GitHub but not in config) are reported as drift but not deleted by `--fix`.
 
+`github-pages` is the exception: GitHub creates it itself when a site is published, so on a repository whose config declares `pages` it is not reported as extra. Where the config declares no `pages` it is reported like any other extra environment, which is what catches the one a site that was turned off left behind. A config that declares `github-pages` under `environments` owns it and has it compared like any other environment.
+
 | Setting | Check | Fix |
 |---------|-------|-----|
 | Environment exists | Yes | Yes (create) |

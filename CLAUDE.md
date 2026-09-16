@@ -129,6 +129,16 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   reading it as "no parent", so no top-level team could be created.
   `TeamCreateRequest` is the same fields with the field omitted when null, and
   `createTeam` takes only that record. Do not collapse the two back into one.
+- **`github-pages` is GitHub's environment, not the config's.** GitHub creates
+  it the moment a Pages site is published, so
+  `EnvironmentConfigDriftGroup` skips it in the extra-environment scan on a
+  repository whose config declares `pages` — otherwise every repository that
+  asks for Pages drifts against that same config (issue #157). The skip is
+  conditional on `desired.pages != null` rather than unconditional so the
+  environment a turned-off site left behind is still reported, and it does not
+  consult `ManagedGroups`: the declaration is what says the site is wanted. An
+  environment the config declares is compared like any other, `github-pages`
+  included.
 - **`--fix` deletes only what the config can recreate.** Rulesets, branch
   protections, webhooks, deployment branch policies and non-default runner
   groups are deleted when extra; secrets, variables, environments, custom
