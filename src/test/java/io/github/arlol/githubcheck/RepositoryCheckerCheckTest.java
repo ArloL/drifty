@@ -243,6 +243,55 @@ class RepositoryCheckerCheckTest {
 	}
 
 	/**
+	 * GitHub creates {@code github-pages} itself when a site is published, so a
+	 * repository whose config asks for Pages gets the environment it never
+	 * declared. Reporting it would drift every Pages repository against the
+	 * config that asked for Pages (issue #157).
+	 */
+	@Test
+	void theGithubPagesEnvironmentIsNotExtraWhenTheConfigDeclaresPages()
+			throws Exception {
+		stubOwner("alpha", "one");
+		stubRepoSubResources();
+		stubFor(
+				get(urlPathEqualTo("/repos/alpha/one/environments"))
+						.willReturn(okJson("""
+								{"environments": [{"name": "github-pages"}]}
+								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/alpha/one/pages"))
+						.willReturn(okJson("""
+								{
+									"build_type": "workflow",
+									"custom_404": false,
+									"public": true,
+									"https_enforced": true
+								}
+								"""))
+		);
+
+		Drifty.Repository desired = entry("one").withPages(Desired.pages())
+				.withManaged(
+						new Drifty.Managed(
+								Drifty.ManageMode.ONLY,
+								List.of(
+										Drifty.GroupName.ENVIRONMENT_CONFIG,
+										Drifty.GroupName.PAGES
+								)
+						)
+				);
+
+		List<CheckResult.Entry> results = check("alpha", desired);
+
+		assertThat(results).singleElement().satisfies(result -> {
+			assertThat(result.error()).isNull();
+			assertThat(result.diffs()).isEmpty();
+			assertThat(result.status()).isEqualTo(CheckResult.Status.OK);
+		});
+	}
+
+	/**
 	 * In fix mode the report is a FIXED/FAILED line per setting, and every
 	 * failure has to say why — SPEC.md's per-setting fix results and its
 	 * end-of-run failure summary.

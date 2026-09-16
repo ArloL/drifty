@@ -741,6 +741,7 @@ public class RepositoryChecker {
 				new EnvironmentConfigDriftGroup(
 						desired.environments,
 						actual.environments(),
+						desired.pages != null,
 						client,
 						ref
 				)
