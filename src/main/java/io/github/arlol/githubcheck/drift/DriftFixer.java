@@ -61,6 +61,30 @@ public final class DriftFixer {
 		return new FixOutcome(fixed, unfixed);
 	}
 
+	/**
+	 * The groups the {@code Would fix:} line names: those holding a drifted
+	 * item {@code --fix} would actually write. A group whose every drifted item
+	 * is only reported — an extra collaborator, an environment drifty will not
+	 * delete — is left out, because naming it read as an offer to remove
+	 * something {@code --fix} leaves alone (issue #156).
+	 */
+	public static List<String> fixPreview(
+			Map<? extends DriftGroup<?>, List<DriftFix>> groupDrifts
+	) {
+		return groupDrifts.entrySet()
+				.stream()
+				.filter(
+						e -> e.getValue()
+								.stream()
+								.anyMatch(
+										fix -> fix.actionable()
+												&& !fix.items().isEmpty()
+								)
+				)
+				.map(e -> e.getKey().name().toString())
+				.toList();
+	}
+
 	public static List<String> render(List<DriftItem> items) {
 		return items.stream().map(DriftItem::message).toList();
 	}

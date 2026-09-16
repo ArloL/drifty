@@ -63,12 +63,9 @@ public class ActionSecretsDriftGroup extends DriftGroup<Drifty.GroupName> {
 			if (!desired.contains(secret.name())) {
 				var item = new DriftItem.SectionExtra(secret.name());
 				fixes.add(
-						new DriftFix(
+						DriftFix.reported(
 								item,
-								() -> FixResult.unfixed(
-										item,
-										"drifty does not delete secrets it did not create"
-								)
+								"drifty does not delete secrets it did not create"
 						)
 				);
 			}

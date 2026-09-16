@@ -109,21 +109,7 @@ public class CustomPropertiesDriftGroup extends DriftGroup<Drifty.GroupName> {
 			return List.of();
 		}
 		if (!organizationOwned) {
-			return List.of(
-					new DriftFix(
-							items,
-							() -> new FixResult(
-									items.stream()
-											.map(
-													item -> new FixResult.Unfixed(
-															item,
-															PERSONAL_ACCOUNT
-													)
-											)
-											.toList()
-							)
-					)
-			);
+			return List.of(DriftFix.reported(items, PERSONAL_ACCOUNT));
 		}
 		return List.of(new DriftFix(items, () -> {
 			client.updateRepoCustomPropertyValues(

@@ -105,12 +105,9 @@ public class OrgActionVariablesDriftGroup
 			if (!desired.containsKey(variable.name())) {
 				var item = new DriftItem.SectionExtra(variable.name());
 				fixes.add(
-						new DriftFix(
+						DriftFix.reported(
 								item,
-								() -> FixResult.unfixed(
-										item,
-										"drifty does not delete variables it did not create"
-								)
+								"drifty does not delete variables it did not create"
 						)
 				);
 			}

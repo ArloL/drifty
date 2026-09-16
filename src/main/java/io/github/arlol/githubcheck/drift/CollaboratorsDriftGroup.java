@@ -19,6 +19,10 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * endpoint, which is why a repository under a personal account cannot name a
  * team. Anyone on GitHub the config does not list is reported and left in
  * place.
+ * <p>
+ * The account that owns the repository is not one of them: {@code ActualTypes}
+ * drops it from the listing, and a config that names it is reported as the
+ * config error it is rather than turned into a PUT GitHub answers 422.
  */
 public class CollaboratorsDriftGroup extends DriftGroup<Drifty.GroupName> {
 
@@ -59,6 +63,19 @@ public class CollaboratorsDriftGroup extends DriftGroup<Drifty.GroupName> {
 		for (var entry : users.entrySet()) {
 			String login = entry.getKey();
 			String wanted = entry.getValue().toString();
+			if (login.equalsIgnoreCase(ref.owner())) {
+				fixes.add(
+						DriftFix.reported(
+								new DriftItem.FieldMismatch(
+										login,
+										wanted,
+										null
+								),
+								"the account that owns a repository is its admin and cannot be a collaborator"
+						)
+				);
+				continue;
+			}
 			String got = actual.users().get(login);
 			DriftItem item = got == null ? new DriftItem.SectionMissing(login)
 					: ocompare(login, wanted, got).orElse(null);
@@ -87,12 +104,9 @@ public class CollaboratorsDriftGroup extends DriftGroup<Drifty.GroupName> {
 			if (!organizationOwned) {
 				var item = new DriftItem.FieldMismatch(path, wanted, null);
 				fixes.add(
-						new DriftFix(
+						DriftFix.reported(
 								item,
-								() -> FixResult.unfixed(
-										item,
-										"a repository under a personal account cannot grant a team access"
-								)
+								"a repository under a personal account cannot grant a team access"
 						)
 				);
 				continue;
@@ -123,13 +137,9 @@ public class CollaboratorsDriftGroup extends DriftGroup<Drifty.GroupName> {
 	}
 
 	private static DriftFix reported(String path, String what) {
-		var item = new DriftItem.SectionExtra(path);
-		return new DriftFix(
-				item,
-				() -> FixResult.unfixed(
-						item,
-						"drifty does not remove " + what + " it did not add"
-				)
+		return DriftFix.reported(
+				new DriftItem.SectionExtra(path),
+				"drifty does not remove " + what + " it did not add"
 		);
 	}
 

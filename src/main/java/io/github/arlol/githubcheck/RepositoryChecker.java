@@ -224,11 +224,12 @@ public class RepositoryChecker {
 				return CheckResult.Entry.ok(name, unmanaged);
 			}
 			// In check mode, preview which groups --fix would act on.
-			List<String> fixPreview = groupDrifts.keySet()
-					.stream()
-					.map(group -> group.name().toString())
-					.toList();
-			return CheckResult.Entry.drift(name, diffs, fixPreview, unmanaged);
+			return CheckResult.Entry.drift(
+					name,
+					diffs,
+					DriftFixer.fixPreview(groupDrifts),
+					unmanaged
+			);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			return CheckResult.Entry.error(name, e.getMessage());
@@ -439,7 +440,8 @@ public class RepositoryChecker {
 							client.getCollaborators(org, name),
 							repository.organizationOwned()
 									? client.getRepoTeams(org, name)
-									: List.of()
+									: List.of(),
+							org
 					),
 					null
 			);

@@ -109,12 +109,9 @@ public class ActionVariablesDriftGroup extends DriftGroup<Drifty.GroupName> {
 			if (!desired.containsKey(name)) {
 				var item = new DriftItem.SectionExtra(prefix + name);
 				fixes.add(
-						new DriftFix(
+						DriftFix.reported(
 								item,
-								() -> FixResult.unfixed(
-										item,
-										"drifty does not delete variables it did not create"
-								)
+								"drifty does not delete variables it did not create"
 						)
 				);
 			}

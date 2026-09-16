@@ -72,12 +72,9 @@ public class EnvironmentSecretsDriftGroup extends DriftGroup<Drifty.GroupName> {
 							envName + ".secrets." + secret.name()
 					);
 					fixes.add(
-							new DriftFix(
+							DriftFix.reported(
 									item,
-									() -> FixResult.unfixed(
-											item,
-											"drifty does not delete secrets it did not create"
-									)
+									"drifty does not delete secrets it did not create"
 							)
 					);
 				}

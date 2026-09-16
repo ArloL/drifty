@@ -182,12 +182,9 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 			if (!desired.containsKey(configuration.name())) {
 				var item = new DriftItem.SectionExtra(configuration.name());
 				fixes.add(
-						new DriftFix(
+						DriftFix.reported(
 								item,
-								() -> FixResult.unfixed(
-										item,
-										"drifty does not delete code security configurations: deleting one detaches every repository it covers"
-								)
+								"drifty does not delete code security configurations: deleting one detaches every repository it covers"
 						)
 				);
 			}
@@ -326,12 +323,9 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 						name + ".repositories." + repository
 				);
 				fixes.add(
-						new DriftFix(
+						DriftFix.reported(
 								item,
-								() -> FixResult.unfixed(
-										item,
-										"drifty does not detach repositories from a code security configuration"
-								)
+								"drifty does not detach repositories from a code security configuration"
 						)
 				);
 			}

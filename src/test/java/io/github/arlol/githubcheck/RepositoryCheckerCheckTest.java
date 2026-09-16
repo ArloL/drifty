@@ -168,6 +168,81 @@ class RepositoryCheckerCheckTest {
 	}
 
 	/**
+	 * Issue #156: a group whose drift {@code --fix} only reports has nothing to
+	 * preview. {@code collaborators} never removes anyone it did not add, so
+	 * naming it read as an offer to drop a collaborator from a repository —
+	 * which is what every personal repository's report said, about its own
+	 * owner. The drift line still prints; the {@code Would fix:} line does not.
+	 */
+	@Test
+	void fixPreviewSkipsAGroupThatOnlyReportsItsDrift() throws Exception {
+		stubOwner("alpha", "one");
+		stubRepoSubResources();
+		stubFor(
+				get(
+						urlPathMatching("/repos/[^/]+/[^/]+/collaborators")
+				).willReturn(okJson("""
+						[{"login": "stray", "role_name": "write",
+						  "permissions": {"pull": true, "triage": true,
+						                  "push": true, "maintain": false,
+						                  "admin": false}}]
+						"""))
+		);
+
+		Drifty.Repository desired = entry("one").withManaged(
+				new Drifty.Managed(
+						Drifty.ManageMode.ONLY,
+						List.of(Drifty.GroupName.COLLABORATORS)
+				)
+		);
+
+		List<CheckResult.Entry> results = check("alpha", desired);
+
+		assertThat(results).singleElement().satisfies(result -> {
+			assertThat(result.status()).isEqualTo(CheckResult.Status.DRIFT);
+			assertThat(result.diffs()).containsExactly(
+					"collaborators.stray: extra (should not exist)"
+			);
+			assertThat(result.fixPreview()).isEmpty();
+		});
+		assertThat(capturePrintReport(CheckResult.ofRepos(results)))
+				.doesNotContain("Would fix");
+	}
+
+	/**
+	 * The owner of a personal account's repository comes back from
+	 * {@code affiliation=direct} as an admin collaborator, and reporting them
+	 * left 36 of one account's repositories drifting on nothing else (issue
+	 * #156).
+	 */
+	@Test
+	void theOwnerIsNotReportedAsAnExtraCollaborator() throws Exception {
+		stubOwner("alpha", "one");
+		stubRepoSubResources();
+		stubFor(
+				get(
+						urlPathMatching("/repos/[^/]+/[^/]+/collaborators")
+				).willReturn(okJson("""
+						[{"login": "alpha", "role_name": "admin",
+						  "permissions": {"pull": true, "triage": true,
+						                  "push": true, "maintain": true,
+						                  "admin": true}}]
+						"""))
+		);
+
+		Drifty.Repository desired = entry("one").withManaged(
+				new Drifty.Managed(
+						Drifty.ManageMode.ONLY,
+						List.of(Drifty.GroupName.COLLABORATORS)
+				)
+		);
+
+		assertThat(check("alpha", desired)).singleElement()
+				.extracting(CheckResult.Entry::status)
+				.isEqualTo(CheckResult.Status.OK);
+	}
+
+	/**
 	 * In fix mode the report is a FIXED/FAILED line per setting, and every
 	 * failure has to say why — SPEC.md's per-setting fix results and its
 	 * end-of-run failure summary.

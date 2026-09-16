@@ -802,13 +802,25 @@ public final class ActualTypes {
 	 * through the organization or enterprise are not direct grants and are left
 	 * out; a response without {@code access_source} predates the field and
 	 * lists direct grants only.
+	 * <p>
+	 * The account that owns the repository is left out as well. {@code
+	 * affiliation=direct} still lists a personal account's owner, as admin, and
+	 * that grant is the ownership itself: it cannot be granted, changed or
+	 * removed. Keeping it made every personal repository drift on an extra
+	 * collaborator nobody could act on and wrote the owner into every
+	 * repository the export produced (issue #156). An organization login never
+	 * appears in the listing, so passing the owner unconditionally is enough.
 	 */
 	public static ActualCollaborators collaborators(
 			List<CollaboratorResponse> collaborators,
-			List<RepoTeamResponse> teams
+			List<RepoTeamResponse> teams,
+			String owner
 	) {
 		var users = new LinkedHashMap<String, String>();
 		for (CollaboratorResponse c : collaborators) {
+			if (c.login() != null && c.login().equalsIgnoreCase(owner)) {
+				continue;
+			}
 			users.put(
 					c.login(),
 					permissionLevel(c.permissions(), c.roleName())

@@ -175,6 +175,8 @@ An option still takes whatever argument follows it, flag-shaped or not: `--confi
 
 A diff path is the drift group's name followed by the setting's name within that group, which is what makes it unique across the run. Most groups use the setting's wire name; a few shorten it (`workflow_permissions.default` for `default_workflow_permissions`). Organizations are printed the same way, under their own heading — see [Report](#report) under Organizations.
 
+`Would fix:` names only the groups `--fix` would write to. A group whose drift is all reported and left alone — an extra collaborator, an environment drifty does not delete — is left out of the line even though its drift is listed above it, because naming it read as an offer to remove something `--fix` never touches.
+
 **With `--fix`:** Same output, but diffs are replaced with per-setting fix results (FIXED or FAILED with reason). Failed fixes are also collected in a summary at the end.
 
 ### Export
@@ -469,7 +471,7 @@ Two mappings because a `multi_select` property holds a list. `true_false` proper
 }
 ```
 
-Direct collaborators only: a member who reaches the repository through an org role or a team is not a collaborator to reconcile. Permissions are the config's vocabulary (`pull`, `triage`, `push`, `maintain`, `admin`), read from the permission booleans GitHub returns. A user who has been invited but has not accepted appears in no listing, so the entry is reported missing until they accept; the PUT that fixes it is idempotent and does not resend the invitation. Team access is written through `PUT /orgs/{org}/teams/{slug}/repos/{owner}/{repo}`, so `teamPermissions` on a repository under a personal account is a config error reported at check time. Collaborators and teams on GitHub that the config does not list are reported and left in place.
+Direct collaborators only: a member who reaches the repository through an org role or a team is not a collaborator to reconcile. Permissions are the config's vocabulary (`pull`, `triage`, `push`, `maintain`, `admin`), read from the permission booleans GitHub returns. A user who has been invited but has not accepted appears in no listing, so the entry is reported missing until they accept; the PUT that fixes it is idempotent and does not resend the invitation. Team access is written through `PUT /orgs/{org}/teams/{slug}/repos/{owner}/{repo}`, so `teamPermissions` on a repository under a personal account is a config error reported at check time. Collaborators and teams on GitHub that the config does not list are reported and left in place. The account that owns the repository is not one of them: GitHub lists a personal account's owner among the direct collaborators, as admin, but that grant is the ownership and can be neither written nor removed — it is left out of the comparison and out of the export, and a config naming the owner is the same kind of config error as a team on a personal repository.
 
 ### Environments
 

@@ -84,12 +84,9 @@ final class WebhookReconciler {
 						"the url of another webhook in the config"
 				);
 				fixes.add(
-						new DriftFix(
+						DriftFix.reported(
 								item,
-								() -> FixResult.unfixed(
-										item,
-										"two webhooks share a url; the url is what identifies a hook on GitHub"
-								)
+								"two webhooks share a url; the url is what identifies a hook on GitHub"
 						)
 				);
 				continue;

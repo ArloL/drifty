@@ -97,12 +97,9 @@ public class EnvironmentConfigDriftGroup extends DriftGroup<Drifty.GroupName> {
 			if (!desired.containsKey(envName)) {
 				var item = new DriftItem.SectionExtra(envName);
 				fixes.add(
-						new DriftFix(
+						DriftFix.reported(
 								item,
-								() -> FixResult.unfixed(
-										item,
-										"drifty does not delete environments"
-								)
+								"drifty does not delete environments"
 						)
 				);
 			}
