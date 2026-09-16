@@ -48,7 +48,8 @@ public abstract class DriftGroup<N extends Enum<N>> {
 				.map(
 						fix -> new DriftFix(
 								namespaceAll(fix.items()),
-								namespaced(fix.fix())
+								namespaced(fix.fix()),
+								fix.actionable()
 						)
 				)
 				.toList();

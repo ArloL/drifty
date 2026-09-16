@@ -78,12 +78,9 @@ public class OrgCustomPropertiesDriftGroup
 			if (!desired.containsKey(property.name())) {
 				var item = new DriftItem.SectionExtra(property.name());
 				fixes.add(
-						new DriftFix(
+						DriftFix.reported(
 								item,
-								() -> FixResult.unfixed(
-										item,
-										"drifty does not delete custom properties: deleting one discards its value on every repository"
-								)
+								"drifty does not delete custom properties: deleting one discards its value on every repository"
 						)
 				);
 			}

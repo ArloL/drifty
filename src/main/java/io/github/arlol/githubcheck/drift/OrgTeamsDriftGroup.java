@@ -100,12 +100,9 @@ public class OrgTeamsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 			if (!desired.containsKey(team.slug())) {
 				var item = new DriftItem.SectionExtra(team.slug());
 				fixes.add(
-						new DriftFix(
+						DriftFix.reported(
 								item,
-								() -> FixResult.unfixed(
-										item,
-										"drifty does not delete teams it did not create"
-								)
+								"drifty does not delete teams it did not create"
 						)
 				);
 			}
@@ -192,12 +189,9 @@ public class OrgTeamsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 						slug + "." + field + "." + login
 				);
 				fixes.add(
-						new DriftFix(
+						DriftFix.reported(
 								item,
-								() -> FixResult.unfixed(
-										item,
-										"drifty does not remove team members it did not add"
-								)
+								"drifty does not remove team members it did not add"
 						)
 				);
 			}

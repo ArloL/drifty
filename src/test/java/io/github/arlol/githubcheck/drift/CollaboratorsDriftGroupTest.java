@@ -156,6 +156,33 @@ class CollaboratorsDriftGroupTest {
 				.contains("personal account");
 	}
 
+	/**
+	 * Issue #156: the owner of a personal repository is already its admin
+	 * through the ownership, and {@code PUT .../collaborators/{owner}} answers
+	 * 422, so naming them is a config error to report rather than a write to
+	 * attempt. {@code ActualTypes} keeps the owner out of the listing, which is
+	 * why the actual state here holds nobody.
+	 */
+	@Test
+	void theOwnerNamedAsACollaborator_isAConfigError() {
+		var group = group(
+				Map.of("owner", Drifty.CollaboratorPermission.PUSH),
+				Map.of(),
+				new ActualCollaborators(Map.of(), Map.of()),
+				false
+		);
+
+		var fixes = group.detect();
+
+		assertThat(fixes).singleElement()
+				.satisfies(fix -> assertThat(fix.actionable()).isFalse());
+		assertThat(fixes.getFirst().fix().execute().unfixedItems())
+				.singleElement()
+				.extracting(FixResult.Unfixed::reason)
+				.asString()
+				.contains("owns a repository");
+	}
+
 	@Test
 	void extras_areReportedAndNeverRemoved() {
 		var group = group(
@@ -179,6 +206,7 @@ class CollaboratorsDriftGroupTest {
 				);
 		for (var fix : fixes) {
 			assertThat(fix.fix().execute().unfixedItems()).hasSize(1);
+			assertThat(fix.actionable()).isFalse();
 		}
 	}
 

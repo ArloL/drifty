@@ -136,6 +136,22 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   membership are reported with a reason and left alone. A new keyed group
   picks one of the two and says why in its class comment; SPEC.md's "What
   `--fix` Deletes" lists both sets.
+- **An item drifty reports but never writes is `DriftFix.reported`.** The
+  `Would fix:` preview names the groups holding at least one fix that can act,
+  so a `new DriftFix(item, () -> FixResult.unfixed(...))` built by hand is
+  counted as writable and offers a run that would do nothing — check mode
+  printed `Would fix: collaborators` beside an extra collaborator `--fix`
+  leaves in place (issue #156). `DriftGroup.detect` rebuilds every fix to
+  namespace its paths and has to carry the flag through; dropping it there
+  silently makes every group actionable again.
+- **The account that owns a repository is not one of its collaborators.**
+  `affiliation=direct` lists a personal account's owner, as admin, and
+  `ActualTypes.collaborators` drops it — the grant is the ownership and no PUT
+  or DELETE touches it. Keeping it made every personal repository drift on an
+  extra collaborator and wrote the owner into every exported repository.
+  `CollaboratorsDriftGroup` reports a config that names the owner instead of
+  sending a PUT GitHub answers 422, the way it does for a team on a personal
+  repository.
 - **Enterprise-owned entities never reach a group.** The checker drops
   rulesets whose `source_type` is `Enterprise`, custom properties whose
   `source_type` is `enterprise`, teams whose `type` is `enterprise` and code

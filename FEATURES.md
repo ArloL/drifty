@@ -588,3 +588,25 @@ three groups per repository and two of its own reported `14 group(s) ...` above
 five names, which reads left to right as nine names missing from the line. The
 reads still say what the names cannot: one repository lacking a scope and the
 whole token lacking it produce the same names.
+
+## ~~55. The repository's owner is not one of its collaborators~~ DONE
+
+Implemented: `ActualTypes.collaborators` takes the owner login and drops that
+entry from the listing, and `CollaboratorsDriftGroup` reports a config that
+names the owner the way it reports a team on a personal repository — an item
+with a reason, never a PUT. `DriftFix` grew an `actionable` flag, false for the
+items drifty only reports, and `DriftFixer.fixPreview` builds the `Would fix:`
+line from the groups that hold at least one actionable drifted fix.
+
+Issue #156: `GET /repos/{owner}/{repo}/collaborators?affiliation=direct` lists
+the owner of a personal account's repository, as admin, so every one of them
+reported its own owner as an extra collaborator. 43 of the 101 repositories in
+the run that found this drifted, all 43 on that, 36 of them on nothing else.
+The grant is the ownership itself: it cannot be added, changed or removed, and
+keeping it also wrote the owner into every repository `--export` produced.
+
+The `Would fix: collaborators` line under it was the second half. Every
+reported item carries a reason `--fix` prints instead of writing, but the
+preview was built from the drifted groups' names alone, so check mode offered
+to remove the owner from their own repositories. It now skips a group with no
+fix that can act.

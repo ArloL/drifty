@@ -137,10 +137,7 @@ public class OrganizationChecker {
 			return CheckResult.Entry.drift(
 					login,
 					diffs,
-					groupDrifts.keySet()
-							.stream()
-							.map(group -> group.name().toString())
-							.toList(),
+					DriftFixer.fixPreview(groupDrifts),
 					unmanaged
 			);
 		} catch (GitHubApiException e) {

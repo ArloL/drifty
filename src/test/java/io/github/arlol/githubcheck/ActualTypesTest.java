@@ -1,6 +1,7 @@
 package io.github.arlol.githubcheck;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +28,7 @@ import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.BranchProtectionResponse;
 import io.github.arlol.githubcheck.client.CodeSecurityConfigurationResponse;
 import io.github.arlol.githubcheck.client.CustomPropertyResponse;
+import io.github.arlol.githubcheck.client.CollaboratorResponse;
 import io.github.arlol.githubcheck.client.CustomPropertyValueResponse;
 import io.github.arlol.githubcheck.client.BranchPolicyType;
 import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
@@ -36,6 +38,7 @@ import io.github.arlol.githubcheck.client.OrgActionsPermissionsResponse;
 import io.github.arlol.githubcheck.client.OrganizationResponse;
 import io.github.arlol.githubcheck.client.PagesBuildType;
 import io.github.arlol.githubcheck.client.PagesResponse;
+import io.github.arlol.githubcheck.client.Permissions;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.MergeCommitMessage;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
@@ -928,6 +931,52 @@ class ActualTypesTest {
 						true,
 						ActualCodeSecurityConfiguration::codeScanningAllowAdvanced
 				);
+	}
+
+	// ─── Collaborators
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * Issue #156: {@code affiliation=direct} lists the owner of a personal
+	 * account's repository among its collaborators, as admin, so every one of
+	 * them reported the owner as an extra collaborator nobody could remove — 43
+	 * of 101 repositories in the run that found this, 36 of them drifting on
+	 * nothing else. The grant is the ownership; it is not a collaborator to
+	 * reconcile.
+	 */
+	@Test
+	void theOwnerIsNotOneOfTheRepositorysCollaborators() {
+		var owner = new CollaboratorResponse(
+				"ArloL",
+				"admin",
+				new Permissions(true, true, true, true, true)
+		);
+		var other = new CollaboratorResponse(
+				"octocat",
+				"write",
+				new Permissions(true, true, true, false, false)
+		);
+
+		var collaborators = ActualTypes
+				.collaborators(List.of(owner, other), List.of(), "ArloL");
+
+		assertThat(collaborators.users())
+				.containsExactly(entry("octocat", "push"));
+	}
+
+	/** The owner login the config spells is the config's, so casing varies. */
+	@Test
+	void theOwnerIsMatchedWithoutRegardForCase() {
+		var owner = new CollaboratorResponse(
+				"ArloL",
+				"admin",
+				new Permissions(true, true, true, true, true)
+		);
+
+		assertThat(
+				ActualTypes.collaborators(List.of(owner), List.of(), "arlol")
+						.users()
+		).isEmpty();
 	}
 
 }

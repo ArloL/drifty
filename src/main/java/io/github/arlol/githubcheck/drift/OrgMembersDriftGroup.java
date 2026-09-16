@@ -67,12 +67,9 @@ public class OrgMembersDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 			if (!desired.containsKey(login)) {
 				var item = new DriftItem.SectionExtra(login);
 				fixes.add(
-						new DriftFix(
+						DriftFix.reported(
 								item,
-								() -> FixResult.unfixed(
-										item,
-										"drifty does not remove members it did not add"
-								)
+								"drifty does not remove members it did not add"
 						)
 				);
 			}
