@@ -21,21 +21,10 @@
                 "java graalvm-community-(?<currentValue>\\S+)",
             ],
         },
-        {
-            // Adoptium's own semver is 25.0.4+101.0.LTS, which setup-java
-            // cannot resolve, so only the release version is kept.
-            "customType": "regex",
-            "extractVersionTemplate": "^(?<version>\\d+\\.\\d+\\.\\d+)",
-            "managerFilePatterns": [
-                "/^\\.github/workflows/[^/]+\\.yaml$/",
-            ],
-            "matchStrings": [
-                "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+java-version: (?<currentValue>\\S+)",
-            ],
-        },
     ],
     "extends": [
         "config:recommended",
+        "customManagers:githubActionsVersions",
     ],
     "labels": [
         "dependencies",
