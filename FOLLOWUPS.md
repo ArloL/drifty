@@ -8,89 +8,66 @@ says what to delete once it lands, and how to check.
 **Carrying:** `"com.sun.jna."` in `MAIN_TYPE_PREFIXES`
 (`src/test/java/io/github/arlol/githubcheck/ReachabilityMetadata.java`), which
 routes the 21 agent-traced `com.sun.jna.*` reflection entries into the
-production image instead of the test scope.
+production image instead of the test scope. One of the 21 is load-bearing.
 
-**Why:** the GraalVM reachability-metadata repository's JNA config only covers
-interface mapping (`Native.load`). lazysodium uses direct mapping
-(`Native.register`), which builds the libffi call descriptors in Java and
-reflectively instantiates types the config never registers. Verified on
-2026-07-28 with JNA 5.19.1: with the block removed, the production image dies
-at `new SodiumJava()` with
-
-```
-NoSuchMethodException: com.sun.jna.Structure$FFIType.<init>()
-```
-
-and, once that one entry is restored, with
+**Why:** lazysodium binds through direct mapping (`Native.register`), which
+builds the libffi call descriptors in Java rather than native code and
+instantiates the parameter types reflectively. `PointerType` implements
+`NativeMapped`, so `NativeMappedConverter` constructs a default value for every
+`ByReference` parameter, and the metadata repository registers no
+`com.sun.jna.ptr.*` type at all. With the block removed the production image
+dies at `new SodiumJava()` with
 
 ```
-NoSuchMethodException: com.sun.jna.NativeLong.<init>()
+NoSuchMethodException: com.sun.jna.ptr.IntByReference.<init>()
     at com.sun.jna.NativeMappedConverter.defaultValue(NativeMappedConverter.java:65)
-    at com.sun.jna.Native.register(Native.java:1965)
+    at com.sun.jna.Structure$FFIType.get(Structure.java:2255)
+    at com.sun.jna.Native.register(Native.java:1982)
 ```
 
-This is a property of the binding mode, not the JNA version — 5.18.1 fails
-identically.
+Verified 2026-09-18 on native-maven-plugin 1.1.10 with JNA 5.19.1: with
+`com.sun.jna.ptr.IntByReference` as the only self-supplied entry, `--self-test`
+passes both with and without `--config`. The other twenty now come from the
+repository:
+<https://github.com/oracle/graalvm-reachability-metadata/pull/9121> merged, and
+the `Structure$FFIType`, `Structure$FFIType$size_t` and `NativeLong`
+constructors it added ship in the plugin's bundled snapshot. Narrowing the carry
+to that one type therefore waits on nothing.
 
-**Waiting on:**
-<https://github.com/oracle/graalvm-reachability-metadata/pull/9121> — adds the
-`Structure$FFIType`, `Structure$FFIType$size_t` and `NativeLong` entries plus a
-direct-mapping test covering both failures above. Open as of 2026-07-28.
+Which `ByReference` types direct mapping instantiates is decided by lazysodium's
+signatures, not by JNA: a binding taking a different one adds a second missing
+registration with no upstream change involved.
+
+**Waiting on:** a PR registering the `com.sun.jna.ptr.*` constructors, the way
+#9121 registered the `Structure$FFIType` ones. None is open as of 2026-09-18.
 
 Merging is not enough on its own: the entries have to reach us through a
 `native-maven-plugin` release that bundles a metadata repository snapshot
-containing them. Re-run the check below after a plugin bump, not after the
-merge notification.
-
-Whether those four entries are *all* that direct mapping needs is unverified —
-they are what this project's code path happens to hit. If the check below turns
-up a third missing registration, that is another upstream PR, not a local fix.
+containing them. Re-run the check below after a plugin bump, not after the merge
+notification.
 
 **How to check whether it can go:**
 
 ```bash
-# drop "com.sun.jna." from MAIN_TYPE_PREFIXES, then regenerate and rebuild
-./mvnw test -Dagent=true
-./mvnw test-compile
-./mvnw exec:java@reachability-metadata
+# delete every com.sun.jna.* entry from
+# src/main/resources/META-INF/native-image/reachability-metadata.json
 ./mvnw -DskipTests package
-./target/drifty-macos-0.0.1-SNAPSHOT --self-test   # must print "self-test OK"
+./target/drifty-linux-0.0.1-SNAPSHOT --self-test   # must print "self-test OK"
 ```
+
+A pass means `"com.sun.jna."` comes out of `MAIN_TYPE_PREFIXES`; regenerate both
+metadata files afterwards with the sequence in CLAUDE.md.
 
 Keep `--self-test` and `NativeExecutableIT.selfTest` regardless — they are the
 guard that catches this class of breakage in the shipped binary, not just a
 scaffold for this particular workaround.
 
-## 2. JNA 5.19.x is not a tested version upstream
-
-**Carrying:** nothing in the build any more — `pom.xml` is on JNA **5.19.1**.
-This entry exists so the reason is not rediscovered.
-
-**Why it looked like a pin:** 5.19.x is absent from `tested-versions` in
-`metadata/net.java.dev.jna/jna/index.json`. That does **not** mean "no metadata"
-— `native-maven-plugin` calls `Query.useLatestConfigWhenVersionIsUntested()`
-unconditionally, so an untested version falls back to the latest config
-directory (`net.java.dev.jna/jna/5.8.0`). 5.19.1 therefore gets the same
-metadata 5.18.1 does, with the same gaps. The earlier pin to 5.18.1 was
-therefore treating the wrong cause; see item 1 for the real one.
-
-**Waiting on:**
-<https://github.com/oracle/graalvm-reachability-metadata/issues/7741> — 5.19.x
-cannot be added to `tested-versions` while the TCK's `future-defaults-all` mode
-fails for it with `VMError$HostedError: Bulk queries can only be set with
-'name' which does not allow run-time conditions`. That failure does not
-originate in the JNA metadata file (it contains no bulk queries), so it is not
-something this project can fix.
-
-**When it lands:** nothing to remove here. It only matters as a precondition
-for upstream being able to *test* what item 1 depends on.
-
-## 3. `maven-shared-utils` on the native-maven-plugin classpath
+## 2. `maven-shared-utils` on the native-maven-plugin classpath
 
 **Carrying:** an explicit `org.apache.maven.shared:maven-shared-utils`
 dependency on the `native-maven-plugin` declaration in `pom.xml`.
 
-**Why:** 1.1.6 calls `org.apache.maven.shared.utils.logging.MessageUtils` but
+**Why:** 1.1.10 calls `org.apache.maven.shared.utils.logging.MessageUtils` but
 no longer receives maven-shared-utils from the Maven core classpath, so the
 test/compile goals fail with `NoClassDefFoundError` without it.
 
@@ -98,7 +75,7 @@ test/compile goals fail with `NoClassDefFoundError` without it.
 plugin declaration and run `./mvnw verify`. If it completes, the upstream
 plugin has fixed its own classpath and the workaround can be deleted.
 
-## 4. `secret_scanning_extended_metadata` has no established default
+## 3. `secret_scanning_extended_metadata` has no established default
 
 **Carrying:** nothing in the code — `CodeSecurityConfiguration` in
 `config/drifty.pkl` does not declare the field, so drifty neither compares nor
@@ -132,9 +109,9 @@ components, and the SPEC.md table; then delete this entry. If GitHub answers
 the field as null on a bare configuration, it reads as `not_set` — the
 `settings.replaceAll` in `ActualTypes` already does that for every toggle.
 
-## 5. `ExportRoundTripTest` covers roughly a third of the exporters
+## 4. `ExportRoundTripTest` covers roughly a third of the exporters
 
-Unlike 1–3, nothing upstream needs to move for this one — it is a
+Unlike 1 and 2, nothing upstream needs to move for this one — it is a
 test-coverage gap, carried here instead of closed because closing it
 properly (a dedicated all-drifted fixture per section, the way
 `SchemaCoverageTest`'s own "Not covered" list already admits for the plain
