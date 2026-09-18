@@ -89,6 +89,9 @@ public class GitHubCheck {
 			);
 			Path exportStateFile = stateFile(statePath, out);
 			var exportStore = new StateStore();
+			// Loaded and saved rather than built fresh: a new DriftyState
+			// written over this file would take every secret baseline with
+			// it.
 			DriftyState state = exportStore.load(exportStateFile);
 			int exitCode;
 			try {
