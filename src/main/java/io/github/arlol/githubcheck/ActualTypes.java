@@ -627,6 +627,20 @@ public final class ActualTypes {
 		);
 	}
 
+	/**
+	 * Whether Dependabot security updates are on — what {@code GET
+	 * /repos/\{owner\}/\{repo\}/automated-security-fixes} answers, read off the
+	 * details response that carries it instead.
+	 */
+	public static boolean dependabotSecurityUpdates(
+			RepositoryDetailsResponse response
+	) {
+		return enabled(
+				response.securityAndAnalysis(),
+				SecurityAndAnalysis::dependabotSecurityUpdates
+		);
+	}
+
 	private static boolean enabled(
 			SecurityAndAnalysis sa,
 			Function<SecurityAndAnalysis, SecurityAndAnalysis.StatusObject> toggle

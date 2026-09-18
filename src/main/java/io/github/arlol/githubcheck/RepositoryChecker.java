@@ -85,19 +85,25 @@ public class RepositoryChecker {
 	/**
 	 * All the state a repository nobody will compare needs.
 	 * <p>
-	 * Two callers narrow {@code fetchState} to this, for the same reason from
-	 * opposite directions: {@link #createDriftGroups} returns
-	 * {@code ArchivedDriftGroup} and nothing else when the config asks for
-	 * {@code archived = true}, and {@code RepositoryExporter.entry} renders no
-	 * group's section once a repository <em>is</em> archived. Either way every
-	 * other group's requests were sent and the answers dropped — 49 archived
-	 * repositories of one 101-repository account spent 343 of its 1152 requests
-	 * that way, on endpoints GitHub rejects every write to.
+	 * {@code RepositoryExporter.entry} renders no group's section once a
+	 * repository <em>is</em> archived, so {@code ExportRunner} narrows what it
+	 * asks {@code fetchState} for to this: every other group's requests were
+	 * sent and the answers dropped, 49 archived repositories of one
+	 * 101-repository account spending 343 of its 1152 requests that way on
+	 * endpoints GitHub rejects every write to. {@code collectMissingSecrets}
+	 * narrows the same way, so {@code --fix} is not aborted over a secret value
+	 * nothing will write.
+	 * <p>
+	 * The check side no longer narrows — it fetches nothing. A repository the
+	 * config wants archived is compared on {@code archived} alone and
+	 * {@code checkOne} has that off the account listing, so there is no request
+	 * left to narrow. The export cannot do the same: it writes the repository's
+	 * settings down whether or not it compares them, and the listing does not
+	 * carry the merge fields.
 	 * <p>
 	 * {@code fetchState} guards nothing on {@code ARCHIVED} itself: the group
 	 * compares {@code archived} off the repository details request, which is
-	 * sent whatever this says. Naming it is what makes the narrowing readable
-	 * beside {@code createDriftGroups}.
+	 * sent whatever this says.
 	 */
 	static final Set<Drifty.GroupName> ARCHIVED_ONLY = Set
 			.of(Drifty.GroupName.ARCHIVED);
@@ -161,6 +167,18 @@ public class RepositoryChecker {
 			List<RepositorySummaryResponse> summaries,
 			List<Drifty.Repository> desired
 	) throws InterruptedException, ExecutionException {
+		return check(
+				owner,
+				new GitHubClient.PagedRepositories(summaries, List::of),
+				desired
+		);
+	}
+
+	public List<CheckResult.Entry> check(
+			String owner,
+			GitHubClient.PagedRepositories listing,
+			List<Drifty.Repository> desired
+	) throws InterruptedException, ExecutionException {
 		Map<String, Drifty.Repository> desiredByName = desired.stream()
 				.collect(
 						Collectors.toMap(
@@ -171,20 +189,31 @@ public class RepositoryChecker {
 						)
 				);
 
+		List<RepositorySummaryResponse> summaries = new ArrayList<>();
 		List<CheckResult.Entry> results = new ArrayList<>();
 		try (ExecutorService executor = Executors
 				.newVirtualThreadPerTaskExecutor()) {
-			List<Future<CheckResult.Entry>> futures = summaries.stream()
-					.map(
-							summary -> executor.submit(
-									() -> checkOne(
-											new RepoRef(owner, summary.name()),
-											summary,
-											desiredByName.get(summary.name())
-									)
-							)
-					)
-					.toList();
+			List<Future<CheckResult.Entry>> futures = new ArrayList<>();
+			// The first page's repositories start while the pages after it are
+			// still arriving: nothing a repository is read for needs any other
+			// repository, and the listing is otherwise one round trip of pure
+			// head in front of every one of them.
+			submit(
+					executor,
+					futures,
+					summaries,
+					owner,
+					listing.firstPage(),
+					desiredByName
+			);
+			submit(
+					executor,
+					futures,
+					summaries,
+					owner,
+					listing.rest().get(),
+					desiredByName
+			);
 			for (Future<CheckResult.Entry> f : futures) {
 				results.add(f.get());
 			}
@@ -201,6 +230,29 @@ public class RepositoryChecker {
 				.forEach(results::add);
 
 		return List.copyOf(results);
+	}
+
+	/** Starts one page's repositories, and records what it named. */
+	private void submit(
+			ExecutorService executor,
+			List<Future<CheckResult.Entry>> futures,
+			List<RepositorySummaryResponse> listed,
+			String owner,
+			List<RepositorySummaryResponse> page,
+			Map<String, Drifty.Repository> desiredByName
+	) {
+		listed.addAll(page);
+		page.forEach(
+				summary -> futures.add(
+						executor.submit(
+								() -> checkOne(
+										new RepoRef(owner, summary.name()),
+										summary,
+										desiredByName.get(summary.name())
+								)
+						)
+				)
+		);
 	}
 
 	private CheckResult.Entry checkOne(
@@ -220,18 +272,26 @@ public class RepositoryChecker {
 					.map(Drifty.GroupName::toString)
 					.toList();
 
+			// A repository the config wants archived is compared on
+			// `archived` alone, and the listing this was handed already
+			// carries it: there is nothing left to ask GitHub for. 51
+			// archived repositories of one 101-repository account spent a
+			// request each on a boolean in hand.
+			//
 			// `unmanaged` above comes from the config's own block, not from
-			// this: what a repository declares unmanaged is what the report
-			// names, and narrowing the fetch is not a declaration.
-			RepositoryState state = fetchState(
-					ref,
-					summary,
-					desired.archived ? managed.and(ARCHIVED_ONLY) : managed
-			);
-
+			// the narrowing: what a repository declares unmanaged is what the
+			// report names, and reading less is not a declaration.
 			Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts = computeGroupDrifts(
-					state,
-					desired
+					desired.archived
+							? archivedOnlyGroups(
+									ref,
+									summary.archived(),
+									managed
+							)
+							: createDriftGroups(
+									fetchState(ref, summary, managed),
+									desired
+							)
 			);
 
 			if (fix) {
@@ -371,12 +431,19 @@ public class RepositoryChecker {
 							List.of()
 					);
 
-			Supplier<Optional<PagesResponse>> pages = archived ? Optional::empty
-					: fanout.read(
-							Drifty.GroupName.PAGES,
-							() -> client.getPages(org, name),
-							Optional.empty()
-					);
+			// has_pages on the listing answers what GET .../pages answers
+			// with a 404, without spending the round trip on it: 37 of one
+			// account's 45 active repositories had no site. Only a listing
+			// that omits the field falls through to asking — the endpoint is
+			// the answer whenever the summary does not carry one.
+			Supplier<Optional<PagesResponse>> pages = archived
+					|| Boolean.FALSE.equals(summary.hasPages())
+							? Optional::empty
+							: fanout.read(
+									Drifty.GroupName.PAGES,
+									() -> client.getPages(org, name),
+									Optional.empty()
+							);
 
 			Supplier<List<ActualWebhook>> webhooks = fanout.read(
 					Drifty.GroupName.WEBHOOKS,
@@ -438,7 +505,7 @@ public class RepositoryChecker {
 					ActualTypes.repository(repoDetails),
 					ActualTypes.securityAndAnalysis(repoDetails),
 					flags.vulnAlerts(),
-					flags.automatedSecurityFixes(),
+					ActualTypes.dependabotSecurityUpdates(repoDetails),
 					flags.immutableReleases(),
 					flags.privateVulnerabilityReporting(),
 					flags.codeScanningDefaultSetup(),
@@ -679,11 +746,6 @@ public class RepositoryChecker {
 				() -> client.getVulnerabilityAlerts(org, name),
 				false
 		);
-		Supplier<Boolean> automatedSecurityFixes = fanout.read(
-				Drifty.GroupName.AUTOMATED_SECURITY_FIXES,
-				() -> client.getAutomatedSecurityFixes(org, name),
-				false
-		);
 		Supplier<Optional<ImmutableReleasesResponse>> immutableReleases = fanout
 				.read(
 						Drifty.GroupName.IMMUTABLE_RELEASES,
@@ -702,7 +764,6 @@ public class RepositoryChecker {
 		);
 		return () -> new SecurityFlags(
 				vulnAlerts.get(),
-				automatedSecurityFixes.get(),
 				immutableReleases.get()
 						.filter(ImmutableReleasesResponse::enabled)
 						.isPresent(),
@@ -790,19 +851,26 @@ public class RepositoryChecker {
 	}
 
 	/**
-	 * The security- and analysis-related repository flags, all {@code false}
-	 * for an archived repository since GitHub does not expose them there.
+	 * The security- and analysis-related repository flags GitHub serves from
+	 * their own endpoints, all {@code false} for an archived repository since
+	 * GitHub does not expose them there.
+	 * <p>
+	 * Automated security fixes are not among them: GitHub answers the same bit
+	 * as {@code security_and_analysis.dependabot_security_updates} on the
+	 * repository's own details, which is read for eight other security groups
+	 * anyway, so asking {@code /automated-security-fixes} as well cost one
+	 * request per repository for a value already in hand. The endpoint's
+	 * {@code paused} field is the only thing it carries that the details do
+	 * not, and nothing compares it.
 	 */
 	private record SecurityFlags(
 			boolean vulnAlerts,
-			boolean automatedSecurityFixes,
 			boolean immutableReleases,
 			boolean privateVulnerabilityReporting,
 			boolean codeScanningDefaultSetup
 	) {
 
 		private static final SecurityFlags NONE = new SecurityFlags(
-				false,
 				false,
 				false,
 				false,
@@ -829,14 +897,48 @@ public class RepositoryChecker {
 			RepositoryState actual,
 			Drifty.Repository desired
 	) {
+		return computeGroupDrifts(createDriftGroups(actual, desired));
+	}
+
+	private Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> computeGroupDrifts(
+			List<DriftGroup<Drifty.GroupName>> groups
+	) {
 		Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts = new LinkedHashMap<>();
-		for (var group : createDriftGroups(actual, desired)) {
+		for (var group : groups) {
 			var fixes = group.detect();
 			if (fixes.stream().anyMatch(fix -> !fix.items().isEmpty())) {
 				groupDrifts.put(group, fixes);
 			}
 		}
 		return groupDrifts;
+	}
+
+	/**
+	 * The only group a repository the config wants archived is compared on.
+	 * <p>
+	 * Takes {@code actualArchived} rather than a {@link RepositoryState}
+	 * because that boolean is the whole of what the comparison needs, and
+	 * {@code checkOne} has it off the account listing without sending anything.
+	 * {@code createDriftGroups} reaches the same groups from a state it was
+	 * handed, which is the shape the export needs — it renders an archived
+	 * repository's settings and so reads them.
+	 */
+	private List<DriftGroup<Drifty.GroupName>> archivedOnlyGroups(
+			RepoRef ref,
+			boolean actualArchived,
+			ManagedGroups<Drifty.GroupName> managed
+	) {
+		return onlyManaged(
+				List.of(
+						new ArchivedDriftGroup(
+								true,
+								actualArchived,
+								client,
+								ref
+						)
+				),
+				managed
+		);
 	}
 
 	List<DriftGroup<Drifty.GroupName>> createDriftGroups(
@@ -852,15 +954,9 @@ public class RepositoryChecker {
 			// When archiving (or already archived): only check archived state,
 			// skip all other groups since settings don't matter for archived
 			// repos.
-			return onlyManaged(
-					List.of(
-							new ArchivedDriftGroup(
-									true,
-									actual.repository().archived(),
-									client,
-									ref
-							)
-					),
+			return archivedOnlyGroups(
+					ref,
+					actual.repository().archived(),
 					managed
 			);
 		}

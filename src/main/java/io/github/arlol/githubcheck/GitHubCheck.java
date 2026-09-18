@@ -228,20 +228,25 @@ public class GitHubCheck {
 			String login = entry.getKey();
 			List<Drifty.Repository> desired = entry.getValue().repositories;
 			System.out.println("Fetching repo list for user: " + login);
-			List<RepositorySummaryResponse> repos;
+			// The listing's first page is handed over before the pages after
+			// it arrive, so the repositories it names are checked while the
+			// rest of it is still on the wire — for a 101-repository account
+			// that page was 0.56s of head with nothing else in flight. Which
+			// is why the check is inside this try: a page that fails now fails
+			// here rather than above, and it is still the listing that failed.
+			// Nothing a repository does reaches this arm, because checkOne
+			// catches GitHubApiException itself.
 			try {
-				repos = client.listUserRepos(login);
+				var listing = client.listUserReposPaged(login);
+				System.out.println(
+						"Fetching details while the listing finishes..."
+				);
+				repoEntries.addAll(repoChecker.check(login, listing, desired));
 			} catch (GitHubApiException e) {
 				repoEntries.addAll(
 						userListingErrors(login, desired, e.getMessage())
 				);
-				continue;
 			}
-			System.out.printf(
-					"Found %d repos. Fetching details in parallel...%n",
-					repos.size()
-			);
-			repoEntries.addAll(repoChecker.check(login, repos, desired));
 		}
 
 		return new CheckResult(orgEntries, repoEntries);
