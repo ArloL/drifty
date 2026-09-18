@@ -7,12 +7,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -41,16 +40,22 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * is how {@code fetchState} learns the organization exists — a 404 there is
  * what makes the entry {@code MISSING} — so every group waits on it rather than
  * firing two dozen requests at a login GitHub has never heard of.
+ * <p>
+ * <strong>Depth is read off the order requests arrive in, not off the
+ * clock.</strong> An earlier version bucketed arrival times into multiples of
+ * the stub delay; it passed locally and failed on CI's slower macOS runner,
+ * which smeared the arrivals across ~300ms and pushed one into the next bucket.
+ * Every stub answers after {@link #DELAY_MILLIS}, so a read that waits on a
+ * listing cannot arrive until that listing has answered, and each tier below is
+ * asserted to have gone out in full before the next one started.
  */
 class OrganizationCheckerRequestShapeTest {
 
-	private static final int DELAY_MILLIS = 200;
-
 	/**
-	 * {@code GET /orgs/{org}}, then a group listing, then the reads that name
-	 * something a listing returned. Nothing may sit below that.
+	 * Long enough that issuing every request of one tier comfortably fits
+	 * inside it on a loaded three-core runner.
 	 */
-	private static final int MAX_ROUND_TRIPS = 3;
+	private static final int DELAY_MILLIS = 700;
 
 	/**
 	 * Every endpoint {@code fetchState} reads for an organization with
@@ -59,6 +64,37 @@ class OrganizationCheckerRequestShapeTest {
 	 * one selected runner group.
 	 */
 	private static final int ORGANIZATION_REQUESTS = 26;
+
+	/**
+	 * The existence check every group waits on.
+	 */
+	private static final String EXISTENCE_CHECK = "/orgs/acme";
+
+	/**
+	 * The reads that may not go out until a listing has named what they ask
+	 * for. Everything else is a group's own listing or a flat read, and goes
+	 * out as soon as the organization is known to exist.
+	 * <p>
+	 * A new group whose read waits on another read belongs here; one that reads
+	 * an endpoint outright does not. Getting that wrong is the point — it fails
+	 * here rather than quietly adding a round trip to the head of every run.
+	 */
+	private static final Set<String> WAITS_ON_A_LISTING = Set.of(
+			"/orgs/acme/actions/permissions/selected-actions",
+			"/orgs/acme/actions/permissions/repositories",
+			"/orgs/acme/actions/secrets/PAT/repositories",
+			"/orgs/acme/actions/variables/REGION/repositories",
+			"/orgs/acme/rulesets/1",
+			"/orgs/acme/rulesets/2",
+			"/orgs/acme/code-security/configurations/defaults",
+			"/orgs/acme/code-security/configurations/9/repositories",
+			"/orgs/acme/teams/one/members",
+			"/orgs/acme/teams/two/members",
+			"/orgs/acme/actions/runner-groups/5/repositories"
+	);
+
+	/** Thirteen requests sit at the deepest tier; two teams answer twice. */
+	private static final int WAITING_READS = 13;
 
 	@RegisterExtension
 	static WireMockExtension wm = WireMockExtension.newInstance()
@@ -69,82 +105,64 @@ class OrganizationCheckerRequestShapeTest {
 			)
 			.build();
 
-	private OrganizationChecker checker;
+	/**
+	 * One fetch, three properties. They share it because each one costs two
+	 * stub delays and nothing about them needs a fresh organization.
+	 */
+	@Test
+	void anOrganizationWaitsOnItsExistenceCheckAndOneListing() {
+		stubOrganization();
 
-	@BeforeEach
-	void setUp() {
-		checker = new OrganizationChecker(
+		new OrganizationChecker(
 				new GitHubClient(wm.getRuntimeInfo().getHttpBaseUrl(), "t"),
 				false,
 				Map.of(),
 				new DriftyState()
-		);
-		stubOrganization();
-	}
+		).fetchState("acme", ManagedGroups.all(Drifty.OrgGroupName.class));
 
-	@Test
-	void anOrganizationCostsTheRequestsItsShapeNeeds() {
-		fetch();
+		List<String> order = arrivalOrder();
 
-		assertThat(received()).hasSize(ORGANIZATION_REQUESTS);
-	}
+		assertThat(order).as("what the organization's shape costs")
+				.hasSize(ORGANIZATION_REQUESTS);
 
-	@Test
-	void noGroupWaitsOnMoreThanTheExistenceCheckAndItsOwnListing() {
-		fetch();
+		assertThat(order).as("the existence check goes first, alone")
+				.element(0)
+				.isEqualTo(EXISTENCE_CHECK);
 
-		assertThat(roundTrips()).isLessThanOrEqualTo(MAX_ROUND_TRIPS);
-	}
+		assertThat(firstWaitingRead(order)).as(
+				"every listing and flat read goes out before any read that waits on one"
+		).isEqualTo(ORGANIZATION_REQUESTS - WAITING_READS);
 
-	/**
-	 * Guards the guard: a checker that sent these one at a time would report
-	 * one request per round-trip bucket and satisfy nothing. What says the
-	 * fan-out is real is that most of them were in flight together.
-	 */
-	@Test
-	void theGroupsThatWaitOnNothingAreAllInFlightTogether() {
-		fetch();
-
-		assertThat(maxInFlight()).isGreaterThanOrEqualTo(8);
-	}
-
-	private void fetch() {
-		checker.fetchState(
-				"acme",
-				ManagedGroups.all(Drifty.OrgGroupName.class)
-		);
+		// Guards the guard: sent one at a time, the ordering above holds
+		// trivially with one request per tier. What says the fan-out is real is
+		// that the listings overlapped.
+		assertThat(maxInFlight()).as("the group listings overlap")
+				.isGreaterThanOrEqualTo(8);
 	}
 
 	// ─── Reading the serve events
 	// ──────────────────────────────────────
 
-	private static List<Long> received() {
-		List<Long> times = new ArrayList<>();
-		wm.getAllServeEvents()
-				.stream()
-				.map(ServeEvent::getRequest)
-				.sorted(Comparator.comparing(LoggedRequest::getLoggedDate))
-				.forEach(
-						request -> times.add(request.getLoggedDate().getTime())
-				);
-		return times;
+	/**
+	 * How many requests arrived before the first one that had to wait for a
+	 * listing. With the fan-out intact that is the existence check plus every
+	 * listing and flat read; re-serialize {@code fetchState} and it collapses.
+	 */
+	private static int firstWaitingRead(List<String> order) {
+		for (int i = 0; i < order.size(); i++) {
+			if (WAITS_ON_A_LISTING.contains(order.get(i))) {
+				return i;
+			}
+		}
+		return order.size();
 	}
 
-	/**
-	 * How many round trips deep the reads go, by bucketing every request's
-	 * arrival into multiples of {@link #DELAY_MILLIS} from the first. A request
-	 * that waited on nothing but the existence check lands in bucket 1; one
-	 * that waited on a listing lands in bucket 2.
-	 */
-	private static int roundTrips() {
-		List<Long> times = received();
-		long first = times.stream().min(Long::compare).orElseThrow();
-		return (int) times.stream()
-				.mapToLong(
-						at -> Math.round((at - first) / (double) DELAY_MILLIS)
-				)
-				.max()
-				.orElseThrow() + 1;
+	/** Every request's path, in the order GitHub received it. */
+	private static List<String> arrivalOrder() {
+		return events().stream().map(LoggedRequest::getUrl).map(url -> {
+			int query = url.indexOf('?');
+			return query < 0 ? url : url.substring(0, query);
+		}).toList();
 	}
 
 	/**
@@ -153,10 +171,12 @@ class OrganizationCheckerRequestShapeTest {
 	 * logged inside one delay of each other overlapped.
 	 */
 	private static int maxInFlight() {
-		List<Long> times = received();
-		return times.stream()
+		List<Long> received = events().stream()
+				.map(request -> request.getLoggedDate().getTime())
+				.toList();
+		return received.stream()
 				.mapToInt(
-						start -> (int) times.stream()
+						start -> (int) received.stream()
 								.filter(
 										other -> other >= start
 												&& other < start + DELAY_MILLIS
@@ -165,6 +185,14 @@ class OrganizationCheckerRequestShapeTest {
 				)
 				.max()
 				.orElseThrow();
+	}
+
+	private static List<LoggedRequest> events() {
+		return wm.getAllServeEvents()
+				.stream()
+				.map(ServeEvent::getRequest)
+				.sorted(Comparator.comparing(LoggedRequest::getLoggedDate))
+				.toList();
 	}
 
 	// ─── The organization
