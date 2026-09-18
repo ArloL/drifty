@@ -90,15 +90,25 @@ public class GitHubCheck {
 			Path exportStateFile = stateFile(statePath, out);
 			var exportStore = new StateStore();
 			DriftyState state = exportStore.load(exportStateFile);
-			int exitCode = ExportRunner.run(
-					new GitHubClient(token, state),
-					exportLogins,
-					out,
-					schema == null ? SchemaDefaults.MAIN_SCHEMA_URI : schema
-			);
-			// Loaded and saved rather than built fresh: a new DriftyState
-			// written over this file would take every secret baseline with it.
-			exportStore.save(exportStateFile, state);
+			int exitCode;
+			try {
+				exitCode = ExportRunner.run(
+						new GitHubClient(token, state),
+						exportLogins,
+						out,
+						schema == null ? SchemaDefaults.MAIN_SCHEMA_URI : schema
+				);
+			} finally {
+				// The save runs whether or not ExportRunner.run returns: past
+				// its own per-login catch it still declares IOException, and
+				// an unwritable --out or a full disk throws past everything
+				// above after already caching responses for however many
+				// logins it got through. Not saving here would mean a retried
+				// export starts that cold again instead of resuming warm. The
+				// export path records no secrets of its own, so what is at
+				// risk is the response cache, not any secret baseline.
+				exportStore.save(exportStateFile, state);
+			}
 			System.exit(exitCode);
 			return;
 		}
