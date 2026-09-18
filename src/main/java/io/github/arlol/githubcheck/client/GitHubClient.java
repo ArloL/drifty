@@ -13,8 +13,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
@@ -156,6 +158,14 @@ public class GitHubClient {
 	 * personal account a token can manage.
 	 */
 	public List<RepositorySummaryResponse> listUserRepos(String login) {
+		return listUserReposPaged(login).all();
+	}
+
+	/**
+	 * The same listing, with its first page handed back before the pages after
+	 * it have arrived — see {@link PagedRepositories}.
+	 */
+	public PagedRepositories listUserReposPaged(String login) {
 		HttpResponse<String> resp = get(
 				baseUrl + "/user/repos?per_page=100&type=owner"
 		);
@@ -165,13 +175,68 @@ public class GitHubClient {
 							+ ": " + resp.body()
 			);
 		}
-		return summaries(resp);
+		return paged(resp);
+	}
+
+	/**
+	 * The first page's repositories, with every page after it already in
+	 * flight.
+	 * <p>
+	 * The thread runs to completion whether or not anyone joins it, so the
+	 * pages it asks for are spent either way; every caller does join, through
+	 * {@link PagedRepositories#all()} or the checker. Its requests are bounded
+	 * by the same semaphore as everything else.
+	 */
+	private PagedRepositories paged(HttpResponse<String> firstResp) {
+		var rest = new FutureTask<>(
+				() -> toSummaries(remainingItems(firstResp))
+		);
+		Thread.ofVirtual().name("drifty-listing-pages").start(rest);
+		return new PagedRepositories(
+				toSummaries(arrayItems(firstResp, null)),
+				() -> await(rest)
+		);
+	}
+
+	/**
+	 * A repository listing whose first page is in hand while the rest of it is
+	 * still arriving.
+	 * <p>
+	 * Every page after the first already goes out at once, but the first one
+	 * has to answer before any of them can be asked for, and the whole listing
+	 * used to answer before any repository was looked at: for a 101-repository
+	 * account that was the first 1.24s of a 4.45s check with the request
+	 * semaphore idle. A caller that has no use for the split calls
+	 * {@link #all()} and sees what it always saw.
+	 *
+	 * @param firstPage the repositories page one named
+	 * @param rest      every repository after them, joined when asked for
+	 */
+	public record PagedRepositories(
+			List<RepositorySummaryResponse> firstPage,
+			Supplier<List<RepositorySummaryResponse>> rest
+	) {
+
+		public PagedRepositories {
+			firstPage = List.copyOf(firstPage);
+		}
+
+		public List<RepositorySummaryResponse> all() {
+			var all = new ArrayList<>(firstPage);
+			all.addAll(rest.get());
+			return List.copyOf(all);
+		}
+
 	}
 
 	private List<RepositorySummaryResponse> summaries(
 			HttpResponse<String> resp
 	) {
-		return collectPaginatedArrayItems(resp, null).stream()
+		return toSummaries(collectPaginatedArrayItems(resp, null));
+	}
+
+	private List<RepositorySummaryResponse> toSummaries(List<JsonNode> items) {
+		return items.stream()
 				.map(
 						node -> mapper.convertValue(
 								node,
@@ -2289,6 +2354,15 @@ public class GitHubClient {
 		);
 		for (HttpResponse<String> page : remainingPages(firstResp)) {
 			items.addAll(arrayItems(page, arrayField));
+		}
+		return items;
+	}
+
+	/** Every item after the first page's, the pages fetched together. */
+	private List<JsonNode> remainingItems(HttpResponse<String> firstResp) {
+		List<JsonNode> items = new ArrayList<>();
+		for (HttpResponse<String> page : remainingPages(firstResp)) {
+			items.addAll(arrayItems(page, null));
 		}
 		return items;
 	}

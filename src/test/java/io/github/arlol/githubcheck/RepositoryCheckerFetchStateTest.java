@@ -100,7 +100,8 @@ class RepositoryCheckerFetchStateTest {
 					"secret_scanning_non_provider_patterns": {
 						"status": "disabled"
 					},
-					"secret_scanning_validity_checks": {"status": "enabled"}
+					"secret_scanning_validity_checks": {"status": "enabled"},
+					"dependabot_security_updates": {"status": "enabled"}
 				}
 				""");
 		stubSecurityEndpoints();
@@ -737,6 +738,104 @@ class RepositoryCheckerFetchStateTest {
 				)
 		);
 		verify(0, getRequestedFor(urlPathEqualTo("/repos/owner/repo/teams")));
+	}
+
+	/**
+	 * {@code security_and_analysis.dependabot_security_updates} on {@code GET
+	 * /repos/\{owner\}/\{repo\}} is the same bit {@code
+	 * /automated-security-fixes} answers, and the details response is read for
+	 * eight other security groups anyway. The endpoint is stubbed to the
+	 * opposite answer so the test says which of the two the state took, not
+	 * merely that it got one.
+	 */
+	@Test
+	void automatedSecurityFixesIsReadFromTheRepositoryDetails()
+			throws Exception {
+		stubRepoDetails("""
+				,"owner": {"login": "owner", "type": "User"}
+				,"security_and_analysis": {
+					"dependabot_security_updates": {"status": "enabled"}
+				}
+				""");
+		stubSecurityEndpoints();
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/owner/repo/automated-security-fixes"
+						)
+				).willReturn(okJson("{\"enabled\": false}"))
+		);
+		stubStandardEndpoints();
+		stubEmptyListings();
+
+		RepositoryState state = checker.fetchState(
+				REF,
+				summary(false, "public"),
+				ManagedGroups.all(Drifty.GroupName.class)
+		);
+
+		assertThat(state.automatedSecurityFixes()).isTrue();
+		verify(
+				0,
+				getRequestedFor(
+						urlPathEqualTo(
+								"/repos/owner/repo/automated-security-fixes"
+						)
+				)
+		);
+	}
+
+	/**
+	 * {@code has_pages} on the listing the checker already holds answers what
+	 * {@code GET /repos/\{owner\}/\{repo\}/pages} answers with a 404: there is
+	 * no site. 37 of one account's 45 active repositories spent a request on
+	 * that 404.
+	 */
+	@Test
+	void pagesIsNotRequestedWhenTheListingSaysThereIsNoSite() throws Exception {
+		stubRepoDetails(
+				", \"owner\": {\"login\": \"owner\", \"type\": \"User\"}"
+		);
+		stubSecurityEndpoints();
+		stubStandardEndpoints();
+		stubEmptyListings();
+
+		RepositoryState state = checker.fetchState(
+				REF,
+				summaryWithoutPages(),
+				ManagedGroups.all(Drifty.GroupName.class)
+		);
+
+		assertThat(state.pages()).isEmpty();
+		verify(0, getRequestedFor(urlPathEqualTo("/repos/owner/repo/pages")));
+	}
+
+	/** The three listings, empty, for a test that is about something else. */
+	private static void stubEmptyListings() {
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/branches"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/rulesets"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/pages"))
+						.willReturn(aResponse().withStatus(404))
+		);
+	}
+
+	private static RepositorySummaryResponse summaryWithoutPages()
+			throws Exception {
+		return MAPPER.readValue("""
+				{
+					"name": "repo",
+					"archived": false,
+					"visibility": "public",
+					"has_pages": false
+				}
+				""", RepositorySummaryResponse.class);
 	}
 
 	private static void stubRepoDetails(String extraFields) {

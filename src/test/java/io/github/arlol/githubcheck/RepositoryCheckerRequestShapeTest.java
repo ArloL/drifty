@@ -63,23 +63,32 @@ class RepositoryCheckerRequestShapeTest {
 
 	/**
 	 * Every endpoint {@code fetchState} reads for a public, organization-owned
-	 * repository with one protected branch, one ruleset and one environment:
-	 * the repository's own details, five security flags, the branch and ruleset
-	 * and environment listings with one read each below them, Actions secrets
-	 * and variables, that environment's secrets and variables, workflow
-	 * permissions, Pages, webhooks, custom property values, its collaborators
-	 * and its teams.
+	 * repository with one protected branch, one ruleset, one environment and a
+	 * Pages site: the repository's own details, four security flags, the branch
+	 * and ruleset and environment listings with one read each below them,
+	 * Actions secrets and variables, that environment's secrets and variables,
+	 * workflow permissions, Pages, webhooks, custom property values, its
+	 * collaborators and its teams.
+	 * <p>
+	 * Four security flags rather than five: automated security fixes are
+	 * {@code security_and_analysis.dependabot_security_updates} on the details
+	 * response, which is read for eight other security groups anyway. And Pages
+	 * is here only because the listing below says {@code has_pages}; a
+	 * repository with no site is not asked, which is the case
+	 * {@code RepositoryCheckerFetchStateTest} pins.
 	 */
-	private static final int ACTIVE_REPOSITORY_REQUESTS = 21;
+	private static final int ACTIVE_REPOSITORY_REQUESTS = 20;
 
 	/**
 	 * A repository the config wants archived is compared on {@code archived}
-	 * alone — {@code createDriftGroups} returns that group and no other — so
-	 * the only thing left to read is the repository itself. It used to read
-	 * every group and drop the answers: 49 archived repositories of one
-	 * 101-repository account spent 343 of its 1152 requests that way.
+	 * alone — {@code createDriftGroups} returns that group and no other — and
+	 * the account listing already carries that boolean, so {@code checkOne}
+	 * sends nothing at all. It used to read every group and drop the answers
+	 * (49 archived repositories of one 101-repository account spent 343 of its
+	 * 1152 requests that way), then its own details and drop all but one field
+	 * of that (51 more).
 	 */
-	private static final int ARCHIVED_REPOSITORY_REQUESTS = 1;
+	private static final int ARCHIVED_REPOSITORY_REQUESTS = 0;
 
 	/**
 	 * The six reads that may not go out until something else has answered: a
@@ -136,15 +145,12 @@ class RepositoryCheckerRequestShapeTest {
 				)
 		);
 
+		// "frozen" is absent rather than present with a zero: nothing was
+		// sent under it, so there is no serve event to count.
 		assertThat(requestsPerRepository())
 				.as("what each repository's shape costs")
 				.containsExactlyInAnyOrderEntriesOf(
-						Map.of(
-								"active",
-								ACTIVE_REPOSITORY_REQUESTS,
-								"frozen",
-								ARCHIVED_REPOSITORY_REQUESTS
-						)
+						Map.of("active", ACTIVE_REPOSITORY_REQUESTS)
 				);
 
 		assertThat(firstWaitingRead()).as(
@@ -261,7 +267,7 @@ class RepositoryCheckerRequestShapeTest {
 						delayed(
 								"""
 										[
-										  {"name": "active", "archived": false, "visibility": "public"},
+										  {"name": "active", "archived": false, "visibility": "public", "has_pages": true},
 										  {"name": "frozen", "archived": true, "visibility": "public"}
 										]
 										"""

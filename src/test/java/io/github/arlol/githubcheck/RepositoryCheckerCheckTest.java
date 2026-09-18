@@ -447,6 +447,67 @@ class RepositoryCheckerCheckTest {
 		return captured.toString(StandardCharsets.UTF_8);
 	}
 
+	/**
+	 * A repository the config wants archived is compared on {@code archived}
+	 * alone — {@code createDriftGroups} returns {@code ArchivedDriftGroup} and
+	 * no other — and the listing the checker is handed already says whether it
+	 * is. 51 archived repositories of one 101-repository account spent a
+	 * request each on a boolean in hand.
+	 */
+	@Test
+	void anArchivedRepositoryTheConfigWantsArchivedIsNotFetched()
+			throws Exception {
+		stubListing("acme", "frozen", true);
+
+		List<CheckResult.Entry> results = check(
+				"acme",
+				Desired.repository("frozen").withArchived(true)
+		);
+
+		assertThat(results)
+				.extracting(CheckResult.Entry::name, CheckResult.Entry::status)
+				.containsExactly(tuple("frozen", CheckResult.Status.OK));
+		verify(0, getRequestedFor(urlPathMatching("/repos/acme/frozen.*")));
+	}
+
+	/**
+	 * The same listing is what reports the drift when the repository is not
+	 * archived yet, so narrowing the fetch away does not narrow the report.
+	 */
+	@Test
+	void archivingDriftIsReportedFromTheListingAlone() throws Exception {
+		stubListing("acme", "thawed", false);
+
+		List<CheckResult.Entry> results = check(
+				"acme",
+				Desired.repository("thawed").withArchived(true)
+		);
+
+		assertThat(results).singleElement().satisfies(entry -> {
+			assertThat(entry.status()).isEqualTo(CheckResult.Status.DRIFT);
+			assertThat(entry.diffs()).isNotEmpty();
+		});
+		verify(0, getRequestedFor(urlPathMatching("/repos/acme/thawed.*")));
+	}
+
+	/** One owner listing one repository, and nothing below it. */
+	private static void stubListing(
+			String owner,
+			String repo,
+			boolean archived
+	) {
+		stubFor(
+				get(urlPathEqualTo("/orgs/" + owner + "/repos")).willReturn(
+						okJson(
+								"""
+										[{"name": "%s", "archived": %s, "visibility": "private"}]
+										"""
+										.formatted(repo, archived)
+						)
+				)
+		);
+	}
+
 	/** Checks one owner's listed repositories against what it declares. */
 	private List<CheckResult.Entry> check(
 			String owner,
