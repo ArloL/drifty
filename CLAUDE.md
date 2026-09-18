@@ -214,6 +214,17 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   as MISSING — no error, no failed request, a wrong answer.
   `GitHubClientCacheTest.aCachedListingStillReachesItsSecondPage` fails by
   returning one repository instead of two.
+- **`GitHubCheck.main` saves state on every check, not only under `--fix`.**
+  An earlier version gated `stateStore.save(...)` on `fix`, which was right
+  while the file held only secret baselines — a plain check wrote none. It
+  now also holds the response cache, so gating the save left every check
+  cold: nothing a read filled in ever reached disk. Do not reintroduce the
+  guard; the test that would have caught its return was deliberately removed
+  for being tautological, so nothing else will. This is also why
+  `StateStore.save` writes through a temp file and moves it into place
+  atomically instead of truncating the target: a run that saves on every
+  check, not only the occasional `--fix`, is a run where a Ctrl-C or a full
+  disk mid-write is no longer rare enough to ignore.
 - **The repository listing is not a substitute for `GET
   /repos/{owner}/{repo}`.** Dropping the per-repository details request is the
   obvious way to save one request per repository and it does not work: diffing
