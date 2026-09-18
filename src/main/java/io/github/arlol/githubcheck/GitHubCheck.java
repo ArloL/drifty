@@ -592,8 +592,15 @@ public class GitHubCheck {
 			}
 		}
 		for (Drifty.Repository repo : config.allRepositories()) {
-			ManagedGroups<Drifty.GroupName> managed = ManagedGroups
-					.of(repo.managed);
+			// The same narrowing RepositoryChecker.checkOne applies, for the
+			// same reason: a repository the config wants archived is compared
+			// on `archived` alone, so none of its declared secrets is ever
+			// written and demanding a value for one aborts a --fix over work
+			// it was never going to do.
+			ManagedGroups<Drifty.GroupName> managed = repo.archived
+					? ManagedGroups.of(repo.managed)
+							.and(RepositoryChecker.ARCHIVED_ONLY)
+					: ManagedGroups.of(repo.managed);
 			if (managed.manages(Drifty.GroupName.ACTION_SECRETS)) {
 				addMissingSecrets(
 						missingSecrets,

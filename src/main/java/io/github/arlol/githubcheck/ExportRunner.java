@@ -270,6 +270,7 @@ final class ExportRunner {
 		var sorted = repos.stream()
 				.sorted(Comparator.comparing(RepositorySummaryResponse::name))
 				.toList();
+		var everything = ManagedGroups.all(Drifty.GroupName.class);
 		var entries = new ArrayList<PklNode>();
 		for (RepositorySummaryResponse summary : sorted) {
 			var repositoryChecker = new RepositoryChecker(
@@ -283,7 +284,14 @@ final class ExportRunner {
 				RepositoryState state = repositoryChecker.fetchState(
 						new RepoRef(owner, summary.name()),
 						summary,
-						ManagedGroups.all(Drifty.GroupName.class)
+						// RepositoryExporter.entry renders no group's section
+						// for an archived repository — it writes one note in
+						// place of all of them — so reading them is a request
+						// per group whose answer is dropped.
+						summary.archived()
+								? everything
+										.and(RepositoryChecker.ARCHIVED_ONLY)
+								: everything
 				);
 				unreadableGroups.addAll(repositoryChecker.fetchFailures());
 				entries.add(

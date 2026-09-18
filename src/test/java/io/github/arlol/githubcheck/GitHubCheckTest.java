@@ -144,6 +144,21 @@ class GitHubCheckTest {
 		).containsExactlyInAnyOrder("repo-TOKEN", "repo-prod-DEPLOY_KEY");
 	}
 
+	/**
+	 * A repository the config wants archived is compared on {@code archived}
+	 * alone, so none of its declared secrets is ever pushed. Counting them
+	 * aborted {@code --fix} over work it was never going to do.
+	 */
+	@Test
+	void collectMissingSecrets_skipsARepositoryTheConfigWantsArchived() {
+		assertThat(
+				GitHubCheck.collectMissingSecrets(
+						config(repositoryWithSecrets().withArchived(true)),
+						Map.of()
+				)
+		).isEmpty();
+	}
+
 	@Test
 	void collectMissingSecrets_reportsOrganizationSecretsUnderTheOrgPrefix() {
 		var config = config(

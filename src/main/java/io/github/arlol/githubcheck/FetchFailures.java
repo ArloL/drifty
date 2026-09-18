@@ -1,6 +1,8 @@
 package io.github.arlol.githubcheck;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -56,9 +58,19 @@ public sealed interface FetchFailures {
 
 	}
 
+	/**
+	 * Collects rather than rethrows — and does so from several threads at once,
+	 * because {@code RepositoryChecker.fetchState} issues one repository's
+	 * group reads in parallel. Two things follow from that, and both are
+	 * load-bearing: the list is synchronized, and {@link #failures()} orders
+	 * what it hands back instead of returning arrival order. An export of an
+	 * unchanged account has to produce the identical file twice running, and
+	 * arrival order is whichever 403 came back first.
+	 */
 	final class Collecting implements FetchFailures {
 
-		private final List<Failure> failures = new ArrayList<>();
+		private final List<Failure> failures = Collections
+				.synchronizedList(new ArrayList<>());
 
 		@Override
 		public <T> T read(Enum<?> group, Supplier<T> read, T fallback) {
@@ -74,7 +86,14 @@ public sealed interface FetchFailures {
 
 		@Override
 		public List<Failure> failures() {
-			return List.copyOf(failures);
+			synchronized (failures) {
+				return failures.stream()
+						.sorted(
+								Comparator.comparing(Failure::group)
+										.thenComparing(Failure::reason)
+						)
+						.toList();
+			}
 		}
 
 		/**

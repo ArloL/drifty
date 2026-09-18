@@ -77,18 +77,72 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   organization-only endpoint takes that shape too: the guard alone turns an
   abort into false drift and a fix that always fails.
 - **`GitHubClient` bounds its own in-flight requests, not the checkers.** The
-  checkers start one virtual thread per repository, so in-flight requests equal
-  the number of configured repositories; GitHub's single HTTP/2 connection caps
-  concurrent streams at 100 and the JDK client throws `IOException: too many
-  concurrent streams` rather than queueing, which killed a run over ~100
-  repositories before it checked anything (issue #137). The semaphore sits in
-  `sendBounded` because every caller shares that one connection — a bound around
-  the per-repository threads would leave the export path and any future
-  parallelism unguarded. `sendBounded` declares the checked exceptions rather
-  than catching them so `sendRequest` keeps the one pair of arms, and the permit
-  is gone before `handleRateLimit`, so a thread parked until the reset is not
-  holding a stream. `GitHubClientConcurrencyTest` fails if more requests overlap
-  than the limit.
+  checkers start one virtual thread per repository and `fetchState` starts more
+  under each, so nothing above the client knows how many requests are in
+  flight; GitHub's single HTTP/2 connection caps concurrent streams at 100 and
+  the JDK client throws `IOException: too many concurrent streams` rather than
+  queueing, which killed a run over ~100 repositories before it checked
+  anything (issue #137). The semaphore sits in `sendBounded` because every
+  caller shares that one connection — a bound around the per-repository threads
+  would leave the export path and any future parallelism unguarded.
+  `sendBounded` declares the checked exceptions rather than catching them so
+  `sendRequest` keeps the one pair of arms, and the permit is gone before any
+  rate-limit pause, so a thread parked until the reset is not holding a stream.
+  `GitHubClientConcurrencyTest` fails if more requests overlap than the limit.
+- **`fetchState` fans out; two levels, never three.** `RepositoryChecker.Fanout`
+  starts every read that needs nothing at once, and only five wait: a branch's
+  protection, a ruleset's rules, an environment's policies/secrets/variables,
+  and `/teams` and `/properties/values`, which wait on `GET
+  /repos/{owner}/{repo}` because the owner's type is what says whether to send
+  them at all. Issuing them in series made the deepest single repository the
+  floor on the whole run — 24 requests and 6.6s of a 9.5s check, with the
+  semaphore idle. A group whose read waits on another group's read puts the
+  chain back; `RepositoryCheckerRequestShapeTest` fails on a depth over 2 and
+  on a per-repository request count that changed. Two things follow: join
+  `details` first and outside every `failures.read`, so a repository whose own
+  details failed does not report that failure under some group's name, and keep
+  `FetchFailures.Collecting` synchronized and sorted, because one repository's
+  groups now fail on different threads and an export has to be byte-identical
+  twice running.
+- **A rate limit is not a failed request.** `sendRequest` re-sends through a 403
+  or 429 that carries `Retry-After` or `X-RateLimit-Remaining: 0`, and pauses
+  (without re-sending) after a good response that spent the last of the budget.
+  A 403 with neither is a token without a scope and has to keep reaching
+  `FetchFailures` as the failure it is — that distinction is the whole of
+  `rateLimited`. Reporting is deduplicated per pause window because up to
+  `MAX_CONCURRENT_REQUESTS` threads hit the same reset within milliseconds of
+  each other; before it existed an exhausted budget parked a run for eight
+  minutes in silence. `GitHubClientRateLimitTest` covers each shape.
+- **A listing's pages after the first go out together.** `remainingPages` reads
+  the page count off the `Link` header's `rel="last"` and asks for 2..N at
+  once, falling back to the `rel="next"` walk when GitHub sends no `rel="last"`
+  — the final page of a listing, and any cursor-paginated endpoint. The walk
+  paid a round trip per page in series before anything else could start.
+  Matching a `page` parameter takes the leading `?` or `&` — every listing URL
+  also carries `per_page`, which contains the same six characters.
+- **An archived repository is read for nothing but its own details.** When
+  `desired.archived` is true `createDriftGroups` returns `ArchivedDriftGroup`
+  and no other, and `RepositoryExporter.entry` renders no group's section once
+  a repository *is* archived — so both callers narrow what they ask
+  `fetchState` for to `RepositoryChecker.ARCHIVED_ONLY`. The answers were being
+  fetched and dropped: 49 archived repositories of one 101-repository account
+  spent 343 of its 1152 requests that way. The narrowing is not a `managed`
+  declaration — `checkOne` reads `unmanaged` off the config's own block first,
+  or an `archived = true` repository's report would suddenly list every other
+  group. The check side keys on `desired.archived`, not on `actual`: a
+  repository that is archived while the config wants it active still reads
+  everything, because unarchiving is about to make all of it apply. The third
+  place `ManagedGroups` is consulted narrows too: `collectMissingSecrets`
+  demanded a `DRIFTY_GITHUB_SECRETS` value for an archived repository's secrets
+  and aborted `--fix` over a write that was never going to happen.
+- **The repository listing is not a substitute for `GET
+  /repos/{owner}/{repo}`.** Dropping the per-repository details request is the
+  obvious way to save one request per repository and it does not work: diffing
+  the two payloads, the listing omits `allow_*_merge`, `merge_commit_*`,
+  `squash_merge_commit_*`, `delete_branch_on_merge` and
+  `security_and_analysis` — which is most of what `RepoSettingsDriftGroup` and
+  the security micro-groups compare, so every repository would report drift on
+  all of them.
 - **`RepositoryChecker.checkOne` catches `GitHubApiException`.** It runs inside
   a virtual thread whose `Future.get()` nothing above `check` handles, so
   without that arm one repository's 403 ends the run for every repository after
