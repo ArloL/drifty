@@ -74,9 +74,9 @@ A single config may name any number of accounts. drifty lists each account's rep
 
 ### Archived Repos
 
-Repos marked `archived=true` in config are only checked for being archived. All other settings are skipped.
+Repos marked `archived=true` in config are only checked for being archived. All other settings are skipped, and so are the requests they would be read from: such a repo costs one request, `GET /repos/{owner}/{repo}`, whatever else the config declares. The answers were being fetched and dropped — 49 archived repos of one 101-repo account spent 343 of its 1152 requests on endpoints GitHub rejects every write to.
 
-If a repo is configured as `archived=true` but is currently active, `--fix` will archive it.
+If a repo is configured as `archived=true` but is currently active, `--fix` will archive it. A repo that *is* archived while the config wants it active is the other way round: everything is read, because unarchiving is about to make all of it apply again.
 
 ### Partial Management
 
@@ -108,6 +108,8 @@ The report names unmanaged groups but not their values:
 Printing values would require fetching them, which is what the skipped requests avoid. `--fix` output omits the line: it reports what was applied, and groups nobody touched say nothing about that.
 
 An archived repo whose `archived` group is unmanaged is checked for nothing at all — the archived short-circuit passes through the same filter, which is what declaring that group unmanaged asks for.
+
+Narrowing what a repo reads is not the same as declaring a group unmanaged: the `Unmanaged:` line names what the *config* leaves alone, so an `archived=true` repo does not suddenly list every other group there.
 
 ### Missing Repos
 
@@ -200,7 +202,7 @@ The file carries four kinds of `//` comment, each marking something a bare field
 | Check-only setting | Beside a field GitHub returns but drifty never writes — `visibility` on a repository, and ten organization settings such as `twoFactorRequirementEnabled` | The field is exported so the file matches GitHub and reports no drift; the note says `--fix` will never act on it |
 | Unreadable group | Where that group's section would otherwise sit | The token lacked the scope (or permission) for that group's own request, so the section is empty rather than absent — which is not the same as an empty section on GitHub. The group is also named in the entry's `managed` block, below |
 | Secret value | Beside a section with a secret — action/environment secrets, webhooks with one configured | GitHub never returns a secret's value; supply it through `DRIFTY_GITHUB_SECRETS` before running `--fix` |
-| Informational | A ruleset's required code scanning tools, or an archived repository | A required code scanning tool's alert thresholds are compared and exported as a tool name only, so the note says the thresholds exist on GitHub but not in the file; an archived repository still exports its own settings, which the repository details response carries whether or not it is archived and which become live again the day it is unarchived, and replaces its security block and collections — the settings `RepositoryChecker` stops fetching once it is archived, and the groups guarded alongside them — with one note rather than exporting stale or absent values |
+| Informational | A ruleset's required code scanning tools, or an archived repository | A required code scanning tool's alert thresholds are compared and exported as a tool name only, so the note says the thresholds exist on GitHub but not in the file; an archived repository still exports its own settings, which the repository details response carries whether or not it is archived and which become live again the day it is unarchived, and replaces its security block and collections — none of which `RepositoryChecker` fetches for an archived repository — with one note rather than exporting stale or absent values |
 
 The check-only note is paired with its field, never instead of it: leaving the field out would mean the file carries the schema's default forever while GitHub carries the real value, reporting drift no `--fix` could ever clear. The unreadable-group note is paired with the `managed` block that leaves the group alone — see below. The other two kinds stand alone, in place of the field or section they describe — except the archived one, which follows the settings it says are exported and stands in only for the sections below them.
 
@@ -845,17 +847,34 @@ The tool never fails fast — it always attempts all fixes and provides a comple
 - **Build:** Maven with Spring Boot parent POM (for dependency management, not Spring framework features)
 - **Distribution:** Run via `mvn exec:java`
 - **Parallelism:** Virtual threads for concurrent repo checks/fixes, bounded by
-  the client's in-flight request cap (see Rate Limiting)
+  the client's in-flight request cap (see Rate Limiting). Parallel across
+  repositories *and* within one: everything a repository's state needs is
+  requested at once, and only the reads that name something a listing has not
+  returned yet — a branch's protection, a ruleset's rules, an environment's
+  secrets and variables, and the two endpoints that exist only under an
+  organization — wait, and they wait exactly one round trip
 
 ### API Strategy
 
-REST API only. Both reads and writes use the GitHub REST API v3. GraphQL for bulk reads is a future consideration.
+REST API only. Both reads and writes use the GitHub REST API v3. GraphQL for bulk reads is a future consideration, and was measured once: ~3x slower in wall clock for this workload, because one query is serialized server-side where 94 REST calls are not, and it covers none of `security_and_analysis`, Actions secrets, variables or permissions, webhooks, Pages or code-scanning setup.
+
+A listing longer than one page is read from the `Link` header's `rel="last"`, so every page after the first goes out together. Walking `rel="next"` paid a round trip per page before anything else could start.
 
 ### Rate Limiting
 
-Monitor `X-RateLimit-Remaining` header and sleep until reset when exhausted.
+Three things can say to wait, and all three are honoured:
 
-`GitHubClient` also caps its own in-flight requests at 50. GitHub answers over
+| Signal | What it means | What drifty does |
+|---|---|---|
+| `X-RateLimit-Remaining: 0` on a response that answered | The budget ran out as this request was served | Returns the response — it holds the data — then waits until `X-RateLimit-Reset` so the next request is not the one refused |
+| 403 or 429 with `X-RateLimit-Remaining: 0` | The primary limit refused the request | Waits until the reset and re-sends, up to three attempts |
+| 403 or 429 with `Retry-After` | A secondary limit refused it, saying for how long | Waits that long and re-sends, up to three attempts |
+
+A 403 with neither is not a rate limit — a token without a scope — and reaches the caller as the failure it is. One line per pause is printed to stderr, once per window rather than once per waiting thread.
+
+One check of a 101-repository account costs about 800 requests of the 5000/hour REST budget, so roughly six runs an hour.
+
+`GitHubClient` also caps its own in-flight requests at 90. GitHub answers over
 one HTTP/2 connection whose `SETTINGS_MAX_CONCURRENT_STREAMS` is 100, and the
 JDK client does not queue past it — an account with more than ~100 configured
 repositories would otherwise die on `too many concurrent streams` before

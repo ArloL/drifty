@@ -9,7 +9,15 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -34,8 +42,42 @@ public class GitHubClient {
 	 * concurrent streams} — so the bound has to be ours. It sits here rather
 	 * than around the per-repository threads because every caller's requests
 	 * share the one connection.
+	 * <p>
+	 * 100 is therefore the ceiling and 90 is the working room under it. The
+	 * number only started to matter once {@code RepositoryChecker.fetchState}
+	 * stopped issuing one repository's requests in series: at 50 permits and a
+	 * 24-request chain the semaphore was never the limit, and raising it alone
+	 * bought 9.5s → 7.9s and nothing more.
 	 */
-	private static final int MAX_CONCURRENT_REQUESTS = 50;
+	private static final int MAX_CONCURRENT_REQUESTS = 90;
+
+	/**
+	 * How many times one request is re-sent after a rate limit rejected it. A
+	 * secondary limit says nothing about the request itself, so handing the
+	 * rejection to the caller reports a group as unreadable that was never
+	 * read. Three attempts covers the ~60s windows GitHub documents without
+	 * turning a token that is genuinely out of budget into a run with no end.
+	 */
+	private static final int RATE_LIMIT_ATTEMPTS = 3;
+
+	/**
+	 * What to wait when GitHub says it is a rate limit but not for how long.
+	 * Its own guidance for a secondary limit with no {@code Retry-After} is at
+	 * least a minute.
+	 */
+	private static final Duration UNTIMED_RATE_LIMIT_PAUSE = Duration
+			.ofSeconds(60);
+
+	/**
+	 * How close two pauses have to be to count as the same one for reporting.
+	 * Every thread holding a permit hits the same reset within milliseconds of
+	 * the others, and ninety identical lines say no more than one.
+	 */
+	private static final long PAUSE_REPORTED_WITHIN_MILLIS = 5_000;
+
+	/** The {@code page} query parameter of a {@code Link} header URL. */
+	private static final Pattern PAGE_PARAM = Pattern
+			.compile("([?&]page=)(\\d+)");
 
 	private static final String HEADER_CONTENT_TYPE = "Content-Type";
 	private static final String MEDIA_TYPE_JSON = "application/json";
@@ -48,6 +90,13 @@ public class GitHubClient {
 	private final HttpClient http;
 	private final ObjectMapper mapper;
 	private final Semaphore inFlight;
+	/**
+	 * When the pause this client last reported ends — see
+	 * {@link #PAUSE_REPORTED_WITHIN_MILLIS}. Mutable, unlike everything else
+	 * here, for the same reason {@link #inFlight} is: what it counts is shared
+	 * by every thread the checkers run.
+	 */
+	private final AtomicLong reportedPauseEnd = new AtomicLong();
 
 	public GitHubClient(String token) {
 		this("https://api.github.com", token);
@@ -2235,22 +2284,84 @@ public class GitHubClient {
 			HttpResponse<String> firstResp,
 			String arrayField
 	) {
+		List<JsonNode> items = new ArrayList<>(
+				arrayItems(firstResp, arrayField)
+		);
+		for (HttpResponse<String> page : remainingPages(firstResp)) {
+			items.addAll(arrayItems(page, arrayField));
+		}
+		return items;
+	}
+
+	private List<JsonNode> arrayItems(
+			HttpResponse<String> resp,
+			String arrayField
+	) {
+		JsonNode page = readTree(resp.body());
+		Iterable<JsonNode> array = arrayField != null ? page.path(arrayField)
+				: page;
 		List<JsonNode> items = new ArrayList<>();
+		for (JsonNode item : array) {
+			items.add(item);
+		}
+		return items;
+	}
+
+	/**
+	 * Every page after the first, in order.
+	 * <p>
+	 * A paginated GitHub response carries {@code rel="last"} as well as
+	 * {@code rel="next"}, so the page count is known from the first answer and
+	 * the rest can be asked for together. Walking {@code rel="next"} paid one
+	 * round trip per page in series instead: the two pages of
+	 * {@code /user/repos} for a 101-repository account were the first 1.31s of
+	 * a check, before any repository had started.
+	 * <p>
+	 * Falls back to the walk when there is no {@code rel="last"} — GitHub omits
+	 * it on the final page, and a cursor-paginated endpoint never sends one.
+	 * Either way the listing is whatever the first response announced: a page
+	 * added while it is being read is missed by both.
+	 */
+	private List<HttpResponse<String>> remainingPages(
+			HttpResponse<String> firstResp
+	) {
+		String last = extractLink(
+				firstResp.headers().firstValue("Link").orElse(""),
+				"last"
+		);
+		int lastPage = last == null ? 0 : pageNumber(last);
+		if (lastPage < 2) {
+			return walkNextLinks(firstResp);
+		}
+		try (ExecutorService executor = Executors
+				.newVirtualThreadPerTaskExecutor()) {
+			List<Future<HttpResponse<String>>> pending = IntStream
+					.rangeClosed(2, lastPage)
+					.mapToObj(page -> pageUrl(last, page))
+					.map(url -> executor.submit(() -> get(url)))
+					.toList();
+			return pending.stream().map(GitHubClient::await).map(resp -> {
+				if (resp.statusCode() != 200) {
+					throw new GitHubApiException(
+							"HTTP " + resp.statusCode()
+									+ " fetching next page: " + resp.body()
+					);
+				}
+				return resp;
+			}).toList();
+		}
+	}
+
+	private List<HttpResponse<String>> walkNextLinks(
+			HttpResponse<String> firstResp
+	) {
+		List<HttpResponse<String>> pages = new ArrayList<>();
 		HttpResponse<String> resp = firstResp;
-		while (true) {
-			JsonNode page = readTree(resp.body());
-			Iterable<JsonNode> array = arrayField != null
-					? page.path(arrayField)
-					: page;
-			for (JsonNode item : array) {
-				items.add(item);
-			}
-			String next = extractNextLink(
-					resp.headers().firstValue("Link").orElse("")
-			);
-			if (next == null) {
-				break;
-			}
+		String next;
+		while ((next = extractLink(
+				resp.headers().firstValue("Link").orElse(""),
+				"next"
+		)) != null) {
 			resp = get(next);
 			if (resp.statusCode() != 200) {
 				throw new GitHubApiException(
@@ -2258,8 +2369,51 @@ public class GitHubClient {
 								+ resp.body()
 				);
 			}
+			pages.add(resp);
 		}
-		return items;
+		return pages;
+	}
+
+	/**
+	 * Rethrows the page request's own exception rather than an
+	 * {@link ExecutionException} wrapping it, so a failed page reads the same
+	 * whether it was fetched in parallel or walked to. Everything a page
+	 * request throws is a {@link GitHubApiException} already; anything else
+	 * becomes one rather than reaching a caller that is only prepared for that.
+	 */
+	private static <T> T await(Future<T> pending) {
+		try {
+			return pending.get();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new GitHubApiException("Interrupted fetching a page", e);
+		} catch (ExecutionException e) {
+			Throwable cause = e.getCause();
+			if (cause instanceof GitHubApiException failed) {
+				throw failed;
+			}
+			if (cause instanceof Error error) {
+				throw error;
+			}
+			throw new GitHubApiException(cause.getMessage(), cause);
+		}
+	}
+
+	private static String pageUrl(String url, int page) {
+		return PAGE_PARAM.matcher(url)
+				.replaceFirst(match -> match.group(1) + page);
+	}
+
+	private static int pageNumber(String url) {
+		Matcher matcher = PAGE_PARAM.matcher(url);
+		if (!matcher.find()) {
+			return 0;
+		}
+		try {
+			return Integer.parseInt(matcher.group(2));
+		} catch (NumberFormatException e) {
+			return 0;
+		}
 	}
 
 	private String repoUrl(String owner, String repo) {
@@ -2324,11 +2478,32 @@ public class GitHubClient {
 				.header("X-GitHub-Api-Version", "2026-03-10");
 	}
 
+	/**
+	 * Sends one request, waiting out and re-sending through a rate limit.
+	 * <p>
+	 * Two different things arrive as one here. A response that is otherwise
+	 * fine but reports the budget spent is returned to the caller — it holds
+	 * the data — after a pause that keeps the <em>next</em> request from being
+	 * the one that is refused. A response that GitHub refused <em>because</em>
+	 * of a limit carries no data, so it is re-sent after the pause: handing a
+	 * secondary limit's 403 to the caller reported a group as unreadable that
+	 * had never been read, and there is no field of the response that says
+	 * which it was.
+	 */
 	private HttpResponse<String> sendRequest(HttpRequest request) {
 		try {
-			HttpResponse<String> resp = sendBounded(request);
-			handleRateLimit(resp);
-			return resp;
+			for (int attempt = 1;; attempt++) {
+				HttpResponse<String> resp = sendBounded(request);
+				Duration pause = rateLimitPause(resp);
+				if (pause == null) {
+					return resp;
+				}
+				report(pause, request);
+				Thread.sleep(pause);
+				if (!rateLimited(resp) || attempt == RATE_LIMIT_ATTEMPTS) {
+					return resp;
+				}
+			}
 		} catch (IOException e) {
 			throw new GitHubApiException(
 					request.method() + " " + request.uri() + " failed",
@@ -2346,8 +2521,8 @@ public class GitHubClient {
 	/**
 	 * Sends one request, holding a permit for as long as it is in flight — see
 	 * {@link #MAX_CONCURRENT_REQUESTS}. The permit is gone by the time
-	 * {@code sendRequest} calls {@link #handleRateLimit}, so a thread parked
-	 * until the reset is not holding a stream while it waits.
+	 * {@code sendRequest} waits out a rate limit, so a thread parked until the
+	 * reset is not holding a stream while it waits.
 	 */
 	private HttpResponse<String> sendBounded(HttpRequest request)
 			throws IOException, InterruptedException {
@@ -2401,42 +2576,113 @@ public class GitHubClient {
 		return sendRequest(requestBuilder(url).DELETE().build());
 	}
 
-	private void handleRateLimit(HttpResponse<String> resp) {
-		String remaining = resp.headers()
-				.firstValue("X-RateLimit-Remaining")
-				.orElse("1000");
-		if ("0".equals(remaining)) {
-			long resetEpoch = Long.parseLong(
-					resp.headers().firstValue("X-RateLimit-Reset").orElse("0")
-			);
-			long sleepMs = (resetEpoch * 1000L) - System.currentTimeMillis()
-					+ 1000L;
-			if (sleepMs > 0) {
-				System.err.printf(
-						"Rate limit reached. Sleeping %.1f seconds until reset...%n",
-						sleepMs / 1000.0
-				);
-				try {
-					Thread.sleep(sleepMs);
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-					throw new GitHubApiException(
-							"Interrupted while waiting for rate limit reset",
-							e
-					);
-				}
-			}
+	/**
+	 * Whether GitHub refused this request to protect a rate limit, rather than
+	 * on its merits.
+	 * <p>
+	 * A secondary limit answers 403 or 429 with {@code Retry-After}; the
+	 * primary one answers either status with {@code X-RateLimit-Remaining: 0}.
+	 * A plain 403 — a token without a scope, an endpoint an organization does
+	 * not have — carries neither, and has to keep reaching the caller as the
+	 * failure it is, since that is what {@code FetchFailures} turns into the
+	 * group's note.
+	 */
+	private static boolean rateLimited(HttpResponse<String> resp) {
+		if (resp.statusCode() != 403 && resp.statusCode() != 429) {
+			return false;
+		}
+		return resp.headers().firstValue("Retry-After").isPresent()
+				|| budgetSpent(resp);
+	}
+
+	private static boolean budgetSpent(HttpResponse<String> resp) {
+		return "0".equals(
+				resp.headers()
+						.firstValue("X-RateLimit-Remaining")
+						.orElse("1000")
+		);
+	}
+
+	/**
+	 * How long to stay off the API after this response, or {@code null} when
+	 * nothing in it says to wait.
+	 * <p>
+	 * {@code Retry-After} is all a secondary limit says and is a number of
+	 * seconds from now; {@code X-RateLimit-Reset} is what the primary limit
+	 * says and is an absolute epoch second. It is read only on a response that
+	 * was refused, because GitHub also sends {@code Retry-After} on the 202 of
+	 * a computation it has not finished, which is not a limit.
+	 */
+	private static Duration rateLimitPause(HttpResponse<String> resp) {
+		boolean refused = rateLimited(resp);
+		if (!refused && !budgetSpent(resp)) {
+			return null;
+		}
+		Optional<String> retryAfter = refused
+				? resp.headers().firstValue("Retry-After")
+				: Optional.empty();
+		if (retryAfter.isPresent()) {
+			return Duration
+					.ofSeconds(seconds(retryAfter.orElseThrow(), 60) + 1);
+		}
+		Duration untilReset = Duration.ofMillis(
+				seconds(
+						resp.headers()
+								.firstValue("X-RateLimit-Reset")
+								.orElse("0"),
+						0
+				) * 1000L - System.currentTimeMillis() + 1000L
+		);
+		if (untilReset.isPositive()) {
+			return untilReset;
+		}
+		// Refused for a limit that named no window, or named one that has
+		// already passed. Re-sending immediately is what earns the next one.
+		return refused ? UNTIMED_RATE_LIMIT_PAUSE : null;
+	}
+
+	/**
+	 * {@code Retry-After} may be an HTTP date rather than a count of seconds,
+	 * and a header can be anything at all — neither is worth failing a run
+	 * over, so an unreadable one takes the caller's fallback.
+	 */
+	private static long seconds(String header, long fallback) {
+		try {
+			return Long.parseLong(header.trim());
+		} catch (NumberFormatException e) {
+			return fallback;
 		}
 	}
 
-	private static String extractNextLink(String linkHeader) {
+	/**
+	 * Says once what every thread is about to wait for. Without it the run
+	 * printed nothing at all: exhausting the budget parked a check for eight
+	 * minutes in silence. With one line per thread it would have printed
+	 * {@link #MAX_CONCURRENT_REQUESTS} copies of the same sentence.
+	 */
+	private void report(Duration pause, HttpRequest request) {
+		long end = System.currentTimeMillis() + pause.toMillis();
+		long reported = reportedPauseEnd.get();
+		if (end - reported < PAUSE_REPORTED_WITHIN_MILLIS
+				|| !reportedPauseEnd.compareAndSet(reported, end)) {
+			return;
+		}
+		System.err.printf(
+				"Rate limited on %s %s. Waiting %.1f seconds before continuing...%n",
+				request.method(),
+				request.uri().getPath(),
+				pause.toMillis() / 1000.0
+		);
+	}
+
+	private static String extractLink(String linkHeader, String rel) {
 		if (linkHeader == null || linkHeader.isBlank()) {
 			return null;
 		}
 		for (String part : linkHeader.split(",")) {
 			String[] segments = part.trim().split(";");
 			if (segments.length == 2
-					&& segments[1].trim().equals("rel=\"next\"")) {
+					&& segments[1].trim().equals("rel=\"" + rel + "\"")) {
 				return segments[0].trim().replaceAll("[<>]", "");
 			}
 		}

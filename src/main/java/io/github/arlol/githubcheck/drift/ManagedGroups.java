@@ -68,6 +68,23 @@ public final class ManagedGroups<N extends Enum<N>> {
 		});
 	}
 
+	/**
+	 * The groups both this and {@code groups} manage.
+	 * <p>
+	 * What narrows the set a checker's {@code fetchState} reads without
+	 * touching the one the report and the drift groups read. A repository the
+	 * config wants archived is compared on {@code archived} alone, so every
+	 * other group's requests were sent and thrown away; the entry it produces
+	 * still has to name the groups the <em>config</em> leaves unmanaged, which
+	 * is a different set and comes from the untouched instance.
+	 */
+	public ManagedGroups<N> and(Set<N> groups) {
+		var both = EnumSet.noneOf(type);
+		both.addAll(managed);
+		both.retainAll(groups);
+		return new ManagedGroups<>(type, both);
+	}
+
 	public boolean manages(N group) {
 		return managed.contains(group);
 	}

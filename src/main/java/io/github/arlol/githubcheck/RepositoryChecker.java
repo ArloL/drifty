@@ -2,7 +2,6 @@ package io.github.arlol.githubcheck;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +11,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
@@ -23,6 +23,8 @@ import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
+import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
+import io.github.arlol.githubcheck.client.CollaboratorResponse;
 import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubApiException;
@@ -30,6 +32,8 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.ImmutableReleasesResponse;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepoRef;
+import io.github.arlol.githubcheck.client.RepoTeamResponse;
+import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.RulesetSourceType;
@@ -77,6 +81,26 @@ import io.github.arlol.githubcheck.state.DriftyState;
  * away.
  */
 public class RepositoryChecker {
+
+	/**
+	 * All the state a repository nobody will compare needs.
+	 * <p>
+	 * Two callers narrow {@code fetchState} to this, for the same reason from
+	 * opposite directions: {@link #createDriftGroups} returns
+	 * {@code ArchivedDriftGroup} and nothing else when the config asks for
+	 * {@code archived = true}, and {@code RepositoryExporter.entry} renders no
+	 * group's section once a repository <em>is</em> archived. Either way every
+	 * other group's requests were sent and the answers dropped — 49 archived
+	 * repositories of one 101-repository account spent 343 of its 1152 requests
+	 * that way, on endpoints GitHub rejects every write to.
+	 * <p>
+	 * {@code fetchState} guards nothing on {@code ARCHIVED} itself: the group
+	 * compares {@code archived} off the repository details request, which is
+	 * sent whatever this says. Naming it is what makes the narrowing readable
+	 * beside {@code createDriftGroups}.
+	 */
+	static final Set<Drifty.GroupName> ARCHIVED_ONLY = Set
+			.of(Drifty.GroupName.ARCHIVED);
 
 	private final GitHubClient client;
 	private final boolean fix;
@@ -196,7 +220,14 @@ public class RepositoryChecker {
 					.map(Drifty.GroupName::toString)
 					.toList();
 
-			RepositoryState state = fetchState(ref, summary, managed);
+			// `unmanaged` above comes from the config's own block, not from
+			// this: what a repository declares unmanaged is what the report
+			// names, and narrowing the fetch is not a declaration.
+			RepositoryState state = fetchState(
+					ref,
+					summary,
+					desired.archived ? managed.and(ARCHIVED_ONLY) : managed
+			);
 
 			Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts = computeGroupDrifts(
 					state,
@@ -249,6 +280,32 @@ public class RepositoryChecker {
 	// ─── Fetch
 	// ──────────────────────────────────────────────────────────────
 
+	/**
+	 * One repository's actual state, with every request that can be in flight
+	 * at once in flight at once.
+	 * <p>
+	 * The fan-out is two levels deep and never deeper. Everything that needs
+	 * nothing starts immediately; only five reads wait, and each waits on the
+	 * one response that names what it asks for — a branch's protection and a
+	 * ruleset's rules on the listing they were named in, an environment's
+	 * policies, secrets and variables on the environment listing, and the
+	 * repository's teams and custom property values on {@code GET
+	 * /repos/{owner}/{repo}}, which is what says whether an organization owns
+	 * it. Sending them one after another instead made the deepest single
+	 * repository the floor on the whole run: one repository of 101 took 24
+	 * requests and 6.6s of the 9.5s a check of that account spent, while the
+	 * semaphore in {@link GitHubClient} sat far below its limit throughout.
+	 * <p>
+	 * Two consequences of running them together, both deliberate.
+	 * {@link FetchFailures#STRICT} no longer stops the reads after it — they
+	 * are already sent — so a repository whose read fails now costs the
+	 * requests the sequential version would have skipped, and when several fail
+	 * the one that is reported is the first in join order rather than the first
+	 * in request order. Join order is fixed, so the entry is still the same on
+	 * every run; it is only no longer the same one the sequential version
+	 * named. And {@link FetchFailures.Collecting} is written to from several
+	 * threads, which is why it synchronizes and sorts.
+	 */
 	RepositoryState fetchState(
 			RepoRef ref,
 			RepositorySummaryResponse summary,
@@ -258,217 +315,223 @@ public class RepositoryChecker {
 		String name = ref.name();
 		boolean archived = summary.archived();
 
-		var details = client.getRepo(org, name);
+		try (Fanout fanout = new Fanout()) {
+			Supplier<RepositoryDetailsResponse> details = fanout
+					.start(() -> client.getRepo(org, name));
 
-		SecurityFlags security = archived ? SecurityFlags.NONE
-				: fetchSecurityFlags(org, name, managed);
+			Supplier<SecurityFlags> security = archived
+					? () -> SecurityFlags.NONE
+					: fetchSecurityFlags(fanout, org, name, managed);
 
-		Map<String, ActualBranchProtection> branchProtections = managed
-				.manages(Drifty.GroupName.BRANCH_PROTECTION)
-						? failures.read(
-								Drifty.GroupName.BRANCH_PROTECTION,
-								() -> fetchBranchProtections(
-										summary,
-										org,
-										name,
-										archived
-								),
-								Map.of()
-						)
-						: Map.of();
+			Supplier<Map<String, ActualBranchProtection>> branchProtections = read(
+					fanout,
+					managed,
+					Drifty.GroupName.BRANCH_PROTECTION,
+					() -> fetchBranchProtections(
+							fanout,
+							summary,
+							org,
+							name,
+							archived
+					),
+					Map.of()
+			);
 
-		List<ActualSecret> secrets = managed
-				.manages(Drifty.GroupName.ACTION_SECRETS)
-						? failures.read(
-								Drifty.GroupName.ACTION_SECRETS,
-								() -> secrets(
-										client.getActionSecrets(org, name)
-								),
-								List.of()
-						)
-						: List.of();
+			Supplier<List<ActualSecret>> secrets = read(
+					fanout,
+					managed,
+					Drifty.GroupName.ACTION_SECRETS,
+					() -> secrets(client.getActionSecrets(org, name)),
+					List.of()
+			);
 
-		List<ActualVariable> variables = managed
-				.manages(Drifty.GroupName.ACTION_VARIABLES)
-						? failures.read(
-								Drifty.GroupName.ACTION_VARIABLES,
-								() -> variables(
-										client.getActionVariables(org, name)
-								),
-								List.of()
-						)
-						: List.of();
+			Supplier<List<ActualVariable>> variables = read(
+					fanout,
+					managed,
+					Drifty.GroupName.ACTION_VARIABLES,
+					() -> variables(client.getActionVariables(org, name)),
+					List.of()
+			);
 
-		Map<String, ActualEnvironment> environments = new LinkedHashMap<>();
-		Map<String, List<ActualSecret>> envSecrets = new LinkedHashMap<>();
-		Map<String, List<ActualVariable>> envVariables = new LinkedHashMap<>();
-		boolean wantEnvConfig = managed
-				.manages(Drifty.GroupName.ENVIRONMENT_CONFIG);
-		boolean wantEnvSecrets = managed
-				.manages(Drifty.GroupName.ENVIRONMENT_SECRETS);
-		boolean wantEnvVariables = managed
-				.manages(Drifty.GroupName.ENVIRONMENT_VARIABLES);
-		// The listing is one request shared by all three groups, but the
-		// per-environment secret and variable reads below are each their own
-		// request and fail independently of it and of each other — wrapping
-		// the whole block under one group name would blame a secrets-only
-		// 403 on environment_config, and would throw away an already-fetched
-		// listing when only the variables read failed.
-		if (wantEnvConfig || wantEnvSecrets || wantEnvVariables) {
-			for (EnvironmentDetailsResponse env : failures.read(
-					Drifty.GroupName.ENVIRONMENT_CONFIG,
-					() -> client.getEnvironments(org, name),
-					List.<EnvironmentDetailsResponse>of()
-			)) {
-				environments.put(
-						env.name(),
-						ActualTypes.environment(
-								env,
-								failures.read(
-										Drifty.GroupName.ENVIRONMENT_CONFIG,
-										() -> branchPolicies(
-												org,
-												name,
-												env,
-												wantEnvConfig
-										),
-										List.of()
-								)
-						)
-				);
-				if (wantEnvSecrets) {
-					envSecrets.put(
-							env.name(),
-							failures.read(
-									Drifty.GroupName.ENVIRONMENT_SECRETS,
-									() -> secrets(
-											client.getEnvironmentSecrets(
-													org,
-													name,
-													env.name()
-											)
-									),
-									List.of()
-							)
-					);
-				}
-				if (wantEnvVariables) {
-					envVariables.put(
-							env.name(),
-							failures.read(
-									Drifty.GroupName.ENVIRONMENT_VARIABLES,
-									() -> variables(
-											client.getEnvironmentVariables(
-													org,
-													name,
-													env.name()
-											)
-									),
-									List.of()
-							)
-					);
-				}
-			}
-		}
+			Supplier<Environments> environments = fetchEnvironments(
+					fanout,
+					org,
+					name,
+					managed
+			);
 
-		var workflowPermissions = managed
-				.manages(Drifty.GroupName.WORKFLOW_PERMISSIONS)
-						? failures.read(
-								Drifty.GroupName.WORKFLOW_PERMISSIONS,
-								() -> ActualTypes.workflowPermissions(
-										client.getWorkflowPermissions(org, name)
-								),
-								null
-						)
-						: null;
-
-		List<ActualRuleset> rulesets = archived
-				|| !managed.manages(Drifty.GroupName.RULESETS)
-						? List.of()
-						: failures.read(
-								Drifty.GroupName.RULESETS,
-								() -> fetchRulesets(org, name),
-								List.of()
-						);
-
-		var pages = archived || !managed.manages(Drifty.GroupName.PAGES)
-				? Optional.<PagesResponse>empty()
-				: failures.read(
-						Drifty.GroupName.PAGES,
-						() -> client.getPages(org, name),
-						Optional.<PagesResponse>empty()
-				);
-
-		List<ActualWebhook> webhooks = managed
-				.manages(Drifty.GroupName.WEBHOOKS)
-						? failures.read(
-								Drifty.GroupName.WEBHOOKS,
-								() -> client.getRepoWebhooks(org, name)
-										.stream()
-										.map(ActualTypes::webhook)
-										.toList(),
-								List.of()
-						)
-						: List.of();
-
-		var repository = ActualTypes.repository(details);
-
-		// Custom properties are an organization's schema; the values endpoint
-		// 404s on a personal account's repository, and no token scope changes
-		// that.
-		List<ActualCustomPropertyValue> customPropertyValues = repository
-				.organizationOwned()
-				&& managed.manages(Drifty.GroupName.CUSTOM_PROPERTIES)
-						? failures.read(
-								Drifty.GroupName.CUSTOM_PROPERTIES,
-								() -> client
-										.getRepoCustomPropertyValues(org, name)
-										.stream()
-										.map(ActualTypes::customPropertyValue)
-										.toList(),
-								List.of()
-						)
-						: List.of();
-
-		// Teams only exist under an organization; the endpoint 404s on a
-		// personal account's repository.
-		ActualCollaborators collaborators = null;
-		if (managed.manages(Drifty.GroupName.COLLABORATORS)) {
-			collaborators = failures.read(
-					Drifty.GroupName.COLLABORATORS,
-					() -> ActualTypes.collaborators(
-							client.getCollaborators(org, name),
-							repository.organizationOwned()
-									? client.getRepoTeams(org, name)
-									: List.of(),
-							org
+			Supplier<ActualWorkflowPermissions> workflowPermissions = read(
+					fanout,
+					managed,
+					Drifty.GroupName.WORKFLOW_PERMISSIONS,
+					() -> ActualTypes.workflowPermissions(
+							client.getWorkflowPermissions(org, name)
 					),
 					null
 			);
-		}
 
-		return new RepositoryState(
-				ref,
-				repository,
-				ActualTypes.securityAndAnalysis(details),
-				security.vulnAlerts(),
-				security.automatedSecurityFixes(),
-				security.immutableReleases(),
-				security.privateVulnerabilityReporting(),
-				security.codeScanningDefaultSetup(),
-				branchProtections,
-				rulesets,
-				secrets,
-				environments,
-				envSecrets,
-				workflowPermissions,
-				pages.map(ActualTypes::pages),
-				variables,
-				envVariables,
-				webhooks,
-				customPropertyValues,
-				collaborators
-		);
+			Supplier<List<ActualRuleset>> rulesets = archived ? List::of
+					: read(
+							fanout,
+							managed,
+							Drifty.GroupName.RULESETS,
+							() -> fetchRulesets(fanout, org, name),
+							List.of()
+					);
+
+			Supplier<Optional<PagesResponse>> pages = archived ? Optional::empty
+					: read(
+							fanout,
+							managed,
+							Drifty.GroupName.PAGES,
+							() -> client.getPages(org, name),
+							Optional.empty()
+					);
+
+			Supplier<List<ActualWebhook>> webhooks = read(
+					fanout,
+					managed,
+					Drifty.GroupName.WEBHOOKS,
+					() -> client.getRepoWebhooks(org, name)
+							.stream()
+							.map(ActualTypes::webhook)
+							.toList(),
+					List.of()
+			);
+
+			Supplier<List<ActualCustomPropertyValue>> customPropertyValues = fetchCustomPropertyValues(
+					fanout,
+					org,
+					name,
+					managed,
+					details
+			);
+
+			// Teams only exist under an organization; that endpoint 404s on a
+			// personal account's repository too. The two reads are one group,
+			// so they are started apart and joined inside one
+			// FetchFailures.read: either failing leaves collaborators null and
+			// records one failure, the way the single sequential read did.
+			boolean wantCollaborators = managed
+					.manages(Drifty.GroupName.COLLABORATORS);
+			Supplier<List<CollaboratorResponse>> collaboratorList = wantCollaborators
+					? fanout.start(() -> client.getCollaborators(org, name))
+					: List::of;
+			Supplier<List<RepoTeamResponse>> teams = wantCollaborators
+					? fanout.start(
+							() -> organizationOwned(details)
+									? client.getRepoTeams(org, name)
+									: List.of()
+					) : List::of;
+
+			Supplier<ActualCollaborators> collaborators = wantCollaborators
+					? () -> failures.read(
+							Drifty.GroupName.COLLABORATORS,
+							() -> ActualTypes.collaborators(
+									collaboratorList.get(),
+									teams.get(),
+									org
+							),
+							null
+					)
+					: () -> null;
+
+			// Joined first, and outside every FetchFailures.read: a repository
+			// whose own details cannot be read has no state to compare, and
+			// the reads that wait on it would otherwise report its failure
+			// under their own group's name. Everything else is joined below,
+			// in the order the state's own fields are declared.
+			RepositoryDetailsResponse repoDetails = details.get();
+			SecurityFlags flags = security.get();
+			Environments envs = environments.get();
+
+			return new RepositoryState(
+					ref,
+					ActualTypes.repository(repoDetails),
+					ActualTypes.securityAndAnalysis(repoDetails),
+					flags.vulnAlerts(),
+					flags.automatedSecurityFixes(),
+					flags.immutableReleases(),
+					flags.privateVulnerabilityReporting(),
+					flags.codeScanningDefaultSetup(),
+					branchProtections.get(),
+					rulesets.get(),
+					secrets.get(),
+					envs.environments(),
+					envs.secrets(),
+					workflowPermissions.get(),
+					pages.get().map(ActualTypes::pages),
+					variables.get(),
+					envs.variables(),
+					webhooks.get(),
+					customPropertyValues.get(),
+					collaborators.get()
+			);
+		}
+	}
+
+	/**
+	 * Custom properties are an organization's schema; the values endpoint 404s
+	 * on a personal account's repository, and no token scope changes that.
+	 * Which is why this is the one group read that waits on the repository's
+	 * own details: the owner's type is what says whether to ask at all, and
+	 * asking it outside {@link FetchFailures#read} is what keeps a failed
+	 * details request from being reported as this group's.
+	 */
+	private Supplier<List<ActualCustomPropertyValue>> fetchCustomPropertyValues(
+			Fanout fanout,
+			String org,
+			String name,
+			ManagedGroups<Drifty.GroupName> managed,
+			Supplier<RepositoryDetailsResponse> details
+	) {
+		if (!managed.manages(Drifty.GroupName.CUSTOM_PROPERTIES)) {
+			return List::of;
+		}
+		return fanout.start(() -> {
+			if (!organizationOwned(details)) {
+				return List.of();
+			}
+			return failures.read(
+					Drifty.GroupName.CUSTOM_PROPERTIES,
+					() -> client.getRepoCustomPropertyValues(org, name)
+							.stream()
+							.map(ActualTypes::customPropertyValue)
+							.toList(),
+					List.of()
+			);
+		});
+	}
+
+	/**
+	 * Starts one group's read, or hands back {@code fallback} without sending
+	 * anything when the group is unmanaged — the same short-circuit the
+	 * sequential version got from {@code &&}, kept because an account someone
+	 * else administers is exactly where these requests return 403.
+	 */
+	private <T> Supplier<T> read(
+			Fanout fanout,
+			ManagedGroups<Drifty.GroupName> managed,
+			Drifty.GroupName group,
+			Supplier<T> read,
+			T fallback
+	) {
+		if (!managed.manages(group)) {
+			return () -> fallback;
+		}
+		return fanout.start(() -> failures.read(group, read, fallback));
+	}
+
+	/**
+	 * Whether an organization owns the repository, which two of its endpoints
+	 * exist only under. Reads it back off {@code details} rather than off the
+	 * listing summary so the answer comes from the one response every other
+	 * repository field is read from.
+	 */
+	private static boolean organizationOwned(
+			Supplier<RepositoryDetailsResponse> details
+	) {
+		return ActualTypes.repository(details.get()).organizationOwned();
 	}
 
 	private static List<ActualVariable> variables(
@@ -482,6 +545,198 @@ public class RepositoryChecker {
 	 */
 	List<FetchFailures.Failure> fetchFailures() {
 		return failures.failures();
+	}
+
+	/**
+	 * One repository's reads, in flight together.
+	 * <p>
+	 * A virtual thread per read, on an executor of this repository's own: the
+	 * bound that matters is {@code GitHubClient}'s semaphore, which every
+	 * caller's requests share, so bounding threads here as well would only
+	 * re-serialize what this exists to spread out.
+	 * <p>
+	 * A read started here may itself start more — that is what the second level
+	 * is — so nothing may reject a submission while a task is still running.
+	 * {@link #close} is therefore the only shutdown, and it happens after the
+	 * last join.
+	 */
+	private static final class Fanout implements AutoCloseable {
+
+		private final ExecutorService executor = Executors
+				.newVirtualThreadPerTaskExecutor();
+
+		/**
+		 * Sends {@code read} now; the returned supplier is the wait for it.
+		 */
+		<T> Supplier<T> start(Supplier<T> read) {
+			Future<T> pending = executor.submit(read::get);
+			return () -> join(pending);
+		}
+
+		/**
+		 * Rethrows the read's own exception rather than an
+		 * {@link ExecutionException} wrapping it: {@code checkOne} reports
+		 * {@code e.getMessage()}, and a repository whose read 403s has to say
+		 * so rather than "java.util.concurrent.ExecutionException".
+		 * <p>
+		 * Anything that is not already a {@link GitHubApiException} becomes
+		 * one, keeping its message and cause. That is what the sequential
+		 * version did with a checked exception anyway, and it means a bug in
+		 * one repository's read ends that repository's entry rather than the
+		 * whole run — {@code checkOne} has caught this type since issue #135.
+		 * An {@link Error} is not wrapped: it is not this run's to report.
+		 */
+		private static <T> T join(Future<T> pending) {
+			try {
+				return pending.get();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw new GitHubApiException(
+						"Interrupted while reading repository state",
+						e
+				);
+			} catch (ExecutionException e) {
+				Throwable cause = e.getCause();
+				if (cause instanceof GitHubApiException failed) {
+					throw failed;
+				}
+				if (cause instanceof Error error) {
+					throw error;
+				}
+				throw new GitHubApiException(cause.getMessage(), cause);
+			}
+		}
+
+		@Override
+		public void close() {
+			executor.close();
+		}
+
+	}
+
+	/**
+	 * The three groups that share the environment listing, read together.
+	 * <p>
+	 * The listing is one request all three need, but each per-environment read
+	 * below it is its own request and fails independently of the listing and of
+	 * the others — wrapping the whole block under one group name would blame a
+	 * secrets-only 403 on {@code environment_config}, and would throw away an
+	 * already-fetched listing when only the variables read failed.
+	 */
+	private Supplier<Environments> fetchEnvironments(
+			Fanout fanout,
+			String org,
+			String name,
+			ManagedGroups<Drifty.GroupName> managed
+	) {
+		boolean wantEnvConfig = managed
+				.manages(Drifty.GroupName.ENVIRONMENT_CONFIG);
+		boolean wantEnvSecrets = managed
+				.manages(Drifty.GroupName.ENVIRONMENT_SECRETS);
+		boolean wantEnvVariables = managed
+				.manages(Drifty.GroupName.ENVIRONMENT_VARIABLES);
+		if (!wantEnvConfig && !wantEnvSecrets && !wantEnvVariables) {
+			return () -> Environments.NONE;
+		}
+		return fanout.start(() -> {
+			List<PendingEnvironment> pending = failures
+					.read(
+							Drifty.GroupName.ENVIRONMENT_CONFIG,
+							() -> client.getEnvironments(org, name),
+							List.<EnvironmentDetailsResponse>of()
+					)
+					.stream()
+					.map(
+							env -> new PendingEnvironment(
+									env,
+									fanout.start(
+											() -> failures.read(
+													Drifty.GroupName.ENVIRONMENT_CONFIG,
+													() -> branchPolicies(
+															org,
+															name,
+															env,
+															wantEnvConfig
+													),
+													List.of()
+											)
+									),
+									wantEnvSecrets ? fanout.start(
+											() -> failures.read(
+													Drifty.GroupName.ENVIRONMENT_SECRETS,
+													() -> secrets(
+															client.getEnvironmentSecrets(
+																	org,
+																	name,
+																	env.name()
+															)
+													),
+													List.of()
+											)
+									) : null,
+									wantEnvVariables ? fanout.start(
+											() -> failures.read(
+													Drifty.GroupName.ENVIRONMENT_VARIABLES,
+													() -> variables(
+															client.getEnvironmentVariables(
+																	org,
+																	name,
+																	env.name()
+															)
+													),
+													List.of()
+											)
+									) : null
+							)
+					)
+					.toList();
+
+			Map<String, ActualEnvironment> environments = new LinkedHashMap<>();
+			Map<String, List<ActualSecret>> envSecrets = new LinkedHashMap<>();
+			Map<String, List<ActualVariable>> envVariables = new LinkedHashMap<>();
+			for (PendingEnvironment env : pending) {
+				String envName = env.env().name();
+				environments.put(
+						envName,
+						ActualTypes.environment(env.env(), env.policies().get())
+				);
+				if (env.secrets() != null) {
+					envSecrets.put(envName, env.secrets().get());
+				}
+				if (env.variables() != null) {
+					envVariables.put(envName, env.variables().get());
+				}
+			}
+			return new Environments(environments, envSecrets, envVariables);
+		});
+	}
+
+	/**
+	 * One environment's three reads, already sent, waiting to be collected.
+	 * {@code secrets} and {@code variables} are null when their group is
+	 * unmanaged — no request was sent for them.
+	 */
+	private record PendingEnvironment(
+			EnvironmentDetailsResponse env,
+			Supplier<List<DeploymentBranchPolicyResponse>> policies,
+			Supplier<List<ActualSecret>> secrets,
+			Supplier<List<ActualVariable>> variables
+	) {
+	}
+
+	/** What the environment listing and the reads under it produced. */
+	private record Environments(
+			Map<String, ActualEnvironment> environments,
+			Map<String, List<ActualSecret>> secrets,
+			Map<String, List<ActualVariable>> variables
+	) {
+
+		private static final Environments NONE = new Environments(
+				Map.of(),
+				Map.of(),
+				Map.of()
+		);
+
 	}
 
 	/**
@@ -508,112 +763,138 @@ public class RepositoryChecker {
 	}
 
 	/**
-	 * Each flag is its own request, so each is guarded by its own group. Java's
-	 * {@code &&} short-circuits, which is what keeps an unmanaged flag from
-	 * sending one.
+	 * Five independent flags, five requests, all in flight together. Each is
+	 * its own group because each is its own request, and an unmanaged one sends
+	 * nothing.
 	 */
-	private SecurityFlags fetchSecurityFlags(
+	private Supplier<SecurityFlags> fetchSecurityFlags(
+			Fanout fanout,
 			String org,
 			String name,
 			ManagedGroups<Drifty.GroupName> managed
 	) {
-		boolean vulnAlerts = managed
-				.manages(Drifty.GroupName.VULNERABILITY_ALERTS)
-				&& failures.read(
-						Drifty.GroupName.VULNERABILITY_ALERTS,
-						() -> client.getVulnerabilityAlerts(org, name),
-						false
-				);
-		boolean automatedSecurityFixes = managed
-				.manages(Drifty.GroupName.AUTOMATED_SECURITY_FIXES)
-				&& failures.read(
-						Drifty.GroupName.AUTOMATED_SECURITY_FIXES,
-						() -> client.getAutomatedSecurityFixes(org, name),
-						false
-				);
-		boolean immutableReleases = false;
-		if (managed.manages(Drifty.GroupName.IMMUTABLE_RELEASES)) {
-			var response = failures.read(
-					Drifty.GroupName.IMMUTABLE_RELEASES,
-					() -> client.getImmutableReleases(org, name),
-					Optional.<ImmutableReleasesResponse>empty()
-			);
-			immutableReleases = response.isPresent()
-					&& response.orElseThrow().enabled();
-		}
-		boolean privateVulnerabilityReporting = managed
-				.manages(Drifty.GroupName.PRIVATE_VULNERABILITY_REPORTING)
-				&& failures.read(
-						Drifty.GroupName.PRIVATE_VULNERABILITY_REPORTING,
-						() -> client
-								.getPrivateVulnerabilityReporting(org, name),
-						false
-				);
-		boolean codeScanningDefaultSetup = managed
-				.manages(Drifty.GroupName.CODE_SCANNING_DEFAULT_SETUP)
-				&& failures.read(
-						Drifty.GroupName.CODE_SCANNING_DEFAULT_SETUP,
-						() -> client.getCodeScanningDefaultSetup(org, name),
-						false
-				);
-		return new SecurityFlags(
-				vulnAlerts,
-				automatedSecurityFixes,
-				immutableReleases,
-				privateVulnerabilityReporting,
-				codeScanningDefaultSetup
+		Supplier<Boolean> vulnAlerts = read(
+				fanout,
+				managed,
+				Drifty.GroupName.VULNERABILITY_ALERTS,
+				() -> client.getVulnerabilityAlerts(org, name),
+				false
+		);
+		Supplier<Boolean> automatedSecurityFixes = read(
+				fanout,
+				managed,
+				Drifty.GroupName.AUTOMATED_SECURITY_FIXES,
+				() -> client.getAutomatedSecurityFixes(org, name),
+				false
+		);
+		Supplier<Optional<ImmutableReleasesResponse>> immutableReleases = read(
+				fanout,
+				managed,
+				Drifty.GroupName.IMMUTABLE_RELEASES,
+				() -> client.getImmutableReleases(org, name),
+				Optional.empty()
+		);
+		Supplier<Boolean> privateVulnerabilityReporting = read(
+				fanout,
+				managed,
+				Drifty.GroupName.PRIVATE_VULNERABILITY_REPORTING,
+				() -> client.getPrivateVulnerabilityReporting(org, name),
+				false
+		);
+		Supplier<Boolean> codeScanningDefaultSetup = read(
+				fanout,
+				managed,
+				Drifty.GroupName.CODE_SCANNING_DEFAULT_SETUP,
+				() -> client.getCodeScanningDefaultSetup(org, name),
+				false
+		);
+		return () -> new SecurityFlags(
+				vulnAlerts.get(),
+				automatedSecurityFixes.get(),
+				immutableReleases.get()
+						.filter(ImmutableReleasesResponse::enabled)
+						.isPresent(),
+				privateVulnerabilityReporting.get(),
+				codeScanningDefaultSetup.get()
 		);
 	}
 
 	/**
-	 * One request per protected branch, after the one that lists them. REST has
-	 * no call that returns every protection at once, so this is the shape the
-	 * read takes until GraphQL bulk reads land; when they do, this method and
-	 * {@link #fetchRulesets} are the two places to replace, since everything
-	 * downstream sees {@link ActualBranchProtection} only.
+	 * One request per protected branch, all sent as soon as the one that lists
+	 * them answers. REST has no call that returns every protection at once, so
+	 * this is the shape the read takes until GraphQL bulk reads land; when they
+	 * do, this method and {@link #fetchRulesets} are the two places to replace,
+	 * since everything downstream sees {@link ActualBranchProtection} only.
 	 */
 	private Map<String, ActualBranchProtection> fetchBranchProtections(
+			Fanout fanout,
 			RepositorySummaryResponse summary,
 			String org,
 			String name,
 			boolean archived
 	) {
-		Map<String, ActualBranchProtection> branchProtections = new HashMap<>();
 		if (archived || RepositoryVisibility.PUBLIC != summary.visibility()) {
-			return branchProtections;
+			return Map.of();
 		}
-		for (var branch : client.getBranches(org, name, true)) {
-			var bp = client.getBranchProtection(org, name, branch.name());
+		var pending = client.getBranches(org, name, true)
+				.stream()
+				.map(
+						branch -> Map.entry(
+								branch.name(),
+								fanout.start(
+										() -> client.getBranchProtection(
+												org,
+												name,
+												branch.name()
+										)
+								)
+						)
+				)
+				.toList();
+		Map<String, ActualBranchProtection> branchProtections = new LinkedHashMap<>();
+		for (var branch : pending) {
 			branchProtections.put(
-					branch.name(),
-					ActualTypes.branchProtection(bp.orElseThrow())
+					branch.getKey(),
+					ActualTypes.branchProtection(
+							branch.getValue().get().orElseThrow()
+					)
 			);
 		}
 		return branchProtections;
 	}
 
 	/**
-	 * One request per ruleset, after the one that lists them: the listing
-	 * carries no rules or conditions, and REST has no bulk read for them. See
-	 * {@link #fetchBranchProtections} for what replaces both.
+	 * One request per ruleset, all sent as soon as the one that lists them
+	 * answers: the listing carries no rules or conditions, and REST has no bulk
+	 * read for them. See {@link #fetchBranchProtections} for what replaces
+	 * both.
 	 */
-	private List<ActualRuleset> fetchRulesets(String org, String name) {
-		var rulesets = new ArrayList<ActualRuleset>();
-		for (var rs : client.listRulesets(org, name)) {
-			if (rs.sourceType() == RulesetSourceType.ORGANIZATION
-					|| rs.sourceType() == RulesetSourceType.ENTERPRISE) {
+	private List<ActualRuleset> fetchRulesets(
+			Fanout fanout,
+			String org,
+			String name
+	) {
+		return client.listRulesets(org, name)
+				.stream()
 				// listRulesets hits /rulesets, whose includes_parents defaults
 				// to true, so org and enterprise rulesets arrive here. They
 				// are not the repository's to reconcile: the repo endpoint
 				// cannot delete one, so reporting it as extra produces a fix
 				// that always fails.
-				continue;
-			}
-			rulesets.add(
-					ActualTypes.ruleset(client.getRuleset(org, name, rs.id()))
-			);
-		}
-		return rulesets;
+				.filter(
+						rs -> rs.sourceType() != RulesetSourceType.ORGANIZATION
+								&& rs.sourceType() != RulesetSourceType.ENTERPRISE
+				)
+				.map(
+						rs -> fanout.start(
+								() -> client.getRuleset(org, name, rs.id())
+						)
+				)
+				.toList()
+				.stream()
+				.map(Supplier::get)
+				.map(ActualTypes::ruleset)
+				.toList();
 	}
 
 	/**

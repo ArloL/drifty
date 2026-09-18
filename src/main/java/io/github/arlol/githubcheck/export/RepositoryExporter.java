@@ -66,16 +66,17 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * therefore leave those settings on the schema's defaults — the cost of not
  * writing a value drifty does not have.
  * <p>
- * {@code failures} is not skipped along with those members, though: rulesets
- * and pages are the only two groups {@code fetchState} itself stops fetching
- * once a repository is archived (alongside the five security-flag endpoints
- * above) — branch protections, secrets, variables, environments, webhooks,
- * custom properties, collaborators and workflow permissions are all still
- * fetched and can still 403. Those failures are rendered as bare notes rather
- * than positioned beside the member they would otherwise sit next to, since
- * that member is never rendered here at all — and they still reach
- * {@code managed} through {@link AccountExporter#addUnmanagedGroups}, which
- * runs before the archived branch for that reason.
+ * {@code failures} is rendered whether or not those members are, and is
+ * normally empty here now: because an archived repository renders none of those
+ * sections, {@code ExportRunner} narrows what it asks
+ * {@code RepositoryChecker.fetchState} for to
+ * {@code RepositoryChecker.ARCHIVED_ONLY}, so no group's request is sent and
+ * none can fail. It used to send all eight of them and render each 403 as a
+ * bare note beside a member that was never written. This method still renders
+ * what it is handed — dropping it would make a caller that does read a group
+ * lose the failure silently, which is the shape of issue #136 — so the archived
+ * branch keeps both the notes and the {@code managed} block they feed through
+ * {@link AccountExporter#addUnmanagedGroups}.
  */
 public final class RepositoryExporter {
 
@@ -109,22 +110,14 @@ public final class RepositoryExporter {
 
 		var members = new ArrayList<PklNode.Member>();
 		members.add(Fields.required("name", state.name()).orElseThrow());
-		// Right after `name`, as the schema orders Repository's fields, and
-		// before the archived branch below: RepositoryChecker.fetchState reads
-		// a group for an archived repository too, so an unreadable one has to
-		// be excluded there as well.
+		// Right after `name`, as the schema orders Repository's fields.
 		AccountExporter.addUnmanagedGroups(members, failures);
 		members.addAll(repositoryMembers(actual, base));
 		if (actual.archived()) {
 			members.add(Fields.note(ARCHIVED_NOTE));
-			// securityMembers and collectionMembers are skipped, but
-			// RepositoryChecker.fetchState still reads branchProtections,
-			// actionSecrets, actionVariables, environments, webhooks,
-			// customProperties, collaborators and workflowPermissions for an
-			// archived repository — only rulesets, pages and the five
-			// security-flag endpoints are skipped there. Any of those groups'
-			// own 403s would otherwise vanish along with the members they
-			// would have sat beside.
+			// Bare notes rather than positioned beside the member they
+			// describe, since that member is not rendered here at all. See the
+			// class comment for why this is normally empty.
 			for (FetchFailures.Failure failure : failures) {
 				members.add(
 						Fields.note(failure.group() + ": " + failure.reason())
