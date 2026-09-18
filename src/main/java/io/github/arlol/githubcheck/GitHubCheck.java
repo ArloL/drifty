@@ -83,19 +83,23 @@ public class GitHubCheck {
 				return;
 			}
 			String schema = optionValue(argsList, "--schema");
-			System.exit(
-					ExportRunner.run(
-							new GitHubClient(token),
-							exportLogins,
-							Path.of(
-									optionValue(argsList, "--out") == null
-											? "export.pkl"
-											: optionValue(argsList, "--out")
-							),
-							schema == null ? SchemaDefaults.MAIN_SCHEMA_URI
-									: schema
-					)
+			Path out = Path.of(
+					optionValue(argsList, "--out") == null ? "export.pkl"
+							: optionValue(argsList, "--out")
 			);
+			Path exportStateFile = stateFile(statePath, out);
+			var exportStore = new StateStore();
+			DriftyState state = exportStore.load(exportStateFile);
+			int exitCode = ExportRunner.run(
+					new GitHubClient(token, state),
+					exportLogins,
+					out,
+					schema == null ? SchemaDefaults.MAIN_SCHEMA_URI : schema
+			);
+			// Loaded and saved rather than built fresh: a new DriftyState
+			// written over this file would take every secret baseline with it.
+			exportStore.save(exportStateFile, state);
+			System.exit(exitCode);
 			return;
 		}
 
@@ -110,9 +114,7 @@ public class GitHubCheck {
 		}
 		DriftyConfig config = PklConfigLoader.load(configPath.toAbsolutePath());
 
-		Path stateFile = statePath != null ? Path.of(statePath)
-				: configPath.toAbsolutePath()
-						.resolveSibling("drifty-state.json");
+		Path stateFile = stateFile(statePath, configPath);
 		var stateStore = new StateStore();
 		DriftyState state = stateStore.load(stateFile);
 
@@ -405,7 +407,8 @@ public class GitHubCheck {
 				  --fix            Apply every fixable change instead of only reporting it.
 				  --config <path>  Config to check against. Default: ./drifty.pkl
 				  --state <path>   Secret baselines and cached responses to read and
-				                   write. Default: drifty-state.json beside the config.
+				                   write. Default: drifty-state.json beside the config,
+				                   or beside --out when exporting.
 				  --export <login> Write the named accounts' current settings as a
 				                   starting config instead of checking anything. Takes
 				                   neither --config nor --fix.
@@ -518,6 +521,21 @@ public class GitHubCheck {
 			logins.add(argsList.get(i));
 		}
 		return List.copyOf(logins);
+	}
+
+	/**
+	 * Where the state file lives: what {@code --state} names, or
+	 * {@code drifty-state.json} beside the file the run is built around — the
+	 * config a check reads, the file an export writes.
+	 * <p>
+	 * The two anchors agree on the case that matters. An export writes
+	 * {@code export.pkl} and leaves its cache next to it, which is exactly
+	 * where {@code drifty --config export.pkl} then looks, so the first check
+	 * after an export is already warm.
+	 */
+	static Path stateFile(String statePath, Path beside) {
+		return statePath != null ? Path.of(statePath)
+				: beside.toAbsolutePath().resolveSibling("drifty-state.json");
 	}
 
 	static String optionValue(List<String> argsList, String option) {
