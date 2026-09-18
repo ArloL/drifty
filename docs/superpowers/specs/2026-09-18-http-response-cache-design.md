@@ -62,8 +62,8 @@ The key is the URL with `baseUrl` stripped, so an entry reads as
 end up in the file.
 
 `link` is stored only for a response that carried one, and it is the trap this
-design exists to avoid. **GitHub's 304 drops the `Link`
-header.** Verified on the same date:
+design exists to avoid. **GitHub's 304 drops the `Link` header.** Verified on
+the same date:
 
 ```
 200:  link: <…&page=2>; rel="next", <…&page=2>; rel="last"
@@ -100,9 +100,9 @@ Three properties fall out of always revalidating:
 
 Each entry records the date it was last validated, and a 304 refreshes that
 date as surely as a 200 does — the entry was confirmed current either way.
-Entries no run has confirmed for 30 days are dropped when the state is saved. Without that the file keeps every
-repository the account has ever had, and every URL belonging to a group the
-config later stopped managing.
+Entries no run has confirmed for 30 days are dropped when the state is saved.
+Without that the file keeps every repository the account has ever had, and
+every URL belonging to a group the config later stopped managing.
 
 ## What changes outside the client
 
