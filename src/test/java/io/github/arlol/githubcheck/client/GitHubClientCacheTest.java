@@ -85,11 +85,13 @@ class GitHubClientCacheTest {
 
 	private InMemoryCache cache;
 	private GitHubClient client;
+	private String baseUrl;
 
 	@BeforeEach
 	void setUp(WireMockRuntimeInfo wm) {
 		cache = new InMemoryCache();
-		client = new GitHubClient(wm.getHttpBaseUrl(), "test-token", cache);
+		baseUrl = wm.getHttpBaseUrl();
+		client = new GitHubClient(baseUrl, "test-token", cache);
 	}
 
 	@Test
@@ -160,6 +162,67 @@ class GitHubClientCacheTest {
 		assertThatThrownBy(() -> client.getRepo("owner", "repo"))
 				.isInstanceOf(GitHubApiException.class)
 				.hasMessageContaining("403");
+	}
+
+	/**
+	 * GitHub's 304 drops {@code Link}. Verified against the live API on
+	 * 2026-09-18: the 200 carried {@code rel="next"} and {@code rel="last"},
+	 * the 304 carried the ETag and nothing else.
+	 * <p>
+	 * This fails by returning one repository instead of two, not by erroring,
+	 * which is exactly how it would reach a user: an account's second hundred
+	 * repositories reported MISSING.
+	 */
+	@Test
+	void aCachedListingStillReachesItsSecondPage() {
+		String pageTwoUrl = baseUrl
+				+ "/orgs/owner/repos?per_page=100&type=all&page=2";
+		stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", absent())
+						.withHeader("If-None-Match", absent())
+						.willReturn(
+								okJson(
+										"""
+												[{"name": "one", "archived": false, "visibility": "public"}]
+												"""
+								).withHeader("ETag", "\"p1\"")
+										.withHeader(
+												"Link",
+												"<" + pageTwoUrl
+														+ ">; rel=\"last\""
+										)
+						)
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", absent())
+						.withHeader("If-None-Match", equalTo("\"p1\""))
+						.willReturn(
+								aResponse().withStatus(304)
+										.withHeader("ETag", "\"p1\"")
+						)
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", equalTo("2"))
+						.willReturn(
+								okJson(
+										"""
+												[{"name": "two", "archived": false, "visibility": "public"}]
+												"""
+								)
+						)
+		);
+
+		assertThat(client.listOrgRepos("owner").orElseThrow())
+				.extracting(RepositorySummaryResponse::name)
+				.containsExactly("one", "two");
+
+		assertThat(client.listOrgRepos("owner").orElseThrow())
+				.as("the cached first page still names page two")
+				.extracting(RepositorySummaryResponse::name)
+				.containsExactly("one", "two");
 	}
 
 }
