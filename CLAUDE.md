@@ -89,8 +89,8 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   `sendRequest` keeps the one pair of arms, and the permit is gone before any
   rate-limit pause, so a thread parked until the reset is not holding a stream.
   `GitHubClientConcurrencyTest` fails if more requests overlap than the limit.
-- **`fetchState` fans out; two levels, never three.** `RepositoryChecker.Fanout`
-  starts every read that needs nothing at once, and only five wait: a branch's
+- **`fetchState` fans out; two levels, never three.** `Fanout` starts every
+  read that needs nothing at once, and only five wait: a branch's
   protection, a ruleset's rules, an environment's policies/secrets/variables,
   and `/teams` and `/properties/values`, which wait on `GET
   /repos/{owner}/{repo}` because the owner's type is what says whether to send
@@ -104,6 +104,30 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   `FetchFailures.Collecting` synchronized and sorted, because one repository's
   groups now fail on different threads and an export has to be byte-identical
   twice running.
+- **An organization's budget is three round trips, one more than a
+  repository's.** `OrganizationChecker.fetchState` shares the same `Fanout`,
+  and the extra level is `GET /orgs/{org}`: it is how the checker learns the
+  organization exists, so every group waits on it rather than firing two dozen
+  requests at a login GitHub has never heard of. Below it each group's listing
+  starts at once, and only a ruleset's rules, a team's two member listings, a
+  configuration's repositories and defaults, the repositories behind a
+  `selected` secret, variable or runner group, and the allow-list and
+  repository selection behind `selected` Actions permissions wait — one round
+  trip, never two. `OrganizationCheckerRequestShapeTest` fails on a fourth.
+  The defaults listing is the one to be careful with: it looks independent of
+  the configuration listing, but starting it eagerly spends a request on every
+  organization that has no configuration and fails the group on a token that
+  cannot read it, so it hangs off the listing beside the per-configuration
+  reads instead.
+- **The organization is checked before its repositories, and `--fix` needs
+  that order.** Each phase is fanned out internally, but they are not run
+  against each other: a repository cannot be granted access to a team that
+  does not exist yet, cannot carry a value for a custom property whose
+  definition does not exist yet, and a code security configuration attaches to
+  repositories whose own security groups write the same settings. Overlapping
+  the two phases is the obvious next speed-up and it is not available in fix
+  mode; doing it for check mode alone would make the two modes send different
+  request schedules, which is how a fix-only ordering bug stays invisible.
 - **A rate limit is not a failed request.** `sendRequest` re-sends through a 403
   or 429 that carries `Retry-After` or `X-RateLimit-Remaining: 0`, and pauses
   (without re-sending) after a good response that spent the last of the budget.

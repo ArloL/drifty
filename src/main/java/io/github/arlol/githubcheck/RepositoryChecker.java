@@ -315,39 +315,34 @@ public class RepositoryChecker {
 		String name = ref.name();
 		boolean archived = summary.archived();
 
-		try (Fanout fanout = new Fanout()) {
+		try (var fanout = new Fanout<>(failures, managed)) {
 			Supplier<RepositoryDetailsResponse> details = fanout
 					.start(() -> client.getRepo(org, name));
 
 			Supplier<SecurityFlags> security = archived
 					? () -> SecurityFlags.NONE
-					: fetchSecurityFlags(fanout, org, name, managed);
+					: fetchSecurityFlags(fanout, org, name);
 
-			Supplier<Map<String, ActualBranchProtection>> branchProtections = read(
-					fanout,
-					managed,
-					Drifty.GroupName.BRANCH_PROTECTION,
-					() -> fetchBranchProtections(
-							fanout,
-							summary,
-							org,
-							name,
-							archived
-					),
-					Map.of()
-			);
+			Supplier<Map<String, ActualBranchProtection>> branchProtections = fanout
+					.read(
+							Drifty.GroupName.BRANCH_PROTECTION,
+							() -> fetchBranchProtections(
+									fanout,
+									summary,
+									org,
+									name,
+									archived
+							),
+							Map.of()
+					);
 
-			Supplier<List<ActualSecret>> secrets = read(
-					fanout,
-					managed,
+			Supplier<List<ActualSecret>> secrets = fanout.read(
 					Drifty.GroupName.ACTION_SECRETS,
 					() -> secrets(client.getActionSecrets(org, name)),
 					List.of()
 			);
 
-			Supplier<List<ActualVariable>> variables = read(
-					fanout,
-					managed,
+			Supplier<List<ActualVariable>> variables = fanout.read(
 					Drifty.GroupName.ACTION_VARIABLES,
 					() -> variables(client.getActionVariables(org, name)),
 					List.of()
@@ -360,37 +355,30 @@ public class RepositoryChecker {
 					managed
 			);
 
-			Supplier<ActualWorkflowPermissions> workflowPermissions = read(
-					fanout,
-					managed,
-					Drifty.GroupName.WORKFLOW_PERMISSIONS,
-					() -> ActualTypes.workflowPermissions(
-							client.getWorkflowPermissions(org, name)
-					),
-					null
-			);
+			Supplier<ActualWorkflowPermissions> workflowPermissions = fanout
+					.read(
+							Drifty.GroupName.WORKFLOW_PERMISSIONS,
+							() -> ActualTypes.workflowPermissions(
+									client.getWorkflowPermissions(org, name)
+							),
+							null
+					);
 
 			Supplier<List<ActualRuleset>> rulesets = archived ? List::of
-					: read(
-							fanout,
-							managed,
+					: fanout.read(
 							Drifty.GroupName.RULESETS,
 							() -> fetchRulesets(fanout, org, name),
 							List.of()
 					);
 
 			Supplier<Optional<PagesResponse>> pages = archived ? Optional::empty
-					: read(
-							fanout,
-							managed,
+					: fanout.read(
 							Drifty.GroupName.PAGES,
 							() -> client.getPages(org, name),
 							Optional.empty()
 					);
 
-			Supplier<List<ActualWebhook>> webhooks = read(
-					fanout,
-					managed,
+			Supplier<List<ActualWebhook>> webhooks = fanout.read(
 					Drifty.GroupName.WEBHOOKS,
 					() -> client.getRepoWebhooks(org, name)
 							.stream()
@@ -479,7 +467,7 @@ public class RepositoryChecker {
 	 * details request from being reported as this group's.
 	 */
 	private Supplier<List<ActualCustomPropertyValue>> fetchCustomPropertyValues(
-			Fanout fanout,
+			Fanout<Drifty.GroupName> fanout,
 			String org,
 			String name,
 			ManagedGroups<Drifty.GroupName> managed,
@@ -501,25 +489,6 @@ public class RepositoryChecker {
 					List.of()
 			);
 		});
-	}
-
-	/**
-	 * Starts one group's read, or hands back {@code fallback} without sending
-	 * anything when the group is unmanaged — the same short-circuit the
-	 * sequential version got from {@code &&}, kept because an account someone
-	 * else administers is exactly where these requests return 403.
-	 */
-	private <T> Supplier<T> read(
-			Fanout fanout,
-			ManagedGroups<Drifty.GroupName> managed,
-			Drifty.GroupName group,
-			Supplier<T> read,
-			T fallback
-	) {
-		if (!managed.manages(group)) {
-			return () -> fallback;
-		}
-		return fanout.start(() -> failures.read(group, read, fallback));
 	}
 
 	/**
@@ -548,73 +517,6 @@ public class RepositoryChecker {
 	}
 
 	/**
-	 * One repository's reads, in flight together.
-	 * <p>
-	 * A virtual thread per read, on an executor of this repository's own: the
-	 * bound that matters is {@code GitHubClient}'s semaphore, which every
-	 * caller's requests share, so bounding threads here as well would only
-	 * re-serialize what this exists to spread out.
-	 * <p>
-	 * A read started here may itself start more — that is what the second level
-	 * is — so nothing may reject a submission while a task is still running.
-	 * {@link #close} is therefore the only shutdown, and it happens after the
-	 * last join.
-	 */
-	private static final class Fanout implements AutoCloseable {
-
-		private final ExecutorService executor = Executors
-				.newVirtualThreadPerTaskExecutor();
-
-		/**
-		 * Sends {@code read} now; the returned supplier is the wait for it.
-		 */
-		<T> Supplier<T> start(Supplier<T> read) {
-			Future<T> pending = executor.submit(read::get);
-			return () -> join(pending);
-		}
-
-		/**
-		 * Rethrows the read's own exception rather than an
-		 * {@link ExecutionException} wrapping it: {@code checkOne} reports
-		 * {@code e.getMessage()}, and a repository whose read 403s has to say
-		 * so rather than "java.util.concurrent.ExecutionException".
-		 * <p>
-		 * Anything that is not already a {@link GitHubApiException} becomes
-		 * one, keeping its message and cause. That is what the sequential
-		 * version did with a checked exception anyway, and it means a bug in
-		 * one repository's read ends that repository's entry rather than the
-		 * whole run — {@code checkOne} has caught this type since issue #135.
-		 * An {@link Error} is not wrapped: it is not this run's to report.
-		 */
-		private static <T> T join(Future<T> pending) {
-			try {
-				return pending.get();
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				throw new GitHubApiException(
-						"Interrupted while reading repository state",
-						e
-				);
-			} catch (ExecutionException e) {
-				Throwable cause = e.getCause();
-				if (cause instanceof GitHubApiException failed) {
-					throw failed;
-				}
-				if (cause instanceof Error error) {
-					throw error;
-				}
-				throw new GitHubApiException(cause.getMessage(), cause);
-			}
-		}
-
-		@Override
-		public void close() {
-			executor.close();
-		}
-
-	}
-
-	/**
 	 * The three groups that share the environment listing, read together.
 	 * <p>
 	 * The listing is one request all three need, but each per-environment read
@@ -624,7 +526,7 @@ public class RepositoryChecker {
 	 * already-fetched listing when only the variables read failed.
 	 */
 	private Supplier<Environments> fetchEnvironments(
-			Fanout fanout,
+			Fanout<Drifty.GroupName> fanout,
 			String org,
 			String name,
 			ManagedGroups<Drifty.GroupName> managed
@@ -768,42 +670,32 @@ public class RepositoryChecker {
 	 * nothing.
 	 */
 	private Supplier<SecurityFlags> fetchSecurityFlags(
-			Fanout fanout,
+			Fanout<Drifty.GroupName> fanout,
 			String org,
-			String name,
-			ManagedGroups<Drifty.GroupName> managed
+			String name
 	) {
-		Supplier<Boolean> vulnAlerts = read(
-				fanout,
-				managed,
+		Supplier<Boolean> vulnAlerts = fanout.read(
 				Drifty.GroupName.VULNERABILITY_ALERTS,
 				() -> client.getVulnerabilityAlerts(org, name),
 				false
 		);
-		Supplier<Boolean> automatedSecurityFixes = read(
-				fanout,
-				managed,
+		Supplier<Boolean> automatedSecurityFixes = fanout.read(
 				Drifty.GroupName.AUTOMATED_SECURITY_FIXES,
 				() -> client.getAutomatedSecurityFixes(org, name),
 				false
 		);
-		Supplier<Optional<ImmutableReleasesResponse>> immutableReleases = read(
-				fanout,
-				managed,
-				Drifty.GroupName.IMMUTABLE_RELEASES,
-				() -> client.getImmutableReleases(org, name),
-				Optional.empty()
-		);
-		Supplier<Boolean> privateVulnerabilityReporting = read(
-				fanout,
-				managed,
+		Supplier<Optional<ImmutableReleasesResponse>> immutableReleases = fanout
+				.read(
+						Drifty.GroupName.IMMUTABLE_RELEASES,
+						() -> client.getImmutableReleases(org, name),
+						Optional.empty()
+				);
+		Supplier<Boolean> privateVulnerabilityReporting = fanout.read(
 				Drifty.GroupName.PRIVATE_VULNERABILITY_REPORTING,
 				() -> client.getPrivateVulnerabilityReporting(org, name),
 				false
 		);
-		Supplier<Boolean> codeScanningDefaultSetup = read(
-				fanout,
-				managed,
+		Supplier<Boolean> codeScanningDefaultSetup = fanout.read(
 				Drifty.GroupName.CODE_SCANNING_DEFAULT_SETUP,
 				() -> client.getCodeScanningDefaultSetup(org, name),
 				false
@@ -827,7 +719,7 @@ public class RepositoryChecker {
 	 * since everything downstream sees {@link ActualBranchProtection} only.
 	 */
 	private Map<String, ActualBranchProtection> fetchBranchProtections(
-			Fanout fanout,
+			Fanout<Drifty.GroupName> fanout,
 			RepositorySummaryResponse summary,
 			String org,
 			String name,
@@ -870,7 +762,7 @@ public class RepositoryChecker {
 	 * both.
 	 */
 	private List<ActualRuleset> fetchRulesets(
-			Fanout fanout,
+			Fanout<Drifty.GroupName> fanout,
 			String org,
 			String name
 	) {

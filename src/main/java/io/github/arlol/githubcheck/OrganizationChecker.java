@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration;
@@ -17,6 +18,7 @@ import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualRunnerGroup;
 import io.github.arlol.githubcheck.actual.ActualTeam;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
+import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.CodeSecurityDefaultResponse;
@@ -24,8 +26,13 @@ import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.OrgSecretResponse;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
+import io.github.arlol.githubcheck.client.OrgVariableResponse;
 import io.github.arlol.githubcheck.client.RulesetSourceType;
+import io.github.arlol.githubcheck.client.RunnerGroupResponse;
 import io.github.arlol.githubcheck.client.SecretVisibility;
+import io.github.arlol.githubcheck.client.SelectedActions;
+import io.github.arlol.githubcheck.client.SimpleUser;
+import io.github.arlol.githubcheck.client.TeamResponse;
 import io.github.arlol.githubcheck.drift.DriftFix;
 import io.github.arlol.githubcheck.drift.DriftFixer;
 import io.github.arlol.githubcheck.drift.DriftGroup;
@@ -163,19 +170,24 @@ public class OrganizationChecker {
 	// ──────────────────────────────────────────────────────────────
 
 	/**
-	 * Reads the organization state, one request per managed group.
+	 * One organization's actual state, with every request that can be in flight
+	 * at once in flight at once.
 	 * <p>
-	 * {@code GET /orgs/{org}} is sent even when {@code org_settings} is
-	 * unmanaged: it is how drifty learns the organization exists, and any
-	 * member can read it. Every other request here belongs to a group and is
-	 * skipped with it — filtering a group out of the comparison alone would
-	 * still send its request, and an organization someone else administers is
-	 * where those return 403.
+	 * Three levels, one more than {@code RepositoryChecker.fetchState} needs,
+	 * and the extra one is {@code GET /orgs/{org}}: it is how this learns the
+	 * organization exists — a 404 there is what makes the entry {@code MISSING}
+	 * — so every group below it waits on it rather than firing forty requests
+	 * at a login GitHub has never heard of. Below that, each group's listing
+	 * starts at once and each read that names something a listing returned
+	 * waits one round trip: a ruleset's rules, a team's two member listings, a
+	 * code security configuration's repositories, the repositories behind a
+	 * {@code selected} secret, variable or runner group, and the allow-list and
+	 * repository selection behind {@code selected} Actions permissions.
 	 * <p>
-	 * When that first read 404s there is nothing to read the rest of: sending
-	 * the group requests anyway would turn "this organization does not exist"
-	 * into whichever error the next endpoint answered with, so the state comes
-	 * back with a null {@code settings} and {@link #check} reports it missing.
+	 * It used to send all of them one after another, which for an organization
+	 * with a few teams and rulesets is forty round trips before the first
+	 * repository is looked at — {@code GitHubCheck.check} runs an organization
+	 * before its repositories, so that time is the head of the whole run.
 	 */
 	OrganizationState fetchState(
 			String login,
@@ -187,215 +199,251 @@ public class OrganizationChecker {
 		}
 		var settings = ActualTypes.organization(organization.orElseThrow());
 
-		ActualOrgActionsPermissions permissions = null;
-		if (managed.manages(Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS)) {
-			permissions = failures
-					.read(Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS, () -> {
-						var response = client.getOrgActionsPermissions(login);
-						// The allow-list only exists in "selected" mode; asking
-						// for it in any other mode is a 404.
-						var selected = response
-								.allowedActions() == AllowedActions.SELECTED
-										? client.getOrgSelectedActions(login)
-										: null;
-						// Same for the repository selection: it is only there
-						// under "selected".
-						List<String> selectedRepositories = response
-								.enabledRepositories() == ActionsEnabledRepositories.SELECTED
-										? client.getOrgActionsPermissionsRepositories(
-												login
-										)
-												.stream()
-												.map(
-														RepositorySummaryResponse::name
-												)
-												.toList()
-										: List.of();
-						return ActualTypes.orgActionsPermissions(
-								response,
-								selected,
-								selectedRepositories
-						);
-					}, null);
+		try (var fanout = new Fanout<>(failures, managed)) {
+			Supplier<ActualOrgActionsPermissions> permissions = fanout.read(
+					Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS,
+					() -> actionsPermissions(fanout, login),
+					null
+			);
+
+			Supplier<ActualWorkflowPermissions> workflowPermissions = fanout
+					.read(
+							Drifty.OrgGroupName.ORG_WORKFLOW_PERMISSIONS,
+							() -> ActualTypes.workflowPermissions(
+									client.getOrgWorkflowPermissions(login)
+							),
+							null
+					);
+
+			Supplier<List<ActualOrgSecret>> secrets = fanout.read(
+					Drifty.OrgGroupName.ORG_ACTION_SECRETS,
+					() -> orgSecrets(fanout, login),
+					List.of()
+			);
+
+			Supplier<List<ActualOrgVariable>> variables = fanout.read(
+					Drifty.OrgGroupName.ORG_ACTION_VARIABLES,
+					() -> orgVariables(fanout, login),
+					List.of()
+			);
+
+			Supplier<List<ActualWebhook>> webhooks = fanout.read(
+					Drifty.OrgGroupName.ORG_WEBHOOKS,
+					() -> client.getOrgWebhooks(login)
+							.stream()
+							.map(ActualTypes::webhook)
+							.toList(),
+					List.of()
+			);
+
+			Supplier<List<ActualCustomProperty>> customProperties = fanout.read(
+					Drifty.OrgGroupName.ORG_CUSTOM_PROPERTIES,
+					() -> customProperties(login),
+					List.of()
+			);
+
+			Supplier<List<ActualRuleset>> rulesets = fanout.read(
+					Drifty.OrgGroupName.ORG_RULESETS,
+					() -> orgRulesets(fanout, login),
+					List.of()
+			);
+
+			Supplier<List<ActualCodeSecurityConfiguration>> codeSecurityConfigurations = fanout
+					.read(
+							Drifty.OrgGroupName.ORG_CODE_SECURITY_CONFIGURATIONS,
+							() -> codeSecurityConfigurations(fanout, login),
+							List.of()
+					);
+
+			Supplier<List<ActualTeam>> teams = fanout.read(
+					Drifty.OrgGroupName.ORG_TEAMS,
+					() -> teams(fanout, login),
+					List.of()
+			);
+
+			// Two listings, one per role, neither waiting on the other.
+			Supplier<List<ActualOrgMember>> members = fanout.read(
+					Drifty.OrgGroupName.ORG_MEMBERS,
+					() -> orgMembers(fanout, login),
+					List.of()
+			);
+
+			Supplier<List<ActualRunnerGroup>> runnerGroups = fanout.read(
+					Drifty.OrgGroupName.ORG_RUNNER_GROUPS,
+					() -> runnerGroups(fanout, login),
+					List.of()
+			);
+
+			return new OrganizationState(
+					login,
+					settings,
+					permissions.get(),
+					workflowPermissions.get(),
+					secrets.get(),
+					variables.get(),
+					webhooks.get(),
+					customProperties.get(),
+					rulesets.get(),
+					codeSecurityConfigurations.get(),
+					teams.get(),
+					members.get(),
+					runnerGroups.get()
+			);
 		}
-
-		var workflowPermissions = managed
-				.manages(Drifty.OrgGroupName.ORG_WORKFLOW_PERMISSIONS)
-						? failures.read(
-								Drifty.OrgGroupName.ORG_WORKFLOW_PERMISSIONS,
-								() -> ActualTypes.workflowPermissions(
-										client.getOrgWorkflowPermissions(login)
-								),
-								null
-						)
-						: null;
-
-		List<ActualOrgSecret> secrets = managed
-				.manages(Drifty.OrgGroupName.ORG_ACTION_SECRETS)
-						? failures.read(
-								Drifty.OrgGroupName.ORG_ACTION_SECRETS,
-								() -> orgSecrets(login),
-								List.of()
-						)
-						: List.of();
-
-		List<ActualOrgVariable> variables = managed
-				.manages(Drifty.OrgGroupName.ORG_ACTION_VARIABLES)
-						? failures.read(
-								Drifty.OrgGroupName.ORG_ACTION_VARIABLES,
-								() -> orgVariables(login),
-								List.of()
-						)
-						: List.of();
-
-		List<ActualWebhook> webhooks = managed
-				.manages(Drifty.OrgGroupName.ORG_WEBHOOKS)
-						? failures.read(
-								Drifty.OrgGroupName.ORG_WEBHOOKS,
-								() -> client.getOrgWebhooks(login)
-										.stream()
-										.map(ActualTypes::webhook)
-										.toList(),
-								List.of()
-						)
-						: List.of();
-
-		List<ActualCustomProperty> customProperties = managed
-				.manages(Drifty.OrgGroupName.ORG_CUSTOM_PROPERTIES)
-						? failures.read(
-								Drifty.OrgGroupName.ORG_CUSTOM_PROPERTIES,
-								() -> customProperties(login),
-								List.of()
-						)
-						: List.of();
-
-		List<ActualRuleset> rulesets = managed
-				.manages(Drifty.OrgGroupName.ORG_RULESETS)
-						? failures.read(
-								Drifty.OrgGroupName.ORG_RULESETS,
-								() -> orgRulesets(login),
-								List.of()
-						)
-						: List.of();
-
-		List<ActualCodeSecurityConfiguration> codeSecurityConfigurations = managed
-				.manages(Drifty.OrgGroupName.ORG_CODE_SECURITY_CONFIGURATIONS)
-						? failures.read(
-								Drifty.OrgGroupName.ORG_CODE_SECURITY_CONFIGURATIONS,
-								() -> codeSecurityConfigurations(login),
-								List.of()
-						)
-						: List.of();
-
-		List<ActualTeam> teams = managed.manages(Drifty.OrgGroupName.ORG_TEAMS)
-				? failures.read(
-						Drifty.OrgGroupName.ORG_TEAMS,
-						() -> teams(login),
-						List.of()
-				)
-				: List.of();
-
-		List<ActualOrgMember> members = managed
-				.manages(Drifty.OrgGroupName.ORG_MEMBERS)
-						? failures.read(
-								Drifty.OrgGroupName.ORG_MEMBERS,
-								() -> ActualTypes.orgMembers(
-										client.listOrgMembers(login, "admin"),
-										client.listOrgMembers(login, "member")
-								),
-								List.of()
-						)
-						: List.of();
-
-		List<ActualRunnerGroup> runnerGroups = managed
-				.manages(Drifty.OrgGroupName.ORG_RUNNER_GROUPS)
-						? failures.read(
-								Drifty.OrgGroupName.ORG_RUNNER_GROUPS,
-								() -> runnerGroups(login),
-								List.of()
-						)
-						: List.of();
-
-		return new OrganizationState(
-				login,
-				settings,
-				permissions,
-				workflowPermissions,
-				secrets,
-				variables,
-				webhooks,
-				customProperties,
-				rulesets,
-				codeSecurityConfigurations,
-				teams,
-				members,
-				runnerGroups
-		);
 	}
 
 	/**
-	 * The groups {@link #fetchState} could not read, for the exporter to note.
+	 * The allow-list and the repository selection only exist in
+	 * {@code selected} mode — asking for either in any other mode is a 404 — so
+	 * both wait on the response that says which mode it is, and then go out
+	 * together.
 	 */
-	List<FetchFailures.Failure> fetchFailures() {
-		return failures.failures();
+	private ActualOrgActionsPermissions actionsPermissions(
+			Fanout<Drifty.OrgGroupName> fanout,
+			String login
+	) {
+		var response = client.getOrgActionsPermissions(login);
+		Supplier<SelectedActions> selected = response
+				.allowedActions() == AllowedActions.SELECTED ? fanout
+						.start(() -> client.getOrgSelectedActions(login))
+						: () -> null;
+		Supplier<List<String>> selectedRepositories = response
+				.enabledRepositories() == ActionsEnabledRepositories.SELECTED
+						? fanout.start(
+								() -> client
+										.getOrgActionsPermissionsRepositories(
+												login
+										)
+										.stream()
+										.map(RepositorySummaryResponse::name)
+										.toList()
+						)
+						: List::of;
+		return ActualTypes.orgActionsPermissions(
+				response,
+				selected.get(),
+				selectedRepositories.get()
+		);
+	}
+
+	/** One listing per role, both in flight together. */
+	private List<ActualOrgMember> orgMembers(
+			Fanout<Drifty.OrgGroupName> fanout,
+			String login
+	) {
+		Supplier<List<SimpleUser>> admins = fanout
+				.start(() -> client.listOrgMembers(login, "admin"));
+		Supplier<List<SimpleUser>> members = fanout
+				.start(() -> client.listOrgMembers(login, "member"));
+		return ActualTypes.orgMembers(admins.get(), members.get());
 	}
 
 	/**
 	 * The repositories of a group cost one request each and only exist under
-	 * {@code selected} visibility, so they are read for those groups alone.
+	 * {@code selected} visibility, so they are read for those groups alone —
+	 * and, once the listing has answered, all at once.
 	 */
-	private List<ActualRunnerGroup> runnerGroups(String login) {
+	private List<ActualRunnerGroup> runnerGroups(
+			Fanout<Drifty.OrgGroupName> fanout,
+			String login
+	) {
 		return client.listRunnerGroups(login)
 				.stream()
 				.map(
-						g -> ActualTypes.runnerGroup(
-								g,
-								"selected".equals(g.visibility()) ? client
-										.getRunnerGroupRepositories(
-												login,
-												g.id()
-										)
-										.stream()
-										.map(RepositorySummaryResponse::name)
-										.toList() : List.of()
+						group -> Map.entry(
+								group,
+								runnerGroupRepositories(fanout, login, group)
+						)
+				)
+				.toList()
+				.stream()
+				.map(
+						entry -> ActualTypes.runnerGroup(
+								entry.getKey(),
+								entry.getValue().get()
 						)
 				)
 				.toList();
+	}
+
+	private Supplier<List<String>> runnerGroupRepositories(
+			Fanout<Drifty.OrgGroupName> fanout,
+			String login,
+			RunnerGroupResponse group
+	) {
+		if (!"selected".equals(group.visibility())) {
+			return List::of;
+		}
+		return fanout.start(
+				() -> names(
+						client.getRunnerGroupRepositories(login, group.id())
+				)
+		);
 	}
 
 	/**
 	 * Two member listings per team after the one that lists the teams, one per
-	 * role. Enterprise teams are not the organization's to change and are
-	 * dropped.
+	 * role, all of them in flight together. Enterprise teams are not the
+	 * organization's to change and are dropped.
 	 */
-	private List<ActualTeam> teams(String login) {
+	private List<ActualTeam> teams(
+			Fanout<Drifty.OrgGroupName> fanout,
+			String login
+	) {
 		return client.listOrgTeams(login)
 				.stream()
 				.filter(t -> !"enterprise".equals(t.type()))
 				.map(
-						t -> ActualTypes.team(
-								t,
-								client.getTeamMembers(
-										login,
-										t.slug(),
-										"member"
+						team -> new PendingTeam(
+								team,
+								fanout.start(
+										() -> client.getTeamMembers(
+												login,
+												team.slug(),
+												"member"
+										)
 								),
-								client.getTeamMembers(
-										login,
-										t.slug(),
-										"maintainer"
+								fanout.start(
+										() -> client.getTeamMembers(
+												login,
+												team.slug(),
+												"maintainer"
+										)
 								)
+						)
+				)
+				.toList()
+				.stream()
+				.map(
+						pending -> ActualTypes.team(
+								pending.team(),
+								pending.members().get(),
+								pending.maintainers().get()
 						)
 				)
 				.toList();
 	}
 
+	/** One team's two member listings, already sent. */
+	private record PendingTeam(
+			TeamResponse team,
+			Supplier<List<SimpleUser>> members,
+			Supplier<List<SimpleUser>> maintainers
+	) {
+	}
+
 	/**
 	 * The organization's own configurations — GitHub's global ones are not its
-	 * to change — with the defaults listing read once and the attached
-	 * repositories once per configuration.
+	 * to change — with the defaults listing and each configuration's attached
+	 * repositories read together once the configuration listing answers.
+	 * <p>
+	 * The defaults listing does not start before it: it is wanted only if there
+	 * is a configuration to attribute one to, and an organization with none
+	 * would otherwise spend a request finding that out — and, on a token that
+	 * cannot read it, fail the group it had nothing to say about.
 	 */
 	private List<ActualCodeSecurityConfiguration> codeSecurityConfigurations(
+			Fanout<Drifty.OrgGroupName> fanout,
 			String login
 	) {
 		var configurations = client.getCodeSecurityConfigurations(login)
@@ -405,22 +453,34 @@ public class OrganizationChecker {
 		if (configurations.isEmpty()) {
 			return List.of();
 		}
+		Supplier<List<CodeSecurityDefaultResponse>> pendingDefaults = fanout
+				.start(() -> client.getCodeSecurityDefaults(login));
+		var pending = configurations.stream()
+				.map(
+						c -> Map.entry(
+								c,
+								fanout.start(
+										() -> client
+												.getCodeSecurityConfigurationRepositories(
+														login,
+														c.id()
+												)
+								)
+						)
+				)
+				.toList();
 		Map<Long, String> defaults = new HashMap<>();
-		for (CodeSecurityDefaultResponse d : client
-				.getCodeSecurityDefaults(login)) {
+		for (CodeSecurityDefaultResponse d : pendingDefaults.get()) {
 			if (d.configuration() != null) {
 				defaults.put(d.configuration().id(), d.defaultForNewRepos());
 			}
 		}
-		return configurations.stream()
+		return pending.stream()
 				.map(
-						c -> ActualTypes.codeSecurityConfiguration(
-								c,
-								defaults.get(c.id()),
-								client.getCodeSecurityConfigurationRepositories(
-										login,
-										c.id()
-								)
+						entry -> ActualTypes.codeSecurityConfiguration(
+								entry.getKey(),
+								defaults.get(entry.getKey().id()),
+								entry.getValue().get()
 						)
 				)
 				.toList();
@@ -431,17 +491,23 @@ public class OrganizationChecker {
 	 * listing carries no rules or conditions. Enterprise rulesets arrive in the
 	 * listing and are dropped — the organization cannot change them.
 	 */
-	private List<ActualRuleset> orgRulesets(String login) {
-		var rulesets = new ArrayList<ActualRuleset>();
-		for (var rs : client.listOrgRulesets(login)) {
-			if (rs.sourceType() == RulesetSourceType.ENTERPRISE) {
-				continue;
-			}
-			rulesets.add(
-					ActualTypes.ruleset(client.getOrgRuleset(login, rs.id()))
-			);
-		}
-		return rulesets;
+	private List<ActualRuleset> orgRulesets(
+			Fanout<Drifty.OrgGroupName> fanout,
+			String login
+	) {
+		return client.listOrgRulesets(login)
+				.stream()
+				.filter(rs -> rs.sourceType() != RulesetSourceType.ENTERPRISE)
+				.map(
+						rs -> fanout.start(
+								() -> client.getOrgRuleset(login, rs.id())
+						)
+				)
+				.toList()
+				.stream()
+				.map(Supplier::get)
+				.map(ActualTypes::ruleset)
+				.toList();
 	}
 
 	/**
@@ -457,35 +523,69 @@ public class OrganizationChecker {
 				.toList();
 	}
 
-	private List<ActualOrgVariable> orgVariables(String login) {
+	private List<ActualOrgVariable> orgVariables(
+			Fanout<Drifty.OrgGroupName> fanout,
+			String login
+	) {
 		return client.getOrgActionVariables(login)
 				.stream()
 				.map(
-						variable -> ActualTypes.orgVariable(
+						variable -> Map.entry(
 								variable,
-								variable.visibility() == SecretVisibility.SELECTED
-										? client.getOrgActionVariableRepositories(
-												login,
-												variable.name()
-										)
-												.stream()
-												.map(
-														RepositorySummaryResponse::name
-												)
-												.toList()
-										: List.of()
+								variableRepositories(fanout, login, variable)
+						)
+				)
+				.toList()
+				.stream()
+				.map(
+						entry -> ActualTypes.orgVariable(
+								entry.getKey(),
+								entry.getValue().get()
 						)
 				)
 				.toList();
 	}
 
-	private List<ActualOrgSecret> orgSecrets(String login) {
+	/**
+	 * The repository names behind a {@code selected} variable, read the way
+	 * {@link #secretRepositories} reads a secret's.
+	 */
+	private Supplier<List<String>> variableRepositories(
+			Fanout<Drifty.OrgGroupName> fanout,
+			String login,
+			OrgVariableResponse variable
+	) {
+		if (variable.visibility() != SecretVisibility.SELECTED) {
+			return List::of;
+		}
+		return fanout.start(
+				() -> names(
+						client.getOrgActionVariableRepositories(
+								login,
+								variable.name()
+						)
+				)
+		);
+	}
+
+	private List<ActualOrgSecret> orgSecrets(
+			Fanout<Drifty.OrgGroupName> fanout,
+			String login
+	) {
 		return client.getOrgActionSecrets(login)
 				.stream()
 				.map(
-						secret -> ActualTypes.orgSecret(
+						secret -> Map.entry(
 								secret,
-								secretRepositories(login, secret)
+								secretRepositories(fanout, login, secret)
+						)
+				)
+				.toList()
+				.stream()
+				.map(
+						entry -> ActualTypes.orgSecret(
+								entry.getKey(),
+								entry.getValue().get()
 						)
 				)
 				.toList();
@@ -496,17 +596,37 @@ public class OrganizationChecker {
 	 * each, so they are read only for the secrets that have them — the other
 	 * visibilities name no repositories at all.
 	 */
-	private List<String> secretRepositories(
+	private Supplier<List<String>> secretRepositories(
+			Fanout<Drifty.OrgGroupName> fanout,
 			String login,
 			OrgSecretResponse secret
 	) {
 		if (secret.visibility() != SecretVisibility.SELECTED) {
-			return List.of();
+			return List::of;
 		}
-		return client.getOrgActionSecretRepositories(login, secret.name())
-				.stream()
+		return fanout.start(
+				() -> names(
+						client.getOrgActionSecretRepositories(
+								login,
+								secret.name()
+						)
+				)
+		);
+	}
+
+	private static List<String> names(
+			List<RepositorySummaryResponse> repositories
+	) {
+		return repositories.stream()
 				.map(RepositorySummaryResponse::name)
 				.toList();
+	}
+
+	/**
+	 * The groups {@link #fetchState} could not read, for the exporter to note.
+	 */
+	List<FetchFailures.Failure> fetchFailures() {
+		return failures.failures();
 	}
 
 	// ─── Drift groups
