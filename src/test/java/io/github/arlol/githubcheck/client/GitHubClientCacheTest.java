@@ -14,6 +14,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -221,6 +223,128 @@ class GitHubClientCacheTest {
 
 		assertThat(client.listOrgRepos("owner").orElseThrow())
 				.as("the cached first page still names page two")
+				.extracting(RepositorySummaryResponse::name)
+				.containsExactly("one", "two");
+	}
+
+	/**
+	 * A listing that was exactly one full page had no {@code Link} at all —
+	 * GitHub only sends one once there is a second page. It grows at the tail,
+	 * page one's body is unchanged, GitHub answers 304, and there is no cached
+	 * {@code Link} to restore because none was ever sent. Without the
+	 * exactly-full-page fallback this reaches drifty as a single, complete page
+	 * and the grown tail is never asked for — silently, not by erroring.
+	 */
+	@Test
+	void aCachedFirstPageThatIsExactlyFullStillReachesARealSecondPage() {
+		String fullPage = "[" + IntStream.rangeClosed(1, 100)
+				.mapToObj(
+						i -> "{\"name\": \"full-" + i
+								+ "\", \"archived\": false, \"visibility\": \"public\"}"
+				)
+				.collect(Collectors.joining(",")) + "]";
+		stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", absent())
+						.withHeader("If-None-Match", absent())
+						.willReturn(
+								okJson(fullPage).withHeader("ETag", "\"p1\"")
+						)
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", absent())
+						.withHeader("If-None-Match", equalTo("\"p1\""))
+						.willReturn(
+								aResponse().withStatus(304)
+										.withHeader("ETag", "\"p1\"")
+						)
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", equalTo("2"))
+						.willReturn(
+								okJson(
+										"""
+												[{"name": "grown", "archived": false, "visibility": "public"}]
+												"""
+								)
+						)
+		);
+
+		assertThat(client.listOrgRepos("owner").orElseThrow()).as(
+				"a first page with no Link at all still reaches a real second page"
+		).hasSize(101);
+		assertThat(client.listOrgRepos("owner").orElseThrow())
+				.as("the same holds once page one is served from the cache")
+				.hasSize(101);
+	}
+
+	/**
+	 * GitHub sends no {@code Link} on a 304 today, so this is latent — but the
+	 * live response is the current answer and the cached one is not, and
+	 * {@code withCachedLink} inverted that precedence.
+	 */
+	@Test
+	void aLiveLinkOnA304TakesPrecedenceOverTheCachedOne() {
+		String pageOneUrl = baseUrl
+				+ "/orgs/owner/repos?per_page=100&type=all&page=1";
+		String pageTwoUrl = baseUrl
+				+ "/orgs/owner/repos?per_page=100&type=all&page=2";
+		// A first page that names itself as the last one — the harmless case
+		// a genuinely single-page listing takes, so the first call fetches
+		// nothing further.
+		stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", absent())
+						.withHeader("If-None-Match", absent())
+						.willReturn(
+								okJson(
+										"""
+												[{"name": "one", "archived": false, "visibility": "public"}]
+												"""
+								).withHeader("ETag", "\"p1\"")
+										.withHeader(
+												"Link",
+												"<" + pageOneUrl
+														+ ">; rel=\"last\""
+										)
+						)
+		);
+		// The 304 carries its own Link naming a real page two — GitHub sends
+		// none today, but if that changes it is the current answer and the
+		// cached one (rel="last", page one) is not.
+		stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", absent())
+						.withHeader("If-None-Match", equalTo("\"p1\""))
+						.willReturn(
+								aResponse().withStatus(304)
+										.withHeader("ETag", "\"p1\"")
+										.withHeader(
+												"Link",
+												"<" + pageTwoUrl
+														+ ">; rel=\"next\""
+										)
+						)
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", equalTo("2"))
+						.willReturn(
+								okJson(
+										"""
+												[{"name": "two", "archived": false, "visibility": "public"}]
+												"""
+								)
+						)
+		);
+
+		client.listOrgRepos("owner");
+
+		assertThat(client.listOrgRepos("owner").orElseThrow()).as(
+				"the live 304's own Link (rel=next, page two) is not shadowed by the stale cached one (rel=last, page one)"
+		)
 				.extracting(RepositorySummaryResponse::name)
 				.containsExactly("one", "two");
 	}

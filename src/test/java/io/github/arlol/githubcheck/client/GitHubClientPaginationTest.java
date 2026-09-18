@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Test;
@@ -97,6 +98,85 @@ class GitHubClientPaginationTest {
 		assertThatThrownBy(() -> client().listOrgRepos("owner"))
 				.isInstanceOf(GitHubApiException.class)
 				.hasMessageContaining("HTTP 500 fetching next page");
+	}
+
+	/**
+	 * {@code rel="last"} said page 2, but page 2 came back exactly full — the
+	 * listing grew a third page after page one last learned where the listing
+	 * ended. Trusting {@code rel="last"} here is exactly what leaves a grown
+	 * account's tail unread; see {@code GitHubClientCacheTest} for the cached
+	 * variant of the same trap.
+	 */
+	@Test
+	void aFinalPageThatComesBackExactlyFullAsksForOneMorePage() {
+		wm.stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", absent())
+						.willReturn(
+								page(1).withHeader(
+										"Link",
+										link(2, "next") + ", " + link(2, "last")
+								)
+						)
+		);
+		wm.stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", equalTo("2"))
+						.willReturn(okJson(repoArray(100, "full-")))
+		);
+		wm.stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", equalTo("3"))
+						.willReturn(okJson(repoArray(1, "grown-")))
+		);
+
+		List<RepositorySummaryResponse> repos = client().listOrgRepos("owner")
+				.orElseThrow();
+
+		assertThat(repos)
+				.as("a full page 2 is not trusted as the listing's end")
+				.hasSize(102);
+		assertThat(repos).extracting(RepositorySummaryResponse::name)
+				.contains("grown-1");
+	}
+
+	/**
+	 * A single page with no {@code Link} at all — GitHub's answer when
+	 * everything fits on one page — is the same shape a stale cached page 1
+	 * takes once GitHub's 304 has dropped {@code Link} (see
+	 * {@code CachedHttpResponse}). A page that came back exactly full is probed
+	 * once more either way, and the probe answering empty is what ends the
+	 * listing there.
+	 */
+	@Test
+	void aSinglePageThatIsExactlyFullProbesOnceMoreAndStopsWhenThereIsNone() {
+		wm.stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", absent())
+						.willReturn(okJson(repoArray(100, "repo-")))
+		);
+		wm.stubFor(
+				get(urlPathEqualTo("/orgs/owner/repos"))
+						.withQueryParam("page", equalTo("2"))
+						.willReturn(okJson("[]"))
+		);
+
+		List<RepositorySummaryResponse> repos = client().listOrgRepos("owner")
+				.orElseThrow();
+
+		assertThat(repos).hasSize(100);
+		assertThat(wm.getAllServeEvents()).as(
+				"one probe past a full page, and no further recursion once it answers empty"
+		).hasSize(2);
+	}
+
+	private static String repoArray(int count, String namePrefix) {
+		return "[" + IntStream.rangeClosed(1, count)
+				.mapToObj(
+						i -> "{\"name\": \"" + namePrefix + i
+								+ "\", \"archived\": false, \"visibility\": \"public\"}"
+				)
+				.collect(Collectors.joining(",")) + "]";
 	}
 
 	private GitHubClient client() {
