@@ -861,7 +861,9 @@ public class RepositoryChecker {
 	 * anyway, so asking {@code /automated-security-fixes} as well cost one
 	 * request per repository for a value already in hand. The endpoint's
 	 * {@code paused} field is the only thing it carries that the details do
-	 * not, and nothing compares it.
+	 * not, and nothing compares it. Unlike the four flags above, it is not
+	 * forced false for an archived repository — {@code repoDetails} is read
+	 * regardless, and its value is whatever GitHub reports.
 	 */
 	private record SecurityFlags(
 			boolean vulnAlerts,
