@@ -1100,7 +1100,167 @@ Claude-Session: https://claude.ai/code/session_01LxZG7vxUHzoEMtYmAjifKi"
 
 ---
 
-### Task 6: Reachability metadata and the shipped binary
+### Task 6: `--export` caches too
+
+**Files:**
+- Modify: `src/main/java/io/github/arlol/githubcheck/GitHubCheck.java` — the
+  export branch at :68-97, the check path's state resolution at :113-115, and
+  the `--state` lines of `usage()`
+- Test: `src/test/java/io/github/arlol/githubcheck/GitHubCheckTest.java`
+
+**Interfaces:**
+- Consumes: `GitHubClient(String token, ResponseCache cache)` from Task 1;
+  `DriftyState implements ResponseCache` from Task 3;
+  `StateStore.load`/`save` as they already are.
+- Produces: `static Path GitHubCheck.stateFile(String statePath, Path beside)`.
+
+`--export` asks every group of every repository, where a check asks only for
+the groups the config manages, so it is the heaviest path there is to cache. It
+is also the one command that takes no `--config`, and the check path's rule —
+the state file sits beside the config — says nothing about where its own goes.
+It goes beside `--out`, because that is where a check of the exported file will
+look for it.
+
+- [ ] **Step 1: Write the failing tests**
+
+Append to `GitHubCheckTest` (add `import org.junit.jupiter.api.io.TempDir;`):
+
+```java
+	@Test
+	void stateFile_isWhatTheOptionNames() {
+		assertThat(
+				GitHubCheck
+						.stateFile("/tmp/elsewhere.json", Path.of("drifty.pkl"))
+		).isEqualTo(Path.of("/tmp/elsewhere.json"));
+	}
+
+	/**
+	 * A check anchors its state file on the file it reads and an export on the
+	 * file it writes, and those are the same file for the run an adopter
+	 * actually makes: export, then check the export. The first check after an
+	 * export is warm only while the two land in the same place.
+	 */
+	@Test
+	void stateFile_putsAnExportsCacheWhereACheckOfItsOutputLooks(
+			@TempDir Path dir
+	) {
+		assertThat(GitHubCheck.stateFile(null, dir.resolve("export.pkl")))
+				.isEqualTo(dir.resolve("drifty-state.json"));
+	}
+
+	@Test
+	void usage_saysWhereAnExportLeavesItsStateFile() {
+		assertThat(GitHubCheck.usage()).contains("beside --out");
+	}
+```
+
+`Path` is already imported in this test; `@TempDir` is not.
+
+- [ ] **Step 2: Run the tests and watch them fail**
+
+Run: `./mvnw -DskipNativeTests -Dtest=GitHubCheckTest test`
+Expected: compilation failure — `GitHubCheck.stateFile` does not exist.
+
+- [ ] **Step 3: Extract the state path**
+
+Add to `GitHubCheck`, beside the other package-private helpers:
+
+```java
+	/**
+	 * Where the state file lives: what {@code --state} names, or
+	 * {@code drifty-state.json} beside the file the run is built around — the
+	 * config a check reads, the file an export writes.
+	 * <p>
+	 * The two anchors agree on the case that matters. An export writes
+	 * {@code export.pkl} and leaves its cache next to it, which is exactly
+	 * where {@code drifty --config export.pkl} then looks, so the first check
+	 * after an export is already warm.
+	 */
+	static Path stateFile(String statePath, Path beside) {
+		return statePath != null ? Path.of(statePath)
+				: beside.toAbsolutePath().resolveSibling("drifty-state.json");
+	}
+```
+
+Replace the check path's resolution (currently at :113-115) with:
+
+```java
+		Path stateFile = stateFile(statePath, configPath);
+```
+
+- [ ] **Step 4: Cache the export**
+
+Replace the body of the `if (argsList.contains("--export"))` branch from
+`String schema = ...` to the end of its `System.exit(...)`:
+
+```java
+			String schema = optionValue(argsList, "--schema");
+			Path out = Path.of(
+					optionValue(argsList, "--out") == null ? "export.pkl"
+							: optionValue(argsList, "--out")
+			);
+			Path exportStateFile = stateFile(statePath, out);
+			var exportStore = new StateStore();
+			DriftyState state = exportStore.load(exportStateFile);
+			int exitCode = ExportRunner.run(
+					new GitHubClient(token, state),
+					exportLogins,
+					out,
+					schema == null ? SchemaDefaults.MAIN_SCHEMA_URI : schema
+			);
+			// Loaded and saved rather than built fresh: a new DriftyState
+			// written over this file would take every secret baseline with it.
+			exportStore.save(exportStateFile, state);
+			System.exit(exitCode);
+			return;
+```
+
+`state` here is declared inside the branch and the branch returns, so it does
+not collide with the `DriftyState state` the check path declares further down.
+
+- [ ] **Step 5: Update the help text**
+
+Replace the `--state` lines that Task 5 wrote:
+
+```java
+				  --state <path>   Secret baselines and cached responses to read and
+				                   write. Default: drifty-state.json beside the config,
+				                   or beside --out when exporting.
+```
+
+- [ ] **Step 6: Run the tests**
+
+Run: `./mvnw -DskipNativeTests -Dtest=GitHubCheckTest test`
+Expected: PASS, with `usage_namesEveryArgumentDriftyAccepts` and Task 5's
+`usage_saysTheStateFileHoldsTheResponseCache` still green — "cached responses"
+still contains "cache".
+
+- [ ] **Step 7: Run the whole suite**
+
+Run: `./mvnw -DskipNativeTests test`
+Expected: all green.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add src/main/java/io/github/arlol/githubcheck/GitHubCheck.java \
+        src/test/java/io/github/arlol/githubcheck/GitHubCheckTest.java
+git commit -m "Cache the export, and leave the file where a check will find it
+
+An export asks every group of every repository, so it is the heaviest path
+there is to cache. It takes no --config, so it anchors its state file on the
+file it writes instead: export.pkl and drifty-state.json land side by side, and
+that is where drifty --config export.pkl then looks.
+
+--state was already accepted alongside --export and silently ignored, because
+main never read it there. Now it is read.
+
+Claude-Session: https://claude.ai/code/session_01LxZG7vxUHzoEMtYmAjifKi"
+```
+
+---
+
+### Task 7: Reachability metadata and the shipped binary
 
 **Files:**
 - Modify: `src/main/resources/META-INF/native-image/reachability-metadata.json`
@@ -1181,6 +1341,23 @@ before and after the second run. Expected delta: a few tens of requests, not
 742. If it is 742, the entries are not being read back — check the cache key
 against what the file holds.
 
+Then the same for the export, which Task 6 wired and which nothing automated
+covers beyond its state path:
+
+```bash
+cd /tmp && mkdir -p export-check && cd export-check
+mise exec --cd ~/Developer/drifty-arlol -- \
+  /Users/aokeeffe/Developer/drifty/target/drifty-macos-0.0.1-SNAPSHOT \
+  --export ArloL --out /tmp/export-check/export.pkl
+ls -la /tmp/export-check/
+```
+
+Expected: `export.pkl` and `drifty-state.json` side by side — the second is
+what makes `drifty --config /tmp/export-check/export.pkl` start warm. Run the
+export a second time and check `x-ratelimit-used` the same way; an export reads
+every group of every repository, so the first run is the most expensive thing
+drifty does and the second should cost almost nothing.
+
 - [ ] **Step 6: Full verify**
 
 Run: `./mvnw clean verify`
@@ -1206,11 +1383,6 @@ Claude-Session: https://claude.ai/code/session_01LxZG7vxUHzoEMtYmAjifKi"
 
 ## Out of scope
 
-- **`--export` is not cached.** `ExportRunner` is handed a bare
-  `new GitHubClient(token)` at `GitHubCheck.java:88` and loads no state file,
-  so it keeps paying full rate limit. It is the heaviest read path and worth
-  doing, but `--export` has no `--state` semantics today and giving it some is
-  its own decision.
 - **Request count does not change.** All 742 requests still go out, so nothing
   here helps the secondary limits — the concurrency and points-per-minute
   throttles that answer 403 with `Retry-After`. Those need fewer or slower

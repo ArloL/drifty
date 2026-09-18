@@ -124,6 +124,28 @@ and write" and needs to say that it holds the response cache too.
 No new command-line argument. The cache is on, and deleting the file is how a
 user turns it off for one run.
 
+## `--export` caches too, and where it puts the file matters
+
+`--export` is the heaviest read path: it asks every group of every repository,
+where a check asks only for the groups the config manages. It is also the one
+command that takes no `--config`, so the check path's rule — the state file
+sits beside the config — says nothing about where its own should go.
+
+It goes beside `--out`. A check anchors its state file on the file it reads, an
+export on the file it writes, and the two agree on the case that matters: an
+export writes `export.pkl` and leaves `drifty-state.json` next to it, which is
+exactly where `drifty --config export.pkl` then looks. The first check after an
+export is therefore already warm, which is the run an adopter makes.
+
+`--state` overrides it for both. Today `--state` is accepted alongside
+`--export` and silently ignored, because `main` never reads it there — the
+case CLAUDE.md warns about, where an argument in both lists that nothing
+reads is accepted and does nothing.
+
+The export must load the existing state before it runs and save it after, not
+build a fresh one: a `DriftyState` created from scratch and saved over the file
+would take every secret baseline with it.
+
 ## Testing
 
 - A second call for the same URL carries `If-None-Match` and returns the first
@@ -144,7 +166,8 @@ user turns it off for one run.
 - `client/GitHubClient.java` — `get`, `CachedResponse`, the cache field
 - `state/DriftyState.java` — the `cache` map, its accessors, `isEmpty`
 - `state/StateStore.java` — pruning on save
-- `GitHubCheck.java` — hand the state to the client, help text
+- `GitHubCheck.java` — hand the state to both clients, the export's own state
+  path, help text
 
 ## Out of scope
 
