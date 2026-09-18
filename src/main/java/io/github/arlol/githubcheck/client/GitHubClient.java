@@ -83,6 +83,7 @@ public class GitHubClient {
 
 	private static final String HEADER_CONTENT_TYPE = "Content-Type";
 	private static final String MEDIA_TYPE_JSON = "application/json";
+	private static final String HEADER_IF_NONE_MATCH = "If-None-Match";
 
 	// ─── Client
 	// ──────────────────────────────────────────────────────────────
@@ -92,6 +93,7 @@ public class GitHubClient {
 	private final HttpClient http;
 	private final ObjectMapper mapper;
 	private final Semaphore inFlight;
+	private final ResponseCache cache;
 	/**
 	 * When the pause this client last reported ends — see
 	 * {@link #PAUSE_REPORTED_WITHIN_MILLIS}. Mutable, unlike everything else
@@ -104,14 +106,32 @@ public class GitHubClient {
 		this("https://api.github.com", token);
 	}
 
+	public GitHubClient(String token, ResponseCache cache) {
+		this("https://api.github.com", token, cache);
+	}
+
 	public GitHubClient(String baseUrl, String token) {
-		this(baseUrl, token, MAX_CONCURRENT_REQUESTS);
+		this(baseUrl, token, ResponseCache.NONE);
+	}
+
+	public GitHubClient(String baseUrl, String token, ResponseCache cache) {
+		this(baseUrl, token, MAX_CONCURRENT_REQUESTS, cache);
 	}
 
 	GitHubClient(String baseUrl, String token, int maxConcurrentRequests) {
+		this(baseUrl, token, maxConcurrentRequests, ResponseCache.NONE);
+	}
+
+	GitHubClient(
+			String baseUrl,
+			String token,
+			int maxConcurrentRequests,
+			ResponseCache cache
+	) {
 		this.baseUrl = baseUrl;
 		this.token = token;
 		this.inFlight = new Semaphore(maxConcurrentRequests);
+		this.cache = cache;
 		this.http = HttpClient.newBuilder()
 				.version(HttpClient.Version.HTTP_2)
 				.connectTimeout(Duration.ofSeconds(10))
@@ -2608,8 +2628,50 @@ public class GitHubClient {
 		}
 	}
 
+	/**
+	 * One GET, asked conditionally when drifty has seen the answer before.
+	 * <p>
+	 * GitHub does not charge a 304 against the primary rate limit — an
+	 * unchanged account costs nothing of the 5000 an hour — and the request
+	 * still carries the current token, so a 304 is proof that this token may
+	 * read the resource. {@code max-age} is ignored on purpose: a body is only
+	 * ever used to fill in a 304 GitHub has just sent.
+	 */
 	private HttpResponse<String> get(String url) {
-		return sendRequest(requestBuilder(url).GET().build());
+		String key = cacheKey(url);
+		ResponseCache.Entry cached = cache.lookup(key);
+		HttpRequest.Builder builder = requestBuilder(url).GET();
+		if (cached != null) {
+			builder.header(HEADER_IF_NONE_MATCH, cached.etag());
+		}
+		HttpResponse<String> resp = sendRequest(builder.build());
+		if (resp.statusCode() == 304 && cached != null) {
+			cache.confirm(key);
+			return new CachedHttpResponse(resp, cached);
+		}
+		if (resp.statusCode() == 200) {
+			resp.headers()
+					.firstValue("ETag")
+					.ifPresent(
+							etag -> cache.store(
+									key,
+									etag,
+									resp.body(),
+									resp.headers()
+											.firstValue("Link")
+											.orElse(null)
+							)
+					);
+		}
+		return resp;
+	}
+
+	/**
+	 * What an entry is filed under: the URL without the host, so the file reads
+	 * as {@code /repos/ArloL/drifty} and a WireMock port never reaches it.
+	 */
+	private String cacheKey(String url) {
+		return url.startsWith(baseUrl) ? url.substring(baseUrl.length()) : url;
 	}
 
 	private HttpResponse<String> post(String url, String body) {
