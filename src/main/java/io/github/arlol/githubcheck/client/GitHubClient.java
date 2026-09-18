@@ -97,6 +97,13 @@ public class GitHubClient {
 	private final HttpClient http;
 	private final ObjectMapper mapper;
 	private final Semaphore inFlight;
+	/**
+	 * A final reference, but not an immutable object: {@link #get} writes to it
+	 * on every request. {@code DriftyState} is what backs it, and its own
+	 * fields are a {@code ConcurrentHashMap} for the same reason
+	 * {@link #inFlight} and {@link #reportedPauseEnd} are mutable — ninety
+	 * threads share it.
+	 */
 	private final ResponseCache cache;
 	/**
 	 * When the pause this client last reported ends — see
