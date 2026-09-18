@@ -4,12 +4,15 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.LocalDate;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.github.arlol.githubcheck.client.ResponseCache;
 
 /**
  * Persistent record of what drifty last observed and pushed for each managed
@@ -19,11 +22,24 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  * rotation of the desired value).
  */
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
-public class DriftyState {
+public class DriftyState implements ResponseCache {
 
 	public record SecretRecord(
 			String updatedAt,
 			String valueHash
+	) {
+	}
+
+	/**
+	 * One cached response. {@code lastValidated} is an ISO date rather than a
+	 * timestamp because the only question asked of it is how many days old it
+	 * is.
+	 */
+	public record CacheEntry(
+			String etag,
+			String body,
+			String link,
+			String lastValidated
 	) {
 	}
 
@@ -61,6 +77,12 @@ public class DriftyState {
 	 * in the other direction.
 	 */
 	ConcurrentHashMap<String, OrgState> organizations = new ConcurrentHashMap<>();
+	/**
+	 * Bodies behind ETags, keyed by the URL without its host. Added without a
+	 * version bump, like {@code organizations}: an older drifty ignores the key
+	 * and a newer one treats a file without it as a cold cache.
+	 */
+	ConcurrentHashMap<String, CacheEntry> cache = new ConcurrentHashMap<>();
 
 	/**
 	 * Whether the state holds no secret record. A salt generated during this
@@ -69,7 +91,8 @@ public class DriftyState {
 	 */
 	@JsonIgnore
 	public boolean isEmpty() {
-		return repositories.values().stream().allMatch(DriftyState::isEmpty)
+		return cache.isEmpty()
+				&& repositories.values().stream().allMatch(DriftyState::isEmpty)
 				&& organizations.values()
 						.stream()
 						.allMatch(
@@ -197,6 +220,39 @@ public class DriftyState {
 
 	private RepoState repoState(String repo) {
 		return repositories.computeIfAbsent(repo, key -> new RepoState());
+	}
+
+	@Override
+	public ResponseCache.Entry lookup(String key) {
+		CacheEntry entry = cache.get(key);
+		return entry == null ? null
+				: new ResponseCache.Entry(
+						entry.etag(),
+						entry.body(),
+						entry.link()
+				);
+	}
+
+	@Override
+	public void store(String key, String etag, String body, String link) {
+		cache.put(key, new CacheEntry(etag, body, link, today()));
+	}
+
+	@Override
+	public void confirm(String key) {
+		cache.computeIfPresent(
+				key,
+				(unused, entry) -> new CacheEntry(
+						entry.etag(),
+						entry.body(),
+						entry.link(),
+						today()
+				)
+		);
+	}
+
+	private static String today() {
+		return LocalDate.now().toString();
 	}
 
 }
