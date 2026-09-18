@@ -196,6 +196,24 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   requests are not a third lever: five paired samples on `GET
   /repos/ArloL/drifty` put a 304 at the same latency as the 200 it replaces, so
   ETags would buy rate-limit budget and no time.
+- **A GET drifty has seen before is asked conditionally, and GitHub does not
+  charge the 304.** `GitHubClient.get` sends `If-None-Match` from the
+  `ResponseCache` the state file implements, and `CachedHttpResponse` hands the
+  kept body back as a 200, so the forty typed methods above it never learn
+  anything was cached. Measured: `x-ratelimit-used` held across two 304s and
+  moved on the next 200. Three things this does not do. It does not reduce
+  request count, so it buys nothing against the secondary limits. It does not
+  honour `cache-control: max-age=60` — drifty revalidates every read, or a
+  `--fix` could read the state it had just written. And it cannot serve a
+  response the current token may not read: the conditional request still
+  carries the token, so a downgraded one is answered 403, never 304.
+- **A 304 drops the `Link` header, so the cache keeps it.** `remainingPages`
+  reads a listing's page count off `rel="last"`. Restore the cached header on
+  the synthesised response, or a cached first page ends the listing there and
+  drifty checks the first 100 repositories of an account and reports the rest
+  as MISSING — no error, no failed request, a wrong answer.
+  `GitHubClientCacheTest.aCachedListingStillReachesItsSecondPage` fails by
+  returning one repository instead of two.
 - **The repository listing is not a substitute for `GET
   /repos/{owner}/{repo}`.** Dropping the per-repository details request is the
   obvious way to save one request per repository and it does not work: diffing
