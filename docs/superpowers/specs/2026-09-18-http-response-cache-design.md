@@ -100,9 +100,14 @@ Three properties fall out of always revalidating:
 
 Each entry records the date it was last validated, and a 304 refreshes that
 date as surely as a 200 does — the entry was confirmed current either way.
-Entries no run has confirmed for 30 days are dropped when the state is saved.
+Entries no run has confirmed for 180 days are dropped when the state is saved.
 Without that the file keeps every repository the account has ever had, and
 every URL belonging to a group the config later stopped managing.
+
+180 days rather than something tighter because an entry costs about 1.5 KB and
+evicting one costs a charged request. A repository checked twice a year is
+worth remembering; anything the account has not held for half a year is gone
+for good.
 
 ## What changes outside the client
 
@@ -128,8 +133,8 @@ user turns it off for one run.
   repositories rather than by erroring.
 - A 403 after a cached 200 reaches the caller as a failure and is not served
   from the cache.
-- An entry whose `last_validated` is 31 days old is gone after a save; one from
-  yesterday survives.
+- An entry whose `last_validated` is 181 days old is gone after a save; one
+  from yesterday survives.
 - `StateStoreTest` round-trips an entry, for the reason it already round-trips
   a repository and an organization secret: the native image's reflection
   metadata comes from what the suite traces.
