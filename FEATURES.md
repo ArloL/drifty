@@ -478,7 +478,7 @@ compared and sent like any of the seventeen toggles.
 
 `secret_scanning_extended_metadata` is left out: the spec has it on GET, POST
 and PATCH but supplies no default, and every example response predates the
-field. See FOLLOWUPS.md item 4. `code_security` and `secret_protection` are
+field. See FOLLOWUPS.md item 3. `code_security` and `secret_protection` are
 left out for good: POST and PATCH accept them, GET returns neither, and
 `advancedSecurity` already carries the same split.
 
