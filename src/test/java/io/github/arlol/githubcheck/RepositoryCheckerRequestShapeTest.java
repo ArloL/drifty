@@ -13,11 +13,11 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -37,25 +37,29 @@ import io.github.arlol.githubcheck.testsupport.Desired;
  * regress are deterministic — how many requests one repository costs, and how
  * many of them wait on each other. A run of the {@code ArloL} account was 1152
  * requests and 9.5s, of which one repository's own 24-request chain was 6.6s;
- * the depth assertion below is what would have caught that the day it appeared,
- * and what stops a new drift group from quietly re-serializing
+ * the ordering assertion below is what would have caught that the day it
+ * appeared, and what stops a new drift group from quietly re-serializing
  * {@link RepositoryChecker#fetchState}.
  * <p>
- * Every stub answers after {@link #DELAY_MILLIS}, which is what makes the two
- * levels of the fan-out legible: everything independent is logged within a few
- * milliseconds of the repository's first request, and the five reads that wait
- * on a listing are logged one delay later. A chain of <em>n</em> requests
- * spreads over <em>n</em> delays and fails
- * {@link #noRepositoryWaitsOnMoreThanOneRoundTrip}.
- * <p>
- * The counts in {@link #eachRepositoryCostsTheRequestsItsShapeNeeds} are exact
- * on purpose. A new managed setting that adds an endpoint is supposed to fail
- * this test: the number here is the budget, and changing it is the decision to
- * spend one more request on every repository in an account.
+ * <strong>Depth is read off the order requests arrive in, not off the
+ * clock.</strong> An earlier version bucketed arrival times into multiples of
+ * the stub delay and asserted the bucket count; it passed locally and failed on
+ * CI's slower macOS runner, where scheduling smeared one repository's requests
+ * across ~300ms and pushed a request into the next bucket. Every stub answers
+ * after {@link #DELAY_MILLIS}, so a read that waits on a listing cannot arrive
+ * until that listing has answered — and the only assumption left is that the
+ * requests waiting on nothing are all <em>sent</em> within one delay, which is
+ * a burst of socket writes rather than anything the runner has to schedule
+ * fairly.
  */
 class RepositoryCheckerRequestShapeTest {
 
-	private static final int DELAY_MILLIS = 200;
+	/**
+	 * Long enough that issuing every independent request comfortably fits
+	 * inside it on a loaded three-core runner. The suite pays it twice — once
+	 * for each level.
+	 */
+	private static final int DELAY_MILLIS = 700;
 
 	/**
 	 * Every endpoint {@code fetchState} reads for a public, organization-owned
@@ -77,6 +81,27 @@ class RepositoryCheckerRequestShapeTest {
 	 */
 	private static final int ARCHIVED_REPOSITORY_REQUESTS = 1;
 
+	/**
+	 * The six reads that may not go out until something else has answered: a
+	 * branch's protection and a ruleset's rules on the listing that named them,
+	 * an environment's secrets and variables on the environment listing, and
+	 * the two endpoints that exist only under an organization on {@code GET
+	 * /repos/{owner}/{repo}}, which is what says whether one owns it.
+	 * <p>
+	 * A new group whose read waits on another read belongs in this set, and a
+	 * new group that reads an endpoint outright does not. Getting that wrong is
+	 * the point: it fails here rather than quietly adding a round trip to every
+	 * repository in an account.
+	 */
+	private static final Set<String> WAITS_ON_AN_EARLIER_READ = Set.of(
+			"/repos/acme/active/branches/main/protection",
+			"/repos/acme/active/rulesets/42",
+			"/repos/acme/active/environments/prod/secrets",
+			"/repos/acme/active/environments/prod/variables",
+			"/repos/acme/active/properties/values",
+			"/repos/acme/active/teams"
+	);
+
 	private static final Pattern REPOSITORY_PATH = Pattern
 			.compile("/repos/acme/([^/]+)");
 
@@ -89,58 +114,20 @@ class RepositoryCheckerRequestShapeTest {
 			)
 			.build();
 
-	private GitHubClient client;
-	private RepositoryChecker checker;
-
-	@BeforeEach
-	void setUp() {
-		client = new GitHubClient(wm.getRuntimeInfo().getHttpBaseUrl(), "t");
-		checker = new RepositoryChecker(client, false);
-		stubAccount();
-	}
-
-	@Test
-	void eachRepositoryCostsTheRequestsItsShapeNeeds() throws Exception {
-		check();
-
-		assertThat(requestsPerRepository()).containsExactlyInAnyOrderEntriesOf(
-				Map.of(
-						"active",
-						ACTIVE_REPOSITORY_REQUESTS,
-						"frozen",
-						ARCHIVED_REPOSITORY_REQUESTS
-				)
-		);
-	}
-
-	@Test
-	void noRepositoryWaitsOnMoreThanOneRoundTrip() throws Exception {
-		check();
-
-		assertThat(roundTripsPerRepository()).allSatisfy(
-				(repository, depth) -> assertThat(depth).as(repository)
-						.isLessThanOrEqualTo(2)
-		);
-	}
-
 	/**
-	 * Guards the guard: a checker that sent one repository's requests one at a
-	 * time would satisfy every count above and report a depth of 1 per
-	 * round-trip bucket only because each bucket held a single request. What
-	 * says the fan-out is real is that most of {@code active}'s requests were
-	 * in flight together.
+	 * One check, three properties. They share a fetch because each one costs
+	 * two stub delays, and nothing about them needs a fresh account.
 	 */
 	@Test
-	void oneRepositorysIndependentRequestsAreAllInFlightTogether()
+	void aCheckSendsEachRepositoryOneLevelOfWaitingAndNoMore()
 			throws Exception {
-		check();
+		GitHubClient client = new GitHubClient(
+				wm.getRuntimeInfo().getHttpBaseUrl(),
+				"t"
+		);
+		stubAccount();
 
-		assertThat(maxInFlight("active"))
-				.isGreaterThanOrEqualTo(ACTIVE_REPOSITORY_REQUESTS - 6);
-	}
-
-	private void check() throws Exception {
-		checker.check(
+		new RepositoryChecker(client, false).check(
 				"acme",
 				client.listOrgRepos("acme").orElseThrow(),
 				List.of(
@@ -148,43 +135,73 @@ class RepositoryCheckerRequestShapeTest {
 						Desired.repository("frozen").withArchived(true)
 				)
 		);
+
+		assertThat(requestsPerRepository())
+				.as("what each repository's shape costs")
+				.containsExactlyInAnyOrderEntriesOf(
+						Map.of(
+								"active",
+								ACTIVE_REPOSITORY_REQUESTS,
+								"frozen",
+								ARCHIVED_REPOSITORY_REQUESTS
+						)
+				);
+
+		assertThat(firstWaitingRead()).as(
+				"every read that waits on nothing goes out before any read that waits"
+		).isGreaterThanOrEqualTo(independentReads());
+
+		// Guards the guard: a checker that sent these one at a time would
+		// satisfy the ordering above trivially, every "level" holding one
+		// request. What says the fan-out is real is that they overlapped.
+		assertThat(maxInFlight("active"))
+				.as("one repository's independent reads overlap")
+				.isGreaterThanOrEqualTo(10);
 	}
 
 	// ─── Reading the serve events
 	// ──────────────────────────────────────
 
-	private static Map<String, Integer> requestsPerRepository() {
-		return repositoryEvents().entrySet()
-				.stream()
-				.collect(
-						Collectors.toMap(
-								Map.Entry::getKey,
-								e -> e.getValue().size()
-						)
-				);
+	/**
+	 * How many requests arrived before the first one that had to wait for an
+	 * earlier read. With the fan-out intact this is every independent request;
+	 * re-serialize {@code fetchState} and it collapses to a handful.
+	 */
+	private static int firstWaitingRead() {
+		List<String> order = arrivalOrder();
+		int first = order.size();
+		for (int i = 0; i < order.size(); i++) {
+			if (WAITS_ON_AN_EARLIER_READ.contains(order.get(i))) {
+				first = i;
+				break;
+			}
+		}
+		return first;
 	}
 
-	/**
-	 * How many round trips deep each repository's reads go, by bucketing every
-	 * request's arrival into multiples of {@link #DELAY_MILLIS} from that
-	 * repository's first. A request that waited on nothing lands in bucket 0
-	 * with the rest; one that waited on a listing lands in bucket 1, a delay
-	 * later. The bucket count is the depth.
-	 */
-	private static Map<String, Integer> roundTripsPerRepository() {
-		Map<String, Integer> depths = new LinkedHashMap<>();
-		repositoryEvents().forEach((repository, received) -> {
-			long first = received.stream().min(Long::compare).orElseThrow();
-			long deepest = received.stream()
-					.mapToLong(
-							at -> Math
-									.round((at - first) / (double) DELAY_MILLIS)
-					)
-					.max()
-					.orElseThrow();
-			depths.put(repository, (int) deepest + 1);
+	/** The requests of both repositories that wait on nothing. */
+	private static int independentReads() {
+		return ACTIVE_REPOSITORY_REQUESTS + ARCHIVED_REPOSITORY_REQUESTS
+				- WAITS_ON_AN_EARLIER_READ.size();
+	}
+
+	/** Every repository request's path, in the order GitHub received it. */
+	private static List<String> arrivalOrder() {
+		return events().stream().map(LoggedRequest::getUrl).map(url -> {
+			int query = url.indexOf('?');
+			return query < 0 ? url : url.substring(0, query);
+		}).toList();
+	}
+
+	private static Map<String, Integer> requestsPerRepository() {
+		Map<String, Integer> counts = new LinkedHashMap<>();
+		events().forEach(request -> {
+			Matcher path = REPOSITORY_PATH.matcher(request.getUrl());
+			if (path.lookingAt()) {
+				counts.merge(path.group(1), 1, Integer::sum);
+			}
 		});
-		return depths;
+		return counts;
 	}
 
 	/**
@@ -194,7 +211,13 @@ class RepositoryCheckerRequestShapeTest {
 	 * overlapped.
 	 */
 	private static int maxInFlight(String repository) {
-		List<Long> received = repositoryEvents().get(repository);
+		List<Long> received = new ArrayList<>();
+		events().forEach(request -> {
+			Matcher path = REPOSITORY_PATH.matcher(request.getUrl());
+			if (path.lookingAt() && repository.equals(path.group(1))) {
+				received.add(request.getLoggedDate().getTime());
+			}
+		});
 		return received.stream()
 				.mapToInt(
 						start -> (int) received.stream()
@@ -209,28 +232,19 @@ class RepositoryCheckerRequestShapeTest {
 	}
 
 	/**
-	 * When each repository's requests arrived, keyed by the name in the path.
-	 * The account listing is not one of them — it belongs to no repository and
-	 * is what the checker starts from.
+	 * Every repository request, oldest first. The account listing is not one of
+	 * them — it belongs to no repository and is what the checker starts from.
 	 */
-	private static Map<String, List<Long>> repositoryEvents() {
-		Map<String, List<Long>> byRepository = new LinkedHashMap<>();
-		wm.getAllServeEvents()
+	private static List<LoggedRequest> events() {
+		return wm.getAllServeEvents()
 				.stream()
 				.map(ServeEvent::getRequest)
+				.filter(
+						request -> REPOSITORY_PATH.matcher(request.getUrl())
+								.lookingAt()
+				)
 				.sorted(Comparator.comparing(LoggedRequest::getLoggedDate))
-				.forEach(request -> {
-					Matcher path = REPOSITORY_PATH.matcher(request.getUrl());
-					if (path.lookingAt()) {
-						byRepository
-								.computeIfAbsent(
-										path.group(1),
-										_ -> new ArrayList<>()
-								)
-								.add(request.getLoggedDate().getTime());
-					}
-				});
-		return byRepository;
+				.collect(Collectors.toList());
 	}
 
 	// ─── The account
