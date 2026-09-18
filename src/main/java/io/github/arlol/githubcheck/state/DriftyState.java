@@ -15,11 +15,21 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.github.arlol.githubcheck.client.ResponseCache;
 
 /**
- * Persistent record of what drifty last observed and pushed for each managed
- * secret. GitHub never returns a secret's value, so drifty remembers two
- * fingerprints per secret: the {@code updated_at} timestamp (detects
- * out-of-band changes) and a salted hash of the value it last pushed (detects
- * rotation of the desired value).
+ * Persistent record of what drifty has observed, combining two conceptually
+ * unrelated concerns with different durability:
+ * <p>
+ * <b>Secret baselines</b> are truth drifty cannot recover. GitHub never returns
+ * a secret's value, so drifty remembers two fingerprints per secret: the
+ * {@code updated_at} timestamp (detects out-of-band changes) and a salted hash
+ * of the value it last pushed (detects rotation of the desired value). Losing
+ * this record means drifty can no longer detect rotation.
+ * <p>
+ * <b>Response cache</b> (see {@link #cache} and {@link CacheEntry}) is
+ * disposable: it holds {@code ETag} and body pairs to answer 304 responses
+ * without re-fetching. This is not an HTTP cache in the usual sense—drifty
+ * revalidates every read and ignores {@code max-age}, so an entry is only ever
+ * used to fill in a 304 GitHub has just sent. Losing the cache costs one
+ * uncached run; nothing drifty depends on goes missing.
  */
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 public class DriftyState implements ResponseCache {
@@ -85,9 +95,10 @@ public class DriftyState implements ResponseCache {
 	ConcurrentHashMap<String, CacheEntry> cache = new ConcurrentHashMap<>();
 
 	/**
-	 * Whether the state holds no secret record. A salt generated during this
-	 * run does not count: nothing recorded depends on it yet, so the next run
-	 * is free to generate a different one.
+	 * Whether the state holds nothing worth persisting: no secret records, no
+	 * cached responses. A salt generated during this run does not count:
+	 * nothing recorded depends on it yet, so the next run is free to generate a
+	 * different one.
 	 */
 	@JsonIgnore
 	public boolean isEmpty() {
