@@ -3,6 +3,7 @@ package io.github.arlol.githubcheck.state;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.Arrays;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -15,6 +16,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  * Loads and saves the {@link DriftyState} JSON file.
  */
 public class StateStore {
+
+	/**
+	 * How long an unconfirmed cache entry is kept. An entry costs about 1.5 KB
+	 * and evicting one costs a charged request, so this is set by what is worth
+	 * remembering, not by file size.
+	 */
+	private static final int CACHE_DAYS = 180;
 
 	private final ObjectMapper mapper = new ObjectMapper()
 			.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
@@ -44,6 +52,7 @@ public class StateStore {
 	 * already holds leaves it untouched.
 	 */
 	public void save(Path path, DriftyState state) throws IOException {
+		state.pruneCache(LocalDate.now().minusDays(CACHE_DAYS));
 		if (state.isEmpty()) {
 			return;
 		}

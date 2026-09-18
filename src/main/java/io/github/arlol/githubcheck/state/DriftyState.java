@@ -266,4 +266,21 @@ public class DriftyState implements ResponseCache {
 		return LocalDate.now().toString();
 	}
 
+	/**
+	 * Forgets every entry no run has confirmed since {@code cutoff}, and every
+	 * entry whose date cannot be read — a stamp drifty cannot parse is one it
+	 * cannot age out, so it goes now rather than never.
+	 */
+	public void pruneCache(LocalDate cutoff) {
+		cache.values().removeIf(entry -> validatedBefore(entry, cutoff));
+	}
+
+	private static boolean validatedBefore(CacheEntry entry, LocalDate cutoff) {
+		try {
+			return LocalDate.parse(entry.lastValidated()).isBefore(cutoff);
+		} catch (RuntimeException e) {
+			return true;
+		}
+	}
+
 }

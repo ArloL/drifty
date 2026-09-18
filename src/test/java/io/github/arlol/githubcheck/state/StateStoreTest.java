@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -285,6 +286,52 @@ class StateStoreTest {
 		store.save(path, state);
 
 		assertThat(path).exists();
+	}
+
+	/**
+	 * An entry costs about 1.5 KB and evicting one costs a charged request, so
+	 * the window is set by what is worth remembering rather than by file size.
+	 * A repository checked twice a year keeps its entry.
+	 */
+	@Test
+	void save_dropsCacheEntriesNoRunHasConfirmedForHalfAYear(@TempDir Path dir)
+			throws Exception {
+		var path = dir.resolve("drifty-state.json");
+		var state = new DriftyState();
+		state.store("/repos/owner/fresh", "\"f\"", "{}", null);
+		state.store("/repos/owner/stale", "\"s\"", "{}", null);
+		state.cache.put(
+				"/repos/owner/stale",
+				new DriftyState.CacheEntry(
+						"\"s\"",
+						"{}",
+						null,
+						LocalDate.now().minusDays(181).toString()
+				)
+		);
+
+		store.save(path, state);
+		var loaded = store.load(path);
+
+		assertThat(loaded.lookup("/repos/owner/fresh")).isNotNull();
+		assertThat(loaded.lookup("/repos/owner/stale")).isNull();
+	}
+
+	/** A date drifty cannot read is an entry it cannot trust to age out. */
+	@Test
+	void save_dropsACacheEntryWhoseDateIsUnreadable(@TempDir Path dir)
+			throws Exception {
+		var path = dir.resolve("drifty-state.json");
+		var state = new DriftyState();
+		state.store("/repos/owner/keep", "\"k\"", "{}", null);
+		state.cache.put(
+				"/repos/owner/broken",
+				new DriftyState.CacheEntry("\"b\"", "{}", null, "not-a-date")
+		);
+
+		store.save(path, state);
+
+		assertThat(store.load(path).lookup("/repos/owner/broken")).isNull();
 	}
 
 }
