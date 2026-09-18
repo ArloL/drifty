@@ -8,7 +8,7 @@ says what to delete once it lands, and how to check.
 **Carrying:** `"com.sun.jna."` in `MAIN_TYPE_PREFIXES`
 (`src/test/java/io/github/arlol/githubcheck/ReachabilityMetadata.java`), which
 routes the 21 agent-traced `com.sun.jna.*` reflection entries into the
-production image instead of the test scope. One of the 21 is load-bearing.
+production image instead of the test scope. One of the 21 is required.
 
 **Why:** lazysodium binds through direct mapping (`Native.register`), which
 builds the libffi call descriptors in Java rather than native code and
@@ -34,12 +34,11 @@ the `Structure$FFIType`, `Structure$FFIType$size_t` and `NativeLong`
 constructors it added ship in the plugin's bundled snapshot. Narrowing the carry
 to that one type therefore waits on nothing.
 
-Which `ByReference` types direct mapping instantiates is decided by lazysodium's
-signatures, not by JNA: a binding taking a different one adds a second missing
-registration with no upstream change involved.
-
-**Waiting on:** a PR registering the `com.sun.jna.ptr.*` constructors, the way
-#9121 registered the `Structure$FFIType` ones. None is open as of 2026-09-18.
+**Waiting on:**
+<https://github.com/oracle/graalvm-reachability-metadata/pull/10114> —
+registers the no-arg constructor of all eight `com.sun.jna.ptr` by-reference
+types, with a direct-mapping test that fails if any one of them is dropped.
+Open as of 2026-09-18.
 
 Merging is not enough on its own: the entries have to reach us through a
 `native-maven-plugin` release that bundles a metadata repository snapshot
