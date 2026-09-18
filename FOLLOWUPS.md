@@ -153,3 +153,104 @@ section in the list above appears at least once with a non-default value,
 export it, load the export back through `PklConfigLoader`, and assert
 `GitHubCheck.check` reports zero drift — the same property the existing test
 checks, just reaching further into the schema.
+
+## 6. `fetchState` is sequential within one repository
+
+Like 5, nothing upstream needs to move. It is carried here because the fix
+restructures `RepositoryChecker.fetchState` and needs a separate decision
+about archived repositories — not something to fold into whichever change
+touches the checker next.
+
+**Carrying:** `fetchState` issues one repository's requests one after
+another. Parallelism exists only *across* repositories (one virtual thread
+each), so the deepest single repository's chain is the floor on the whole
+run, whatever `GitHubClient.MAX_CONCURRENT_REQUESTS` is set to.
+
+**Measured** on 2026-09-18 against `drifty-arlol` (101 repositories under
+the `ArloL` user): 9.0–10.0s wall, 0.61s user CPU, 0.26s sys — ~95% of the
+run is waiting on GitHub, so JVM startup, Pkl eval and comparison are
+noise. A trace of every request recorded 1152 requests, 265ms mean, 308s
+of total in-flight time, in three phases:
+
+| phase | span | what runs |
+|---|---|---|
+| serial head | 0.00 → 1.31s | two `GET /user/repos` pages, one after the other, before any repository starts |
+| saturated middle | 1.31 → 8.1s | pinned at the 50-permit semaphore throughout |
+| serial tail | 8.1 → 9.53s | one repository alone: `permissions/workflow` → `rulesets` → `rulesets/{id}` → `pages` → `hooks` → `collaborators` |
+
+The tail is the whole point. Per-repository chain depth was 24 requests /
+6.63s for `configurable-containers`, 20 / 5.74s for `angular-playground`,
+19 / 5.43s for `drifty`. That puts the floor at `1.31s + 6.63s = 7.9s`.
+Sweeping the semaphore confirms it: 50 permits gave 9.27s and 8.68s, 75
+gave 7.83s and 8.08s — exactly the floor. **Raising the cap alone is
+finished at ~7.9s.**
+
+**GraphQL is not the answer, measured rather than assumed:**
+
+| query | wall |
+|---|---|
+| 100 repositories, 19 flat fields | 2.55s, repeatable |
+| 100 + `branchProtectionRules` | 7.24s |
+| 100 + branch protection, rulesets, environments | 7.6s, `RESOURCE_LIMITS_EXCEEDED`, partial data |
+| 25 + all three nested | 2.35s |
+| REST equivalent: 94 × `GET /repos/{o}/{r}` at 50-wide | ~0.8s |
+
+One GraphQL query is serialized server-side; 94 REST calls are not, so
+GraphQL is ~3x slower in wall clock here. It also has no
+`security_and_analysis`, Actions secrets, variables or permissions,
+webhooks, Pages or code-scanning setup, so most of the REST calls stay and
+a second wire shape would have to live beside the `client/*Response` →
+`ActualTypes` boundary.
+
+`GET /repos/{owner}/{repo}` cannot be dropped in favour of the listing
+either — diffing the two payloads, the listing omits `allow_*_merge`,
+`merge_commit_*`, `squash_merge_commit_*`, `delete_branch_on_merge` and
+`security_and_analysis`.
+
+**What would help**, simulated from the measured per-request latencies (the
+model reproduces today's run at 10.7s against 9.5s actual, so read these as
+relative):
+
+| change | 50 permits | 90 permits |
+|---|---|---|
+| today | 9.5s (measured) | ~7.9s (measured at 75) |
+| 1. fan out within a repository | 7.6s | 5.0s |
+| 2. + skip extras on archived repositories | 6.1s | 4.1s |
+| 3. + parallel listing pagination | 5.8s | 3.8s |
+
+1. **Fan out `fetchState`.** Chain depth goes 24 → 2: everything
+   independent fires at once, and only `environments/{env}/*`,
+   `rulesets/{id}`, `branches/{b}/protection`, `properties/values` and
+   `/teams` wait on the listing they come from. No extra requests, no
+   behaviour change. This is the one that matters.
+2. **`MAX_CONCURRENT_REQUESTS` 50 → ~90**, which only pays off after 1.
+   100 is the ceiling — HTTP/2 streams per connection, and GitHub
+   documents 100 concurrent requests.
+3. **Archived repositories.** 49 of them still send 7 requests each — 343
+   requests, 30% of the run, 92s of in-flight time — for collaborators,
+   environments, secrets, variables, workflow permissions and hooks on
+   repositories GitHub rejects every write to. Safe to skip only when
+   `actual.archived && desired.archived`, since otherwise
+   `ArchivedDriftGroup` is about to unarchive. This is a semantic change:
+   drifty would stop reporting unfixable drift on archived repositories,
+   and SPEC.md would have to say so.
+4. **Fetch listing pages in parallel** off the `Link: rel="last"` header,
+   worth ~0.35s.
+
+**Also found, not about speed.** One check costs 1152 of the 5000/hour REST
+budget — about four runs an hour. And `GitHubClient.handleRateLimit` only
+handles `X-RateLimit-Remaining: 0`: there is no `Retry-After` or secondary
+rate limit (429) handling, and no message until the thread is already
+asleep. Exhausting the budget during this investigation parked a run for
+eight minutes with no output. Going faster makes the burst denser and this
+more likely.
+
+**How to check whether it can go:** not wall clock — 95% of it is someone
+else's network and the assertion would flake. The invariants that regress
+are request count and critical-path depth, and both are deterministic.
+`GitHubClientConcurrencyTest` already has the WireMock shape: stub an
+account, run a check, and assert over the `ServeEvent`s that total requests
+stay within a budget per repository shape and that the longest sequential
+chain for any one repository is at most 2. The depth assertion is what
+would have caught this the day it appeared, and what stops a new drift
+group from quietly re-serializing the fetch.
