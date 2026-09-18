@@ -15,8 +15,6 @@ import java.util.OptionalInt;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.github.arlol.githubcheck.pkl.Drifty;
-import io.github.arlol.githubcheck.state.DriftyState;
-import io.github.arlol.githubcheck.state.StateStore;
 import io.github.arlol.githubcheck.testsupport.Desired;
 
 import org.junit.jupiter.api.Test;
@@ -629,27 +627,6 @@ class GitHubCheckTest {
 	@Test
 	void usage_saysWhereAnExportLeavesItsStateFile() {
 		assertThat(GitHubCheck.usage()).contains("beside --out");
-	}
-
-	// ─── saveState
-	// ────────────────────────────────────────────────────────
-
-	/**
-	 * A plain check fills the response cache across the whole run, so it has to
-	 * be saved without {@code --fix} — the guard that used to be correct when
-	 * the state held only secret baselines, which a plain check never wrote,
-	 * now leaves the cache cold on every run.
-	 */
-	@Test
-	void saveState_savesTheResponseCacheOnAPlainCheck(@TempDir Path dir)
-			throws IOException {
-		Path stateFile = dir.resolve("drifty-state.json");
-		DriftyState state = new DriftyState();
-		state.store("/repos/acme/one", "etag", "{}", null);
-
-		GitHubCheck.saveState(new StateStore(), stateFile, state);
-
-		assertThat(stateFile).exists();
 	}
 
 }

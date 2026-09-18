@@ -162,28 +162,17 @@ public class GitHubCheck {
 
 		Report.print(result);
 
-		saveState(stateStore, stateFile, state);
+		// Unconditional: a plain check used to record nothing worth saving,
+		// back when the state held only secret baselines and only --fix wrote
+		// one. It now also fills the response cache across the whole run just
+		// by reading, so gating this on --fix left every check cold.
+		stateStore.save(stateFile, state);
 
 		double totalSeconds = (System.currentTimeMillis() - startTime) / 1000.0;
 		System.out
 				.printf("%nTotal execution time: %.2f seconds%n", totalSeconds);
 
 		System.exit(result.hasDrift() ? 1 : 0);
-	}
-
-	/**
-	 * Saves the state a check produced. Unconditional: a plain check used to
-	 * record nothing worth saving, back when the state held only secret
-	 * baselines and only {@code --fix} wrote one. It now also holds the
-	 * response cache, which a plain check fills across the whole run just by
-	 * reading — gating the save on {@code --fix} left every check cold.
-	 */
-	static void saveState(
-			StateStore stateStore,
-			Path stateFile,
-			DriftyState state
-	) throws IOException {
-		stateStore.save(stateFile, state);
 	}
 
 	/**
