@@ -41,9 +41,13 @@ final class CachedHttpResponse implements HttpResponse<String> {
 	 * A 304 does not repeat {@code Link}, so it is put back. Keeping the rest
 	 * of the 304's headers matters: {@code X-RateLimit-Remaining} on it is
 	 * current, and the one cached with the body is not.
+	 * <p>
+	 * GitHub sends no {@code Link} on a 304 today, but if that ever changes the
+	 * live one is the current answer and the cached one is not, so a
+	 * {@code Link} already on {@code live} is left alone.
 	 */
 	private static HttpHeaders withCachedLink(HttpHeaders live, String link) {
-		if (link == null) {
+		if (link == null || live.firstValue("link").isPresent()) {
 			return live;
 		}
 		Map<String, List<String>> merged = new LinkedHashMap<>(live.map());

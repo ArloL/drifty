@@ -81,6 +81,10 @@ public class GitHubClient {
 	private static final Pattern PAGE_PARAM = Pattern
 			.compile("([?&]page=)(\\d+)");
 
+	/** The {@code per_page} query parameter of a listing request URL. */
+	private static final Pattern PER_PAGE_PARAM = Pattern
+			.compile("[?&]per_page=(\\d+)");
+
 	private static final String HEADER_CONTENT_TYPE = "Content-Type";
 	private static final String MEDIA_TYPE_JSON = "application/json";
 	private static final String HEADER_IF_NONE_MATCH = "If-None-Match";
@@ -2372,7 +2376,10 @@ public class GitHubClient {
 		List<JsonNode> items = new ArrayList<>(
 				arrayItems(firstResp, arrayField)
 		);
-		for (HttpResponse<String> page : remainingPages(firstResp)) {
+		for (HttpResponse<String> page : remainingPages(
+				firstResp,
+				arrayField
+		)) {
 			items.addAll(arrayItems(page, arrayField));
 		}
 		return items;
@@ -2381,7 +2388,7 @@ public class GitHubClient {
 	/** Every item after the first page's, the pages fetched together. */
 	private List<JsonNode> remainingItems(HttpResponse<String> firstResp) {
 		List<JsonNode> items = new ArrayList<>();
-		for (HttpResponse<String> page : remainingPages(firstResp)) {
+		for (HttpResponse<String> page : remainingPages(firstResp, null)) {
 			items.addAll(arrayItems(page, null));
 		}
 		return items;
@@ -2414,19 +2421,25 @@ public class GitHubClient {
 	 * Falls back to the walk when there is no {@code rel="last"} — GitHub omits
 	 * it on the final page, and a cursor-paginated endpoint never sends one.
 	 * Either way the listing is whatever the first response announced: a page
-	 * added while it is being read is missed by both.
+	 * added while it is being read is missed by both —
+	 * {@link #withGrowthFallback} is what catches one added since.
 	 */
 	private List<HttpResponse<String>> remainingPages(
-			HttpResponse<String> firstResp
+			HttpResponse<String> firstResp,
+			String arrayField
 	) {
 		String last = extractLink(
 				firstResp.headers().firstValue("Link").orElse(""),
 				"last"
 		);
 		int lastPage = last == null ? 0 : pageNumber(last);
-		if (lastPage < 2) {
-			return walkNextLinks(firstResp);
-		}
+		List<HttpResponse<String>> pages = lastPage < 2
+				? walkNextLinks(firstResp)
+				: fetchPages(last, lastPage);
+		return withGrowthFallback(firstResp, pages, arrayField);
+	}
+
+	private List<HttpResponse<String>> fetchPages(String last, int lastPage) {
 		try (ExecutorService executor = Executors
 				.newVirtualThreadPerTaskExecutor()) {
 			List<Future<HttpResponse<String>>> pending = IntStream
@@ -2444,6 +2457,57 @@ public class GitHubClient {
 				return resp;
 			}).toList();
 		}
+	}
+
+	/**
+	 * A cached page one can say the listing ends where it no longer does: a
+	 * page that was exactly one page's worth of items carried no {@code Link}
+	 * at all, and a cached {@code rel="last"} stops naming a page added past it
+	 * — either way GitHub's 304 answers with no {@code Link} to say so (see
+	 * {@link CachedHttpResponse}), so there is nothing in the response to
+	 * notice the listing has grown. This does not depend on how GitHub computes
+	 * a listing's ETag: whatever the final page assembled so far turns out to
+	 * be, one that came back exactly full is probed for one page more, whether
+	 * or not anything was ever cached. A genuinely final full page costs one
+	 * wasted request; a grown one is the request that would otherwise never
+	 * have been sent.
+	 */
+	private List<HttpResponse<String>> withGrowthFallback(
+			HttpResponse<String> firstResp,
+			List<HttpResponse<String>> pages,
+			String arrayField
+	) {
+		HttpResponse<String> finalPage = pages.isEmpty() ? firstResp
+				: pages.get(pages.size() - 1);
+		int perPage = perPage(finalPage.request().uri().toString());
+		if (perPage <= 0
+				|| arrayItems(finalPage, arrayField).size() != perPage) {
+			return pages;
+		}
+		HttpResponse<String> probe = get(forcedNextPageUrl(finalPage));
+		if (probe.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + probe.statusCode() + " fetching next page: "
+							+ probe.body()
+			);
+		}
+		if (arrayItems(probe, arrayField).isEmpty()) {
+			return pages;
+		}
+		List<HttpResponse<String>> grown = new ArrayList<>(pages);
+		grown.add(probe);
+		grown.addAll(walkNextLinks(probe));
+		return grown;
+	}
+
+	/**
+	 * The next page's URL, whether or not {@code page} just fetched carried an
+	 * explicit {@code page} parameter of its own — page one's never does.
+	 */
+	private static String forcedNextPageUrl(HttpResponse<String> page) {
+		String url = page.request().uri().toString();
+		int current = pageNumber(url);
+		return current == 0 ? url + "&page=2" : pageUrl(url, current + 1);
 	}
 
 	private List<HttpResponse<String>> walkNextLinks(
@@ -2505,6 +2569,18 @@ public class GitHubClient {
 		}
 		try {
 			return Integer.parseInt(matcher.group(2));
+		} catch (NumberFormatException e) {
+			return 0;
+		}
+	}
+
+	private static int perPage(String url) {
+		Matcher matcher = PER_PAGE_PARAM.matcher(url);
+		if (!matcher.find()) {
+			return 0;
+		}
+		try {
+			return Integer.parseInt(matcher.group(1));
 		} catch (NumberFormatException e) {
 			return 0;
 		}
