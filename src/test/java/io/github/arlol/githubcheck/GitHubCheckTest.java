@@ -602,4 +602,31 @@ class GitHubCheckTest {
 		assertThat(GitHubCheck.selfTest(empty.toString())).isOne();
 	}
 
+	@Test
+	void stateFile_isWhatTheOptionNames() {
+		assertThat(
+				GitHubCheck
+						.stateFile("/tmp/elsewhere.json", Path.of("drifty.pkl"))
+		).isEqualTo(Path.of("/tmp/elsewhere.json"));
+	}
+
+	/**
+	 * A check anchors its state file on the file it reads and an export on the
+	 * file it writes, and those are the same file for the run an adopter
+	 * actually makes: export, then check the export. The first check after an
+	 * export is warm only while the two land in the same place.
+	 */
+	@Test
+	void stateFile_putsAnExportsCacheWhereACheckOfItsOutputLooks(
+			@TempDir Path dir
+	) {
+		assertThat(GitHubCheck.stateFile(null, dir.resolve("export.pkl")))
+				.isEqualTo(dir.resolve("drifty-state.json"));
+	}
+
+	@Test
+	void usage_saysWhereAnExportLeavesItsStateFile() {
+		assertThat(GitHubCheck.usage()).contains("beside --out");
+	}
+
 }
