@@ -243,4 +243,48 @@ class StateStoreTest {
 		assertThat(loaded.hash("value")).isEqualTo(hashed);
 	}
 
+	/**
+	 * Round-tripped here for the reason the secret records are: the native
+	 * image's reflection metadata comes from what the suite traces, so a field
+	 * no test serialises is missing from the shipped binary.
+	 */
+	@Test
+	void save_thenLoad_roundTripsCacheEntries(@TempDir Path dir)
+			throws Exception {
+		var path = dir.resolve("drifty-state.json");
+		var state = new DriftyState();
+		state.store(
+				"/repos/owner/repo",
+				"\"v1\"",
+				"{\"name\":\"repo\"}",
+				"<https://api.github.com/x?page=2>; rel=\"last\""
+		);
+		store.save(path, state);
+
+		var loaded = store.load(path);
+
+		var entry = loaded.lookup("/repos/owner/repo");
+		assertThat(entry.etag()).isEqualTo("\"v1\"");
+		assertThat(entry.body()).isEqualTo("{\"name\":\"repo\"}");
+		assertThat(entry.link())
+				.isEqualTo("<https://api.github.com/x?page=2>; rel=\"last\"");
+	}
+
+	/**
+	 * A cache is worth writing down on its own. Before this, a run that
+	 * recorded no secret wrote no file — and a cache that is never saved is
+	 * never a cache.
+	 */
+	@Test
+	void save_writesTheFile_whenOnlyTheCacheHasAnything(@TempDir Path dir)
+			throws Exception {
+		var path = dir.resolve("drifty-state.json");
+		var state = new DriftyState();
+		state.store("/repos/owner/repo", "\"v1\"", "{}", null);
+
+		store.save(path, state);
+
+		assertThat(path).exists();
+	}
+
 }
