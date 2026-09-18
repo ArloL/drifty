@@ -1,7 +1,9 @@
 package io.github.arlol.githubcheck.state;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -332,6 +334,51 @@ class StateStoreTest {
 		store.save(path, state);
 
 		assertThat(store.load(path).lookup("/repos/owner/broken")).isNull();
+	}
+
+	/**
+	 * {@code save} writes the new content to a sibling temp file and moves it
+	 * over the target, rather than truncating the target in place — a crash
+	 * between the two would otherwise leave a state file Jackson cannot parse
+	 * and no secret baseline recoverable. A leftover temp file from that naming
+	 * convention is what the next successful save has to consume, not leave
+	 * behind.
+	 */
+	@Test
+	void save_writesThroughATempFileAndLeavesNoneBehind(@TempDir Path dir)
+			throws Exception {
+		var path = dir.resolve("drifty-state.json");
+		var tmp = dir.resolve("drifty-state.json.tmp");
+		Files.writeString(tmp, "stale");
+		var state = new DriftyState();
+		state.recordActionSecret(
+				"repo",
+				"PAT",
+				"2024-01-01T00:00:00Z",
+				state.hash("value")
+		);
+
+		store.save(path, state);
+
+		assertThat(tmp).doesNotExist();
+	}
+
+	/**
+	 * A load failure otherwise surfaces as a bare Jackson stack trace, which
+	 * says nothing about where the file is or what to do about it — see the
+	 * version-mismatch message just above for the voice this matches.
+	 */
+	@Test
+	void load_namesThePathAndSaysDeletingItCostsOneUncachedRun(
+			@TempDir Path dir
+	) throws Exception {
+		var path = dir.resolve("drifty-state.json");
+		Files.writeString(path, "{ not valid json");
+
+		assertThatThrownBy(() -> store.load(path))
+				.isInstanceOf(IOException.class)
+				.hasMessageContaining(path.toString())
+				.hasMessageContaining("delete");
 	}
 
 }

@@ -3,6 +3,7 @@ package io.github.arlol.githubcheck.state;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.Arrays;
 
@@ -34,7 +35,17 @@ public class StateStore {
 		if (!Files.isRegularFile(path)) {
 			return new DriftyState();
 		}
-		DriftyState state = mapper.readValue(path.toFile(), DriftyState.class);
+		DriftyState state;
+		try {
+			state = mapper.readValue(path.toFile(), DriftyState.class);
+		} catch (IOException e) {
+			throw new IOException(
+					"Cannot read drifty state file " + path
+							+ " — delete it and the next run costs one"
+							+ " uncached check, not a stack trace",
+					e
+			);
+		}
 		if (state.version != DriftyState.CURRENT_VERSION) {
 			throw new IOException(
 					"Unsupported drifty state file version " + state.version
@@ -50,6 +61,14 @@ public class StateStore {
 	 * drifty does not already know: a state without a single secret record
 	 * creates no file at all, and a state that serializes to what the file
 	 * already holds leaves it untouched.
+	 * <p>
+	 * The write goes through a sibling temp file and an atomic move rather than
+	 * truncating {@code path} in place: this file holds secret baselines the
+	 * class doc calls truth drifty cannot recover, and a check now writes it on
+	 * every run, not only under {@code --fix}. A crash between truncate and
+	 * last byte would otherwise leave a file Jackson cannot parse and no
+	 * baseline recoverable. The temp file sits beside {@code path} because
+	 * {@code ATOMIC_MOVE} across filesystems throws.
 	 */
 	public void save(Path path, DriftyState state) throws IOException {
 		state.pruneCache(LocalDate.now().minusDays(CACHE_DAYS));
@@ -61,7 +80,18 @@ public class StateStore {
 				&& Arrays.equals(Files.readAllBytes(path), json)) {
 			return;
 		}
-		Files.write(path, json);
+		Path tmp = path.resolveSibling(path.getFileName() + ".tmp");
+		try {
+			Files.write(tmp, json);
+			Files.move(
+					tmp,
+					path,
+					StandardCopyOption.ATOMIC_MOVE,
+					StandardCopyOption.REPLACE_EXISTING
+			);
+		} finally {
+			Files.deleteIfExists(tmp);
+		}
 	}
 
 }
