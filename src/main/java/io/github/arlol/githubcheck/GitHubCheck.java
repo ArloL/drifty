@@ -208,6 +208,16 @@ public class GitHubCheck {
 			// The org is checked before its repositories, and both work from
 			// the same listing: an org secret's selected repositories arrive as
 			// ids, and this is where their names are.
+			//
+			// Running the two at once would overlap the org's three round trips
+			// with the repositories' — tempting, since the org's are pure head
+			// — but --fix writes in this order for a reason. A repository
+			// cannot be granted access to a team the org has not created yet,
+			// cannot carry a value for a custom property whose definition does
+			// not exist yet, and a code security configuration attaches to
+			// repositories whose own security groups are writing the same
+			// settings. Each of the two fetch phases is already fanned out
+			// internally; the phases themselves are sequenced by those writes.
 			orgEntries.add(orgChecker.check(login, desired, repos));
 			repoEntries.addAll(
 					repoChecker.check(login, repos, desired.repositories)

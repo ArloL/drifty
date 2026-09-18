@@ -852,7 +852,10 @@ The tool never fails fast — it always attempts all fixes and provides a comple
   requested at once, and only the reads that name something a listing has not
   returned yet — a branch's protection, a ruleset's rules, an environment's
   secrets and variables, and the two endpoints that exist only under an
-  organization — wait, and they wait exactly one round trip
+  organization — wait, and they wait exactly one round trip. An organization's
+  own state is read the same way, one level deeper because `GET /orgs/{org}`
+  gates it. The organization is still read before its repositories: `--fix`
+  writes teams and custom property definitions the repositories then reference
 
 ### API Strategy
 
