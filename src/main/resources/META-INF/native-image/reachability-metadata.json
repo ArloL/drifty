@@ -396,6 +396,9 @@
       "type": "io.github.arlol.githubcheck.actual.ActualRuleset$PullRequest"
     },
     {
+      "type": "io.github.arlol.githubcheck.actual.ActualRuleset$RulePattern"
+    },
+    {
       "type": "io.github.arlol.githubcheck.actual.ActualRuleset$Workflow"
     },
     {
@@ -1547,6 +1550,12 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.GitHubClient$PagedRepositories",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.ImmutableReleasesResponse",
       "methods": [
         {
@@ -2307,6 +2316,15 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.ResponseCache"
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.ResponseCache$Entry",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.RoleRequest",
       "methods": [
         {
@@ -2509,12 +2527,33 @@
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$PullRequest",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.client.Rule$PullRequest$Parameters"
+          ]
+        }
+      ],
       "allPublicFields": true,
       "allPublicMethods": true,
       "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$PullRequest$Parameters",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Integer",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
+            "java.util.List"
+          ]
+        }
+      ],
       "allPublicFields": true,
       "allPublicMethods": true,
       "allPublicConstructors": true
@@ -3706,6 +3745,15 @@
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$CodeScanningDefaultSetupOptions",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "io.github.arlol.githubcheck.pkl.Drifty$CodeScanningRunnerType",
+            "java.lang.String"
+          ]
+        }
+      ],
       "allPublicConstructors": true
     },
     {
@@ -4406,6 +4454,9 @@
       "type": "io.github.arlol.githubcheck.state.DriftyState",
       "fields": [
         {
+          "name": "cache"
+        },
+        {
           "name": "organizations"
         },
         {
@@ -4421,6 +4472,36 @@
       "methods": [
         {
           "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "io.github.arlol.githubcheck.state.DriftyState$CacheEntry",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String",
+            "java.lang.String"
+          ]
+        },
+        {
+          "name": "body",
+          "parameterTypes": []
+        },
+        {
+          "name": "etag",
+          "parameterTypes": []
+        },
+        {
+          "name": "lastValidated",
+          "parameterTypes": []
+        },
+        {
+          "name": "link",
           "parameterTypes": []
         }
       ]
@@ -4488,9 +4569,6 @@
       "glob": "**/libsodium.*"
     },
     {
-      "glob": "export-defaults.pkl"
-    },
-    {
       "glob": "META-INF/org/pkl/config/java/mapper/classes/drifty.properties"
     },
     {
@@ -4504,6 +4582,9 @@
     },
     {
       "glob": "META-INF/services/org.pkl.core.resource.ResourceReader"
+    },
+    {
+      "glob": "export-defaults.pkl"
     },
     {
       "glob": "org/pkl/core/Release.properties"
