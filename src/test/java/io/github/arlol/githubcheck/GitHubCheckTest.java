@@ -554,6 +554,16 @@ class GitHubCheckTest {
 	}
 
 	/**
+	 * The file is no longer only secret baselines, and it is about to go from
+	 * nothing to roughly a megabyte on a run that records no secret. A user
+	 * reading --help should find out from there.
+	 */
+	@Test
+	void usage_saysTheStateFileHoldsTheResponseCache() {
+		assertThat(GitHubCheck.usage()).contains("cache");
+	}
+
+	/**
 	 * The same libsodium round trip the native binary runs; here it guards the
 	 * exit code the JVM build produces.
 	 */

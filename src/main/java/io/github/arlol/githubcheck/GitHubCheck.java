@@ -123,7 +123,10 @@ public class GitHubCheck {
 
 		long startTime = System.currentTimeMillis();
 
-		var client = new GitHubClient(token);
+		// The state is the client's response cache as well as the secret
+		// baselines: a GET drifty has seen before is asked conditionally, and
+		// GitHub charges no rate limit for the 304 that comes back.
+		var client = new GitHubClient(token, state);
 		var repoChecker = new RepositoryChecker(
 				client,
 				fix,
@@ -401,8 +404,8 @@ public class GitHubCheck {
 				Options:
 				  --fix            Apply every fixable change instead of only reporting it.
 				  --config <path>  Config to check against. Default: ./drifty.pkl
-				  --state <path>   Secret baselines to read and write. Default:
-				                   drifty-state.json beside the config.
+				  --state <path>   Secret baselines and cached responses to read and
+				                   write. Default: drifty-state.json beside the config.
 				  --export <login> Write the named accounts' current settings as a
 				                   starting config instead of checking anything. Takes
 				                   neither --config nor --fix.
