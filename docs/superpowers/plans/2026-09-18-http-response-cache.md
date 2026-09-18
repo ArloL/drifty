@@ -169,14 +169,14 @@ class GitHubClientCacheTest {
 		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo"))
 						.withHeader("If-None-Match", absent())
-						.willReturn(okJson(DETAILS).withHeader("ETag", "\\"v1\\""))
+						.willReturn(okJson(DETAILS).withHeader("ETag", "\"v1\""))
 		);
 		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo"))
-						.withHeader("If-None-Match", equalTo("\\"v1\\""))
+						.withHeader("If-None-Match", equalTo("\"v1\""))
 						.willReturn(
 								aResponse().withStatus(304)
-										.withHeader("ETag", "\\"v1\\"")
+										.withHeader("ETag", "\"v1\"")
 						)
 		);
 
@@ -186,7 +186,7 @@ class GitHubClientCacheTest {
 		verify(
 				1,
 				getRequestedFor(urlPathEqualTo("/repos/owner/repo"))
-						.withHeader("If-None-Match", equalTo("\\"v1\\""))
+						.withHeader("If-None-Match", equalTo("\"v1\""))
 		);
 	}
 
@@ -212,16 +212,16 @@ class GitHubClientCacheTest {
 		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo"))
 						.withHeader("If-None-Match", absent())
-						.willReturn(okJson(DETAILS).withHeader("ETag", "\\"v1\\""))
+						.willReturn(okJson(DETAILS).withHeader("ETag", "\"v1\""))
 		);
 		client.getRepo("owner", "repo");
 
 		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo"))
-						.withHeader("If-None-Match", equalTo("\\"v1\\""))
+						.withHeader("If-None-Match", equalTo("\"v1\""))
 						.willReturn(
 								aResponse().withStatus(403)
-										.withBody("{\\"message\\":\\"Forbidden\\"}")
+										.withBody("{\"message\":\"Forbidden\"}")
 						)
 		);
 
@@ -583,21 +583,21 @@ Append to `GitHubClientCacheTest`:
 										"""
 												[{"name": "one", "archived": false, "visibility": "public"}]
 												"""
-								).withHeader("ETag", "\\"p1\\"")
+								).withHeader("ETag", "\"p1\"")
 										.withHeader(
 												"Link",
 												"<" + pageTwoUrl
-														+ ">; rel=\\"last\\""
+														+ ">; rel=\"last\""
 										)
 						)
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/owner/repos"))
 						.withQueryParam("page", absent())
-						.withHeader("If-None-Match", equalTo("\\"p1\\""))
+						.withHeader("If-None-Match", equalTo("\"p1\""))
 						.willReturn(
 								aResponse().withStatus(304)
-										.withHeader("ETag", "\\"p1\\"")
+										.withHeader("ETag", "\"p1\"")
 						)
 		);
 		stubFor(
@@ -698,19 +698,19 @@ Append to `StateStoreTest`:
 		var state = new DriftyState();
 		state.store(
 				"/repos/owner/repo",
-				"\\"v1\\"",
-				"{\\"name\\":\\"repo\\"}",
-				"<https://api.github.com/x?page=2>; rel=\\"last\\""
+				"\"v1\"",
+				"{\"name\":\"repo\"}",
+				"<https://api.github.com/x?page=2>; rel=\"last\""
 		);
 		store.save(path, state);
 
 		var loaded = store.load(path);
 
 		var entry = loaded.lookup("/repos/owner/repo");
-		assertThat(entry.etag()).isEqualTo("\\"v1\\"");
-		assertThat(entry.body()).isEqualTo("{\\"name\\":\\"repo\\"}");
+		assertThat(entry.etag()).isEqualTo("\"v1\"");
+		assertThat(entry.body()).isEqualTo("{\"name\":\"repo\"}");
 		assertThat(entry.link())
-				.isEqualTo("<https://api.github.com/x?page=2>; rel=\\"last\\"");
+				.isEqualTo("<https://api.github.com/x?page=2>; rel=\"last\"");
 	}
 
 	/**
@@ -723,7 +723,7 @@ Append to `StateStoreTest`:
 			throws Exception {
 		var path = dir.resolve("drifty-state.json");
 		var state = new DriftyState();
-		state.store("/repos/owner/repo", "\\"v1\\"", "{}", null);
+		state.store("/repos/owner/repo", "\"v1\"", "{}", null);
 
 		store.save(path, state);
 
@@ -879,12 +879,12 @@ Append to `StateStoreTest`:
 	) throws Exception {
 		var path = dir.resolve("drifty-state.json");
 		var state = new DriftyState();
-		state.store("/repos/owner/fresh", "\\"f\\"", "{}", null);
-		state.store("/repos/owner/stale", "\\"s\\"", "{}", null);
+		state.store("/repos/owner/fresh", "\"f\"", "{}", null);
+		state.store("/repos/owner/stale", "\"s\"", "{}", null);
 		state.cache.put(
 				"/repos/owner/stale",
 				new DriftyState.CacheEntry(
-						"\\"s\\"",
+						"\"s\"",
 						"{}",
 						null,
 						LocalDate.now().minusDays(181).toString()
@@ -904,10 +904,10 @@ Append to `StateStoreTest`:
 			throws Exception {
 		var path = dir.resolve("drifty-state.json");
 		var state = new DriftyState();
-		state.store("/repos/owner/keep", "\\"k\\"", "{}", null);
+		state.store("/repos/owner/keep", "\"k\"", "{}", null);
 		state.cache.put(
 				"/repos/owner/broken",
-				new DriftyState.CacheEntry("\\"b\\"", "{}", null, "not-a-date")
+				new DriftyState.CacheEntry("\"b\"", "{}", null, "not-a-date")
 		);
 
 		store.save(path, state);
