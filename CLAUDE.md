@@ -605,9 +605,9 @@ partitioned by a production **allowlist**, with everything else supplied by the
 GraalVM metadata repository and routed to test scope:
 
 - reflection: only `io.github.arlol.*` types and the `com.goterl.lazysodium` /
-  `com.sun.jna` binding (257 entries; everything else is repository-supplied);
+  `com.sun.jna` binding; everything else is repository-supplied;
 - resources: only Pkl's own resources and a platform-agnostic `**/libsodium.*`
-  glob for the lazysodium native library (11 entries).
+  glob for the lazysodium native library.
 
 `io.github.arlol.*` is a package prefix, not a record filter: `DriftyState` and
 its `RepoState`/`OrgState` inner classes are plain classes and are matched the

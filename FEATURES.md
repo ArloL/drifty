@@ -1,5 +1,10 @@
 # Missing Features
 
+Every entry below is done or dropped, and has been since #55. The file is kept
+as the record of how each one was implemented, not as a list of work left:
+`FOLLOWUPS.md` holds what is blocked, and SPEC.md's "Future Considerations"
+holds what is deliberately out of scope.
+
 ## ~~1. Fix All Repository Settings (not just description)~~ DONE
 
 Implemented: `applyFixes()` batches all drifted repo fields (description, homepage, has_issues, has_projects, has_wiki, allow_merge_commit, allow_squash_merge, allow_auto_merge, delete_branch_on_merge, archived) into a single PATCH call. Topics use a separate PUT endpoint via `replaceTopics()`. Topics checking was also added (config, state, diff, fix).
@@ -478,7 +483,7 @@ compared and sent like any of the seventeen toggles.
 
 `secret_scanning_extended_metadata` is left out: the spec has it on GET, POST
 and PATCH but supplies no default, and every example response predates the
-field. See FOLLOWUPS.md item 3. `code_security` and `secret_protection` are
+field. See FOLLOWUPS.md's `secret_scanning_extended_metadata` entry. `code_security` and `secret_protection` are
 left out for good: POST and PATCH accept them, GET returns neither, and
 `advancedSecurity` already carries the same split.
 
