@@ -85,11 +85,15 @@ manual, so nothing in CI reports that the copy has aged; the sha is what makes
 that visible to anyone who looks, and saying so here is the honest form of the
 trade.
 
-**Which endpoints go in is not a hand-maintained list.** The extractor reads
-the `@GitHubEndpoint` annotations off the compiled classes — the same
-ClassGraph pass the test uses — and extracts exactly those. A record naming a
-new endpoint pulls its schema in on the next run; an endpoint drifty stopped
-calling drops out.
+**Which endpoints go in is not a hand-maintained list.** The extractor scans
+the `client` sources for the endpoint literals the annotations carry and
+extracts exactly those, so a record naming a new endpoint pulls its schema in
+on the next run and an endpoint drifty stopped calling drops out. Scanning
+source text rather than reading the annotations off compiled classes keeps a
+Python script out of the build lifecycle, and it loses nothing: the test fails
+when an annotated endpoint is missing from the contract file, so a typo or a
+skipped refresh is still caught — at the point where being wrong would
+otherwise mean checking nothing.
 
 **A discriminated `oneOf` is preserved, not merged.** The spec models ruleset
 rules as a `oneOf` with a `type` const per branch, and `Rule` mirrors it with
