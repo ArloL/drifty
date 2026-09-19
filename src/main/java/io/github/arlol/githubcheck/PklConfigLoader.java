@@ -33,16 +33,17 @@ public final class PklConfigLoader {
 	}
 
 	public static DriftyConfig load(Path pklFile) throws IOException {
-		try (var evaluator = ConfigEvaluator.preconfigured()) {
-			var root = evaluator.evaluate(ModuleSource.path(pklFile));
-			return new DriftyConfig(
-					byLogin(
-							root.get("organizations"),
-							Drifty.Organization.class
-					),
-					byLogin(root.get("users"), Drifty.User.class)
-			);
+		try (var evaluator = BundledSchema.evaluatorBuilder().build()) {
+			return load(pklFile, evaluator);
 		}
+	}
+
+	static DriftyConfig load(Path pklFile, ConfigEvaluator evaluator) {
+		var root = evaluator.evaluate(ModuleSource.path(pklFile));
+		return new DriftyConfig(
+				byLogin(root.get("organizations"), Drifty.Organization.class),
+				byLogin(root.get("users"), Drifty.User.class)
+		);
 	}
 
 	private static <T> Map<String, T> byLogin(Config accounts, Class<T> type) {
