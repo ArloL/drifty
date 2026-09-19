@@ -111,11 +111,12 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   rate-limit pause, so a thread parked until the reset is not holding a stream.
   `GitHubClientConcurrencyTest` fails if more requests overlap than the limit.
 - **`fetchState` fans out; two levels, never three.** `Fanout` starts every
-  read that needs nothing at once, and only five wait: a branch's
+  read that needs nothing at once, and only six wait: a branch's
   protection, a ruleset's rules, an environment's policies/secrets/variables,
-  and `/teams` and `/properties/values`, which wait on `GET
-  /repos/{owner}/{repo}` because the owner's type is what says whether to send
-  them at all. Issuing them in series made the deepest single repository the
+  and `/teams`, `/properties/values` and `/pages`, which wait on `GET
+  /repos/{owner}/{repo}` — the owner's type is what says whether to send the
+  first two at all, and `has_pages` whether there is a site to ask about.
+  Issuing them in series made the deepest single repository the
   floor on the whole run — 24 requests and 6.6s of a 9.5s check, with the
   semaphore idle. A group whose read waits on another group's read puts the
   chain back; `RepositoryCheckerRequestShapeTest` fails on a depth over 2 and
@@ -197,45 +198,56 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   check side keys on `desired.archived`, not on `actual`: a repository that is
   archived while the config wants it active still reads everything, because
   unarchiving is about to make all of it apply. The narrowing is not a
-  `managed` declaration — `checkOne` reads `unmanaged` off the config's own
-  block first, or an `archived = true` repository's report would suddenly list
+  `managed` declaration — the report's `unmanaged` list comes from the config's
+  own block, or an `archived = true` repository's report would suddenly list
   every other group. Of one 101-repository account's 1152 requests, 343 went to
   groups nothing compared, and 51 more to details only one field of which was
   read.
-- **A per-repository read the listing or the details response already answers
-  is not sent.** `has_pages` on the account listing is what `GET
-  /repos/{owner}/{repo}/pages` answers with a 404 — 37 of one account's 45
-  active repositories — so `fetchState` asks only when the summary does not say
-  `false`. `security_and_analysis.dependabot_security_updates` on `GET
+- **A per-repository read the details response already answers is not sent.**
+  `has_pages` is what `GET /repos/{owner}/{repo}/pages` answers with a 404 — 37
+  of one account's 45 active repositories — so `fetchState` asks only when the
+  details response says there is a site. It is read there rather than off the
+  account listing, which the check no longer waits for.
+  `security_and_analysis.dependabot_security_updates` on `GET
   /repos/{owner}/{repo}` is the same bit as `/automated-security-fixes`, which
   is why `SecurityFlags` has four members and not five; `paused` is the only
   field the endpoint carries that the details do not and nothing compares it.
   Before adding a read for a new group, diff what it returns against
   `schemas/repos/{owner}/{repo}/get/` and against the listing — one request per
   repository is ~0.3s of a run per 90 repositories.
-- **The listing's first page is checked while the pages after it arrive.**
-  `GitHubClient.listUserReposPaged` hands back `PagedRepositories`: page one's
-  repositories, plus a supplier for the rest already in flight on a virtual
-  thread. `RepositoryChecker.check` submits the first page before joining the
-  second, because nothing a repository is read for needs another repository and
-  the listing was otherwise one round trip of pure head in front of all of
-  them — 0.56s of a 4.45s check with the semaphore idle. The organization path
-  keeps `listOrgRepos`: `OrganizationChecker.check` resolves a selected
-  secret's repository ids against the whole listing, and it runs before the
-  repositories anyway. A failing page now fails inside `repoChecker.check`,
-  which is why `GitHubCheck`'s user arm wraps both calls in one try —
-  `checkOne` catches `GitHubApiException` itself, so nothing a repository does
-  reaches that arm.
-- **The semaphore is the floor now, so request count is the lever.** Tracing a
-  check of the 101-repository `ArloL` account: 875 requests, p50 latency 267ms,
-  90 in flight continuously from 1.3s to 4.0s of a 4.45s run. Wall clock is
-  `head + requests × latency ÷ 90`, and 90 is near GitHub's documented
-  100-concurrent ceiling, so what moves it is fewer requests and a shorter
-  head — not more parallelism, and not depth, which
-  `RepositoryCheckerRequestShapeTest` already holds at two levels. Conditional
-  requests are not a third lever: five paired samples on `GET
-  /repos/ArloL/drifty` put a 304 at the same latency as the 200 it replaces, so
-  ETags would buy rate-limit budget and no time.
+- **The config says which repositories to check; the listing runs beside
+  them.** `RepositoryChecker.check` submits every repository the config
+  declares and does not want archived before it joins
+  `GitHubClient.listUserReposAsync`, which is asking for the listing on its own
+  virtual thread. Waiting for that listing was 596ms of a traced 3.09s fetch
+  with fewer than ten requests in flight. The listing still answers the two
+  questions only it can — what GitHub lists that the config does not declare
+  (`UNKNOWN`), what it declares that GitHub does not list (`MISSING`) — plus
+  `archived` for a repository the config wants archived. Two things follow.
+  `fetchState` takes `archived` and `publicRepository` from the config rather
+  than from a response, because reading either off `GET
+  /repos/{owner}/{repo}` would put `/branches` behind it and each branch's
+  protection behind that; a declared repository GitHub does not have spends its
+  requests on 404s before the listing says so, which is the abnormal case. And
+  a failing listing now fails inside `repoChecker.check`, which is why
+  `GitHubCheck`'s user arm wraps both calls in one try — `checkOne` catches
+  `GitHubApiException` itself, so nothing a repository does reaches that arm.
+  The organization path keeps `listOrgRepos`: `OrganizationChecker.check`
+  resolves a selected secret's repository ids against the whole listing, and it
+  runs before the repositories anyway.
+- **The semaphore is the floor, so request count is the only lever left.**
+  Tracing a check of the 101-repository `ArloL` account on 2026-09-19: 742
+  requests, p50 latency 249ms, and 77% of a 2.57s fetch window with 90 in
+  flight. Wall clock is `requests × latency ÷ 90`, and every other term is at
+  its limit. Latency is GitHub's — the same endpoint answers in 115ms
+  unauthenticated and 400ms authenticated over a 40ms round trip, and an OAuth
+  token is no faster than a fine-grained PAT. The permit count is at GitHub's
+  documented 100-concurrent ceiling: 120 simultaneous requests all answered
+  200, 150 drew 11×403 and 270 drew 135×403. Depth is held at two levels by
+  `RepositoryCheckerRequestShapeTest`. Conditional requests are not a lever
+  either: a 304 costs what the 200 it replaces costs, so the response cache
+  buys rate-limit budget and no time. `FINDINGS.md` carries the measurements
+  and what is left to take.
 - **A GET drifty has seen before is asked conditionally, and GitHub does not
   charge the 304.** `GitHubClient.get` sends `If-None-Match` from the
   `ResponseCache` the state file implements, and `CachedHttpResponse` hands the
@@ -274,11 +286,11 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   `RepoSettingsDriftGroup` compares, so every repository would report drift on
   all of them. `security_and_analysis` is in the schema for the organization
   listing but `GET /user/repos` returned it on none of 101 repositories, so
-  the security micro-groups cannot read it there either. What the listing
-  *does* carry reliably — `archived`, `has_pages`, `owner.type`, `topics`,
-  `visibility`, `delete_branch_on_merge` — is fair game, and two reads already
-  live off it.
-- **`RepositoryChecker.checkOne` catches `GitHubApiException`.** It runs inside
+  the security micro-groups cannot read it there either. The check reads only
+  `archived` off it now, and only for a repository the config wants archived:
+  anything else a repository needs would put the listing back in front of every
+  one of them.
+- **`RepositoryChecker.entry` catches `GitHubApiException`.** It runs inside
   a virtual thread whose `Future.get()` nothing above `check` handles, so
   without that arm one repository's 403 ends the run for every repository after
   it — the shape of issue #135. `OrganizationChecker.checkOne` has the same

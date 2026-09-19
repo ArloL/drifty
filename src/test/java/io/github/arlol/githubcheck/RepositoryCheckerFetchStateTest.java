@@ -69,7 +69,7 @@ class RepositoryCheckerFetchStateTest {
 			"has_projects": true,
 			"has_wiki": true,
 			"has_discussions": false,
-			"has_pages": false,
+			"has_pages": %s,
 			"allow_forking": true,
 			"web_commit_signoff_required": false,
 			"allow_squash_merge": true,
@@ -103,7 +103,7 @@ class RepositoryCheckerFetchStateTest {
 					"secret_scanning_validity_checks": {"status": "enabled"},
 					"dependabot_security_updates": {"status": "enabled"}
 				}
-				""");
+				""", true);
 		stubSecurityEndpoints();
 		stubStandardEndpoints();
 
@@ -839,10 +839,23 @@ class RepositoryCheckerFetchStateTest {
 	}
 
 	private static void stubRepoDetails(String extraFields) {
+		stubRepoDetails(extraFields, false);
+	}
+
+	/**
+	 * {@code has_pages} is read off this response, not off the account listing,
+	 * so a test that expects the Pages read has to say so here.
+	 */
+	private static void stubRepoDetails(String extraFields, boolean hasPages) {
 		stubFor(
-				get(urlPathEqualTo("/repos/owner/repo")).willReturn(
-						okJson("{" + REPO_DETAILS_FIELDS + extraFields + "}")
-				)
+				get(urlPathEqualTo("/repos/owner/repo"))
+						.willReturn(
+								okJson(
+										"{" + REPO_DETAILS_FIELDS
+												.formatted(hasPages)
+												+ extraFields + "}"
+								)
+						)
 		);
 	}
 

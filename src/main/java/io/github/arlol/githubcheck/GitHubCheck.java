@@ -248,16 +248,14 @@ public class GitHubCheck {
 			String login = entry.getKey();
 			List<Drifty.Repository> desired = entry.getValue().repositories;
 			System.out.println("Fetching repo list for user: " + login);
-			// The listing's first page is handed over before the pages after
-			// it arrive, so the repositories it names are checked while the
-			// rest of it is still on the wire — for a 101-repository account
-			// that page was 0.56s of head with nothing else in flight. Which
-			// is why the check is inside this try: a page that fails now fails
-			// here rather than above, and it is still the listing that failed.
-			// Nothing a repository does reaches this arm, because checkOne
-			// catches GitHubApiException itself.
+			// The listing goes out on its own thread and the config's
+			// repositories start at once, so the listing fails inside the
+			// check rather than before it — which is why the check is inside
+			// this try, and it is still the listing that failed. Nothing a
+			// repository does reaches this arm, because checkOne catches
+			// GitHubApiException itself.
 			try {
-				var listing = client.listUserReposPaged(login);
+				var listing = client.listUserReposAsync(login);
 				System.out.println(
 						"Fetching details while the listing finishes..."
 				);

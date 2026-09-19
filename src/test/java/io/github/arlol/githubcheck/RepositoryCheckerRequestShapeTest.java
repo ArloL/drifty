@@ -73,7 +73,7 @@ class RepositoryCheckerRequestShapeTest {
 	 * Four security flags rather than five: automated security fixes are
 	 * {@code security_and_analysis.dependabot_security_updates} on the details
 	 * response, which is read for eight other security groups anyway. And Pages
-	 * is here only because the listing below says {@code has_pages}; a
+	 * is here only because the details response says {@code has_pages}; a
 	 * repository with no site is not asked, which is the case
 	 * {@code RepositoryCheckerFetchStateTest} pins.
 	 */
@@ -91,11 +91,12 @@ class RepositoryCheckerRequestShapeTest {
 	private static final int ARCHIVED_REPOSITORY_REQUESTS = 0;
 
 	/**
-	 * The six reads that may not go out until something else has answered: a
+	 * The seven reads that may not go out until something else has answered: a
 	 * branch's protection and a ruleset's rules on the listing that named them,
-	 * an environment's secrets and variables on the environment listing, and
-	 * the two endpoints that exist only under an organization on {@code GET
-	 * /repos/{owner}/{repo}}, which is what says whether one owns it.
+	 * an environment's secrets and variables on the environment listing, and on
+	 * {@code GET /repos/{owner}/{repo}} the two endpoints that exist only under
+	 * an organization — it is what says whether one owns it — and Pages, which
+	 * it is what says there is a site to ask about.
 	 * <p>
 	 * A new group whose read waits on another read belongs in this set, and a
 	 * new group that reads an endpoint outright does not. Getting that wrong is
@@ -108,7 +109,8 @@ class RepositoryCheckerRequestShapeTest {
 			"/repos/acme/active/environments/prod/secrets",
 			"/repos/acme/active/environments/prod/variables",
 			"/repos/acme/active/properties/values",
-			"/repos/acme/active/teams"
+			"/repos/acme/active/teams",
+			"/repos/acme/active/pages"
 	);
 
 	private static final Pattern REPOSITORY_PATH = Pattern
@@ -267,7 +269,7 @@ class RepositoryCheckerRequestShapeTest {
 						delayed(
 								"""
 										[
-										  {"name": "active", "archived": false, "visibility": "public", "has_pages": true},
+										  {"name": "active", "archived": false, "visibility": "public"},
 										  {"name": "frozen", "archived": true, "visibility": "public"}
 										]
 										"""
@@ -454,7 +456,7 @@ class RepositoryCheckerRequestShapeTest {
 					"has_projects": true,
 					"has_wiki": true,
 					"has_discussions": false,
-					"has_pages": false,
+					"has_pages": true,
 					"allow_forking": true,
 					"web_commit_signoff_required": false,
 					"allow_squash_merge": true,

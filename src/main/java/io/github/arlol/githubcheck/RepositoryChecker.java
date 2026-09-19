@@ -167,16 +167,12 @@ public class RepositoryChecker {
 			List<RepositorySummaryResponse> summaries,
 			List<Drifty.Repository> desired
 	) throws InterruptedException, ExecutionException {
-		return check(
-				owner,
-				new GitHubClient.PagedRepositories(summaries, List::of),
-				desired
-		);
+		return check(owner, () -> summaries, desired);
 	}
 
 	public List<CheckResult.Entry> check(
 			String owner,
-			GitHubClient.PagedRepositories listing,
+			Supplier<List<RepositorySummaryResponse>> listing,
 			List<Drifty.Repository> desired
 	) throws InterruptedException, ExecutionException {
 		Map<String, Drifty.Repository> desiredByName = desired.stream()
@@ -189,109 +185,131 @@ public class RepositoryChecker {
 						)
 				);
 
-		List<RepositorySummaryResponse> summaries = new ArrayList<>();
 		List<CheckResult.Entry> results = new ArrayList<>();
 		try (ExecutorService executor = Executors
 				.newVirtualThreadPerTaskExecutor()) {
-			List<Future<CheckResult.Entry>> futures = new ArrayList<>();
-			// The first page's repositories start while the pages after it are
-			// still arriving: nothing a repository is read for needs any other
-			// repository, and the listing is otherwise one round trip of pure
-			// head in front of every one of them.
-			submit(
-					executor,
-					futures,
-					summaries,
-					owner,
-					listing.firstPage(),
-					desiredByName
-			);
-			submit(
-					executor,
-					futures,
-					summaries,
-					owner,
-					listing.rest().get(),
-					desiredByName
-			);
-			for (Future<CheckResult.Entry> f : futures) {
-				results.add(f.get());
+			// Everything the config declares and wants active starts now. The
+			// listing used to be what said which repositories to check, and
+			// waiting for it was 596ms of a traced 3.09s fetch with fewer than
+			// ten requests in flight. Nothing a repository is read for needs
+			// another repository, or the listing.
+			Map<String, Future<CheckResult.Entry>> started = new LinkedHashMap<>();
+			desiredByName.forEach((name, repo) -> {
+				if (!repo.archived) {
+					started.put(
+							name,
+							executor.submit(
+									() -> checkOne(
+											new RepoRef(owner, name),
+											repo
+									)
+							)
+					);
+				}
+			});
+
+			// What only the listing can answer: what GitHub has that the
+			// config does not declare, what it declares that GitHub does not
+			// have, and whether a repository the config wants archived is.
+			List<RepositorySummaryResponse> summaries = listing.get();
+			Set<String> listed = summaries.stream()
+					.map(RepositorySummaryResponse::name)
+					.collect(Collectors.toSet());
+
+			for (RepositorySummaryResponse summary : summaries) {
+				Drifty.Repository repo = desiredByName.get(summary.name());
+				if (repo == null) {
+					results.add(CheckResult.Entry.unknown(summary.name()));
+				} else if (repo.archived) {
+					results.add(
+							archivedEntry(
+									new RepoRef(owner, summary.name()),
+									repo,
+									summary.archived()
+							)
+					);
+				}
+			}
+
+			for (var entry : desiredByName.entrySet()) {
+				String name = entry.getKey();
+				if (!listed.contains(name)) {
+					// Declared but not there. A repository already started
+					// spends its requests on 404s before this is known; that
+					// is the abnormal case, and the listing is still what
+					// decides.
+					results.add(CheckResult.Entry.missing(name));
+				} else if (!entry.getValue().archived) {
+					results.add(started.get(name).get());
+				}
 			}
 		}
-
-		// Declared in config but not listed under this owner.
-		Set<String> found = summaries.stream()
-				.map(RepositorySummaryResponse::name)
-				.collect(Collectors.toSet());
-		desiredByName.keySet()
-				.stream()
-				.filter(name -> !found.contains(name))
-				.map(CheckResult.Entry::missing)
-				.forEach(results::add);
 
 		return List.copyOf(results);
 	}
 
-	/** Starts one page's repositories, and records what it named. */
-	private void submit(
-			ExecutorService executor,
-			List<Future<CheckResult.Entry>> futures,
-			List<RepositorySummaryResponse> listed,
-			String owner,
-			List<RepositorySummaryResponse> page,
-			Map<String, Drifty.Repository> desiredByName
+	/**
+	 * One repository the config declares and wants active, read and compared.
+	 */
+	private CheckResult.Entry checkOne(RepoRef ref, Drifty.Repository desired) {
+		ManagedGroups<Drifty.GroupName> managed = ManagedGroups
+				.of(desired.managed);
+		return entry(ref.name(), managed, () -> {
+			// `publicRepository` comes from the config rather than from
+			// GitHub for the same reason `archived` does: the config is what
+			// says which repositories to read, and reading the answer off
+			// `GET /repos/{owner}/{repo}` would put the branch listing behind
+			// it and each branch's protection behind that.
+			RepositoryState state = fetchState(
+					ref,
+					managed,
+					false,
+					Drifty.Visibility.PUBLIC == desired.visibility
+			);
+			return createDriftGroups(state, desired);
+		});
+	}
+
+	/**
+	 * A repository the config wants archived, compared on {@code archived}
+	 * alone. The account listing carries that boolean, so there is nothing left
+	 * to ask GitHub for — 51 archived repositories of one 101-repository
+	 * account spent a request each on it.
+	 */
+	private CheckResult.Entry archivedEntry(
+			RepoRef ref,
+			Drifty.Repository desired,
+			boolean archived
 	) {
-		listed.addAll(page);
-		page.forEach(
-				summary -> futures.add(
-						executor.submit(
-								() -> checkOne(
-										new RepoRef(owner, summary.name()),
-										summary,
-										desiredByName.get(summary.name())
-								)
-						)
-				)
+		ManagedGroups<Drifty.GroupName> managed = ManagedGroups
+				.of(desired.managed);
+		return entry(
+				ref.name(),
+				managed,
+				() -> archivedOnlyGroups(ref, archived, managed)
 		);
 	}
 
-	private CheckResult.Entry checkOne(
-			RepoRef ref,
-			RepositorySummaryResponse summary,
-			Drifty.Repository desired
+	/**
+	 * What the groups a repository produced make of it, in check mode or in fix
+	 * mode.
+	 * <p>
+	 * The unmanaged list comes from the config's own block, not from whatever
+	 * was read: what a repository declares unmanaged is what the report names,
+	 * and reading less is not a declaration.
+	 */
+	private CheckResult.Entry entry(
+			String name,
+			ManagedGroups<Drifty.GroupName> managed,
+			Groups groups
 	) {
-		String name = ref.name();
-		if (desired == null) {
-			return CheckResult.Entry.unknown(name);
-		}
+		List<String> unmanaged = managed.unmanaged()
+				.stream()
+				.map(Drifty.GroupName::toString)
+				.toList();
 		try {
-			ManagedGroups<Drifty.GroupName> managed = ManagedGroups
-					.of(desired.managed);
-			List<String> unmanaged = managed.unmanaged()
-					.stream()
-					.map(Drifty.GroupName::toString)
-					.toList();
-
-			// A repository the config wants archived is compared on
-			// `archived` alone, and the listing this was handed already
-			// carries it: there is nothing left to ask GitHub for. 51
-			// archived repositories of one 101-repository account spent a
-			// request each on a boolean in hand.
-			//
-			// `unmanaged` above comes from the config's own block, not from
-			// the narrowing: what a repository declares unmanaged is what the
-			// report names, and reading less is not a declaration.
 			Map<DriftGroup<Drifty.GroupName>, List<DriftFix>> groupDrifts = computeGroupDrifts(
-					desired.archived
-							? archivedOnlyGroups(
-									ref,
-									summary.archived(),
-									managed
-							)
-							: createDriftGroups(
-									fetchState(ref, summary, managed),
-									desired
-							)
+					groups.get()
 			);
 
 			if (fix) {
@@ -332,9 +350,17 @@ public class RepositoryChecker {
 			// this runs on, resurfaces at Future.get() wrapped in an
 			// ExecutionException and ends the whole run, so one repository's
 			// 403 costs the report for every repository after it.
-			// OrganizationChecker.checkOne has had the same arm all along.
+			// OrganizationChecker.checkOne has the same arm.
 			return CheckResult.Entry.error(name, e.getMessage());
 		}
+	}
+
+	/** One repository's drift groups, which reading them can fail. */
+	private interface Groups {
+
+		List<DriftGroup<Drifty.GroupName>> get()
+				throws IOException, InterruptedException;
+
 	}
 
 	// ─── Fetch
@@ -371,9 +397,22 @@ public class RepositoryChecker {
 			RepositorySummaryResponse summary,
 			ManagedGroups<Drifty.GroupName> managed
 	) throws IOException, InterruptedException {
+		return fetchState(
+				ref,
+				managed,
+				summary.archived(),
+				RepositoryVisibility.PUBLIC == summary.visibility()
+		);
+	}
+
+	RepositoryState fetchState(
+			RepoRef ref,
+			ManagedGroups<Drifty.GroupName> managed,
+			boolean archived,
+			boolean publicRepository
+	) throws IOException, InterruptedException {
 		String org = ref.owner();
 		String name = ref.name();
-		boolean archived = summary.archived();
 
 		try (var fanout = new Fanout<>(failures, managed)) {
 			Supplier<RepositoryDetailsResponse> details = fanout
@@ -388,7 +427,7 @@ public class RepositoryChecker {
 							Drifty.GroupName.BRANCH_PROTECTION,
 							() -> fetchBranchProtections(
 									fanout,
-									summary,
+									publicRepository,
 									org,
 									name,
 									archived
@@ -431,19 +470,21 @@ public class RepositoryChecker {
 							List.of()
 					);
 
-			// has_pages on the listing answers what GET .../pages answers
-			// with a 404, without spending the round trip on it: 37 of one
-			// account's 45 active repositories had no site. Only a listing
-			// that omits the field falls through to asking — the endpoint is
-			// the answer whenever the summary does not carry one.
-			Supplier<Optional<PagesResponse>> pages = archived
-					|| Boolean.FALSE.equals(summary.hasPages())
-							? Optional::empty
-							: fanout.read(
-									Drifty.GroupName.PAGES,
-									() -> client.getPages(org, name),
-									Optional.empty()
-							);
+			// has_pages answers what GET .../pages answers with a 404,
+			// without spending the round trip on it: 37 of one account's 45
+			// active repositories had no site. It is read off the details
+			// response rather than off the account listing, which is what
+			// keeps the listing off the critical path — the wait costs
+			// nothing, because this is the last level of the fan-out and has
+			// nothing below it.
+			Supplier<Optional<PagesResponse>> pages = archived ? Optional::empty
+					: fanout.read(
+							Drifty.GroupName.PAGES,
+							() -> details.get().hasPages()
+									? client.getPages(org, name)
+									: Optional.empty(),
+							Optional.empty()
+					);
 
 			Supplier<List<ActualWebhook>> webhooks = fanout.read(
 					Drifty.GroupName.WEBHOOKS,
@@ -781,12 +822,12 @@ public class RepositoryChecker {
 	 */
 	private Map<String, ActualBranchProtection> fetchBranchProtections(
 			Fanout<Drifty.GroupName> fanout,
-			RepositorySummaryResponse summary,
+			boolean publicRepository,
 			String org,
 			String name,
 			boolean archived
 	) {
-		if (archived || RepositoryVisibility.PUBLIC != summary.visibility()) {
+		if (archived || !publicRepository) {
 			return Map.of();
 		}
 		var pending = client.getBranches(org, name, true)
