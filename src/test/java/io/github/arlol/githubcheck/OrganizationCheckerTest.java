@@ -44,15 +44,18 @@ import io.github.arlol.githubcheck.testsupport.Desired;
 class OrganizationCheckerTest {
 
 	private OrganizationChecker checker;
+	private OrganizationStateReader reader;
 
 	@BeforeEach
 	void setUp(WireMockRuntimeInfo wm) {
+		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
 		checker = new OrganizationChecker(
-				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
+				client,
 				false,
 				Map.of(),
 				new DriftyState()
 		);
+		reader = new OrganizationStateReader(client, FetchFailures.STRICT);
 	}
 
 	private static Drifty.Organization onlySettings() {
@@ -166,7 +169,7 @@ class OrganizationCheckerTest {
 						"""))
 		);
 
-		OrganizationState state = checker.fetchState(
+		OrganizationState state = reader.fetchState(
 				"my-org",
 				ManagedGroups.of(
 						new Drifty.OrgManaged(
@@ -396,7 +399,7 @@ class OrganizationCheckerTest {
 				)
 		);
 
-		OrganizationState state = checker.fetchState(
+		OrganizationState state = reader.fetchState(
 				"my-org",
 				ManagedGroups.of(
 						new Drifty.OrgManaged(
@@ -423,7 +426,7 @@ class OrganizationCheckerTest {
 				)
 		);
 
-		OrganizationState settingsOnly = checker
+		OrganizationState settingsOnly = reader
 				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
 		assertThat(settingsOnly.actionVariables()).isEmpty();
 		verify(
@@ -459,7 +462,7 @@ class OrganizationCheckerTest {
 				]
 				""")));
 
-		OrganizationState state = checker.fetchState(
+		OrganizationState state = reader.fetchState(
 				"my-org",
 				ManagedGroups.of(
 						new Drifty.OrgManaged(
@@ -482,7 +485,7 @@ class OrganizationCheckerTest {
 				)
 		);
 
-		OrganizationState settingsOnly = checker
+		OrganizationState settingsOnly = reader
 				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
 		assertThat(settingsOnly.webhooks()).isEmpty();
 		verify(1, getRequestedFor(urlPathEqualTo("/orgs/my-org/hooks")));
@@ -512,7 +515,7 @@ class OrganizationCheckerTest {
 						)
 		);
 
-		OrganizationState state = checker.fetchState(
+		OrganizationState state = reader.fetchState(
 				"my-org",
 				ManagedGroups.of(
 						new Drifty.OrgManaged(
@@ -537,7 +540,7 @@ class OrganizationCheckerTest {
 				)
 		);
 
-		OrganizationState settingsOnly = checker
+		OrganizationState settingsOnly = reader
 				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
 		assertThat(settingsOnly.customProperties()).isEmpty();
 		verify(
@@ -581,7 +584,7 @@ class OrganizationCheckerTest {
 				)
 		);
 
-		OrganizationState state = checker.fetchState(
+		OrganizationState state = reader.fetchState(
 				"my-org",
 				ManagedGroups.of(
 						new Drifty.OrgManaged(
@@ -599,7 +602,7 @@ class OrganizationCheckerTest {
 		});
 		verify(0, getRequestedFor(urlPathEqualTo("/orgs/my-org/rulesets/2")));
 
-		OrganizationState settingsOnly = checker
+		OrganizationState settingsOnly = reader
 				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
 		assertThat(settingsOnly.rulesets()).isEmpty();
 		verify(1, getRequestedFor(urlPathEqualTo("/orgs/my-org/rulesets")));
@@ -657,7 +660,7 @@ class OrganizationCheckerTest {
 				)
 		);
 
-		OrganizationState state = checker.fetchState(
+		OrganizationState state = reader.fetchState(
 				"my-org",
 				ManagedGroups.of(
 						new Drifty.OrgManaged(
@@ -690,7 +693,7 @@ class OrganizationCheckerTest {
 				)
 		);
 
-		OrganizationState settingsOnly = checker
+		OrganizationState settingsOnly = reader
 				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
 		assertThat(settingsOnly.codeSecurityConfigurations()).isEmpty();
 		verify(
@@ -745,7 +748,7 @@ class OrganizationCheckerTest {
 						.willReturn(okJson("[{\"login\": \"alice\"}]"))
 		);
 
-		OrganizationState state = checker.fetchState(
+		OrganizationState state = reader.fetchState(
 				"my-org",
 				ManagedGroups.of(
 						new Drifty.OrgManaged(
@@ -782,7 +785,7 @@ class OrganizationCheckerTest {
 				)
 		);
 
-		OrganizationState settingsOnly = checker
+		OrganizationState settingsOnly = reader
 				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
 		assertThat(settingsOnly.teams()).isEmpty();
 		assertThat(settingsOnly.members()).isEmpty();
@@ -851,7 +854,7 @@ class OrganizationCheckerTest {
 				)
 		);
 
-		OrganizationState state = checker.fetchState(
+		OrganizationState state = reader.fetchState(
 				"my-org",
 				ManagedGroups.of(
 						new Drifty.OrgManaged(
@@ -899,7 +902,7 @@ class OrganizationCheckerTest {
 				)
 		);
 
-		OrganizationState settingsOnly = checker
+		OrganizationState settingsOnly = reader
 				.fetchState("my-org", ManagedGroups.of(onlySettings().managed));
 		assertThat(settingsOnly.runnerGroups()).isEmpty();
 		verify(

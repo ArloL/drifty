@@ -17,6 +17,7 @@ import io.github.arlol.githubcheck.actual.ActualOrgActionsPermissions;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
+import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
@@ -158,7 +159,7 @@ class DriftPathNamespacingTest {
 	 * pages) are configured but absent.
 	 */
 	private static List<DriftGroup<Drifty.GroupName>> driftGroups() {
-		var checker = new RepositoryChecker((String) null, false);
+		var checker = new RepositoryChecker((GitHubClient) null, false);
 
 		Drifty.Repository desired = Desired.repository("repo")
 				.withDescription("wanted")

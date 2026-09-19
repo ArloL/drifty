@@ -100,7 +100,10 @@ class ActualStateBoundaryTest {
 	 * matter.
 	 */
 	private static List<DriftGroup<Drifty.GroupName>> driftGroups() {
-		return new RepositoryChecker((String) null, false).createDriftGroups(
+		return new RepositoryChecker(
+				(GitHubClient) null,
+				false
+		).createDriftGroups(
 				new RepositoryState(
 						new RepoRef("owner", "repo"),
 						new ActualRepository(
