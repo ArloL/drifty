@@ -38,12 +38,14 @@ to that one type therefore waits on nothing.
 <https://github.com/oracle/graalvm-reachability-metadata/pull/10114> —
 registers the no-arg constructor of all eight `com.sun.jna.ptr` by-reference
 types, with a direct-mapping test that fails if any one of them is dropped.
-Open as of 2026-09-18.
+Still open as of 2026-09-19.
 
 Merging is not enough on its own: the entries have to reach us through a
 `native-maven-plugin` release that bundles a metadata repository snapshot
 containing them. Re-run the check below after a plugin bump, not after the merge
-notification.
+notification. Renovate raises those bumps — 1.1.12 was awaiting its schedule on
+2026-09-19 against the pinned 1.1.10 — so the trigger to watch for is its pull
+request landing, not a version appearing on Maven Central.
 
 **How to check whether it can go:**
 
@@ -61,20 +63,7 @@ Keep `--self-test` and `NativeExecutableIT.selfTest` regardless — they are the
 guard that catches this class of breakage in the shipped binary, not just a
 scaffold for this particular workaround.
 
-## 2. `maven-shared-utils` on the native-maven-plugin classpath
-
-**Carrying:** an explicit `org.apache.maven.shared:maven-shared-utils`
-dependency on the `native-maven-plugin` declaration in `pom.xml`.
-
-**Why:** 1.1.10 calls `org.apache.maven.shared.utils.logging.MessageUtils` but
-no longer receives maven-shared-utils from the Maven core classpath, so the
-test/compile goals fail with `NoClassDefFoundError` without it.
-
-**How to check whether it can go:** drop the `<dependencies>` block from the
-plugin declaration and run `./mvnw verify`. If it completes, the upstream
-plugin has fixed its own classpath and the workaround can be deleted.
-
-## 3. `secret_scanning_extended_metadata` has no established default
+## 2. `secret_scanning_extended_metadata` has no established default
 
 **Carrying:** nothing in the code — `CodeSecurityConfiguration` in
 `config/drifty.pkl` does not declare the field, so drifty neither compares nor
@@ -108,7 +97,7 @@ components, and the SPEC.md table; then delete this entry. If GitHub answers
 the field as null on a bare configuration, it reads as `not_set` — the
 `settings.replaceAll` in `ActualTypes` already does that for every toggle.
 
-## 4. `ExportRoundTripTest` does not reach three ruleset conditions
+## 3. `ExportRoundTripTest` does not reach three ruleset conditions
 
 **Carrying:** the round trip's fixture now exercises the organization's
 settings, `selected` Actions permissions with both listings behind it,

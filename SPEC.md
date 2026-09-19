@@ -863,9 +863,9 @@ The tool never fails fast — it always attempts all fixes and provides a comple
 
 ### API Strategy
 
-REST API v3 for every write and for all but four of the reads. One GraphQL query per repository answers its rulesets and their rules, its branch protections, its collaborators and its vulnerability-alerts flag, where REST needed six requests and a second level of waiting — 268 of a 101-repository check's 742 requests, which is why the check now costs 519. The answer is rewritten into the REST shape the same records already parse, so both routes produce the same comparison.
+REST API v3 for every write, and for every read but four. One GraphQL query per repository answers its rulesets and their rules, its branch protections, its collaborators and its vulnerability-alerts flag, where REST needed six requests and a second level of waiting. The answer is rewritten into the REST shape those records already parse, so both routes produce the same comparison and one translator covers them.
 
-GraphQL covers nothing else drifty reads. Of the `Repository` type's 141 fields none carries `immutable_releases`, private vulnerability reporting or any scanning flag, and none replaces `/hooks`, `/actions/secrets`, `/actions/variables`, `/actions/permissions/workflow` or `/pages` — checked 2026-09-19. The nine REST requests per active repository that remain are not a backlog waiting on a wider query.
+GraphQL covers nothing else drifty reads: no scanning flag, no immutable releases, no private vulnerability reporting, and no replacement for `/hooks`, `/actions/secrets`, `/actions/variables`, `/actions/permissions/workflow` or `/pages`. The nine REST requests per active repository that remain are not a backlog waiting on a wider query — `docs/performance/where-a-checks-time-goes.md` has the field-by-field check and what it cost.
 
 A listing longer than one page is read from the `Link` header's `rel="last"`, so every page after the first goes out together. Walking `rel="next"` paid a round trip per page before anything else could start.
 
