@@ -9,7 +9,12 @@ import java.util.List;
  * setup runner, the delegated bypass reviewers, the labeled
  * dependency-submission runner and {@code code_scanning_options} are all read.
  */
-@GitHubEndpoint(response = "GET /orgs/{org}/code-security/configurations")
+@GitHubEndpoint(
+		response = "GET /orgs/{org}/code-security/configurations",
+		unmanaged = {
+				"secret_scanning_extended_metadata — the spec supplies no default and every example predates the field, so any value drifty picked would report drift on configurations nobody has touched. FOLLOWUPS.md entry 3 carries the one read that settles it",
+				"secret_scanning_delegated_bypass_options.reviewers.security_configuration_id — a reviewer is compared by id and type; this says which configuration granted the bypass, which is the configuration being read" }
+)
 public record CodeSecurityConfigurationResponse(
 		long id,
 		String targetType,

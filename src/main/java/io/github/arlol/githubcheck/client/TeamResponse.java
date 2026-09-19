@@ -2,7 +2,12 @@ package io.github.arlol.githubcheck.client;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@GitHubEndpoint(response = "GET /orgs/{org}/teams/{team_slug}")
+@GitHubEndpoint(
+		response = "GET /orgs/{org}/teams/{team_slug}",
+		unmanaged = {
+				"parent.* — a parent is compared by slug, which TeamRequest resolves to parent_team_id when it writes; the parent's own settings are its own entry's",
+				"organization — the account being checked, which is how drifty reached this team" }
+)
 public record TeamResponse(
 		long id,
 		String name,

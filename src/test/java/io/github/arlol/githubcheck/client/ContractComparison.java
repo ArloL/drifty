@@ -40,11 +40,9 @@ import io.github.arlol.githubcheck.client.ApiContract.SchemaNode;
  * mapper sets {@code FAIL_ON_NULL_FOR_PRIMITIVES}, so that is a crash in the
  * wild.
  * </ol>
- * <b>Values are enforced in both directions; fields are staged.</b> A missing
- * enum constant or rule subtype is not a gap to schedule — it either throws or
- * makes drifty silently blind to something it was pointed at — so those run
- * whatever {@link Options#reverse()} says. Reverse on object properties is what
- * the rollout brings in endpoint by endpoint.
+ * Both directions run against every endpoint. {@link Options#reverse()} exists
+ * so the checker's own tests can isolate one direction, not to stage a rollout:
+ * every field GitHub carries is either modeled or declared with a reason.
  */
 public final class ContractComparison {
 
@@ -79,8 +77,18 @@ public final class ContractComparison {
 			boolean reverse,
 			Set<String> unmanaged,
 			Set<String> undocumented,
-			Predicate<String> rootMetadata
+			Predicate<String> rootMetadata,
+			Predicate<String> navigation
 	) {
+
+		public Options(
+				boolean reverse,
+				Set<String> unmanaged,
+				Set<String> undocumented,
+				Predicate<String> rootMetadata
+		) {
+			this(reverse, unmanaged, undocumented, rootMetadata, n -> false);
+		}
 
 		public static Options forward() {
 			return new Options(false, Set.of(), Set.of(), name -> false);
@@ -296,7 +304,8 @@ public final class ContractComparison {
 			if (consume(options.unmanaged(), full)) {
 				continue;
 			}
-			if (depth == 0 && options.rootMetadata().test(specName)) {
+			if (options.navigation().test(specName)
+					|| (depth == 0 && options.rootMetadata().test(specName))) {
 				continue;
 			}
 			add(full, "carried by the spec; no component declares it");
@@ -434,10 +443,23 @@ public final class ContractComparison {
 		return (dash < 0 ? entry : entry.substring(0, dash)).trim();
 	}
 
+	/**
+	 * Whether an exclusion answers for {@code path}.
+	 * <p>
+	 * A path ending in {@code .*} covers the subtree below it, which is how a
+	 * reference to another resource is declared once instead of forty times:
+	 * {@code TeamResponse.parent} is resolved by id and slug, and the spec's
+	 * parent is a whole team. The entry still names the subtree, so it says
+	 * what it covers — a bare {@code *} is not a path and matches nothing.
+	 */
 	private boolean consume(Set<String> entries, String path) {
 		for (String entry : entries) {
-			if (pathOf(entry).equals(path)) {
-				consumed.add(path);
+			String declared = pathOf(entry);
+			boolean matches = declared.endsWith(".*") ? path
+					.startsWith(declared.substring(0, declared.length() - 1))
+					: declared.equals(path);
+			if (matches) {
+				consumed.add(declared);
 				return true;
 			}
 		}

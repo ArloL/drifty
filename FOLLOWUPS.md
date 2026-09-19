@@ -144,36 +144,3 @@ export writes out as a `managed` exclusion the check then skips. The test
 asserts no group was left unmanaged, which catches the second — a Pages
 payload missing one primitive field was caught exactly that way. Against the
 first there is only reading the fixture.
-
-## 4. `RESPONSE_REVERSE_PENDING` — response bodies are forward-only
-
-Like 3, nothing upstream needs to move: this is work carried here rather than
-folded into whichever change happens to touch a record next.
-
-**Carrying:** the `RESPONSE_REVERSE_PENDING` list in
-`src/test/java/io/github/arlol/githubcheck/client/GitHubApiContractTest.java`,
-31 endpoints whose *response* is compared forward-only — every field the record
-declares must exist in the spec, but a field the spec carries and the record
-does not is not yet a failure.
-
-**Why:** the reverse direction on responses is 561 properties across the
-annotated endpoints once `ROOT_METADATA` has run, and each one is a judgement —
-model it, or declare it `unmanaged` with a reason that is true. Request bodies
-are already under it, where the same question was 60 fields and every one a real
-gap (`billing_email`, `members_allowed_repository_creation_type`, the six
-organization security defaults). Enum values and `@JsonSubTypes` branches are
-enforced whatever is on the list, because a missing constant throws and a
-missing branch is swallowed by the catch-all.
-
-**How to check whether it can go:** delete an entry and run
-
-```bash
-./mvnw test -DskipNativeTests -Dtest=GitHubApiContractTest
-```
-
-Every finding is one of three things: a bug in the record, a field GitHub's spec
-lags on (`undocumented`), or a field drifty does not manage (`unmanaged`). Never
-widen `ROOT_METADATA` to clear one — it is scoped to the root of a response
-because a webhook's `config.url` is a managed setting at depth 1.
-
-The entry goes when the list is empty.

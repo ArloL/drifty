@@ -9,7 +9,11 @@ import java.util.List;
  * finds and {@code ActualTypes} sorts it out. {@code source_type} says whether
  * the organization or its enterprise owns the definition.
  */
-@GitHubEndpoint(response = "GET /orgs/{org}/properties/schema")
+@GitHubEndpoint(
+		response = "GET /orgs/{org}/properties/schema",
+		unmanaged = {
+				"require_explicit_values — no drift group compares it and config/drifty.pkl has no field for it" }
+)
 public record CustomPropertyResponse(
 		String propertyName,
 		String sourceType,

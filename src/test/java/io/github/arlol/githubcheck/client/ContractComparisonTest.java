@@ -238,6 +238,53 @@ class ContractComparisonTest {
 				.contains("config.url");
 	}
 
+	@Test
+	void aNavigationNameIsIgnoredAtAnyDepthAndABareUrlIsNot() {
+		Options options = new Options(
+				true,
+				Set.of(),
+				Set.of(),
+				URLS_AND_IDS,
+				name -> name.endsWith("_url")
+		);
+
+		// config.deliveries_url is a link GitHub supplies; config.url is the
+		// webhook's payload URL, which is the setting the two rules exist to
+		// tell apart.
+		assertThat(paths(RESPONSE, WithConfig.class, options))
+				.doesNotContain("config.deliveries_url")
+				.contains("config.url");
+	}
+
+	@Test
+	void aWildcardExclusionCoversTheSubtreeAndCountsAsUsedOnce() {
+		ContractComparison comparison = new ContractComparison(
+				ENDPOINT,
+				"response",
+				reverse("config.* — a reference, compared by nothing")
+		);
+		List<String> found = comparison.compare(RESPONSE, WithConfig.class)
+				.stream()
+				.map(Finding::path)
+				.toList();
+
+		assertThat(found).doesNotContain("config.url", "config.secret");
+		assertThat(comparison.unusedExclusions()).isEmpty();
+		assertThat(comparison.consumedExclusions()).containsExactly("config.*");
+	}
+
+	@Test
+	void aWildcardThatMatchesNothingIsStillUnused() {
+		ContractComparison comparison = new ContractComparison(
+				ENDPOINT,
+				"response",
+				reverse("nowhere.* — stale")
+		);
+		comparison.compare(RESPONSE, WithConfig.class);
+
+		assertThat(comparison.unusedExclusions()).containsExactly("nowhere.*");
+	}
+
 	// ─── Polymorphism ───────────────────────────────────────────────────────
 
 	@Test

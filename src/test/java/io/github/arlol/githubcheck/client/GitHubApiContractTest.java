@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.condition.DisabledInNativeImage;
 
 import io.github.arlol.githubcheck.client.ApiContract.SchemaNode;
 import io.github.arlol.githubcheck.client.ContractComparison.Finding;
@@ -34,7 +35,16 @@ import io.github.classgraph.ScanResult;
  * which is what this test is for.
  * <p>
  * Refresh the contract with {@code python3 download-schemas.py --contract}.
+ * <p>
+ * Not run in the native test image. ClassGraph cannot scan there — it reaches
+ * for {@code Module.getLayer} through a proxy the image has no metadata for —
+ * and there would be nothing for it to prove: this compares source-level
+ * records against a committed file, where the native test image exists to
+ * verify that the shipped binary's reflective paths work. Registering
+ * ClassGraph's machinery to run a check about source would cost image size and
+ * show nothing the JVM run has not already shown.
  */
+@DisabledInNativeImage
 class GitHubApiContractTest {
 
 	private static final String PACKAGE = "io.github.arlol.githubcheck.client";
@@ -113,55 +123,24 @@ class GitHubApiContractTest {
 			"ldap_dn"
 	);
 
-	private static final Predicate<String> IS_ROOT_METADATA = name -> ROOT_METADATA
-			.contains(name) || name.endsWith("_url");
-
 	/**
-	 * Endpoints whose <em>response</em> is checked forward-only for now.
+	 * Names that are navigation wherever they appear, not only at the root.
 	 * <p>
-	 * The reverse direction on responses is 561 properties across the annotated
-	 * endpoints once the metadata rule has run, and each one has to be either
-	 * modeled or declared with a reason — a judgement per line, not a commit.
-	 * This list shrinks to empty; FOLLOWUPS.md carries what to delete and how
-	 * to check. Request bodies are under the reverse direction already, and
-	 * enum values and {@code @JsonSubTypes} branches are enforced whatever is
-	 * on this list.
+	 * A wire record reached as {@code owner}, {@code parent} or
+	 * {@code repository} is a reference to another resource, and every
+	 * {@code *_url} hanging off it is a link GitHub supplies for traversal. A
+	 * <em>bare</em> {@code url} is deliberately not here: a webhook's
+	 * {@code config.url} is the payload URL, a managed setting at depth 1, and
+	 * it is the reason this distinction exists at all.
 	 */
-	private static final Set<String> RESPONSE_REVERSE_PENDING = new LinkedHashSet<>(
-			List.of(
-					"GET /orgs/{org}",
-					"GET /orgs/{org}/actions/permissions",
-					"GET /orgs/{org}/actions/secrets/{secret_name}",
-					"GET /orgs/{org}/actions/variables/{name}",
-					"GET /orgs/{org}/code-security/configurations",
-					"GET /orgs/{org}/code-security/configurations/defaults",
-					"GET /orgs/{org}/code-security/configurations/{configuration_id}/repositories",
-					"GET /orgs/{org}/properties/schema",
-					"GET /orgs/{org}/rulesets",
-					"GET /orgs/{org}/rulesets/{ruleset_id}",
-					"GET /orgs/{org}/repos",
-					"GET /orgs/{org}/teams/{team_slug}",
-					"GET /repos/{owner}/{repo}",
-					"GET /repos/{owner}/{repo}/actions/secrets/public-key",
-					"GET /repos/{owner}/{repo}/actions/secrets/{secret_name}",
-					"GET /repos/{owner}/{repo}/actions/variables/{name}",
-					"GET /repos/{owner}/{repo}/branches",
-					"GET /repos/{owner}/{repo}/branches/{branch}/protection",
-					"GET /repos/{owner}/{repo}/code-scanning/default-setup",
-					"GET /repos/{owner}/{repo}/collaborators",
-					"GET /repos/{owner}/{repo}/environments/{environment_name}",
-					"GET /repos/{owner}/{repo}/hooks/{hook_id}",
-					"GET /repos/{owner}/{repo}/immutable-releases",
-					"GET /repos/{owner}/{repo}/pages",
-					"GET /repos/{owner}/{repo}/properties/values",
-					"GET /repos/{owner}/{repo}/rulesets/{ruleset_id}",
-					"GET /repos/{owner}/{repo}/teams",
-					"GET /user/repos",
-					"GET /users/{username}",
-					"POST /orgs/{org}/actions/runner-groups",
-					"POST /repos/{owner}/{repo}/environments/{environment_name}/deployment-branch-policies"
-			)
-	);
+	private static boolean isNavigation(String name) {
+		return name.endsWith("_url") || "node_id".equals(name)
+				|| "gravatar_id".equals(name) || "starred_at".equals(name)
+				|| "user_view_type".equals(name) || "site_admin".equals(name);
+	}
+
+	private static final Predicate<String> IS_ROOT_METADATA = name -> ROOT_METADATA
+			.contains(name);
 
 	/** One record, one endpoint, one direction. */
 	private record Binding(
@@ -282,14 +261,6 @@ class GitHubApiContractTest {
 		assertThat(CONTRACT.endpoints()).hasSizeGreaterThan(50);
 	}
 
-	@Test
-	void everyPendingEndpointIsOneTheContractActuallyHas() {
-		assertThat(RESPONSE_REVERSE_PENDING).as(
-				"A pending entry naming an endpoint nothing checks keeps"
-						+ " the list from ever reaching empty."
-		).allSatisfy(endpoint -> assertThat(CONTRACT.has(endpoint)).isTrue());
-	}
-
 	// ─── The gate
 	// ────────────────────────────────────────────────────────────
 
@@ -315,17 +286,15 @@ class GitHubApiContractTest {
 				)
 				.isNotNull();
 
-		boolean reverse = "request".equals(binding.direction())
-				|| !RESPONSE_REVERSE_PENDING.contains(binding.endpoint());
-
 		ContractComparison comparison = new ContractComparison(
 				binding.endpoint(),
 				binding.direction(),
 				new Options(
-						reverse,
+						true,
 						Set.copyOf(binding.unmanaged()),
 						Set.copyOf(binding.undocumented()),
-						IS_ROOT_METADATA
+						IS_ROOT_METADATA,
+						GitHubApiContractTest::isNavigation
 				)
 		);
 		List<Finding> findings = comparison.compare(schema, binding.type());
@@ -374,12 +343,11 @@ class GitHubApiContractTest {
 					binding.endpoint(),
 					binding.direction(),
 					new Options(
-							"request".equals(binding.direction())
-									|| !RESPONSE_REVERSE_PENDING
-											.contains(binding.endpoint()),
+							true,
 							Set.copyOf(binding.unmanaged()),
 							Set.copyOf(binding.undocumented()),
-							IS_ROOT_METADATA
+							IS_ROOT_METADATA,
+							GitHubApiContractTest::isNavigation
 					)
 			);
 			comparison.compare(schema, binding.type());
