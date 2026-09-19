@@ -137,6 +137,25 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   `MAX_CONCURRENT_REQUESTS` threads hit the same reset within milliseconds of
   each other; before it existed an exhausted budget parked a run for eight
   minutes in silence. `GitHubClientRateLimitTest` covers each shape.
+- **The secondary limits are paced against, not retried into.** GitHub allows
+  900 points a minute on the REST API — a read costs one, anything that writes
+  costs five — answers 403 or 429 with `Retry-After` past that, and reports the
+  budget in no header. `RequestPacer` books a request's points in `sendBounded`
+  before it takes a stream permit, scheduling it so that no 60-second window
+  holds more than 900: an account too big for the limit becomes a slower run
+  rather than a refused one. A run that fits in the window waits nowhere — the
+  742 points a 101-repository check costs are all due immediately — so
+  measuring the pacer against a small account shows it doing nothing, which is
+  the design and not evidence that it can go. The response cache is no help
+  here either: a 304 is still a request and still costs its point. Three things
+  follow. The wait is taken before the permit, so a paced thread is not sitting
+  on one of the ninety streams. `sendRequest` hands every pause to `backOffFor`
+  as well as sleeping it out, because `Thread.sleep` stops one thread and the
+  limit belongs to the token — the other eighty-nine would spend the pause
+  earning refusals of their own, and the three attempts would go to requests
+  that never had a chance. And a point the gate held back is booked where it
+  lands, not where it was asked for, or the window empties itself while the run
+  is parked and the whole budget goes out the moment it lifts.
 - **A listing's pages after the first go out together.** `remainingPages` reads
   the page count off the `Link` header's `rel="last"` and asks for 2..N at
   once, falling back to the `rel="next"` walk when GitHub sends no `rel="last"`

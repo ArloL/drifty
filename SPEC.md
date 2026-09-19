@@ -865,7 +865,19 @@ A listing longer than one page is read from the `Link` header's `rel="last"`, so
 
 ### Rate Limiting
 
-Three things can say to wait, and all three are honoured:
+Two kinds of limit, counted differently. The primary budget is 5000 requests an hour and every response reports what is left of it. The secondary limits are reported nowhere: GitHub documents no more than 900 points a minute for the REST API — a read costs one point, anything that writes costs five — no more than 100 concurrent requests, and no more than 90 seconds of server CPU per 60 seconds of real time. Exceeding one is answered 403 or 429 with `Retry-After`.
+
+Drifty stays inside the secondary limits by construction rather than by being refused and retrying:
+
+| Secondary limit | What drifty does |
+|---|---|
+| 900 points a minute | `RequestPacer` books a request's points before it is sent and schedules it so that no 60-second window holds more than 900. A check that fits in the window is not slowed at all; one that does not is spread out rather than refused |
+| 100 concurrent requests | The in-flight cap of 90 below, which the single HTTP/2 connection needs anyway |
+| 90 seconds of CPU per 60 | Nothing — no response reports server CPU, and response time is a poor proxy for it. A refusal is what drifty learns from here |
+
+The response cache buys nothing against these: a 304 is still a request and still costs its point. What the pacing costs is wall clock on an account past the limit — a 2000-point check takes over two minutes whatever the network does — and one line on stderr saying that is what is happening.
+
+Three things can then say to wait, and all three are honoured:
 
 | Signal | What it means | What drifty does |
 |---|---|---|
@@ -875,13 +887,16 @@ Three things can say to wait, and all three are honoured:
 
 A 403 with neither is not a rate limit — a token without a scope — and reaches the caller as the failure it is. One line per pause is printed to stderr, once per window rather than once per waiting thread.
 
+A pause holds back every thread, not only the one that was refused. The limit belongs to the token, and a run has up to ninety requests in flight: the eighty-nine that were not refused would otherwise spend the pause collecting refusals of their own, and the three attempts would go to requests that never had a chance.
+
 One check of a 101-repository account costs about 800 requests of the 5000/hour REST budget, so roughly six runs an hour.
 
 `GitHubClient` also caps its own in-flight requests at 90. GitHub answers over
 one HTTP/2 connection whose `SETTINGS_MAX_CONCURRENT_STREAMS` is 100, and the
 JDK client does not queue past it — an account with more than ~100 configured
 repositories would otherwise die on `too many concurrent streams` before
-checking anything.
+checking anything. It is below GitHub's documented ceiling of 100 concurrent
+requests for the same reason it is below the stream limit.
 
 ### Authentication
 
