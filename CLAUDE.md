@@ -586,11 +586,23 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   `noExclusionIsDead`, so a fix that removes a finding has to remove its
   declaration too — which is how the `current_user_can_bypass#exempt` entry was
   caught the moment the constant that made it unnecessary was added.
-- **`ROOT_METADATA` matches at the root of a response and nowhere else.** A
-  webhook's `config.url` is the payload URL, a managed setting at depth 1, so a
-  blanket `*_url` rule would hide the one URL that matters. Silence a finding
-  with a declaration on the record that carries its reason, never by widening
-  this list.
+- **Two ignore rules, and the difference is a webhook's `config.url`.**
+  `isNavigation` matches at any depth — a name ending in `_url`, plus
+  `node_id`, `gravatar_id`, `starred_at`, `user_view_type` and `site_admin` —
+  because a record reached as `owner`, `parent` or `repository` is a reference
+  to another resource and its links are GitHub's. `ROOT_METADATA` matches only
+  at the root of a response, and holds the names that are settings one level
+  down: `id`, `type`, `name`, timestamps, counters. A **bare** `url` is in the
+  second list on purpose: a webhook's `config.url` is the payload URL, a
+  managed setting at depth 1, and it is the whole reason the two lists differ.
+  Silence a finding with a declaration that carries its reason, never by
+  widening either list.
+- **An exclusion path ending in `.*` covers the subtree below it.** That is how
+  a reference to another resource is declared once rather than forty times —
+  `parent.*` on a team, `repository.*` on a code security attachment,
+  `protection_rules.reviewers.reviewer.*` on an environment. The entry still
+  names the subtree, so it says what it covers; the reason says why nothing
+  under it is compared.
 - **A response enum needs a constant for every value the spec lists, even when
   nothing compares the field.** `currentUserCanBypass` describes the token
   rather than the ruleset and no group reads it, but it is parsed: GitHub's

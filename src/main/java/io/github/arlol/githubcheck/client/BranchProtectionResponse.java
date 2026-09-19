@@ -8,7 +8,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 		response = "GET /repos/{owner}/{repo}/branches/{branch}/protection",
 		undocumented = {
 				"restrictions.users.name — SimpleUser is one record for every user GitHub returns; the narrower user object here omits it",
-				"restrictions.users.email — as above" }
+				"restrictions.users.email — as above" },
+		unmanaged = {
+				"restrictions.apps.* — BranchProtectionDriftGroup compares an actor by the field that names it, an app by slug; the rest describes the app rather than the protection",
+				"restrictions.teams.* — compared by slug, as above",
+				"required_pull_request_reviews.dismissal_restrictions.apps.* — compared by slug, as above",
+				"required_pull_request_reviews.dismissal_restrictions.teams.* — compared by slug, as above",
+				"required_pull_request_reviews.dismissal_restrictions.url — navigation GitHub supplies for the restriction object",
+				"required_pull_request_reviews.bypass_pull_request_allowances.apps.* — compared by slug, as above",
+				"required_pull_request_reviews.bypass_pull_request_allowances.teams.* — compared by slug, as above" }
 )
 public record BranchProtectionResponse(
 		String url, // optional

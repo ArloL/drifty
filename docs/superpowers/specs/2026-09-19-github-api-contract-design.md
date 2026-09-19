@@ -204,19 +204,25 @@ that is exactly the contract CLAUDE.md states the rewrite has.
 
 ## Rollout
 
-Two stages, because 150–250 reverse declarations is not one commit's worth of
-judgement.
+Planned as two stages, because 150–250 reverse declarations did not look like
+one commit's worth of judgement: the mechanism and the reverse direction on
+request bodies first, then responses endpoint by endpoint behind a list that
+shrinks to empty.
 
-1. The annotation, the extractor, the contract file, annotations on all 58
-   records, the forward direction everywhere, and the reverse direction on
-   **requests** — nine fields on `PATCH /orgs/{org}`, every one a real gap.
-2. The reverse direction on **responses**, endpoint by endpoint, against a
-   named list in the test of endpoints not yet under it, which shrinks to
-   empty.
+**It took one.** Two rules the first run made obvious collapsed the work by
+more than half. Treating a name ending in `_url` as navigation at *any* depth,
+rather than only at the root, took 295 findings to 153 — most of the difference
+was `owner.events_url` and its kin on records reached as references to other
+resources. Letting an exclusion path end in `.*` took the rest from a line per
+field to a line per subtree: `repository.*` is one declaration where the walk
+found 44.
 
-That list is a permanent escape hatch if nothing pushes on it, so it gets a
-FOLLOWUPS.md entry in the established shape — what to delete, how to check —
-rather than a comment nobody revisits.
+The bare `url` stayed root-only through both, because that is the case the
+distinction exists for.
+
+So there is no staging list and no FOLLOWUPS entry for one. Every endpoint is
+under both directions, and every field GitHub carries is either modeled or
+declared with a reason.
 
 ## Testing the checker
 
