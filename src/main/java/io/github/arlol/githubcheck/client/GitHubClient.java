@@ -53,7 +53,14 @@ public class GitHubClient {
 	 * 24-request chain the semaphore was never the limit, and raising it alone
 	 * bought 9.5s → 7.9s and nothing more.
 	 */
-	private static final int MAX_CONCURRENT_REQUESTS = 90;
+	public static final int MAX_CONCURRENT_REQUESTS = 90;
+
+	/**
+	 * What GitHub documents as the most concurrent requests one account may
+	 * have. Nothing here uses it; {@code GitHubCheck} refuses to be told to go
+	 * past it.
+	 */
+	public static final int CONCURRENCY_CEILING = 100;
 
 	/**
 	 * How many times one request is re-sent after a rate limit rejected it. A
@@ -138,7 +145,15 @@ public class GitHubClient {
 	}
 
 	public GitHubClient(String token, ResponseCache cache) {
-		this("https://api.github.com", token, cache);
+		this(token, cache, MAX_CONCURRENT_REQUESTS);
+	}
+
+	public GitHubClient(
+			String token,
+			ResponseCache cache,
+			int maxConcurrentRequests
+	) {
+		this("https://api.github.com", token, maxConcurrentRequests, cache);
 	}
 
 	public GitHubClient(String baseUrl, String token) {
@@ -192,6 +207,44 @@ public class GitHubClient {
 
 	// ─── Public API
 	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * Opens the connection the whole run shares, before there is a request to
+	 * send on it.
+	 * <p>
+	 * A check starts ninety requests at once and every one of them waits out
+	 * DNS, TCP and TLS on the connection they share: traced on a 101-repository
+	 * account the first wave answered in 413ms against the 237ms the rest of
+	 * the run saw. Sending anything at all first moves that handshake off the
+	 * critical path as far as whatever the caller does next will cover —
+	 * measured at ~20ms against a config that evaluates in 30ms, and worth more
+	 * against a larger one.
+	 * <p>
+	 * Unauthenticated and discarded: {@code HEAD /} costs the token nothing and
+	 * the connection is pooled by host, not by credentials. Nothing waits for
+	 * it and a failure is not reported — the connection a run needs is opened
+	 * by its first real request either way, and that request is where an
+	 * unreachable host has always been reported.
+	 */
+	public void warmUp() {
+		Thread.ofVirtual().name("drifty-connect").start(() -> {
+			try {
+				http.send(
+						HttpRequest.newBuilder(URI.create(baseUrl + "/"))
+								.method(
+										"HEAD",
+										HttpRequest.BodyPublishers.noBody()
+								)
+								.build(),
+						HttpResponse.BodyHandlers.discarding()
+				);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			} catch (IOException e) {
+				// See above: the first real request reports it.
+			}
+		});
+	}
 
 	/**
 	 * One repository's rulesets, branch protections, collaborators and

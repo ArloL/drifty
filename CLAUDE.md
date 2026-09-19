@@ -110,6 +110,23 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   `sendRequest` keeps the one pair of arms, and the permit is gone before any
   rate-limit pause, so a thread parked until the reset is not holding a stream.
   `GitHubClientConcurrencyTest` fails if more requests overlap than the limit.
+- **The ninety permits are a margin, and `--max-concurrent-requests` is how
+  it gets spent.** GitHub documents a hundred concurrent requests;
+  `MAX_CONCURRENT_REQUESTS` is ninety so that something else using the same
+  token is not refused because of drifty. Interleaved against each other three
+  times on the 101-repository `ArloL` account, ninety averaged 2.23s and a
+  hundred 1.97s with no refusal — so the margin is worth 12%, and whether it
+  can be spent is the operator's question, not drifty's. `GitHubCheck` refuses
+  a value past `CONCURRENCY_CEILING` rather than letting GitHub do it.
+- **The connection is opened before there is anything to send on it.** A check
+  starts ninety requests at once and every one of them waits out DNS, TCP and
+  TLS: the first wave answered in 413ms against the 237ms the rest of the run
+  saw. `GitHubClient.warmUp` sends an unauthenticated `HEAD /` — the pool is
+  keyed by host, not by credentials — and `main` calls it before evaluating
+  the config rather than after, so the handshake and the Pkl evaluation
+  overlap. Worth ~20ms against a config that evaluates in 30ms, and more
+  against a larger one; the ceiling on it is however much work there is to do
+  before the first request.
 - **`fetchState` fans out; two levels, never three.** `Fanout` starts every
   read that needs nothing at once, and only five wait: an environment's
   policies/secrets/variables, and `/teams`, `/properties/values` and `/pages`,

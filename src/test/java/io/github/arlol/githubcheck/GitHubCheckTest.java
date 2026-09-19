@@ -1,6 +1,7 @@
 package io.github.arlol.githubcheck;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -543,6 +544,38 @@ class GitHubCheckTest {
 	 * not the other is either undocumented or rejected, so they are checked
 	 * against each other rather than by eye.
 	 */
+	/**
+	 * The ninety permits {@code GitHubClient} bounds itself by are the margin
+	 * under GitHub's documented hundred, and they are worth about eleven per
+	 * cent of a check. Whether that margin can be spent depends on whether
+	 * anything else is using the same token at the same time, which drifty
+	 * cannot know and the person running it can.
+	 */
+	@Test
+	void maxConcurrentRequests_defaultsToTheMarginAndIsSettable() {
+		assertThat(GitHubCheck.maxConcurrentRequests(List.of())).isEqualTo(90);
+		assertThat(
+				GitHubCheck.maxConcurrentRequests(
+						List.of("--max-concurrent-requests", "100")
+				)
+		).isEqualTo(100);
+	}
+
+	@Test
+	void maxConcurrentRequests_refusesAValueGitHubWouldNotAccept() {
+		assertThatThrownBy(
+				() -> GitHubCheck.maxConcurrentRequests(
+						List.of("--max-concurrent-requests", "101")
+				)
+		).isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("100");
+		assertThatThrownBy(
+				() -> GitHubCheck.maxConcurrentRequests(
+						List.of("--max-concurrent-requests", "0")
+				)
+		).isInstanceOf(IllegalArgumentException.class);
+	}
+
 	@Test
 	void usage_namesEveryArgumentDriftyAccepts() {
 		var known = new ArrayList<String>();
