@@ -119,6 +119,16 @@ fields none covers any of those, nor `/hooks`, `/actions/secrets`,
 carries `preventSelfReview`, `reviewers`, `timeout` and `type`, but not the
 deployment branch policies or their ids, which `--fix` needs to delete one.
 
+One request-count reduction is left and it is worth nothing on a personal
+account. `GET /orgs/{org}/properties/values` answers custom property values for
+a hundred of an organization's repositories at a time — `repository_name` and
+`properties` per entry — where `fetchCustomPropertyValues` asks
+`/repos/{owner}/{repo}/properties/values` once per repository. On a
+100-repository organization that is 100 requests against 1, or about a second
+of floor. It is not taken here because the account this was measured against is
+a personal one, where the per-repository endpoint 404s and is never called, so
+the change could be neither measured nor checked against a live answer.
+
 Batching several repositories into one GraphQL query would take the floor to
 about 1.6 s. It is not taken: it needs a batch shared across repositories, which
 contradicts the property every other part of the fetch is built on — nothing a
