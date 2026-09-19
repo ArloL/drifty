@@ -3,6 +3,7 @@ package io.github.arlol.githubcheck;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
@@ -62,22 +63,24 @@ class RepositoryCheckerRequestShapeTest {
 	private static final int DELAY_MILLIS = 700;
 
 	/**
-	 * Every endpoint {@code fetchState} reads for a public, organization-owned
+	 * Every request {@code fetchState} sends for a public, organization-owned
 	 * repository with one protected branch, one ruleset, one environment and a
-	 * Pages site: the repository's own details, four security flags, the branch
-	 * and ruleset and environment listings with one read each below them,
-	 * Actions secrets and variables, that environment's secrets and variables,
-	 * workflow permissions, Pages, webhooks, custom property values, its
-	 * collaborators and its teams.
+	 * Pages site: the GraphQL query, the repository's own details, three
+	 * security flags, the environment listing with two reads below it, Actions
+	 * secrets and variables, workflow permissions, Pages, webhooks, custom
+	 * property values and its teams.
 	 * <p>
-	 * Four security flags rather than five: automated security fixes are
+	 * Three security flags rather than five. Automated security fixes are
 	 * {@code security_and_analysis.dependabot_security_updates} on the details
-	 * response, which is read for eight other security groups anyway. And Pages
-	 * is here only because the details response says {@code has_pages}; a
-	 * repository with no site is not asked, which is the case
-	 * {@code RepositoryCheckerFetchStateTest} pins.
+	 * response, which is read for eight other security groups anyway, and
+	 * vulnerability alerts come from the GraphQL query. That query also answers
+	 * the rulesets and their rules, the branch protections, and the
+	 * collaborators — six requests and both of the repository's two-level
+	 * chains, in one. Pages is here only because the details response says
+	 * {@code has_pages}; a repository with no site is not asked, which is the
+	 * case {@code RepositoryCheckerFetchStateTest} pins.
 	 */
-	private static final int ACTIVE_REPOSITORY_REQUESTS = 20;
+	private static final int ACTIVE_REPOSITORY_REQUESTS = 15;
 
 	/**
 	 * A repository the config wants archived is compared on {@code archived}
@@ -115,6 +118,10 @@ class RepositoryCheckerRequestShapeTest {
 
 	private static final Pattern REPOSITORY_PATH = Pattern
 			.compile("/repos/acme/([^/]+)");
+
+	/** How the GraphQL query names the repository it is asking about. */
+	private static final Pattern GRAPHQL_REPOSITORY = Pattern
+			.compile("name: \\\\\"([^\\\\\"]+)\\\\\"");
 
 	@RegisterExtension
 	static WireMockExtension wm = WireMockExtension.newInstance()
@@ -204,12 +211,26 @@ class RepositoryCheckerRequestShapeTest {
 	private static Map<String, Integer> requestsPerRepository() {
 		Map<String, Integer> counts = new LinkedHashMap<>();
 		events().forEach(request -> {
-			Matcher path = REPOSITORY_PATH.matcher(request.getUrl());
-			if (path.lookingAt()) {
-				counts.merge(path.group(1), 1, Integer::sum);
+			String repository = repositoryOf(request);
+			if (repository != null) {
+				counts.merge(repository, 1, Integer::sum);
 			}
 		});
 		return counts;
+	}
+
+	/**
+	 * Which repository a request was sent for. The GraphQL query names it in
+	 * its body rather than its URL, and it counts against the repository like
+	 * any other request it replaced.
+	 */
+	private static String repositoryOf(LoggedRequest request) {
+		Matcher path = REPOSITORY_PATH.matcher(request.getUrl());
+		if (path.lookingAt()) {
+			return path.group(1);
+		}
+		Matcher named = GRAPHQL_REPOSITORY.matcher(request.getBodyAsString());
+		return named.find() ? named.group(1) : null;
 	}
 
 	/**
@@ -221,8 +242,7 @@ class RepositoryCheckerRequestShapeTest {
 	private static int maxInFlight(String repository) {
 		List<Long> received = new ArrayList<>();
 		events().forEach(request -> {
-			Matcher path = REPOSITORY_PATH.matcher(request.getUrl());
-			if (path.lookingAt() && repository.equals(path.group(1))) {
+			if (repository.equals(repositoryOf(request))) {
 				received.add(request.getLoggedDate().getTime());
 			}
 		});
@@ -247,10 +267,7 @@ class RepositoryCheckerRequestShapeTest {
 		return wm.getAllServeEvents()
 				.stream()
 				.map(ServeEvent::getRequest)
-				.filter(
-						request -> REPOSITORY_PATH.matcher(request.getUrl())
-								.lookingAt()
-				)
+				.filter(request -> repositoryOf(request) != null)
 				.sorted(Comparator.comparing(LoggedRequest::getLoggedDate))
 				.collect(Collectors.toList());
 	}
@@ -287,10 +304,6 @@ class RepositoryCheckerRequestShapeTest {
 
 	private static void stubSecurityFlags() {
 		wm.stubFor(
-				get(urlPathMatching("/repos/acme/[^/]+/vulnerability-alerts"))
-						.willReturn(delayedStatus(204))
-		);
-		wm.stubFor(
 				get(
 						urlPathMatching(
 								"/repos/acme/[^/]+/automated-security-fixes"
@@ -317,49 +330,31 @@ class RepositoryCheckerRequestShapeTest {
 		);
 	}
 
-	/** The three listings, and the one read each of them leads to. */
+	/**
+	 * The one query for four groups, and the listing whose reads still wait on
+	 * it.
+	 */
 	private static void stubListings() {
-		wm.stubFor(
-				get(urlPathMatching("/repos/acme/[^/]+/branches")).willReturn(
-						delayed("[{\"name\": \"main\", \"protected\": true}]")
-				)
-		);
-		wm.stubFor(
-				get(
-						urlPathMatching(
-								"/repos/acme/[^/]+/branches/main/protection"
-						)
-				).willReturn(
-						delayed(
-								"""
-										{
-										  "enforce_admins": {"enabled": false},
-										  "required_linear_history": {"enabled": false},
-										  "allow_force_pushes": {"enabled": false},
-										  "allow_deletions": {"enabled": false},
-										  "block_creations": {"enabled": false},
-										  "required_conversation_resolution": {"enabled": false},
-										  "lock_branch": {"enabled": false},
-										  "allow_fork_syncing": {"enabled": false}
-										}
-										"""
-						)
-				)
-		);
-		wm.stubFor(
-				get(urlPathMatching("/repos/acme/[^/]+/rulesets")).willReturn(
-						delayed("[{\"id\": 42, \"name\": \"main-rules\"}]")
-				)
-		);
-		wm.stubFor(
-				get(
-						urlPathMatching("/repos/acme/[^/]+/rulesets/42")
-				).willReturn(
-						delayed(
-								"{\"id\": 42, \"name\": \"main-rules\", \"rules\": []}"
-						)
-				)
-		);
+		wm.stubFor(post(urlPathEqualTo("/graphql")).willReturn(delayed("""
+				{"data": {
+				  "rs": {"rulesets": {"nodes": [{
+				      "databaseId": 42, "name": "main-rules",
+				      "target": "BRANCH", "enforcement": "ACTIVE",
+				      "source": {"__typename": "Repository"},
+				      "bypassActors": {"nodes": []},
+				      "rules": {"nodes": []}
+				  }]}},
+				  "bp": {"branchProtectionRules": {"nodes": [{
+				      "pattern": "main",
+				      "matchingRefs": {"nodes": [{"name": "main"}]},
+				      "requiresStatusChecks": false,
+				      "requiresApprovingReviews": false,
+				      "restrictsPushes": false
+				  }]}},
+				  "co": {"collaborators": {"edges": []}},
+				  "va": {"hasVulnerabilityAlertsEnabled": false}
+				}}
+				""")));
 		wm.stubFor(
 				get(
 						urlPathMatching("/repos/acme/[^/]+/environments")
@@ -414,10 +409,6 @@ class RepositoryCheckerRequestShapeTest {
 		);
 		wm.stubFor(
 				get(urlPathMatching("/repos/acme/[^/]+/properties/values"))
-						.willReturn(delayed("[]"))
-		);
-		wm.stubFor(
-				get(urlPathMatching("/repos/acme/[^/]+/collaborators"))
 						.willReturn(delayed("[]"))
 		);
 		wm.stubFor(

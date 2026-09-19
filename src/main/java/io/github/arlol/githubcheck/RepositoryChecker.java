@@ -29,6 +29,7 @@ import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
 import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.client.GraphQlRepositoryResponse;
 import io.github.arlol.githubcheck.client.ImmutableReleasesResponse;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepoRef;
@@ -107,6 +108,14 @@ public class RepositoryChecker {
 	 */
 	static final Set<Drifty.GroupName> ARCHIVED_ONLY = Set
 			.of(Drifty.GroupName.ARCHIVED);
+
+	/** The groups one GraphQL query answers — see {@code fetchState}. */
+	private static final Set<Drifty.GroupName> GRAPHQL_GROUPS = Set.of(
+			Drifty.GroupName.RULESETS,
+			Drifty.GroupName.BRANCH_PROTECTION,
+			Drifty.GroupName.COLLABORATORS,
+			Drifty.GroupName.VULNERABILITY_ALERTS
+	);
 
 	private final GitHubClient client;
 	private final boolean fix;
@@ -418,18 +427,35 @@ public class RepositoryChecker {
 			Supplier<RepositoryDetailsResponse> details = fanout
 					.start(() -> client.getRepo(org, name));
 
+			// One query for four groups: the rulesets and their rules, the
+			// branch protections, the collaborators and the vulnerability
+			// alerts flag — six requests and both of the repository's
+			// two-level chains, in one round trip. Each group still fails on
+			// its own, because each is its own aliased selection.
+			//
+			// Not sent at all when none of the four is managed, the way each
+			// group's own request was not: an account someone else
+			// administers is where these answer 403.
+			Supplier<GraphQlRepositoryResponse> graph = managed.managesAny(
+					GRAPHQL_GROUPS
+			) ? fanout.start(() -> client.graphqlRepository(org, name))
+					: () -> {
+						throw new GitHubApiException(
+								"No GraphQL query was sent for " + org + "/"
+										+ name
+						);
+					};
+
 			Supplier<SecurityFlags> security = archived
 					? () -> SecurityFlags.NONE
-					: fetchSecurityFlags(fanout, org, name);
+					: fetchSecurityFlags(fanout, graph, org, name);
 
 			Supplier<Map<String, ActualBranchProtection>> branchProtections = fanout
 					.read(
 							Drifty.GroupName.BRANCH_PROTECTION,
-							() -> fetchBranchProtections(
-									fanout,
+							() -> branchProtections(
+									graph,
 									publicRepository,
-									org,
-									name,
 									archived
 							),
 							Map.of()
@@ -466,7 +492,7 @@ public class RepositoryChecker {
 			Supplier<List<ActualRuleset>> rulesets = archived ? List::of
 					: fanout.read(
 							Drifty.GroupName.RULESETS,
-							() -> fetchRulesets(fanout, org, name),
+							() -> rulesets(graph),
 							List.of()
 					);
 
@@ -511,7 +537,7 @@ public class RepositoryChecker {
 			boolean wantCollaborators = managed
 					.manages(Drifty.GroupName.COLLABORATORS);
 			Supplier<List<CollaboratorResponse>> collaboratorList = wantCollaborators
-					? fanout.start(() -> client.getCollaborators(org, name))
+					? () -> graph.get().collaborators()
 					: List::of;
 			Supplier<List<RepoTeamResponse>> teams = wantCollaborators
 					? fanout.start(
@@ -777,14 +803,19 @@ public class RepositoryChecker {
 	 * its own group because each is its own request, and an unmanaged one sends
 	 * nothing.
 	 */
+	/**
+	 * Vulnerability alerts come off the GraphQL query; the other three are
+	 * their own endpoints, none of which GraphQL exposes.
+	 */
 	private Supplier<SecurityFlags> fetchSecurityFlags(
 			Fanout<Drifty.GroupName> fanout,
+			Supplier<GraphQlRepositoryResponse> graph,
 			String org,
 			String name
 	) {
 		Supplier<Boolean> vulnAlerts = fanout.read(
 				Drifty.GroupName.VULNERABILITY_ALERTS,
-				() -> client.getVulnerabilityAlerts(org, name),
+				() -> graph.get().vulnerabilityAlerts(),
 				false
 		);
 		Supplier<Optional<ImmutableReleasesResponse>> immutableReleases = fanout
@@ -814,79 +845,50 @@ public class RepositoryChecker {
 	}
 
 	/**
-	 * One request per protected branch, all sent as soon as the one that lists
-	 * them answers. REST has no call that returns every protection at once, so
-	 * this is the shape the read takes until GraphQL bulk reads land; when they
-	 * do, this method and {@link #fetchRulesets} are the two places to replace,
-	 * since everything downstream sees {@link ActualBranchProtection} only.
+	 * The protections the GraphQL query answered, keyed by branch.
+	 * <p>
+	 * Branch protection needs a paid plan on a private repository, and an
+	 * archived one takes no writes, so neither is compared — and the query
+	 * carries the answer either way, so this costs nothing to skip.
 	 */
-	private Map<String, ActualBranchProtection> fetchBranchProtections(
-			Fanout<Drifty.GroupName> fanout,
+	private static Map<String, ActualBranchProtection> branchProtections(
+			Supplier<GraphQlRepositoryResponse> graph,
 			boolean publicRepository,
-			String org,
-			String name,
 			boolean archived
 	) {
 		if (archived || !publicRepository) {
 			return Map.of();
 		}
-		var pending = client.getBranches(org, name, true)
-				.stream()
-				.map(
-						branch -> Map.entry(
-								branch.name(),
-								fanout.start(
-										() -> client.getBranchProtection(
-												org,
-												name,
-												branch.name()
-										)
-								)
+		Map<String, ActualBranchProtection> out = new LinkedHashMap<>();
+		graph.get()
+				.branchProtections()
+				.forEach(
+						(branch, protection) -> out.put(
+								branch,
+								ActualTypes.branchProtection(protection)
 						)
-				)
-				.toList();
-		Map<String, ActualBranchProtection> branchProtections = new LinkedHashMap<>();
-		for (var branch : pending) {
-			branchProtections.put(
-					branch.getKey(),
-					ActualTypes.branchProtection(
-							branch.getValue().get().orElseThrow()
-					)
-			);
-		}
-		return branchProtections;
+				);
+		return out;
 	}
 
 	/**
-	 * One request per ruleset, all sent as soon as the one that lists them
-	 * answers: the listing carries no rules or conditions, and REST has no bulk
-	 * read for them. See {@link #fetchBranchProtections} for what replaces
-	 * both.
+	 * The rulesets the GraphQL query answered.
+	 * <p>
+	 * The query asks for the repository's own, but an organization's can still
+	 * arrive — {@code source_type} is what says so, and one the repository
+	 * endpoint cannot delete is not the repository's to reconcile: reporting it
+	 * as extra produces a fix that always fails.
 	 */
-	private List<ActualRuleset> fetchRulesets(
-			Fanout<Drifty.GroupName> fanout,
-			String org,
-			String name
+	private static List<ActualRuleset> rulesets(
+			Supplier<GraphQlRepositoryResponse> graph
 	) {
-		return client.listRulesets(org, name)
+		return graph.get()
+				.rulesets()
 				.stream()
-				// listRulesets hits /rulesets, whose includes_parents defaults
-				// to true, so org and enterprise rulesets arrive here. They
-				// are not the repository's to reconcile: the repo endpoint
-				// cannot delete one, so reporting it as extra produces a fix
-				// that always fails.
 				.filter(
 						rs -> rs.sourceType() != RulesetSourceType.ORGANIZATION
 								&& rs.sourceType() != RulesetSourceType.ENTERPRISE
 				)
-				.map(
-						rs -> fanout.start(
-								() -> client.getRuleset(org, name, rs.id())
-						)
-				)
-				.toList()
-				.stream()
-				.map(Supplier::get)
 				.map(ActualTypes::ruleset)
 				.toList();
 	}

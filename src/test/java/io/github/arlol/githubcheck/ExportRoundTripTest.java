@@ -22,6 +22,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
+import io.github.arlol.githubcheck.testsupport.GraphQlStub;
 
 /**
  * Exports a state and loads the exported file straight back through
@@ -53,6 +54,7 @@ class ExportRoundTripTest {
 	) throws Exception {
 		stubOrganization();
 		stubRepository();
+		stubFor(GraphQlStub.atDefaults());
 
 		GitHubClient client = new GitHubClient(
 				wm.getHttpBaseUrl(),
@@ -105,6 +107,7 @@ class ExportRoundTripTest {
 	) throws Exception {
 		stubOrganization();
 		stubRepository();
+		stubFor(GraphQlStub.atDefaults());
 		// Registered last, so WireMock resolves these two paths to the 403
 		// rather than to the success stubs above.
 		stubFor(

@@ -1,5 +1,6 @@
 package io.github.arlol.githubcheck.client;
 
+import java.net.http.HttpRequest;
 import java.time.Duration;
 import java.util.function.LongSupplier;
 
@@ -42,6 +43,7 @@ final class RequestPacer {
 
 	private static final Duration MINUTE = Duration.ofMinutes(1);
 	private static final int READ_POINTS = 1;
+	private static final String GRAPHQL_PATH = "/graphql";
 	private static final int WRITE_POINTS = 5;
 
 	/** What a thread does while it waits; the test clock has its own. */
@@ -97,8 +99,19 @@ final class RequestPacer {
 	}
 
 	/** What one request of this method costs. */
-	static int pointsFor(String method) {
-		return switch (method) {
+	/**
+	 * What a request costs. The method decides it, with one exception: a
+	 * GraphQL query is a POST that reads, and drifty sends one per repository —
+	 * billed as a write it would pace a run five times harder than the budget
+	 * it is actually spending. GitHub meters GraphQL against a separate
+	 * allowance again, so one point is the conservative reading of it rather
+	 * than the exact one.
+	 */
+	static int pointsFor(HttpRequest request) {
+		if (GRAPHQL_PATH.equals(request.uri().getPath())) {
+			return READ_POINTS;
+		}
+		return switch (request.method()) {
 		case "GET", "HEAD", "OPTIONS" -> READ_POINTS;
 		default -> WRITE_POINTS;
 		};
