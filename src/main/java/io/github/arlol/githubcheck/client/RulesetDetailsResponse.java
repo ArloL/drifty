@@ -43,13 +43,16 @@ public record RulesetDetailsResponse(
 			INTEGRATION, @JsonProperty("OrganizationAdmin")
 			ORGANIZATION_ADMIN, @JsonProperty("RepositoryRole")
 			REPOSITORY_ROLE, @JsonProperty("Team")
-			TEAM
+			TEAM, @JsonProperty("DeployKey")
+			DEPLOY_KEY, @JsonProperty("User")
+			USER
 		}
 
 		public enum BypassMode {
 			@JsonProperty("always")
 			ALWAYS, @JsonProperty("pull_request")
-			PULL_REQUEST
+			PULL_REQUEST, @JsonProperty("exempt")
+			EXEMPT
 		}
 
 	}

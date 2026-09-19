@@ -397,8 +397,11 @@ final class RulesetComparison {
 		}
 		Set<String> wantBypass = wanted.bypassActors.stream()
 				.map(
-						a -> PklTypes.actorType(a.actorType) + ":" + a.actorId
-								+ ":" + PklTypes.bypassMode(a.bypassMode)
+						a -> new ActualRuleset.BypassActor(
+								a.actorType.toString(),
+								a.actorId,
+								a.bypassMode.toString()
+						).toString()
 				)
 				.collect(Collectors.toSet());
 		Set<String> gotBypass = got.bypassActors()

@@ -139,9 +139,10 @@ public record ActualRuleset(
 	 * An actor allowed to bypass the ruleset. Rendered as a single string when
 	 * compared, so the comparison does not depend on GitHub's field names.
 	 *
-	 * @param actorType  role, team, integration or organisation admin
-	 * @param actorId    the actor's numeric id
-	 * @param bypassMode always, or pull requests only
+	 * @param actorType  wire spelling, e.g. {@code Team}
+	 * @param actorId    the actor's numeric id; null for an
+	 *                   {@code OrganizationAdmin} or {@code DeployKey}
+	 * @param bypassMode wire spelling, e.g. {@code pull_request}
 	 */
 	public record BypassActor(
 			String actorType,

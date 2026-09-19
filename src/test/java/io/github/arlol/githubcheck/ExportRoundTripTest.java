@@ -302,6 +302,14 @@ class ExportRoundTripTest {
 										  },
 										  "rules": [
 										    {"type": "pull_request", "parameters": {"required_approving_review_count": 1}}
+										  ],
+										  "bypass_actors": [
+										    {"actor_id": null, "actor_type": "OrganizationAdmin", "bypass_mode": "always"},
+										    {"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "pull_request"},
+										    {"actor_id": 7, "actor_type": "Team", "bypass_mode": "always"},
+										    {"actor_id": 9, "actor_type": "Integration", "bypass_mode": "exempt"},
+										    {"actor_id": 11, "actor_type": "User", "bypass_mode": "always"},
+										    {"actor_id": null, "actor_type": "DeployKey", "bypass_mode": "always"}
 										  ]
 										}
 										"""
