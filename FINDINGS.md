@@ -5,8 +5,8 @@ the native macOS binary and a warm state file. Reproduce with the
 instrumentation at the end before trusting any number here; GitHub's latency
 moves by ±20% between runs, so single runs decide nothing.
 
-A check was 3.34 s on 2026-09-19 and is 2.13 s after the three changes below.
-The fetch is 2.05 s of that and is not CPU-bound anywhere.
+A check was 3.34 s on 2026-09-19 and is 2.2 s after the changes below, or
+1.97 s with `--max-concurrent-requests 100`. It is not CPU-bound anywhere.
 
 ## What bounds the run
 
@@ -76,6 +76,7 @@ Each of these was tried against the live API rather than reasoned about.
 | --- | --- |
 | Dispatch parent reads ahead of leaves | nothing there. Replaying the trace's durations through a scheduler gives 2597 ms for parents-first; the run already lands at 2573 ms, so the arbitrary order is already as good |
 | A second HTTP/2 connection, for REST | nothing there at equal permits: two connections of 45 averaged 2617 ms against 2527 ms for one of 90, over two rounds each |
+| Warming the connection before the flood | worth ~20 ms and kept, but not the 100 ms the arithmetic suggested: the first wave costs ~175 ms more than the steady state, and the config evaluation it now overlaps is only 30 ms long |
 | A second connection for the GraphQL queries | nothing there either, and the reason to want one does not hold. A GraphQL response is 2.3 KB where a conditional GET's is headers, so the guess was that it delays the REST streams behind it on the shared connection. Measured over a real check: REST latency against how many GraphQL queries were in flight beside it is 242 ms at 10–19 and 230 ms at 20–29, against 244 ms overall |
 | More permits than 90 | 99 works and buys 8%, but 100 is GitHub's documented ceiling and 90 is the whole of the run's margin |
 | One GraphQL query for the whole account | 6.5 s. The per-query floor is paid once but ~0.15 s per repository is not |
@@ -86,9 +87,11 @@ Each of these was tried against the live API rather than reasoned about.
 ## What is left
 
 One thing, and it is a judgement rather than a measurement: the permit count.
-90 is the margin under GitHub's documented 100, and 99 measured 8% faster on
-the old request set. Whether to spend that margin depends on whether anything
-else uses the same token at the same time, which drifty cannot know.
+Interleaved three times against each other, 90 permits averaged 2.23 s and 100
+averaged 1.97 s, with 100 faster in every round and no request refused. 100 is
+what GitHub documents, and 90 is the room drifty leaves under it for anything
+else using the same token — which is why `--max-concurrent-requests` exists and
+why the default did not change.
 
 Nothing else has a number behind it. The floor is 1.75 s of in-flight time
 divided by 90 permits, the fetch runs ~0.25 s above it, and the three terms

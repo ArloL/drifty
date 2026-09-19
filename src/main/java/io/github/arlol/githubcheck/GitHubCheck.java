@@ -35,8 +35,13 @@ public class GitHubCheck {
 			.of("--fix", "--self-test", "--version", "--help", "-h");
 
 	/** Arguments that take the one argument after them. */
-	static final List<String> VALUE_OPTIONS = List
-			.of("--config", "--state", "--out", "--schema");
+	static final List<String> VALUE_OPTIONS = List.of(
+			"--config",
+			"--state",
+			"--out",
+			"--schema",
+			"--max-concurrent-requests"
+	);
 
 	/** The one argument that takes a list — see {@link #exportLogins}. */
 	static final String EXPORT = "--export";
@@ -66,6 +71,14 @@ public class GitHubCheck {
 		boolean fix = argsList.contains("--fix");
 		String configArg = optionValue(argsList, "--config");
 		String statePath = optionValue(argsList, "--state");
+		int permits;
+		try {
+			permits = maxConcurrentRequests(argsList);
+		} catch (IllegalArgumentException e) {
+			System.err.println("ERROR: " + e.getMessage());
+			System.exit(1);
+			return;
+		}
 
 		if (argsList.contains("--export")) {
 			List<String> exportLogins = exportLogins(argsList);
@@ -96,7 +109,7 @@ public class GitHubCheck {
 			int exitCode;
 			try {
 				exitCode = ExportRunner.run(
-						new GitHubClient(token, state),
+						new GitHubClient(token, state, permits),
 						exportLogins,
 						out,
 						schema == null ? BundledSchema.MAIN_SCHEMA_URI : schema
@@ -125,23 +138,29 @@ public class GitHubCheck {
 			System.exit(1);
 			return;
 		}
-		DriftyConfig config = PklConfigLoader.load(configPath.toAbsolutePath());
+		long startTime = System.currentTimeMillis();
 
 		Path stateFile = stateFile(statePath, configPath);
 		var stateStore = new StateStore();
 		DriftyState state = stateStore.load(stateFile);
+
+		// The state is the client's response cache as well as the secret
+		// baselines: a GET drifty has seen before is asked conditionally, and
+		// GitHub charges no rate limit for the 304 that comes back.
+		var client = new GitHubClient(token, state, permits);
+		// Built and connected before the config is evaluated, not after: the
+		// handshake and the Pkl evaluation have nothing to say to each other,
+		// and the run's first ninety requests would otherwise each hold a
+		// permit through it.
+		client.warmUp();
+
+		DriftyConfig config = PklConfigLoader.load(configPath.toAbsolutePath());
 
 		if (fix && reportMissingSecrets(config, githubSecrets)) {
 			System.exit(1);
 			return;
 		}
 
-		long startTime = System.currentTimeMillis();
-
-		// The state is the client's response cache as well as the secret
-		// baselines: a GET drifty has seen before is asked conditionally, and
-		// GitHub charges no rate limit for the 304 that comes back.
-		var client = new GitHubClient(token, state);
 		var repoChecker = new RepositoryChecker(
 				client,
 				fix,
@@ -428,6 +447,11 @@ public class GitHubCheck {
 				  --out <path>     Where --export writes. Default: ./export.pkl
 				  --schema <uri>   The schema --export amends and omits defaults from.
 				                   Default: config/drifty.pkl on drifty's main branch.
+				  --max-concurrent-requests <n>
+				                   How many requests may be in flight at once, 1 to 100.
+				                   Default: 90, which leaves room under GitHub's limit
+				                   of 100 for anything else using the same token. Going
+				                   to 100 is worth about a tenth of a check.
 				  --self-test      Run the token- and network-free smoke test and exit.
 				  --version        Print the version and exit.
 				  --help, -h       Print this and exit.
@@ -549,6 +573,37 @@ public class GitHubCheck {
 	static Path stateFile(String statePath, Path beside) {
 		return statePath != null ? Path.of(statePath)
 				: beside.toAbsolutePath().resolveSibling("drifty-state.json");
+	}
+
+	/**
+	 * How many requests may be in flight at once. GitHub documents a hundred
+	 * and {@code GitHubClient} defaults to ninety, which is the margin under
+	 * it; spending that margin is worth about eleven per cent of a check and is
+	 * only safe when nothing else is using the same token at the same time.
+	 * Drifty cannot know that and the person running it can.
+	 */
+	static int maxConcurrentRequests(List<String> argsList) {
+		String value = optionValue(argsList, "--max-concurrent-requests");
+		if (value == null) {
+			return GitHubClient.MAX_CONCURRENT_REQUESTS;
+		}
+		int requested;
+		try {
+			requested = Integer.parseInt(value);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException(
+					"--max-concurrent-requests must be a number, not " + value,
+					e
+			);
+		}
+		if (requested < 1 || requested > GitHubClient.CONCURRENCY_CEILING) {
+			throw new IllegalArgumentException(
+					"--max-concurrent-requests must be between 1 and "
+							+ GitHubClient.CONCURRENCY_CEILING + ", not "
+							+ requested
+			);
+		}
+		return requested;
 	}
 
 	static String optionValue(List<String> argsList, String option) {
