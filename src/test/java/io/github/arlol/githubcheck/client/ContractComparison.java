@@ -110,36 +110,57 @@ public final class ContractComparison {
 		this.options = options;
 	}
 
-	/**
-	 * Every disagreement between {@code root} and {@code schema}, plus one for
-	 * each exclusion nothing used — a stale exclusion is how a check quietly
-	 * stops covering what it claims to.
-	 */
+	/** Every disagreement between {@code root} and {@code schema}. */
 	public List<Finding> compare(SchemaNode schema, Class<?> root) {
+		// A listing endpoint answers with an array and the record bound to it
+		// is one element: GitHubClient parses the items, never the array. So
+		// descend before comparing, or every listing record would be reported
+		// as an object where the spec says array.
+		SchemaNode start = schema;
+		if (start != null && "array".equals(start.type())
+				&& start.items() != null
+				&& !Collection.class.isAssignableFrom(root)
+				&& !root.isArray()) {
+			start = start.items();
+		}
 		walk(
-				schema,
+				start,
 				TypeFactory.defaultInstance().constructType(root),
 				"",
 				0,
 				new HashSet<>()
 		);
+		return List.copyOf(findings);
+	}
+
+	/**
+	 * Exclusions this comparison had no use for.
+	 * <p>
+	 * A stale exclusion is how a check quietly stops covering what it claims
+	 * to, so these are a failure — but not this comparison's to report. One
+	 * record serves up to four endpoints off one pair of lists, and an entry
+	 * that answers a finding on the organization ruleset endpoints has nothing
+	 * to answer on the repository ones. Staleness is only true when every
+	 * binding of the record had no use for it, which the caller is what knows.
+	 */
+	public Set<String> unusedExclusions() {
+		Set<String> unused = new LinkedHashSet<>();
 		for (String entry : options.unmanaged()) {
 			if (!consumed.contains(pathOf(entry))) {
-				add(
-						pathOf(entry),
-						"declared unmanaged, but nothing matches it"
-				);
+				unused.add(pathOf(entry));
 			}
 		}
 		for (String entry : options.undocumented()) {
 			if (!consumed.contains(pathOf(entry))) {
-				add(
-						pathOf(entry),
-						"declared undocumented, but nothing matches it"
-				);
+				unused.add(pathOf(entry));
 			}
 		}
-		return List.copyOf(findings);
+		return unused;
+	}
+
+	/** The paths an exclusion answered for. */
+	public Set<String> consumedExclusions() {
+		return Set.copyOf(consumed);
 	}
 
 	// ─── The walk
@@ -151,6 +172,17 @@ public final class ContractComparison {
 			String path,
 			int depth,
 			Set<Class<?>> open
+	) {
+		walk(schema, type, path, depth, open, null);
+	}
+
+	private void walk(
+			SchemaNode schema,
+			JavaType type,
+			String path,
+			int depth,
+			Set<Class<?>> open,
+			String implied
 	) {
 		if (schema == null) {
 			return;
@@ -196,7 +228,7 @@ public final class ContractComparison {
 			checkType(schema, raw, path);
 			if (open.add(raw)) {
 				try {
-					checkProperties(schema, type, path, depth, open);
+					checkProperties(schema, type, path, depth, open, implied);
 				} finally {
 					open.remove(raw);
 				}
@@ -207,12 +239,20 @@ public final class ContractComparison {
 		checkType(schema, raw, path);
 	}
 
+	/**
+	 * @param implied a property the wire carries that no component declares
+	 *                because Jackson writes it: a polymorphic type's
+	 *                discriminator comes from {@code @JsonTypeInfo}, so
+	 *                {@code Rule.Creation} never declares {@code type} and is
+	 *                not missing it.
+	 */
 	private void checkProperties(
 			SchemaNode schema,
 			JavaType type,
 			String path,
 			int depth,
-			Set<Class<?>> open
+			Set<Class<?>> open,
+			String implied
 	) {
 		Map<String, WireShape.Property> declared = new LinkedHashMap<>();
 		for (WireShape.Property property : WireShape
@@ -232,7 +272,7 @@ public final class ContractComparison {
 				}
 				continue;
 			}
-			if (child.nullable()
+			if (forReading && child.nullable()
 					&& property.type().getRawClass().isPrimitive()) {
 				add(
 						full,
@@ -249,7 +289,7 @@ public final class ContractComparison {
 			return;
 		}
 		for (String specName : schema.properties().keySet()) {
-			if (declared.containsKey(specName)) {
+			if (declared.containsKey(specName) || specName.equals(implied)) {
 				continue;
 			}
 			String full = join(path, specName);
@@ -319,7 +359,8 @@ public final class ContractComparison {
 							.constructType(subtype.getValue()),
 					full,
 					depth + 1,
-					open
+					open,
+					schema.discriminator()
 			);
 		}
 		for (String branch : schema.oneOf().keySet()) {

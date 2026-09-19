@@ -155,8 +155,16 @@ def merge_into(target: dict, addition: dict) -> None:
             target["required"] = sorted(set(target.get("required", [])) | set(value))
         elif key == "enum":
             target["enum"] = sorted(set(target.get("enum", [])) | set(value))
+        elif key == "type" and "type" in target and target["type"] != value:
+            # Branches that disagree about the JSON type say nothing about it.
+            # `source` on PUT /repos/{owner}/{repo}/pages is a string or an
+            # object; keeping whichever branch came first would report the
+            # record as the wrong shape.
+            target["type"] = None
         else:
             target.setdefault(key, value)
+    if target.get("type") is None:
+        target.pop("type", None)
 
 
 def reduce_schema(schema, depth: int = 0):

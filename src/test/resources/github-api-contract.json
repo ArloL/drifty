@@ -1248,8 +1248,7 @@
        "items": {
         "type": "string"
        },
-       "nullable": true,
-       "type": "string"
+       "nullable": true
       },
       "description": {
        "nullable": true,
@@ -10785,9 +10784,7 @@
        "content_type": {
         "type": "string"
        },
-       "insecure_ssl": {
-        "type": "string"
-       },
+       "insecure_ssl": {},
        "secret": {
         "type": "string"
        },
@@ -11028,8 +11025,7 @@
        "items": {
         "type": "string"
        },
-       "nullable": true,
-       "type": "string"
+       "nullable": true
       }
      },
      "required": [
@@ -14099,9 +14095,7 @@
        "content_type": {
         "type": "string"
        },
-       "insecure_ssl": {
-        "type": "string"
-       },
+       "insecure_ssl": {},
        "secret": {
         "type": "string"
        },
@@ -17392,9 +17386,7 @@
        "content_type": {
         "type": "string"
        },
-       "insecure_ssl": {
-        "type": "string"
-       },
+       "insecure_ssl": {},
        "secret": {
         "type": "string"
        },
@@ -17429,9 +17421,7 @@
        "content_type": {
         "type": "string"
        },
-       "insecure_ssl": {
-        "type": "string"
-       },
+       "insecure_ssl": {},
        "secret": {
         "type": "string"
        },
@@ -17527,8 +17517,7 @@
          "items": {
           "type": "string"
          },
-         "nullable": true,
-         "type": "string"
+         "nullable": true
         }
        },
        "required": [
@@ -18230,9 +18219,7 @@
        "content_type": {
         "type": "string"
        },
-       "insecure_ssl": {
-        "type": "string"
-       },
+       "insecure_ssl": {},
        "password": {
         "type": "string"
        },
@@ -20905,9 +20892,7 @@
        "content_type": {
         "type": "string"
        },
-       "insecure_ssl": {
-        "type": "string"
-       },
+       "insecure_ssl": {},
        "secret": {
         "type": "string"
        },
@@ -20939,9 +20924,7 @@
        "content_type": {
         "type": "string"
        },
-       "insecure_ssl": {
-        "type": "string"
-       },
+       "insecure_ssl": {},
        "secret": {
         "type": "string"
        },
@@ -26469,8 +26452,7 @@
       "items": {
        "type": "string"
       },
-      "nullable": true,
-      "type": "string"
+      "nullable": true
      },
      "description": {
       "nullable": true,
@@ -26519,8 +26501,7 @@
       "items": {
        "type": "string"
       },
-      "nullable": true,
-      "type": "string"
+      "nullable": true
      },
      "description": {
       "nullable": true,
@@ -31748,8 +31729,7 @@
       "required": [
        "branch",
        "path"
-      ],
-      "type": "string"
+      ]
      }
     },
     "required": [

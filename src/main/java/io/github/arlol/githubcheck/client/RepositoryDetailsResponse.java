@@ -4,7 +4,12 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@GitHubEndpoint(response = "GET /repos/{owner}/{repo}")
+@GitHubEndpoint(
+		response = "GET /repos/{owner}/{repo}",
+		undocumented = {
+				"has_commit_comments — GitHub returns it; the spec omits it",
+				"security_and_analysis.secret_scanning_validity_checks — GitHub returns it and SecretScanningValidityChecksDriftGroup compares it; the spec omits it from this schema" }
+)
 public record RepositoryDetailsResponse(
 		long id,
 		String nodeId,

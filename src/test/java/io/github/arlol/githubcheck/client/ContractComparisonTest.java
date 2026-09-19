@@ -206,14 +206,18 @@ class ContractComparisonTest {
 	}
 
 	@Test
-	void aStaleExclusionIsItselfAFinding() {
-		assertThat(
-				paths(
-						REQUEST,
-						Correct.class,
-						reverse("billing_email — real", "no_such_field — stale")
-				)
-		).containsExactly("no_such_field");
+	void anExclusionNothingMatchedIsReportedAsUnused() {
+		ContractComparison comparison = new ContractComparison(
+				ENDPOINT,
+				"request",
+				reverse("billing_email — real", "no_such_field — stale")
+		);
+		comparison.compare(REQUEST, Correct.class);
+
+		assertThat(comparison.unusedExclusions())
+				.containsExactly("no_such_field");
+		assertThat(comparison.consumedExclusions())
+				.containsExactly("billing_email");
 	}
 
 	// ─── The root metadata rule ─────────────────────────────────────────────

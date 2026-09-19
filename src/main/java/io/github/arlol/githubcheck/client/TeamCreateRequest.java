@@ -9,7 +9,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * so a top-level team can only be created by leaving the field out.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@GitHubEndpoint(request = "POST /orgs/{org}/teams")
+@GitHubEndpoint(
+		request = "POST /orgs/{org}/teams",
+		unmanaged = {
+				"maintainers — OrgTeamsDriftGroup writes memberships with their own request after the team exists, so a rejected membership is not reported as having failed the create",
+				"parent_team_slug — the create resolves a parent to an id and sends parent_team_id",
+				"repo_names — a team's repository access is written per repository, not at team creation" }
+)
 public record TeamCreateRequest(
 		String name,
 		String description,

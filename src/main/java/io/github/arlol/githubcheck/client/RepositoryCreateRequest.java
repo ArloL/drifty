@@ -1,14 +1,25 @@
 package io.github.arlol.githubcheck.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@GitHubEndpoint(request = "POST /user/repos")
+@GitHubEndpoint(
+		request = "POST /user/repos",
+		unmanaged = {
+				"team_id — organization-only, and this record is the body of POST /user/repos" }
+)
 public record RepositoryCreateRequest(
 		String name,
 		String description,
 		String homepage,
-		Boolean isPrivate,
+		/**
+		 * {@code private} is a Java keyword, so the component cannot carry the
+		 * wire name and the annotation has to. Without it SNAKE_CASE sends
+		 * {@code is_private}, which GitHub does not accept and silently ignores
+		 * — the repository is created public.
+		 */
+		@JsonProperty("private") Boolean isPrivate,
 		Boolean hasIssues,
 		Boolean hasProjects,
 		Boolean hasWiki,

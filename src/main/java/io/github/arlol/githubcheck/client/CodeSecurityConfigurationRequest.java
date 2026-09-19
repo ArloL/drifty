@@ -16,7 +16,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @GitHubEndpoint(
 		request = { "POST /orgs/{org}/code-security/configurations",
-				"PATCH /orgs/{org}/code-security/configurations/{configuration_id}" }
+				"PATCH /orgs/{org}/code-security/configurations/{configuration_id}" },
+		unmanaged = {
+				"code_security — GitHub's repackaging of Advanced Security; drifty compares advanced_security, which is the same switch under the name the rest of the API still uses",
+				"secret_protection — the same repackaging, and secret_scanning is what drifty compares",
+				"secret_scanning_extended_metadata — the spec supplies no default and every example predates the field, so any value drifty picked would report drift on configurations nobody has touched. FOLLOWUPS.md entry 3 carries the one read that settles it" }
 )
 public record CodeSecurityConfigurationRequest(
 		String name,

@@ -5,7 +5,9 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @GitHubEndpoint(
-		request = "PUT /repos/{owner}/{repo}/branches/{branch}/protection"
+		request = "PUT /repos/{owner}/{repo}/branches/{branch}/protection",
+		unmanaged = {
+				"required_status_checks.contexts — deprecated by GitHub in favour of checks, which carries the same contexts plus the app id that says which app reports them" }
 )
 public record BranchProtectionRequest(
 		RequiredStatusChecks requiredStatusChecks,

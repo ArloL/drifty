@@ -5,7 +5,10 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @GitHubEndpoint(
-		response = "GET /repos/{owner}/{repo}/branches/{branch}/protection"
+		response = "GET /repos/{owner}/{repo}/branches/{branch}/protection",
+		undocumented = {
+				"restrictions.users.name — SimpleUser is one record for every user GitHub returns; the narrower user object here omits it",
+				"restrictions.users.email — as above" }
 )
 public record BranchProtectionResponse(
 		String url, // optional
