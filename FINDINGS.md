@@ -5,8 +5,8 @@ the native macOS binary and a warm state file. Reproduce with the
 instrumentation at the end before trusting any number here; GitHub's latency
 moves by ±20% between runs, so single runs decide nothing.
 
-A check was 3.34 s on 2026-09-19 and is 2.50 s after the two changes below. The
-fetch is 2.44 s of that and is not CPU-bound anywhere.
+A check was 3.34 s on 2026-09-19 and is 2.13 s after the three changes below.
+The fetch is 2.05 s of that and is not CPU-bound anywhere.
 
 ## What bounds the run
 
@@ -17,7 +17,7 @@ at their limit.
 | --- | --- | --- |
 | latency | p50 249 ms, p95 450 ms | no — GitHub's, not drifty's |
 | permits | 90 | no — GitHub refuses past ~100 |
-| requests | 742 | yes — the only lever left |
+| requests | 742, now 519 | yes — the only lever left |
 
 Latency is not the token or the client. The same `GET /repos/ArloL/drifty`
 answers in 115 ms unauthenticated and 400 ms authenticated over a connection
@@ -46,8 +46,17 @@ non-archived repository before joining the listing, which runs on its own
 thread and answers only what it alone can: `UNKNOWN`, `MISSING`, and `archived`
 for a repository the config wants archived.
 
-The fetch window is now 2.57 s with 77% of it at 90 requests in flight, against
-a 2.31 s floor:
+**One GraphQL query per repository replaces six REST requests.** The rulesets
+and their rules, the branch protections, the collaborators and the
+vulnerability-alerts flag — 268 of 742 requests and both of a repository's
+two-level chains, for one round trip of ~0.56 s against the ~0.25 s a REST read
+costs. The answer is rewritten into the REST shape rather than into new
+records, so `ActualTypes` stays the one translator; the two routes produced
+identical `ActualRuleset` and `ActualBranchProtection` values for all 45 active
+repositories. See `GraphQlQuery` and `GraphQlShape`.
+
+The fetch window went from 3.09 s to 2.57 s on the first two changes, with 77%
+of it at 90 requests in flight against a 2.31 s floor:
 
 | in flight | before | after |
 | --- | --- | --- |
@@ -70,84 +79,15 @@ Each of these was tried against the live API rather than reasoned about.
 | Dropping `GET /repos/{owner}/{repo}` for the listing's copy | the listing is a `Minimal Repository` and omits most of what `RepoSettingsDriftGroup` compares |
 | Skipping repositories whose `updated_at` has not moved | rulesets, secrets, webhooks, environments and collaborators do not move it |
 
-## Left: one GraphQL query per repository
+## What is left
 
-Request count is the only term left, and REST cannot go below one round trip
-per setting. One GraphQL query answers what six REST requests answer today:
+Nothing with a measured number behind it. The floor is now 1.76 s of in-flight
+time divided by 90 permits, the fetch runs ~0.3 s above it, and the three terms
+that set it are where they were: GitHub's latency, GitHub's concurrency
+ceiling, and 519 requests.
 
-| REST request | per run | GraphQL field |
-| --- | --- | --- |
-| `/branches?protected=true` | 45 | `branchProtectionRules.matchingRefs` |
-| `/branches/{b}/protection` | 44 | `branchProtectionRules` |
-| `/rulesets` | 45 | `rulesets` |
-| `/rulesets/{id}` | 44 | `rulesets.rules.parameters` |
-| `/collaborators` | 45 | `collaborators(affiliation:DIRECT)` |
-| `/vulnerability-alerts` | 45 | `hasVulnerabilityAlertsEnabled` |
-
-That is 268 of 742 requests and both of the repository's two-level chains.
-Every field was fetched successfully against all 45 repositories on
-2026-09-19, and the `RuleParameters` union covers every rule type
-`ActualRuleset` carries.
-
-### What it is worth, and what that costs
-
-Replaying the two request sets against the live API, two clean rounds each:
-
-| condition | run 1 | run 2 | mean |
-| --- | --- | --- | --- |
-| 742 REST, 90 permits | 2458 ms | 2632 ms | 2545 ms |
-| 742 REST, 99 permits | 2353 ms | 2332 ms | 2343 ms |
-| 474 REST + 15 GraphQL, one connection, 90 permits | 2249 ms | 2704 ms | 2477 ms |
-| 474 REST at 85 permits + 15 GraphQL at 15 | 1775 ms | 1942 ms | 1859 ms |
-
-Read those against the row above them, not against drifty: they are
-unconditional requests issued flat, and the last condition carries 100 permits
-where the others carry 90. Against the same REST set at 100 permits, which
-averaged 2223 ms over two rounds, GraphQL is worth ~16% — not the 26% the first
-and last rows suggest.
-
-Projected onto drifty as it now stands, from in-flight seconds ÷ 90:
-
-| shape | in-flight | floor | check |
-| --- | --- | --- | --- |
-| today | 207.7 s | 2.31 s | 2.50 s |
-| one query per repository | 159 s | 1.77 s | ~2.1 s |
-| one query per three repositories | 145 s | 1.62 s | ~1.95 s |
-
-The three-repository row needs a batch shared across repositories, which
-contradicts the property every other part of the fetch is built on — nothing a
-repository is read for needs another repository — and which
-`RepositoryCheckerRequestShapeTest` encodes. Take the per-repository row unless
-that property is deliberately given up.
-
-### Why this is not a mechanical port
-
-`ActualRuleset` carries 35 fields across 20 rule types and `ActualTypes.ruleset`
-maps them from the REST shape. The GraphQL shape differs in four places that a
-translation has to get right, and a wrong one produces false drift rather than
-an error:
-
-- `branchProtectionRules` is keyed by pattern where drifty's model is keyed by
-  branch. `matchingRefs` on each rule reproduces what `/branches?protected=true`
-  answers; without it a `*` pattern maps to no branch.
-- `bypassActors` carries `actor` as a union plus `repositoryRoleDatabaseId`,
-  `organizationAdmin` and `deployKey`, where REST carries `actor_type` and
-  `actor_id`.
-- A ruleset's status checks are `requiredStatusChecks { context integrationId }`
-  where a branch protection rule's are
-  `requiredStatusChecks { context app { databaseId } }`.
-- `lockAllowsFetchAndMerge` is REST's `allow_fork_syncing`, and
-  `MergeQueueParameters` spells two fields `...Minutes` that REST does not.
-
-The `ArloL` account exercises perhaps a third of the rule types, so a live run
-reporting no drift is necessary and not sufficient. What makes this safe is a
-fixture per rule type asserting the GraphQL mapping produces the same
-`ActualRuleset` as the REST fixture beside it, which `ActualTypesTest` and
-`RulesetDriftGroupTest` already have the shape for.
-
-### What stays on REST
-
-Of the `Repository` type's 141 fields, none covers `security_and_analysis`,
+Of those 519, 360 are eight per active repository that GraphQL cannot answer —
+of the `Repository` type's 141 fields none covers `security_and_analysis`,
 `/immutable-releases`, `/private-vulnerability-reporting`,
 `/code-scanning/default-setup`, `/hooks`, `/actions/secrets`,
 `/actions/variables`, `/actions/permissions/workflow` or `/pages`.
@@ -155,12 +95,11 @@ Of the `Repository` type's 141 fields, none covers `security_and_analysis`,
 carries `preventSelfReview`, `reviewers`, `timeout` and `type`, but not the
 deployment branch policies or their ids, which `--fix` needs to delete one.
 
-`RequestPacer.pointsFor` bills a POST at five points, and a GraphQL read is a
-POST that is not a write; billed as one it paces the run against a budget it is
-not spending. The GraphQL client also wants its own `HttpClient`: the split
-condition above was the fastest, and mixing 10–25 KB GraphQL responses into the
-connection carrying 90 conditional GETs is the one explanation left for it. Its
-two permit pools have to sum to no more than the 90 the run has now.
+Batching several repositories into one GraphQL query would take the floor to
+1.62 s. It is not taken: it needs a batch shared across repositories, which
+contradicts the property every other part of the fetch is built on — nothing a
+repository is read for needs another repository — and which
+`RepositoryCheckerRequestShapeTest` encodes. ~0.14 s is not worth that.
 
 ## Request count is also the headroom
 
@@ -169,11 +108,11 @@ check of this account costs 742. Two checks inside a minute exceed the budget �
 which the replay experiments here ran into, drawing 403s on 663 of 742 requests
 until they were spaced 200 s apart.
 
-At 16.5 requests per active repository the pacer starts delaying at about 55
+At 16.5 requests per active repository the pacer started delaying at about 55
 active repositories, and above that wall clock is set by the budget rather than
-by latency: 200 active repositories is 3280 points, or 3.6 minutes of pacing
-whatever else is optimised. The GraphQL work takes the per-repository count to
-about 10.5 and moves that wall to ~85.
+by latency. The GraphQL query took the count to 10.5 and that wall to about 85;
+200 active repositories is 2100 points, or 2.3 minutes of pacing whatever else
+is optimised.
 
 ## Reproducing the measurements
 

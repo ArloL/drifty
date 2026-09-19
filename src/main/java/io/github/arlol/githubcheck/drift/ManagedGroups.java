@@ -1,5 +1,6 @@
 package io.github.arlol.githubcheck.drift;
 
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -87,6 +88,13 @@ public final class ManagedGroups<N extends Enum<N>> {
 
 	public boolean manages(N group) {
 		return managed.contains(group);
+	}
+
+	/**
+	 * Whether any of these groups is managed, for a read that serves several.
+	 */
+	public boolean managesAny(Collection<N> groups) {
+		return groups.stream().anyMatch(this::manages);
 	}
 
 	/** The groups this entity leaves alone, for the report. */

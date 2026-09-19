@@ -57,6 +57,7 @@ import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.testsupport.Desired;
 import io.github.arlol.githubcheck.drift.DriftItem;
+import io.github.arlol.githubcheck.testsupport.GraphQlStub;
 
 @WireMockTest
 class RepositoryCheckerFixTest {
@@ -127,6 +128,7 @@ class RepositoryCheckerFixTest {
 	void setUp(WireMockRuntimeInfo wm) {
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
 		checker = new RepositoryChecker(client, true);
+		stubFor(GraphQlStub.atDefaults());
 	}
 
 	/**

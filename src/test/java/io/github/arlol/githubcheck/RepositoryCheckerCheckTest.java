@@ -28,6 +28,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.testsupport.Desired;
+import io.github.arlol.githubcheck.testsupport.GraphQlStub;
 
 /**
  * Covers {@link RepositoryChecker#check}, and in particular which account each
@@ -45,6 +46,7 @@ class RepositoryCheckerCheckTest {
 	void setUp(WireMockRuntimeInfo wm) {
 		client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
 		checker = new RepositoryChecker(client, false);
+		stubFor(GraphQlStub.atDefaults());
 	}
 
 	@Test
@@ -137,6 +139,13 @@ class RepositoryCheckerCheckTest {
 	void fixPreviewNamesOnlyTheGroupThatDrifted() throws Exception {
 		stubOwner("alpha", "one");
 		stubRepoSubResources();
+		// Vulnerability alerts come off the one query now, and its default is
+		// GitHub's: on.
+		stubFor(
+				GraphQlStub.answering(
+						GraphQlStub.sections(null, null, null, false)
+				)
+		);
 
 		Drifty.Repository desired = entry("one")
 				.withManaged(
@@ -178,16 +187,9 @@ class RepositoryCheckerCheckTest {
 	void fixPreviewSkipsAGroupThatOnlyReportsItsDrift() throws Exception {
 		stubOwner("alpha", "one");
 		stubRepoSubResources();
-		stubFor(
-				get(
-						urlPathMatching("/repos/[^/]+/[^/]+/collaborators")
-				).willReturn(okJson("""
-						[{"login": "stray", "role_name": "write",
-						  "permissions": {"pull": true, "triage": true,
-						                  "push": true, "maintain": false,
-						                  "admin": false}}]
-						"""))
-		);
+		stubFor(GraphQlStub.answering(GraphQlStub.sections(null, null, """
+				{"permission": "WRITE", "node": {"login": "stray"}}
+				""", true)));
 
 		Drifty.Repository desired = entry("one").withManaged(
 				new Drifty.Managed(
@@ -219,16 +221,9 @@ class RepositoryCheckerCheckTest {
 	void theOwnerIsNotReportedAsAnExtraCollaborator() throws Exception {
 		stubOwner("alpha", "one");
 		stubRepoSubResources();
-		stubFor(
-				get(
-						urlPathMatching("/repos/[^/]+/[^/]+/collaborators")
-				).willReturn(okJson("""
-						[{"login": "alpha", "role_name": "admin",
-						  "permissions": {"pull": true, "triage": true,
-						                  "push": true, "maintain": true,
-						                  "admin": true}}]
-						"""))
-		);
+		stubFor(GraphQlStub.answering(GraphQlStub.sections(null, null, """
+				{"permission": "ADMIN", "node": {"login": "alpha"}}
+				""", true)));
 
 		Drifty.Repository desired = entry("one").withManaged(
 				new Drifty.Managed(
@@ -302,6 +297,13 @@ class RepositoryCheckerCheckTest {
 	) throws Exception {
 		stubOwner("alpha", "one");
 		stubRepoSubResources();
+		// Vulnerability alerts come off the one query now, and its default is
+		// GitHub's: on.
+		stubFor(
+				GraphQlStub.answering(
+						GraphQlStub.sections(null, null, null, false)
+				)
+		);
 		stubFor(
 				patch(urlPathMatching("/repos/[^/]+/[^/]+"))
 						.willReturn(okJson("{}"))
@@ -343,6 +345,13 @@ class RepositoryCheckerCheckTest {
 			throws Exception {
 		stubOwner("alpha", "one");
 		stubRepoSubResources();
+		// Vulnerability alerts come off the one query now, and its default is
+		// GitHub's: on.
+		stubFor(
+				GraphQlStub.answering(
+						GraphQlStub.sections(null, null, null, false)
+				)
+		);
 		stubFor(
 				patch(urlPathMatching("/repos/[^/]+/[^/]+"))
 						.willReturn(okJson("{}"))

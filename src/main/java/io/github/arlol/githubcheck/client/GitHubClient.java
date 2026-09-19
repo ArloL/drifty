@@ -8,6 +8,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -191,6 +192,40 @@ public class GitHubClient {
 
 	// ─── Public API
 	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * One repository's rulesets, branch protections, collaborators and
+	 * vulnerability-alerts flag, in one request.
+	 * <p>
+	 * Over REST those are six: a ruleset listing and a request per ruleset, a
+	 * branch listing and a request per protected branch, the collaborators and
+	 * the alerts flag. Traced on a 101-repository account, 268 of a check's 742
+	 * requests and both of a repository's two-level chains. GraphQL answers all
+	 * of it in one round trip of its own — ~0.56s against the ~0.25s a REST
+	 * read costs, which is the trade that pays.
+	 * <p>
+	 * One query per repository, never one for several: nothing a repository is
+	 * read for needs another repository, and a batch would be the first thing
+	 * that did.
+	 */
+	public GraphQlRepositoryResponse graphqlRepository(
+			String owner,
+			String repo
+	) {
+		HttpResponse<String> resp = post(
+				baseUrl + "/graphql",
+				writeValue(
+						Map.of("query", GraphQlQuery.repository(owner, repo))
+				)
+		);
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " querying " + owner + "/"
+							+ repo + ": " + resp.body()
+			);
+		}
+		return GraphQlQuery.read(readTree(resp.body()));
+	}
 
 	/**
 	 * The organization's repositories, or empty when GitHub does not know the
@@ -2761,7 +2796,7 @@ public class GitHubClient {
 	 */
 	private HttpResponse<String> sendBounded(HttpRequest request)
 			throws IOException, InterruptedException {
-		reportPacing(pacer.awaitTurn(RequestPacer.pointsFor(request.method())));
+		reportPacing(pacer.awaitTurn(RequestPacer.pointsFor(request)));
 		inFlight.acquire();
 		try {
 			return http.send(request, HttpResponse.BodyHandlers.ofString());

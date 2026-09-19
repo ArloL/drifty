@@ -2,6 +2,8 @@ package io.github.arlol.githubcheck.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.net.URI;
+import java.net.http.HttpRequest;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,24 +58,43 @@ class RequestPacerTest {
 	 */
 	@Test
 	void twoWritesSpendAsMuchOfTheBudgetAsTenReads() throws Exception {
-		pacer.awaitTurn(RequestPacer.pointsFor("PATCH"));
-		pacer.awaitTurn(RequestPacer.pointsFor("DELETE"));
+		pacer.awaitTurn(points("PATCH", "/repos/o/r"));
+		pacer.awaitTurn(points("DELETE", "/repos/o/r/hooks/1"));
 
 		assertThat(slept).isEmpty();
 
-		pacer.awaitTurn(RequestPacer.pointsFor("GET"));
+		pacer.awaitTurn(points("GET", "/repos/o/r"));
 
 		assertThat(slept).containsExactly(WINDOW.toMillis());
 	}
 
 	@Test
 	void everyMethodThatWritesCostsFivePoints() {
-		assertThat(RequestPacer.pointsFor("GET")).isEqualTo(1);
-		assertThat(RequestPacer.pointsFor("HEAD")).isEqualTo(1);
-		assertThat(RequestPacer.pointsFor("POST")).isEqualTo(5);
-		assertThat(RequestPacer.pointsFor("PUT")).isEqualTo(5);
-		assertThat(RequestPacer.pointsFor("PATCH")).isEqualTo(5);
-		assertThat(RequestPacer.pointsFor("DELETE")).isEqualTo(5);
+		assertThat(points("GET", "/repos/o/r")).isEqualTo(1);
+		assertThat(points("HEAD", "/repos/o/r")).isEqualTo(1);
+		assertThat(points("POST", "/repos/o/r/hooks")).isEqualTo(5);
+		assertThat(points("PUT", "/repos/o/r/topics")).isEqualTo(5);
+		assertThat(points("PATCH", "/repos/o/r")).isEqualTo(5);
+		assertThat(points("DELETE", "/repos/o/r/hooks/1")).isEqualTo(5);
+	}
+
+	/**
+	 * A GraphQL read is a POST and is not a write. Billed as one it would pace
+	 * a run five times harder than the budget it is actually spending — and
+	 * drifty reads every repository through one.
+	 */
+	@Test
+	void aGraphQlReadCostsOnePointDespiteBeingAPost() {
+		assertThat(points("POST", "/graphql")).isEqualTo(1);
+	}
+
+	private static int points(String method, String path) {
+		return RequestPacer.pointsFor(
+				HttpRequest
+						.newBuilder(URI.create("https://api.github.com" + path))
+						.method(method, HttpRequest.BodyPublishers.noBody())
+						.build()
+		);
 	}
 
 	/**

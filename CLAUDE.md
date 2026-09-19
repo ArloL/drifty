@@ -111,11 +111,11 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   rate-limit pause, so a thread parked until the reset is not holding a stream.
   `GitHubClientConcurrencyTest` fails if more requests overlap than the limit.
 - **`fetchState` fans out; two levels, never three.** `Fanout` starts every
-  read that needs nothing at once, and only six wait: a branch's
-  protection, a ruleset's rules, an environment's policies/secrets/variables,
-  and `/teams`, `/properties/values` and `/pages`, which wait on `GET
-  /repos/{owner}/{repo}` — the owner's type is what says whether to send the
-  first two at all, and `has_pages` whether there is a site to ask about.
+  read that needs nothing at once, and only five wait: an environment's
+  policies/secrets/variables, and `/teams`, `/properties/values` and `/pages`,
+  which wait on `GET /repos/{owner}/{repo}` — the owner's type is what says
+  whether to send the first two at all, and `has_pages` whether there is a site
+  to ask about.
   Issuing them in series made the deepest single repository the
   floor on the whole run — 24 requests and 6.6s of a 9.5s check, with the
   semaphore idle. A group whose read waits on another group's read puts the
@@ -126,6 +126,35 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   `FetchFailures.Collecting` synchronized and sorted, because one repository's
   groups now fail on different threads and an export has to be byte-identical
   twice running.
+- **One GraphQL query answers four groups, and it is written as four.**
+  `GitHubClient.graphqlRepository` reads a repository's rulesets and their
+  rules, its branch protections, its collaborators and its vulnerability-alerts
+  flag in one request where REST needed six and two levels of waiting — 268 of
+  a 101-repository check's 742 requests. Each of the four is its own aliased
+  `repository` selection because GitHub nulls the whole `repository` object
+  when one field inside it is forbidden: one alias each is what keeps a token
+  that may not read branch protection from losing the rulesets too, and
+  `GraphQlQuery.read` fails only the section whose error path names it. A fifth
+  thing to read belongs in a fifth alias, not inside an existing one.
+- **The GraphQL answer is rewritten as the REST shape, not as new records.**
+  `GraphQlShape` turns each node into the JSON `RulesetDetailsResponse`,
+  `BranchProtectionResponse` and `CollaboratorResponse` already parse, so
+  `ActualTypes` stays the one translator and every test over it still guards
+  both routes. Verified against all 45 active repositories of one account: the
+  `ActualRuleset` and `ActualBranchProtection` the two routes produce were
+  identical for every one. Most of it is camelCase against snake_case and
+  `SCREAMING_CASE` against the wire spelling; four things are not, and each has
+  produced a wrong answer rather than an error when guessed —
+  `lockAllowsFetchAndMerge` is `allow_fork_syncing`, a ruleset's status checks
+  name their app as `integrationId` where a branch protection rule's use
+  `app { databaseId }`, `MergeQueueParameters` spells two fields `...Minutes`
+  that REST does not, and a bypass actor is a union plus three booleans where
+  REST has an `actor_type` string.
+- **The query asks `includeParents: false` and still reads `source`.** An
+  organization's ruleset the repository endpoint cannot delete is not the
+  repository's to reconcile, and `RepositoryChecker.rulesets` filters it out by
+  `sourceType` the way the REST path always did. Hardcoding `source_type` to
+  `Repository` would mislabel one and produce a fix that always fails.
 - **An organization's budget is three round trips, one more than a
   repository's.** `OrganizationChecker.fetchState` shares the same `Fanout`,
   and the extra level is `GET /orgs/{org}`: it is how the checker learns the
@@ -237,8 +266,8 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   runs before the repositories anyway.
 - **The semaphore is the floor, so request count is the only lever left.**
   Tracing a check of the 101-repository `ArloL` account on 2026-09-19: 742
-  requests, p50 latency 249ms, and 77% of a 2.57s fetch window with 90 in
-  flight. Wall clock is `requests × latency ÷ 90`, and every other term is at
+  requests before the GraphQL query replaced 268 of them, p50 latency 249ms,
+  and 77% of a 2.57s fetch window with 90 in flight. Wall clock is `requests × latency ÷ 90`, and every other term is at
   its limit. Latency is GitHub's — the same endpoint answers in 115ms
   unauthenticated and 400ms authenticated over a 40ms round trip, and an OAuth
   token is no faster than a fine-grained PAT. The permit count is at GitHub's

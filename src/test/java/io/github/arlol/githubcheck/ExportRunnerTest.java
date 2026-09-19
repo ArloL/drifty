@@ -22,6 +22,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
 import io.github.arlol.githubcheck.client.GitHubClient;
+import io.github.arlol.githubcheck.testsupport.GraphQlStub;
 
 /**
  * Drives {@link ExportRunner#run} against WireMock the way
@@ -330,7 +331,25 @@ class ExportRunnerTest {
 		stubRepositoryAtItsDefaultsExceptHasDiscussions("acme", "leaky");
 		stubForbidden("/repos/acme/widget/actions/secrets");
 		stubForbidden("/repos/acme/leaky/actions/secrets");
-		stubForbidden("/repos/acme/leaky/rulesets");
+		stubFor(
+				GraphQlStub.answeringFor(
+						"leaky",
+						"""
+								{
+								  "data": {
+								    "rs": null,
+								    "bp": {"branchProtectionRules": {"nodes": []}},
+								    "co": {"collaborators": {"edges": []}},
+								    "va": {"hasVulnerabilityAlertsEnabled": true}
+								  },
+								  "errors": [{
+								    "path": ["rs", "rulesets"],
+								    "message": "Resource not accessible by personal access token"
+								  }]
+								}
+								"""
+				)
+		);
 
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
 		Path out = dir.resolve("export.pkl");
@@ -678,13 +697,7 @@ class ExportRunnerTest {
 						{"state": "not-configured"}
 						"""))
 		);
-		stubFor(
-				get(
-						urlPathEqualTo(
-								"/repos/" + owner + "/" + repo + "/branches"
-						)
-				).willReturn(okJson("[]"))
-		);
+		stubFor(GraphQlStub.atDefaults());
 		stubFor(
 				get(
 						urlPathEqualTo(

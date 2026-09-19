@@ -32,6 +32,7 @@ import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.drift.ManagedGroups;
 import io.github.arlol.githubcheck.pkl.Drifty;
+import io.github.arlol.githubcheck.testsupport.GraphQlStub;
 
 /**
  * Covers {@link RepositoryChecker#fetchState}, which fans out across the whole
@@ -88,6 +89,9 @@ class RepositoryCheckerFetchStateTest {
 	void setUp(WireMockRuntimeInfo wm) {
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
 		checker = new RepositoryChecker(client, false);
+		// Four groups read one query; a test about any other group only needs
+		// it not to fail.
+		stubFor(GraphQlStub.atDefaults());
 	}
 
 	@Test
@@ -106,39 +110,35 @@ class RepositoryCheckerFetchStateTest {
 				""", true);
 		stubSecurityEndpoints();
 		stubStandardEndpoints();
-
 		stubFor(
-				get(urlPathEqualTo("/repos/owner/repo/branches"))
-						.willReturn(okJson("""
-								[{"name": "main", "protected": true}]
-								"""))
-		);
-		stubFor(
-				get(
-						urlPathEqualTo(
-								"/repos/owner/repo/branches/main/protection"
+				GraphQlStub.answering(
+						GraphQlStub.sections(
+								"""
+										{
+										  "databaseId": 42, "name": "main-rules",
+										  "target": "BRANCH", "enforcement": "ACTIVE",
+										  "source": {"__typename": "Repository"},
+										  "bypassActors": {"nodes": []},
+										  "rules": {"nodes": []}
+										}
+										""",
+								"""
+										{
+										  "pattern": "main",
+										  "matchingRefs": {"nodes": [{"name": "main"}]},
+										  "isAdminEnforced": true, "requiresLinearHistory": true,
+										  "requiresStatusChecks": false, "requiresApprovingReviews": false,
+										  "restrictsPushes": false
+										}
+										""",
+								"""
+										{"permission": "WRITE", "node": {"login": "alice"}}
+										""",
+								true
 						)
-				).willReturn(okJson("""
-						{
-							"enforce_admins": {"enabled": true},
-							"required_linear_history": {"enabled": true},
-							"allow_force_pushes": {"enabled": false},
-							"allow_deletions": {"enabled": false}
-						}
-						"""))
+				)
 		);
-		stubFor(
-				get(urlPathEqualTo("/repos/owner/repo/rulesets"))
-						.willReturn(okJson("""
-								[{"id": 42, "name": "main-rules"}]
-								"""))
-		);
-		stubFor(
-				get(urlPathEqualTo("/repos/owner/repo/rulesets/42"))
-						.willReturn(okJson("""
-								{"id": 42, "name": "main-rules", "rules": []}
-								"""))
-		);
+
 		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo/teams"))
 						.willReturn(okJson("[]"))
@@ -235,21 +235,23 @@ class RepositoryCheckerFetchStateTest {
 		stubStandardEndpoints();
 
 		stubFor(
-				get(urlPathEqualTo("/repos/owner/repo/branches"))
-						.willReturn(okJson("""
-								[{"name": "main", "protected": true}]
-								"""))
-		);
-		stubFor(
-				get(
-						urlPathEqualTo(
-								"/repos/owner/repo/branches/main/protection"
-						)
-				).willReturn(aResponse().withStatus(403))
-		);
-		stubFor(
-				get(urlPathEqualTo("/repos/owner/repo/rulesets"))
-						.willReturn(okJson("[]"))
+				GraphQlStub.answering(
+						"""
+								{
+								  "data": {
+								    "rs": {"rulesets": {"nodes": []}},
+								    "bp": null,
+								    "co": {"collaborators": {"edges": []}},
+								    "va": {"hasVulnerabilityAlertsEnabled": true}
+								  },
+								  "errors": [{
+								    "type": "FORBIDDEN",
+								    "path": ["bp", "branchProtectionRules"],
+								    "message": "Resource not accessible by personal access token"
+								  }]
+								}
+								"""
+				)
 		);
 		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo/pages"))
@@ -263,7 +265,7 @@ class RepositoryCheckerFetchStateTest {
 						ManagedGroups.all(Drifty.GroupName.class)
 				)
 		).isInstanceOf(GitHubApiException.class)
-				.hasMessageContaining("GET branch protection");
+				.hasMessageContaining("not accessible");
 	}
 
 	@Test
@@ -379,33 +381,21 @@ class RepositoryCheckerFetchStateTest {
 		stubRepoDetails("");
 		stubSecurityEndpoints();
 		stubStandardEndpoints();
-		stubFor(
-				get(urlPathEqualTo("/repos/owner/repo/branches"))
-						.willReturn(okJson("[]"))
-		);
-		stubFor(
-				get(urlPathEqualTo("/repos/owner/repo/rulesets"))
-						.willReturn(okJson("""
-								[
-									{
-										"id": 42,
-										"name": "repo-rules",
-										"source_type": "Repository"
-									},
-									{
-										"id": 99,
-										"name": "org-rules",
-										"source_type": "Organization"
-									}
-								]
-								"""))
-		);
-		stubFor(
-				get(urlPathEqualTo("/repos/owner/repo/rulesets/42"))
-						.willReturn(okJson("""
-								{"id": 42, "name": "repo-rules", "rules": []}
-								"""))
-		);
+		stubFor(GraphQlStub.answering(GraphQlStub.sections("""
+				{
+				  "databaseId": 42, "name": "repo-rules",
+				  "target": "BRANCH", "enforcement": "ACTIVE",
+				  "source": {"__typename": "Repository"},
+				  "bypassActors": {"nodes": []},
+				  "rules": {"nodes": []}
+				}, {
+				  "databaseId": 99, "name": "org-rules",
+				  "target": "BRANCH", "enforcement": "ACTIVE",
+				  "source": {"__typename": "Organization"},
+				  "bypassActors": {"nodes": []},
+				  "rules": {"nodes": []}
+				}
+				""", null, null, true)));
 		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo/pages"))
 						.willReturn(aResponse().withStatus(404))
@@ -455,10 +445,6 @@ class RepositoryCheckerFetchStateTest {
 		);
 		stubFor(
 				get(urlPathEqualTo("/repos/owner/repo/properties/values"))
-						.willReturn(aResponse().withStatus(403))
-		);
-		stubFor(
-				get(urlPathEqualTo("/repos/owner/repo/collaborators"))
 						.willReturn(aResponse().withStatus(403))
 		);
 		stubFor(
