@@ -6,7 +6,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @GitHubEndpoint(
 		response = { "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}",
-				"GET /orgs/{org}/rulesets/{ruleset_id}" }
+				"GET /orgs/{org}/rulesets/{ruleset_id}" },
+		unmanaged = {
+				"rules[code_coverage] — a rule type GitHub added; Rule has no subtype for it, so it reaches the catch-all and nothing compares it",
+				"rules[code_quality] — a rule type GitHub added, as above",
+				"rules[copilot_code_review] — a rule type GitHub added, as above",
+				"rules[license_compliance_scanning] — a rule type GitHub added, as above" }
 )
 public record RulesetDetailsResponse(
 		long id,
@@ -29,11 +34,19 @@ public record RulesetDetailsResponse(
 		rules = rules == null ? null : List.copyOf(rules);
 	}
 
+	/**
+	 * Nothing compares this — it describes the token, not the ruleset — but it
+	 * is parsed, and a value with no constant here is an
+	 * {@code InvalidFormatException} that ends the repository's check. GitHub
+	 * added {@code exempt}; drifty read four values as three until
+	 * {@code GitHubApiContractTest} said so.
+	 */
 	public enum CurrentUserCanBypass {
 		@JsonProperty("always")
 		ALWAYS, @JsonProperty("pull_requests_only")
 		PULL_REQUESTS_ONLY, @JsonProperty("never")
-		NEVER
+		NEVER, @JsonProperty("exempt")
+		EXEMPT
 	}
 
 	public record BypassActor(

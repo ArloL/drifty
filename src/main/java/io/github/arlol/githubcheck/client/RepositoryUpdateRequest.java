@@ -14,7 +14,21 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * group's fix silently resets the others' settings.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@GitHubEndpoint(request = "PATCH /repos/{owner}/{repo}")
+@GitHubEndpoint(
+		request = "PATCH /repos/{owner}/{repo}",
+		unmanaged = {
+				"name — renaming changes the repository's identity, and config/drifty.pkl keys repositories by name; a rename is a new entry, not drift",
+				"private — visibility carries the same state plus internal, and is the field drifty compares",
+				"visibility — check-only per SPEC.md: reported when it drifts and never written, because a visibility change has consequences no config file can express",
+				"has_pull_requests — no drift group compares it",
+				"pull_request_creation_policy — no drift group compares it",
+				"use_squash_pr_title_as_default — deprecated by GitHub in favour of squash_merge_commit_title, which RepoSettingsDriftGroup does compare",
+				"security_and_analysis.secret_scanning_delegated_bypass_options.reviewers.mode — SecretScanningDelegatedBypassDriftGroup compares a reviewer by id and type; GitHub added mode and nothing compares it yet" },
+		undocumented = {
+				"has_discussions — GitHub accepts it on this PATCH and RepoSettingsDriftGroup writes it; the 2026-03-10 schema omits it",
+				"security_and_analysis.dependabot_security_updates — the same bit as /automated-security-fixes, which is the endpoint drifty writes; the PATCH schema omits it and the details response carries it",
+				"security_and_analysis.secret_scanning_validity_checks — GitHub returns and accepts it; the spec omits it from this schema" }
+)
 public record RepositoryUpdateRequest(
 		Boolean archived,
 		String description,

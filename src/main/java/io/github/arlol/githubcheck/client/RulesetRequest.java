@@ -9,7 +9,21 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 		request = { "POST /repos/{owner}/{repo}/rulesets",
 				"PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}",
 				"POST /orgs/{org}/rulesets",
-				"PUT /orgs/{org}/rulesets/{ruleset_id}" }
+				"PUT /orgs/{org}/rulesets/{ruleset_id}" },
+		unmanaged = {
+				"rules[pull_request].parameters.dismissal_restriction — no drift group compares it",
+				"rules[pull_request].parameters.required_reviewers — no drift group compares it",
+				"rules[required_status_checks].parameters.do_not_enforce_on_create — no drift group compares it",
+				"rules[code_coverage] — a rule type GitHub added; Rule has no subtype for it, so it reaches the catch-all and nothing compares it",
+				"rules[code_quality] — a rule type GitHub added, as above",
+				"rules[copilot_code_review] — a rule type GitHub added, as above",
+				"rules[license_compliance_scanning] — a rule type GitHub added, as above" },
+		undocumented = {
+				"rules[merge_queue] — Rule carries it for the repository endpoints, where the spec has the branch; the organization ruleset schema does not",
+				"conditions.repository_id — the organization endpoints accept it and OrgRulesetDriftGroup sends it; a repository ruleset has no condition beyond ref_name",
+				"conditions.repository_name — as above",
+				"conditions.repository_property — as above",
+				"target#repository — an organization ruleset may target repository; config/drifty.pkl refuses that target in Repository.rulesets, so the value never reaches the repository endpoints" }
 )
 public record RulesetRequest(
 		String name,

@@ -8,7 +8,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * The POST does not accept that null, so it uses {@link TeamCreateRequest}.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@GitHubEndpoint(request = "PATCH /orgs/{org}/teams/{team_slug}")
+@GitHubEndpoint(
+		request = "PATCH /orgs/{org}/teams/{team_slug}",
+		unmanaged = {
+				"parent_team_slug — drifty resolves a parent to an id and sends parent_team_id, which the same PATCH accepts and which removes a parent when null",
+				"permission — deprecated by GitHub; a team's repository access is written per repository, which CollaboratorsDriftGroup does" }
+)
 public record TeamRequest(
 		String name,
 		String description,

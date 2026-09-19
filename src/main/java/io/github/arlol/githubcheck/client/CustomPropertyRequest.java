@@ -12,7 +12,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @GitHubEndpoint(
-		request = "PUT /orgs/{org}/properties/schema/{custom_property_name}"
+		request = "PUT /orgs/{org}/properties/schema/{custom_property_name}",
+		unmanaged = {
+				"require_explicit_values — no drift group compares it and config/drifty.pkl has no field for it" }
 )
 public record CustomPropertyRequest(
 		String valueType,

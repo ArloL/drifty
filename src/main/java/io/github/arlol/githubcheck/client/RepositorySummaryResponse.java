@@ -4,7 +4,17 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@GitHubEndpoint(response = { "GET /user/repos", "GET /orgs/{org}/repos" })
+@GitHubEndpoint(
+		response = { "GET /user/repos", "GET /orgs/{org}/repos" },
+		undocumented = {
+				"has_commit_comments — GitHub returns it; the spec omits it from this listing",
+				"license.html_url — GitHub returns it on the nested license object; the spec omits it",
+				"network_count — GitHub returns it; the spec's Minimal Repository omits it",
+				"role_name — GitHub returns it; the spec's Minimal Repository omits it",
+				"subscribers_count — GitHub returns it; the spec's Minimal Repository omits it",
+				"security_and_analysis.secret_scanning_validity_checks — GitHub returns it and the spec omits it from this schema",
+				"security_and_analysis — in the spec for the organization listing and not for this one, and GitHub returned it on none of 101 repositories; the record shares one shape for both listings" }
+)
 public record RepositorySummaryResponse(
 		Long id,
 		String nodeId,

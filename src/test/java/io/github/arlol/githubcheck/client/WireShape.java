@@ -78,9 +78,20 @@ public final class WireShape {
 				: mapper.getSerializationConfig().introspect(type);
 		List<Property> properties = new ArrayList<>();
 		for (BeanPropertyDefinition property : description.findProperties()) {
-			properties.add(
-					new Property(property.getName(), property.getPrimaryType())
-			);
+			// A derived accessor is not a wire property when reading:
+			// CodeScanningDefaultSetupResponse.isEnabled() computes a boolean
+			// from `state`, and Jackson has nothing to deserialize it into.
+			// Going the other way it would be serialised, so it counts there.
+			boolean usable = forReading ? property.couldDeserialize()
+					: property.couldSerialize();
+			if (usable) {
+				properties.add(
+						new Property(
+								property.getName(),
+								property.getPrimaryType()
+						)
+				);
+			}
 		}
 		return properties;
 	}
