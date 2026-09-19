@@ -1,0 +1,51 @@
+{
+ "apiVersion": "fixture",
+ "endpoints": {
+  "PATCH /example/{id}": {
+   "request": {
+    "properties": {
+     "billing_email": {"type": "string"},
+     "description": {"nullable": true, "type": "string"},
+     "has_issues": {"type": "boolean"},
+     "merge_commit_title": {"enum": ["MERGE_MESSAGE", "PR_TITLE"], "type": "string"}
+    },
+    "type": "object"
+   },
+   "response": {
+    "properties": {
+     "config": {
+      "properties": {
+       "secret": {"type": "string"},
+       "url": {"type": "string"}
+      },
+      "type": "object"
+     },
+     "count": {"nullable": true, "type": "integer"},
+     "html_url": {"type": "string"},
+     "id": {"type": "integer"},
+     "name": {"type": "string"},
+     "rules": {
+      "items": {
+       "discriminator": "type",
+       "oneOf": {
+        "creation": {
+         "properties": {"type": {"enum": ["creation"], "type": "string"}},
+         "type": "object"
+        },
+        "deletion": {
+         "properties": {"type": {"enum": ["deletion"], "type": "string"}},
+         "type": "object"
+        }
+       },
+       "type": "object"
+      },
+      "type": "array"
+     },
+     "state": {"enum": ["configured", "not-configured"], "type": "string"}
+    },
+    "type": "object"
+   }
+  }
+ },
+ "specEtag": "fixture"
+}
