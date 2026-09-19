@@ -5,8 +5,12 @@ the native macOS binary and a warm state file. Reproduce with the
 instrumentation at the end before trusting any number here; GitHub's latency
 moves by ±20% between runs, so single runs decide nothing.
 
-A check was 3.34 s on 2026-09-19 and is 2.2 s after the changes below, or
-1.97 s with `--max-concurrent-requests 100`. It is not CPU-bound anywhere.
+A check was 3.34 s on 2026-09-19 and is 1.97 s after the changes below. It is
+not CPU-bound anywhere.
+
+The figures below were taken while the default was 90 permits, which is what
+the floors are computed against; the default is now GitHub's full 100 and
+`--max-concurrent-requests` lowers it.
 
 ## What bounds the run
 
@@ -16,7 +20,7 @@ at their limit.
 | term | measured | can it move |
 | --- | --- | --- |
 | latency | p50 249 ms, p95 450 ms | no — GitHub's, not drifty's |
-| permits | 90 | no — GitHub refuses past ~100 |
+| permits | 100 | no — GitHub refuses past ~100 |
 | requests | 742, now 519 | yes — the only lever left |
 
 **Roughly two thirds of a request is GitHub validating the token, and that is
@@ -95,14 +99,10 @@ Each of these was tried against the live API rather than reasoned about.
 
 ## What is left
 
-One thing, and it is a judgement rather than a measurement: the permit count.
-Interleaved three times against each other, 90 permits averaged 2.23 s and 100
-averaged 1.97 s, with 100 faster in every round and no request refused. 100 is
-what GitHub documents, and 90 is the room drifty leaves under it for anything
-else using the same token — which is why `--max-concurrent-requests` exists and
-why the default did not change.
-
-Nothing else has a number behind it. The floor is 1.75 s of in-flight time
+Nothing with a number behind it. The permit count was the last thing that had
+one — interleaved three times against each other, 90 permits averaged 2.23 s
+and 100 averaged 1.97 s, with 100 faster in every round and nothing refused —
+and drifty now asks for the whole hundred GitHub documents. The floor is 1.75 s of in-flight time
 divided by 90 permits, the fetch runs ~0.25 s above it, and the three terms
 that set it are where they were: GitHub's latency, GitHub's concurrency
 ceiling, and 519 requests.

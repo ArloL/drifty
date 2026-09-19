@@ -110,16 +110,16 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   `sendRequest` keeps the one pair of arms, and the permit is gone before any
   rate-limit pause, so a thread parked until the reset is not holding a stream.
   `GitHubClientConcurrencyTest` fails if more requests overlap than the limit.
-- **The ninety permits are a margin, and `--max-concurrent-requests` is how
-  it gets spent.** GitHub documents a hundred concurrent requests;
-  `MAX_CONCURRENT_REQUESTS` is ninety so that something else using the same
-  token is not refused because of drifty. Interleaved against each other three
-  times on the 101-repository `ArloL` account, ninety averaged 2.23s and a
-  hundred 1.97s with no refusal — so the margin is worth 12%, and whether it
-  can be spent is the operator's question, not drifty's. `GitHubCheck` refuses
-  a value past `CONCURRENCY_CEILING` rather than letting GitHub do it.
+- **Drifty asks for the whole of GitHub's hundred concurrent requests.** A
+  token given to drifty is normally drifty's alone, so
+  `MAX_CONCURRENT_REQUESTS` is the documented limit rather than a margin under
+  it: interleaved against each other three times on the 101-repository `ArloL`
+  account, ninety permits averaged 2.23s and a hundred 1.97s with nothing
+  refused. A token drifty shares is what wants the margin back, and
+  `--max-concurrent-requests` is how it is asked for. `GitHubCheck` refuses a
+  value past `CONCURRENCY_CEILING` rather than letting GitHub do it.
 - **The connection is opened before there is anything to send on it.** A check
-  starts ninety requests at once and every one of them waits out DNS, TCP and
+  starts a hundred requests at once and every one of them waits out DNS, TCP and
   TLS: the first wave answered in 413ms against the 237ms the rest of the run
   saw. `GitHubClient.warmUp` sends an unauthenticated `HEAD /` — the pool is
   keyed by host, not by credentials — and `main` calls it before evaluating
@@ -217,7 +217,7 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   the design and not evidence that it can go. The response cache is no help
   here either: a 304 is still a request and still costs its point. Three things
   follow. The wait is taken before the permit, so a paced thread is not sitting
-  on one of the ninety streams. `sendRequest` hands every pause to `backOffFor`
+  on one of the hundred streams. `sendRequest` hands every pause to `backOffFor`
   as well as sleeping it out, because `Thread.sleep` stops one thread and the
   limit belongs to the token — the other eighty-nine would spend the pause
   earning refusals of their own, and the three attempts would go to requests
@@ -284,9 +284,10 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
 - **The semaphore is the floor, so request count is the only lever left.**
   Tracing a check of the 101-repository `ArloL` account on 2026-09-19: 742
   requests before the GraphQL query replaced 268 of them, p50 latency 249ms,
-  and 77% of a 2.57s fetch window with 90 in flight. Wall clock is `requests × latency ÷ 90`, and every other term is at
-  its limit. Latency is GitHub's, and roughly two thirds of it is the token:
-  `GET /zen` resolves no permissions and reads no repository, and answers in
+  and 77% of a 2.57s fetch window saturated. Wall clock is
+  `requests × latency ÷ permits`, and every other term is at its limit.
+  Latency is GitHub's, and roughly two thirds of it is the token: `GET /zen`
+  resolves no permissions and reads no repository, and answers in
   95ms unauthenticated against 286ms authenticated over a 40ms round trip. That
   ~190ms is charged to every request whatever it asks for, and a fine-grained
   PAT and an OAuth token pay it alike — which is why dropping a request is
@@ -295,8 +296,9 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   200, 150 drew 11×403 and 270 drew 135×403. Depth is held at two levels by
   `RepositoryCheckerRequestShapeTest`. Conditional requests are not a lever
   either: a 304 costs what the 200 it replaces costs, so the response cache
-  buys rate-limit budget and no time. `FINDINGS.md` carries the measurements
-  and what is left to take.
+  buys rate-limit budget and no time.
+  `docs/performance/where-a-checks-time-goes.md` carries the measurements, the
+  dead ends and what is left to take.
 - **A GET drifty has seen before is asked conditionally, and GitHub does not
   charge the 304.** `GitHubClient.get` sends `If-None-Match` from the
   `ResponseCache` the state file implements, and `CachedHttpResponse` hands the

@@ -545,20 +545,18 @@ class GitHubCheckTest {
 	 * against each other rather than by eye.
 	 */
 	/**
-	 * The ninety permits {@code GitHubClient} bounds itself by are the margin
-	 * under GitHub's documented hundred, and they are worth about eleven per
-	 * cent of a check. Whether that margin can be spent depends on whether
-	 * anything else is using the same token at the same time, which drifty
-	 * cannot know and the person running it can.
+	 * Drifty asks for the whole of GitHub's documented hundred, because a token
+	 * given to it is normally its alone. Leaving a margin costs about twelve
+	 * per cent of a check, so it is asked for rather than assumed.
 	 */
 	@Test
-	void maxConcurrentRequests_defaultsToTheMarginAndIsSettable() {
-		assertThat(GitHubCheck.maxConcurrentRequests(List.of())).isEqualTo(90);
+	void maxConcurrentRequests_defaultsToGitHubsLimitAndIsSettable() {
+		assertThat(GitHubCheck.maxConcurrentRequests(List.of())).isEqualTo(100);
 		assertThat(
 				GitHubCheck.maxConcurrentRequests(
-						List.of("--max-concurrent-requests", "100")
+						List.of("--max-concurrent-requests", "60")
 				)
-		).isEqualTo(100);
+		).isEqualTo(60);
 	}
 
 	@Test

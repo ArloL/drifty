@@ -40,6 +40,14 @@ public class GitHubClient {
 	private static final String PATH_CODE_SCANNING_DEFAULT_SETUP = "/code-scanning/default-setup";
 
 	/**
+	 * What GitHub documents as the most concurrent requests one account may
+	 * have. Measured higher — 120 simultaneous requests were all answered and
+	 * 150 drew refusals — but the documented number is what drifty asks for and
+	 * the most {@code GitHubCheck} accepts being told to use.
+	 */
+	public static final int CONCURRENCY_CEILING = 100;
+
+	/**
 	 * GitHub answers over one HTTP/2 connection, and its
 	 * SETTINGS_MAX_CONCURRENT_STREAMS is 100. The JDK client does not queue
 	 * past that — {@code reserveStream0} throws {@code IOException: too many
@@ -47,20 +55,20 @@ public class GitHubClient {
 	 * than around the per-repository threads because every caller's requests
 	 * share the one connection.
 	 * <p>
-	 * 100 is therefore the ceiling and 90 is the working room under it. The
-	 * number only started to matter once {@code RepositoryChecker.fetchState}
-	 * stopped issuing one repository's requests in series: at 50 permits and a
-	 * 24-request chain the semaphore was never the limit, and raising it alone
-	 * bought 9.5s → 7.9s and nothing more.
+	 * 100 is therefore the ceiling, and drifty asks for all of it. It spent a
+	 * while at 90 — room under the limit for anything else using the same token
+	 * — and that margin costs 12%: interleaved three times on a 101-repository
+	 * account, 90 permits averaged 2.23s and 100 averaged 1.97s with nothing
+	 * refused. A token drifty shares is the case that wants the margin back,
+	 * and {@code --max-concurrent-requests} is how it is asked for.
+	 * <p>
+	 * The number only started to matter once
+	 * {@code RepositoryChecker.fetchState} stopped issuing one repository's
+	 * requests in series: at 50 permits and a 24-request chain the semaphore
+	 * was never the limit, and raising it alone bought 9.5s → 7.9s and nothing
+	 * more.
 	 */
-	public static final int MAX_CONCURRENT_REQUESTS = 90;
-
-	/**
-	 * What GitHub documents as the most concurrent requests one account may
-	 * have. Nothing here uses it; {@code GitHubCheck} refuses to be told to go
-	 * past it.
-	 */
-	public static final int CONCURRENCY_CEILING = 100;
+	public static final int MAX_CONCURRENT_REQUESTS = CONCURRENCY_CEILING;
 
 	/**
 	 * How many times one request is re-sent after a rate limit rejected it. A
