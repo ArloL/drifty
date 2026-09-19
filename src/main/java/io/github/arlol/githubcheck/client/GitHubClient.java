@@ -15,6 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -77,6 +78,15 @@ public class GitHubClient {
 	 */
 	private static final long PAUSE_REPORTED_WITHIN_MILLIS = 5_000;
 
+	/**
+	 * How long a request has to be held back by the pacer before the run says
+	 * so. Near the edge of the window a thread waits milliseconds for the point
+	 * ahead of it to age out, which is not news; a wait of this order means the
+	 * secondary limit, not the network, is what the run is spending its time
+	 * on.
+	 */
+	private static final long PACING_REPORTED_OVER_MILLIS = 1_000;
+
 	/** The {@code page} query parameter of a {@code Link} header URL. */
 	private static final Pattern PAGE_PARAM = Pattern
 			.compile("([?&]page=)(\\d+)");
@@ -106,12 +116,21 @@ public class GitHubClient {
 	 */
 	private final ResponseCache cache;
 	/**
+	 * What keeps the run inside the secondary limits. Mutable for the reason
+	 * {@link #inFlight} is: the schedule it hands out is shared by every thread
+	 * the checkers run, and a gate one of them raises has to hold the rest.
+	 */
+	private final RequestPacer pacer;
+	/**
 	 * When the pause this client last reported ends — see
 	 * {@link #PAUSE_REPORTED_WITHIN_MILLIS}. Mutable, unlike everything else
 	 * here, for the same reason {@link #inFlight} is: what it counts is shared
 	 * by every thread the checkers run.
 	 */
 	private final AtomicLong reportedPauseEnd = new AtomicLong();
+
+	/** Whether the run has already said that it is pacing itself. */
+	private final AtomicBoolean reportedPacing = new AtomicBoolean();
 
 	public GitHubClient(String token) {
 		this("https://api.github.com", token);
@@ -139,10 +158,21 @@ public class GitHubClient {
 			int maxConcurrentRequests,
 			ResponseCache cache
 	) {
+		this(baseUrl, token, maxConcurrentRequests, cache, new RequestPacer());
+	}
+
+	GitHubClient(
+			String baseUrl,
+			String token,
+			int maxConcurrentRequests,
+			ResponseCache cache,
+			RequestPacer pacer
+	) {
 		this.baseUrl = baseUrl;
 		this.token = token;
 		this.inFlight = new Semaphore(maxConcurrentRequests);
 		this.cache = cache;
+		this.pacer = pacer;
 		this.http = HttpClient.newBuilder()
 				.version(HttpClient.Version.HTTP_2)
 				.connectTimeout(Duration.ofSeconds(10))
@@ -2666,6 +2696,11 @@ public class GitHubClient {
 	 * secondary limit's 403 to the caller reported a group as unreadable that
 	 * had never been read, and there is no field of the response that says
 	 * which it was.
+	 * <p>
+	 * Either way the pause is handed to {@link RequestPacer} before this thread
+	 * sleeps it out, because the limit is the token's and not this request's:
+	 * the other eighty-nine threads have to stop too, or they spend the pause
+	 * collecting refusals of their own.
 	 */
 	private HttpResponse<String> sendRequest(HttpRequest request) {
 		try {
@@ -2675,6 +2710,7 @@ public class GitHubClient {
 				if (pause == null) {
 					return resp;
 				}
+				pacer.backOffFor(pause);
 				report(pause, request);
 				Thread.sleep(pause);
 				if (!rateLimited(resp) || attempt == RATE_LIMIT_ATTEMPTS) {
@@ -2699,10 +2735,12 @@ public class GitHubClient {
 	 * Sends one request, holding a permit for as long as it is in flight — see
 	 * {@link #MAX_CONCURRENT_REQUESTS}. The permit is gone by the time
 	 * {@code sendRequest} waits out a rate limit, so a thread parked until the
-	 * reset is not holding a stream while it waits.
+	 * reset is not holding a stream while it waits, and the pacer's own wait is
+	 * taken before the permit for the same reason.
 	 */
 	private HttpResponse<String> sendBounded(HttpRequest request)
 			throws IOException, InterruptedException {
+		reportPacing(pacer.awaitTurn(RequestPacer.pointsFor(request.method())));
 		inFlight.acquire();
 		try {
 			return http.send(request, HttpResponse.BodyHandlers.ofString());
@@ -2891,6 +2929,23 @@ public class GitHubClient {
 				request.method(),
 				request.uri().getPath(),
 				pause.toMillis() / 1000.0
+		);
+	}
+
+	/**
+	 * Says once that the run is being slowed on purpose. Without it a check of
+	 * an account past {@link RequestPacer#POINTS_PER_MINUTE} looks like a check
+	 * that has hung — the same silence an exhausted budget used to park a run
+	 * in, arrived at from the other direction.
+	 */
+	private void reportPacing(long waited) {
+		if (waited < PACING_REPORTED_OVER_MILLIS
+				|| !reportedPacing.compareAndSet(false, true)) {
+			return;
+		}
+		System.err.printf(
+				"Pacing requests to stay inside GitHub's secondary rate limit of %d points a minute. This check will take longer than the API alone would.%n",
+				RequestPacer.POINTS_PER_MINUTE
 		);
 	}
 
