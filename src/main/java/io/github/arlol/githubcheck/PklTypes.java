@@ -106,6 +106,9 @@ public final class PklTypes {
 		case REPOSITORY_ROLE ->
 			RulesetDetailsResponse.BypassActor.ActorType.REPOSITORY_ROLE;
 		case TEAM -> RulesetDetailsResponse.BypassActor.ActorType.TEAM;
+		case DEPLOY_KEY ->
+			RulesetDetailsResponse.BypassActor.ActorType.DEPLOY_KEY;
+		case USER -> RulesetDetailsResponse.BypassActor.ActorType.USER;
 		};
 	}
 
@@ -116,6 +119,7 @@ public final class PklTypes {
 		case ALWAYS -> RulesetDetailsResponse.BypassActor.BypassMode.ALWAYS;
 		case PULL_REQUEST ->
 			RulesetDetailsResponse.BypassActor.BypassMode.PULL_REQUEST;
+		case EXEMPT -> RulesetDetailsResponse.BypassActor.BypassMode.EXEMPT;
 		};
 	}
 

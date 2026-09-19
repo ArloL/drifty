@@ -44,7 +44,8 @@ final class GraphQlQuery {
 			  conditions { refName { include exclude } }
 			  bypassActors(first: 100) { nodes {
 			    bypassMode repositoryRoleDatabaseId organizationAdmin deployKey
-			    actor { __typename ... on App { databaseId } ... on Team { databaseId } }
+			    actor { __typename ... on App { databaseId } ... on Team { databaseId }
+			        ... on User { databaseId } }
 			  } }
 			  rules(first: 100) { nodes { type parameters { __typename
 			    ... on PullRequestParameters { requiredApprovingReviewCount

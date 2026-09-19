@@ -402,10 +402,10 @@ public final class RulesetExporter {
 	}
 
 	/**
-	 * {@code actorId} is null for an {@code OrganizationAdmin} bypass actor —
-	 * GitHub identifies that actor by role alone — so it is written as an
-	 * explicit {@code null} via the nullable overload rather than the primitive
-	 * one, which would NPE unboxing it.
+	 * {@code actorId} is null for an {@code OrganizationAdmin} or
+	 * {@code DeployKey} bypass actor, so it is written as an explicit
+	 * {@code null} via the nullable overload rather than the primitive one,
+	 * which would NPE unboxing it.
 	 */
 	private static PklNode.Obj bypassActor(ActualRuleset.BypassActor actor) {
 		return new PklNode.Obj(

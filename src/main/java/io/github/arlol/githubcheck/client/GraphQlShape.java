@@ -219,7 +219,6 @@ final class GraphQlShape {
 		out.put("bypass_mode", wire(actor.path("bypassMode").asText(null)));
 		if (actor.path("organizationAdmin").asBoolean()) {
 			out.put("actor_type", "OrganizationAdmin");
-			out.put("actor_id", 1);
 			return out;
 		}
 		if (actor.path("deployKey").asBoolean()) {

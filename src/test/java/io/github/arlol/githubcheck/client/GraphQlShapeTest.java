@@ -285,7 +285,7 @@ class GraphQlShapeTest {
 
 	/**
 	 * REST names a bypass actor with an {@code actor_type} string and an id;
-	 * GraphQL uses a union for two of the four and a boolean for the others.
+	 * GraphQL uses a union for three of the six and a boolean for the others.
 	 */
 	@Test
 	void everyShapeOfBypassActorKeepsItsTypeAndId() {
@@ -306,7 +306,13 @@ class GraphQlShapeTest {
 				   "actor": {"__typename": "Team", "databaseId": 11}},
 				  {"bypassMode": "ALWAYS", "organizationAdmin": false,
 				   "deployKey": false, "repositoryRoleDatabaseId": null,
-				   "actor": {"__typename": "App", "databaseId": 22}}
+				   "actor": {"__typename": "App", "databaseId": 22}},
+				  {"bypassMode": "EXEMPT", "organizationAdmin": false,
+				   "deployKey": false, "repositoryRoleDatabaseId": null,
+				   "actor": {"__typename": "User", "databaseId": 33}},
+				  {"bypassMode": "ALWAYS", "organizationAdmin": false,
+				   "deployKey": true, "repositoryRoleDatabaseId": null,
+				   "actor": null}
 				]}
 				""").bypassActors();
 
@@ -319,7 +325,7 @@ class GraphQlShapeTest {
 				.containsExactly(
 						org.assertj.core.groups.Tuple.tuple(
 								RulesetDetailsResponse.BypassActor.ActorType.ORGANIZATION_ADMIN,
-								1L,
+								null,
 								RulesetDetailsResponse.BypassActor.BypassMode.ALWAYS
 						),
 						org.assertj.core.groups.Tuple.tuple(
@@ -335,6 +341,16 @@ class GraphQlShapeTest {
 						org.assertj.core.groups.Tuple.tuple(
 								RulesetDetailsResponse.BypassActor.ActorType.INTEGRATION,
 								22L,
+								RulesetDetailsResponse.BypassActor.BypassMode.ALWAYS
+						),
+						org.assertj.core.groups.Tuple.tuple(
+								RulesetDetailsResponse.BypassActor.ActorType.USER,
+								33L,
+								RulesetDetailsResponse.BypassActor.BypassMode.EXEMPT
+						),
+						org.assertj.core.groups.Tuple.tuple(
+								RulesetDetailsResponse.BypassActor.ActorType.DEPLOY_KEY,
+								null,
 								RulesetDetailsResponse.BypassActor.BypassMode.ALWAYS
 						)
 				);

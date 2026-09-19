@@ -12,8 +12,9 @@ typealias AlertsThreshold = "none" | "errors" | "errors_and_warnings" | "all"
 typealias SecurityAlertsThreshold =
   "none" | "critical" | "high_or_higher" | "medium_or_higher" | "all"
 typealias PatternOperator = "starts_with" | "ends_with" | "contains" | "regex"
-typealias ActorType = "Integration" | "OrganizationAdmin" | "RepositoryRole" | "Team"
-typealias BypassMode = "always" | "pull_request"
+typealias ActorType =
+  "Integration" | "OrganizationAdmin" | "RepositoryRole" | "Team" | "DeployKey" | "User"
+typealias BypassMode = "always" | "pull_request" | "exempt"
 typealias SecretScanningBypassReviewerType = "TEAM" | "ROLE"
 typealias SquashMergeCommitTitle = "PR_TITLE" | "COMMIT_OR_PR_TITLE"
 typealias SquashMergeCommitMessage = "PR_BODY" | "COMMIT_MESSAGES" | "BLANK"
@@ -120,7 +121,8 @@ class RulePattern {
 }
 
 class BypassActor {
-  actorId: Int
+  /// Null for "OrganizationAdmin" and "DeployKey", which GitHub gives no id.
+  actorId: Int?((this == null) == (actorType is "OrganizationAdmin" | "DeployKey"))
   actorType: ActorType
   bypassMode: BypassMode
 }

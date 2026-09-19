@@ -246,7 +246,7 @@ class ActualTypesTest {
 		);
 
 		assertThat(ActualTypes.ruleset(response).bypassActors()).singleElement()
-				.hasToString("TEAM:5:ALWAYS");
+				.hasToString("Team:5:always");
 	}
 
 	// ─── Branch protection

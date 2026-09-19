@@ -416,12 +416,36 @@ public final class ActualTypes {
 				.stream()
 				.map(
 						a -> new ActualRuleset.BypassActor(
-								String.valueOf(a.actorType()),
+								wire(a.actorType()),
 								a.actorId(),
-								String.valueOf(a.bypassMode())
+								wire(a.bypassMode())
 						)
 				)
 				.toList();
+	}
+
+	/** Not {@link #wire(Enum)}: these are PascalCase on the wire. */
+	private static String wire(
+			RulesetDetailsResponse.BypassActor.ActorType type
+	) {
+		return switch (type) {
+		case INTEGRATION -> "Integration";
+		case ORGANIZATION_ADMIN -> "OrganizationAdmin";
+		case REPOSITORY_ROLE -> "RepositoryRole";
+		case TEAM -> "Team";
+		case DEPLOY_KEY -> "DeployKey";
+		case USER -> "User";
+		};
+	}
+
+	private static String wire(
+			RulesetDetailsResponse.BypassActor.BypassMode mode
+	) {
+		return switch (mode) {
+		case ALWAYS -> "always";
+		case PULL_REQUEST -> "pull_request";
+		case EXEMPT -> "exempt";
+		};
 	}
 
 	// ─── Branch protection
