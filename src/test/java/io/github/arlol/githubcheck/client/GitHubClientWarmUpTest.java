@@ -17,11 +17,11 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
 /**
- * The run's first ninety requests go out together and every one of them holds a
- * permit while the connection they share is still being opened. Traced on a
- * 101-repository account, that first wave answered in 413ms against the 235ms
- * the rest of the run saw — DNS, TCP and TLS, paid once but waited for ninety
- * times over.
+ * The run's first wave of requests goes out together and every one of them
+ * holds a permit while the connection they share is still being opened. Traced
+ * on a 101-repository account, that first wave answered in 413ms against the
+ * 235ms the rest of the run saw — DNS, TCP and TLS, paid once but waited for
+ * once per permit.
  */
 @WireMockTest
 class GitHubClientWarmUpTest {

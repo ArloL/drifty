@@ -79,10 +79,10 @@ class GitHubClientPacingTest {
 
 	/**
 	 * The limit belongs to the token, not to the request that happened to be
-	 * refused: a run has up to ninety requests in flight, and the eighty-nine
-	 * that were not refused have to stop too. Measured on when GitHub received
-	 * the second request rather than on what the caller waited, because that is
-	 * the thing the limit counts.
+	 * refused: a run has up to a hundred requests in flight, and those that
+	 * were not refused have to stop too. Measured on when GitHub received the
+	 * second request rather than on what the caller waited, because that is the
+	 * thing the limit counts.
 	 */
 	@Test
 	void aRefusedRequestHoldsBackAThreadThatHasNotSentYet() throws Exception {

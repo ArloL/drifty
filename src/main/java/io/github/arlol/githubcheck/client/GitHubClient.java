@@ -90,7 +90,7 @@ public class GitHubClient {
 	/**
 	 * How close two pauses have to be to count as the same one for reporting.
 	 * Every thread holding a permit hits the same reset within milliseconds of
-	 * the others, and ninety identical lines say no more than one.
+	 * the others, and one line per permit says no more than one.
 	 */
 	private static final long PAUSE_REPORTED_WITHIN_MILLIS = 5_000;
 
@@ -127,8 +127,8 @@ public class GitHubClient {
 	 * A final reference, but not an immutable object: {@link #get} writes to it
 	 * on every request. {@code DriftyState} is what backs it, and its own
 	 * fields are a {@code ConcurrentHashMap} for the same reason
-	 * {@link #inFlight} and {@link #reportedPauseEnd} are mutable — ninety
-	 * threads share it.
+	 * {@link #inFlight} and {@link #reportedPauseEnd} are mutable — every
+	 * thread the checkers run shares it.
 	 */
 	private final ResponseCache cache;
 	/**
@@ -220,7 +220,7 @@ public class GitHubClient {
 	 * Opens the connection the whole run shares, before there is a request to
 	 * send on it.
 	 * <p>
-	 * A check starts ninety requests at once and every one of them waits out
+	 * A check starts a hundred requests at once and every one of them waits out
 	 * DNS, TCP and TLS on the connection they share: traced on a 101-repository
 	 * account the first wave answered in 413ms against the 237ms the rest of
 	 * the run saw. Sending anything at all first moves that handshake off the
@@ -2720,8 +2720,8 @@ public class GitHubClient {
 	 * <p>
 	 * Either way the pause is handed to {@link RequestPacer} before this thread
 	 * sleeps it out, because the limit is the token's and not this request's:
-	 * the other eighty-nine threads have to stop too, or they spend the pause
-	 * collecting refusals of their own.
+	 * every other thread has to stop too, or they spend the pause collecting
+	 * refusals of their own.
 	 */
 	private HttpResponse<String> sendRequest(HttpRequest request) {
 		try {

@@ -20,16 +20,17 @@ import java.util.function.LongSupplier;
  * points before it is sent, and a reservation is scheduled far enough ahead
  * that no 60-second window ever holds more than {@link #POINTS_PER_MINUTE} of
  * them, so an account big enough to exceed the limit is slowed rather than
- * refused. A run that fits in the window — the 742 points a 101-repository
- * account costs — is not slowed at all: every reservation comes back due now.
+ * refused. A run that fits in the window — the 519 points a 101-repository
+ * account cost when this was traced on 2026-09-19 — is not slowed at all: every
+ * reservation comes back due now.
  * <p>
  * The gate is the backstop for when GitHub says to wait anyway, because
  * something else is spending the same token's budget or because its accounting
  * of the window is not ours. One refusal parks every thread, which is the part
- * a per-thread sleep cannot do: ninety threads share one client, so the
- * eighty-nine that were not refused would otherwise keep sending into a limit
- * GitHub has just said is tripped, and the three attempts would be spent on
- * requests that never had a chance.
+ * a per-thread sleep cannot do: every thread the checkers run shares one
+ * client, so those that were not refused would otherwise keep sending into a
+ * limit GitHub has just said is tripped, and the three attempts would be spent
+ * on requests that never had a chance.
  */
 final class RequestPacer {
 
@@ -139,7 +140,7 @@ final class RequestPacer {
 
 	/**
 	 * Holds every thread — this one included — off the API for {@code pause}.
-	 * Taking the later of the two rather than adding is what keeps ninety
+	 * Taking the later of the two rather than adding is what keeps a hundred
 	 * threads reporting the same refusal from compounding it into an hour.
 	 */
 	synchronized void backOffFor(Duration pause) {
