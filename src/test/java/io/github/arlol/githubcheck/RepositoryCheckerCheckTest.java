@@ -251,7 +251,7 @@ class RepositoryCheckerCheckTest {
 	@Test
 	void theGithubPagesEnvironmentIsNotExtraWhenTheConfigDeclaresPages()
 			throws Exception {
-		stubOwner("alpha", "one");
+		stubOwner("alpha", "one", true);
 		stubRepoSubResources();
 		stubFor(
 				get(urlPathEqualTo("/repos/alpha/one/environments"))
@@ -471,6 +471,30 @@ class RepositoryCheckerCheckTest {
 	}
 
 	/**
+	 * Branch protection needs a paid plan on a private repository, so the read
+	 * is only sent for a public one — and which it is comes from the config,
+	 * the way {@code archived} does. Reading it off {@code GET
+	 * /repos/{owner}/{repo}} instead would put the branch listing behind that
+	 * response and each branch's protection behind the listing, a third level
+	 * on every repository in the account.
+	 */
+	@Test
+	void theConfigSaysWhetherToReadBranchProtection() throws Exception {
+		stubFor(get(urlPathEqualTo("/orgs/alpha/repos")).willReturn(okJson("""
+				[{"name": "one", "archived": false, "visibility": "public"}]
+				""")));
+		stubFor(
+				get(urlPathEqualTo("/repos/alpha/one"))
+						.willReturn(okJson(details("one")))
+		);
+		stubRepoSubResources();
+
+		check("alpha", entry("one"));
+
+		verify(0, getRequestedFor(urlPathEqualTo("/repos/alpha/one/branches")));
+	}
+
+	/**
 	 * The same listing is what reports the drift when the repository is not
 	 * archived yet, so narrowing the fetch away does not narrow the report.
 	 */
@@ -527,6 +551,14 @@ class RepositoryCheckerCheckTest {
 
 	/** One owner with one repository, plus that repository's details. */
 	private static void stubOwner(String owner, String repo) {
+		stubOwner(owner, repo, false);
+	}
+
+	/**
+	 * {@code has_pages} is read off the details response, not off the account
+	 * listing, so a repository with a Pages site has to say so here.
+	 */
+	private static void stubOwner(String owner, String repo, boolean hasPages) {
 		stubFor(
 				get(urlPathEqualTo("/orgs/" + owner + "/repos")).willReturn(
 						okJson(
@@ -539,11 +571,15 @@ class RepositoryCheckerCheckTest {
 		);
 		stubFor(
 				get(urlPathEqualTo("/repos/" + owner + "/" + repo))
-						.willReturn(okJson(details(repo)))
+						.willReturn(okJson(details(repo, hasPages)))
 		);
 	}
 
 	private static String details(String name) {
+		return details(name, false);
+	}
+
+	private static String details(String name, boolean hasPages) {
 		return """
 				{
 					"id": 1,
@@ -559,7 +595,7 @@ class RepositoryCheckerCheckTest {
 					"has_projects": true,
 					"has_wiki": true,
 					"has_discussions": false,
-					"has_pages": false,
+					"has_pages": %s,
 					"allow_forking": true,
 					"web_commit_signoff_required": false,
 					"allow_squash_merge": true,
@@ -569,7 +605,7 @@ class RepositoryCheckerCheckTest {
 					"delete_branch_on_merge": false,
 					"allow_update_branch": false
 				}
-				""".formatted(name);
+				""".formatted(name, hasPages);
 	}
 
 	/**

@@ -223,10 +223,31 @@ public class GitHubClient {
 	}
 
 	/**
+	 * The same listing, asked for on a virtual thread so the caller can be
+	 * reading repositories while it arrives.
+	 * <p>
+	 * The config names every repository a check reads, so the listing is not
+	 * what says which ones to start — it answers what GitHub has that the
+	 * config does not declare, and what it declares that GitHub does not have.
+	 * Waiting for it was 596ms of a traced 3.09s fetch with fewer than ten
+	 * requests in flight.
+	 * <p>
+	 * The thread runs to completion whether or not anyone joins it, and a
+	 * listing that failed throws out of the supplier rather than out of this.
+	 */
+	public Supplier<List<RepositorySummaryResponse>> listUserReposAsync(
+			String login
+	) {
+		var listing = new FutureTask<>(() -> listUserRepos(login));
+		Thread.ofVirtual().name("drifty-listing").start(listing);
+		return () -> await(listing);
+	}
+
+	/**
 	 * The same listing, with its first page handed back before the pages after
 	 * it have arrived — see {@link PagedRepositories}.
 	 */
-	public PagedRepositories listUserReposPaged(String login) {
+	private PagedRepositories listUserReposPaged(String login) {
 		HttpResponse<String> resp = get(
 				baseUrl + "/user/repos?per_page=100&type=owner"
 		);
@@ -273,16 +294,16 @@ public class GitHubClient {
 	 * @param firstPage the repositories page one named
 	 * @param rest      every repository after them, joined when asked for
 	 */
-	public record PagedRepositories(
+	private record PagedRepositories(
 			List<RepositorySummaryResponse> firstPage,
 			Supplier<List<RepositorySummaryResponse>> rest
 	) {
 
-		public PagedRepositories {
+		private PagedRepositories {
 			firstPage = List.copyOf(firstPage);
 		}
 
-		public List<RepositorySummaryResponse> all() {
+		private List<RepositorySummaryResponse> all() {
 			var all = new ArrayList<>(firstPage);
 			all.addAll(rest.get());
 			return List.copyOf(all);
