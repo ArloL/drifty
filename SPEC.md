@@ -131,10 +131,10 @@ drifty                 # Report drift; loads ./drifty.pkl by default
 drifty --fix           # Apply all fixable changes
 drifty --config <path> # Use a config file at an explicit path
 drifty --state <path>  # Use a state file at an explicit path
-drifty --export <login>... # Write a config from what the accounts already have
-drifty --out <path>    # Where --export writes. Default: ./export.pkl
+drifty --export <login>...  # Write a config from what those accounts have
+drifty --out <path>    # Where --export writes; default ./export.pkl
 drifty --schema <uri>  # The schema --export amends and omits defaults from
-drifty --max-concurrent-requests <n> # In-flight requests, 1 to 100. Default: 100
+drifty --max-concurrent-requests <n>  # 1 to 100; default 100
 drifty --self-test     # Run the token- and network-free smoke test
 drifty --version       # Print the version
 drifty --help          # Print the usage; -h is the same flag
@@ -878,7 +878,7 @@ Drifty stays inside the secondary limits by construction rather than by being re
 | Secondary limit | What drifty does |
 |---|---|
 | 900 points a minute | `RequestPacer` books a request's points before it is sent and schedules it so that no 60-second window holds more than 900. A check that fits in the window is not slowed at all; one that does not is spread out rather than refused |
-| 100 concurrent requests | The in-flight cap below, which is set to this same hundred and which the single HTTP/2 connection needs anyway |
+| 100 concurrent requests | The in-flight cap below, set to this same hundred, which the single HTTP/2 connection needs anyway |
 | 90 seconds of CPU per 60 | Nothing — no response reports server CPU, and response time is a poor proxy for it. A refusal is what drifty learns from here |
 
 The response cache buys nothing against these: a 304 is still a request and still costs its point. What the pacing costs is wall clock on an account past the limit — a 2000-point check takes over two minutes whatever the network does — and one line on stderr saying that is what is happening.

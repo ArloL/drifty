@@ -80,7 +80,9 @@ configuration created with only a name report no drift; guessing this one
 would make drifty report drift on configurations nobody has touched, in
 whichever direction the guess was wrong.
 
-**Waiting on:** one live read, not an upstream change. Run drifty against an
+**Waiting on:** one live read, not an upstream change, and not one drifty's
+own account can make — `ArloL` is a personal account, and code security
+configurations exist only on an organization. Run drifty against an
 organization with a configuration created bare, or:
 
 ```bash
