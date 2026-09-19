@@ -10,6 +10,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * carried under {@code selected} visibility.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(
+		request = { "POST /orgs/{org}/actions/variables",
+				"PATCH /orgs/{org}/actions/variables/{name}" }
+)
 public record OrgVariableRequest(
 		String name,
 		String value,

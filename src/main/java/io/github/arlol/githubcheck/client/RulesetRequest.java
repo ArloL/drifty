@@ -5,6 +5,12 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@GitHubEndpoint(
+		request = { "POST /repos/{owner}/{repo}/rulesets",
+				"PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}",
+				"POST /orgs/{org}/rulesets",
+				"PUT /orgs/{org}/rulesets/{ruleset_id}" }
+)
 public record RulesetRequest(
 		String name,
 		RulesetTarget target,

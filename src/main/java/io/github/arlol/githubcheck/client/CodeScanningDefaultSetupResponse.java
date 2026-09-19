@@ -2,6 +2,9 @@ package io.github.arlol.githubcheck.client;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@GitHubEndpoint(
+		response = "GET /repos/{owner}/{repo}/code-scanning/default-setup"
+)
 public record CodeScanningDefaultSetupResponse(
 		State state
 ) {

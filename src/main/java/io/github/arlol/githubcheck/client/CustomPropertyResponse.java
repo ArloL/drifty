@@ -9,6 +9,7 @@ import java.util.List;
  * finds and {@code ActualTypes} sorts it out. {@code source_type} says whether
  * the organization or its enterprise owns the definition.
  */
+@GitHubEndpoint(response = "GET /orgs/{org}/properties/schema")
 public record CustomPropertyResponse(
 		String propertyName,
 		String sourceType,

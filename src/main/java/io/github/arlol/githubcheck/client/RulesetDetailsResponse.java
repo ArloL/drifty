@@ -4,6 +4,10 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@GitHubEndpoint(
+		response = { "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}",
+				"GET /orgs/{org}/rulesets/{ruleset_id}" }
+)
 public record RulesetDetailsResponse(
 		long id,
 		String name,

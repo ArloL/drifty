@@ -14,6 +14,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * field and always sent.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(
+		request = { "POST /orgs/{org}/code-security/configurations",
+				"PATCH /orgs/{org}/code-security/configurations/{configuration_id}" }
+)
 public record CodeSecurityConfigurationRequest(
 		String name,
 		String description,

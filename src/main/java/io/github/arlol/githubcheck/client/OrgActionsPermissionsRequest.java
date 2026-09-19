@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * the other two stay nullable so an unset one is left as GitHub has it.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(request = "PUT /orgs/{org}/actions/permissions")
 public record OrgActionsPermissionsRequest(
 		ActionsEnabledRepositories enabledRepositories,
 		AllowedActions allowedActions,

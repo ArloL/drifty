@@ -4,6 +4,9 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+@GitHubEndpoint(
+		request = "PUT /repos/{owner}/{repo}/branches/{branch}/protection"
+)
 public record BranchProtectionRequest(
 		RequiredStatusChecks requiredStatusChecks,
 		boolean enforceAdmins,

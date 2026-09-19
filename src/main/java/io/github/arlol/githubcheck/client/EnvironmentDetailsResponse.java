@@ -4,6 +4,9 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@GitHubEndpoint(
+		response = "GET /repos/{owner}/{repo}/environments/{environment_name}"
+)
 public record EnvironmentDetailsResponse(
 		String name,
 		List<ProtectionRule> protectionRules,

@@ -3,6 +3,7 @@ package io.github.arlol.githubcheck.client;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(request = "POST /user/repos")
 public record RepositoryCreateRequest(
 		String name,
 		String description,

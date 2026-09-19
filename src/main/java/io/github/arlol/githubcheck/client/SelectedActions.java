@@ -6,6 +6,10 @@ import java.util.List;
  * {@code GET|PUT /orgs/{org}/actions/permissions/selected-actions}. Same shape
  * in the response and the request, like {@link WorkflowPermissions}.
  */
+@GitHubEndpoint(
+		request = "PUT /orgs/{org}/actions/permissions/selected-actions",
+		response = "GET /orgs/{org}/actions/permissions/selected-actions"
+)
 public record SelectedActions(
 		boolean githubOwnedAllowed,
 		boolean verifiedAllowed,

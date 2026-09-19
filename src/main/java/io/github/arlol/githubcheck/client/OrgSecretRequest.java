@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * list GitHub would reject for any other visibility.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(request = "PUT /orgs/{org}/actions/secrets/{secret_name}")
 public record OrgSecretRequest(
 		String encryptedValue,
 		String keyId,

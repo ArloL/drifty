@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * so a top-level team can only be created by leaving the field out.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(request = "POST /orgs/{org}/teams")
 public record TeamCreateRequest(
 		String name,
 		String description,

@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * writable setting back to its config value on every fix run.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(request = "PATCH /orgs/{org}")
 public record OrganizationUpdateRequest(
 		String name,
 		String description,

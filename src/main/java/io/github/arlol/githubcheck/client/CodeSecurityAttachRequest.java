@@ -6,6 +6,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 /** Body of {@code POST .../code-security/configurations/{id}/attach}. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(
+		request = "POST /orgs/{org}/code-security/configurations/{configuration_id}/attach"
+)
 public record CodeSecurityAttachRequest(
 		String scope,
 		List<Long> selectedRepositoryIds

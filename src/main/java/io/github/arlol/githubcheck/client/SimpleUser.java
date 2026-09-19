@@ -2,6 +2,7 @@ package io.github.arlol.githubcheck.client;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@GitHubEndpoint(response = "GET /users/{username}")
 public record SimpleUser(
 		String login,
 		Long id,

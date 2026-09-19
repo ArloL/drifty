@@ -4,6 +4,9 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@GitHubEndpoint(
+		response = "GET /repos/{owner}/{repo}/branches/{branch}/protection"
+)
 public record BranchProtectionResponse(
 		String url, // optional
 		Boolean enabled, // optional

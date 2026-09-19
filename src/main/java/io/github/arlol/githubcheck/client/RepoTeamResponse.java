@@ -6,6 +6,7 @@ package io.github.arlol.githubcheck.client;
  * {@code access_source} says whether the team was granted access directly or
  * reaches the repository through its organization or enterprise.
  */
+@GitHubEndpoint(response = "GET /repos/{owner}/{repo}/teams")
 public record RepoTeamResponse(
 		String slug,
 		String permission,

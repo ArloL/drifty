@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * group's fix silently resets the others' settings.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(request = "PATCH /repos/{owner}/{repo}")
 public record RepositoryUpdateRequest(
 		Boolean archived,
 		String description,

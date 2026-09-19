@@ -7,6 +7,7 @@ import java.util.List;
  * to set. A value is a string or, for a {@code multi_select} property, a list
  * of strings.
  */
+@GitHubEndpoint(request = "PATCH /repos/{owner}/{repo}/properties/values")
 public record CustomPropertyValuesRequest(
 		List<Property> properties
 ) {
