@@ -19,12 +19,19 @@ at their limit.
 | permits | 90 | no — GitHub refuses past ~100 |
 | requests | 742, now 519 | yes — the only lever left |
 
-Latency is not the token or the client. The same `GET /repos/ArloL/drifty`
-answers in 115 ms unauthenticated and 400 ms authenticated over a connection
-whose round trip is 40 ms, and an OAuth token is exactly as slow as a
-fine-grained PAT. A 304 costs what the 200 it replaces costs, so the response
-cache buys rate-limit budget and no wall clock — 197.4 s of in-flight time warm
-against 199.9 s cold.
+**Roughly two thirds of a request is GitHub validating the token, and that is
+why request count is the only lever.** `GET /zen` returns a sentence, resolves
+no permissions and reads no repository: it answers in 95 ms unauthenticated and
+286 ms authenticated, over a connection whose round trip is 40 ms. The ~190 ms
+between them is charged to every request drifty sends, whatever it asks for. A
+fine-grained PAT and an OAuth token pay it alike (286 ms against 338 ms on the
+same endpoint, interleaved), so it is not the token class.
+
+A 304 costs what the 200 it replaces costs, so the response cache buys
+rate-limit budget and no wall clock. Measured properly on one warm connection,
+40 pairs alternating which went first: 339 ms ± 10 against 363 ms ± 26, with
+the conditional request faster in 19 of the 40. Sequential `curl` calls suggest
+otherwise and are measuring a fresh connection each time, not the request.
 
 The permit count is at the ceiling. Firing simultaneous authenticated requests
 at one account: 120 all answered 200, 150 drew 11×403, 270 drew 135×403.
@@ -80,7 +87,9 @@ Each of these was tried against the live API rather than reasoned about.
 | A second connection for the GraphQL queries | nothing there either, and the reason to want one does not hold. A GraphQL response is 2.3 KB where a conditional GET's is headers, so the guess was that it delays the REST streams behind it on the shared connection. Measured over a real check: REST latency against how many GraphQL queries were in flight beside it is 242 ms at 10–19 and 230 ms at 20–29, against 244 ms overall |
 | More permits than 90 | 99 works and buys 8%, but 100 is GitHub's documented ceiling and 90 is the whole of the run's margin |
 | One GraphQL query for the whole account | 6.5 s. The per-query floor is paid once but ~0.15 s per repository is not |
-| Conditional requests, for time | a 304 costs what a 200 costs |
+| Conditional requests, for time | a 304 costs what a 200 costs — 40 alternating pairs on one warm connection, conditional faster in 19 of them |
+| Skipping `/environments` for repositories GraphQL says have none | a net loss. It saves 19 requests of 519 and puts `/environments` behind the query, which puts each environment's secrets and variables at a third level — a round trip added to 26 repositories to save one on 19 |
+| A faster token | there isn't one. The ~190 ms validation is the same for a fine-grained PAT and an OAuth token |
 | Dropping `GET /repos/{owner}/{repo}` for the listing's copy | the listing is a `Minimal Repository` and omits most of what `RepoSettingsDriftGroup` compares |
 | Skipping repositories whose `updated_at` has not moved | rulesets, secrets, webhooks, environments and collaborators do not move it |
 

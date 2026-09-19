@@ -285,9 +285,12 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   Tracing a check of the 101-repository `ArloL` account on 2026-09-19: 742
   requests before the GraphQL query replaced 268 of them, p50 latency 249ms,
   and 77% of a 2.57s fetch window with 90 in flight. Wall clock is `requests × latency ÷ 90`, and every other term is at
-  its limit. Latency is GitHub's — the same endpoint answers in 115ms
-  unauthenticated and 400ms authenticated over a 40ms round trip, and an OAuth
-  token is no faster than a fine-grained PAT. The permit count is at GitHub's
+  its limit. Latency is GitHub's, and roughly two thirds of it is the token:
+  `GET /zen` resolves no permissions and reads no repository, and answers in
+  95ms unauthenticated against 286ms authenticated over a 40ms round trip. That
+  ~190ms is charged to every request whatever it asks for, and a fine-grained
+  PAT and an OAuth token pay it alike — which is why dropping a request is
+  worth so much more than making one cheaper. The permit count is at GitHub's
   documented 100-concurrent ceiling: 120 simultaneous requests all answered
   200, 150 drew 11×403 and 270 drew 135×403. Depth is held at two levels by
   `RepositoryCheckerRequestShapeTest`. Conditional requests are not a lever
