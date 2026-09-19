@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import io.github.arlol.githubcheck.ConfigSpelling;
 import io.github.arlol.githubcheck.FetchFailures;
 import io.github.arlol.githubcheck.OrganizationState;
 import io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration;
@@ -18,10 +19,6 @@ import io.github.arlol.githubcheck.actual.ActualSelectedActions;
 import io.github.arlol.githubcheck.actual.ActualTeam;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
-import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
-import io.github.arlol.githubcheck.client.AllowedActions;
-import io.github.arlol.githubcheck.client.SecretVisibility;
-import io.github.arlol.githubcheck.client.WorkflowPermissions.DefaultWorkflowPermissions;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
 /**
@@ -275,12 +272,12 @@ public final class AccountExporter {
 				Fields.members(
 						Fields.field(
 								"enabledRepositories",
-								wire(actual.enabledRepositories()),
+								ConfigSpelling.of(actual.enabledRepositories()),
 								base.enabledRepositories.toString()
 						),
 						Fields.field(
 								"allowedActions",
-								wire(actual.allowedActions()),
+								ConfigSpelling.of(actual.allowedActions()),
 								base.allowedActions.toString()
 						),
 						Fields.field(
@@ -337,7 +334,7 @@ public final class AccountExporter {
 		return Fields.members(
 				Fields.field(
 						"defaultWorkflowPermissions",
-						wire(actual.defaultWorkflowPermissions()),
+						ConfigSpelling.of(actual.defaultWorkflowPermissions()),
 						base.defaultWorkflowPermissions.toString()
 				),
 				Fields.field(
@@ -371,7 +368,7 @@ public final class AccountExporter {
 		List<PklNode.Member> fields = Fields.members(
 				Fields.field(
 						"visibility",
-						wire(secret.visibility()),
+						ConfigSpelling.of(secret.visibility()),
 						base.visibility.toString()
 				),
 				Fields.strings(
@@ -405,7 +402,7 @@ public final class AccountExporter {
 				Fields.required("value", variable.value()),
 				Fields.field(
 						"visibility",
-						wire(variable.visibility()),
+						ConfigSpelling.of(variable.visibility()),
 						base.visibility.toString()
 				),
 				Fields.strings(
@@ -494,54 +491,6 @@ public final class AccountExporter {
 				);
 			}
 		}
-	}
-
-	/**
-	 * These client enums carry GitHub's wire values only in their
-	 * {@code @JsonProperty} annotations, unlike a {@code Drifty.*} enum
-	 * generated from a Pkl union, whose {@code toString} already spells them —
-	 * see {@link PklNode.Scalar#of(Enum)}. Comparing against the schema's
-	 * default therefore goes through an explicit switch rather than
-	 * {@code toString()}, the same way {@code PklTypes} converts the other
-	 * direction.
-	 */
-	private static String wire(ActionsEnabledRepositories value) {
-		return switch (value) {
-		case ALL -> "all";
-		case NONE -> "none";
-		case SELECTED -> "selected";
-		};
-	}
-
-	private static String wire(AllowedActions value) {
-		return switch (value) {
-		case ALL -> "all";
-		case LOCAL_ONLY -> "local_only";
-		case SELECTED -> "selected";
-		};
-	}
-
-	private static String wire(SecretVisibility value) {
-		return switch (value) {
-		case ALL -> "all";
-		case PRIVATE -> "private";
-		case SELECTED -> "selected";
-		};
-	}
-
-	/**
-	 * Package-visible rather than {@code private}: {@code RepositoryExporter}
-	 * compares the same client enum against the same schema union
-	 * ({@code defaultWorkflowPermissions} exists on both {@code Organization}
-	 * and {@code Repository}), so this is the one place the translation lives
-	 * rather than a second copy that could drift from this one if the enum ever
-	 * grew a third value.
-	 */
-	static String wire(DefaultWorkflowPermissions value) {
-		return switch (value) {
-		case READ -> "read";
-		case WRITE -> "write";
-		};
 	}
 
 }

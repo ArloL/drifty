@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -98,8 +97,8 @@ public final class ActualTypes {
 		return new ActualRuleset(
 				response.id(),
 				response.name(),
-				wire(response.target()),
-				wire(response.enforcement()),
+				ConfigSpelling.of(response.target()),
+				ConfigSpelling.of(response.enforcement()),
 				patterns(refName == null ? null : refName.include()),
 				patterns(refName == null ? null : refName.exclude()),
 				rules.containsKey(RulesetRuleType.CREATION),
@@ -143,14 +142,6 @@ public final class ActualTypes {
 								: repositoryProperty.exclude()
 				)
 		);
-	}
-
-	/**
-	 * The wire spelling of a client enum — what Jackson would write — which is
-	 * also what the Pkl enum's {@code toString()} gives on the desired side.
-	 */
-	private static String wire(Enum<?> value) {
-		return value == null ? null : value.name().toLowerCase(Locale.ROOT);
 	}
 
 	private static Map<RulesetRuleType, Rule> rulesByType(
@@ -401,7 +392,7 @@ public final class ActualTypes {
 		return new ActualRuleset.RulePattern(
 				p.name(),
 				Boolean.TRUE.equals(p.negate()),
-				wire(p.operator()),
+				ConfigSpelling.of(p.operator()),
 				p.pattern()
 		);
 	}
@@ -416,36 +407,12 @@ public final class ActualTypes {
 				.stream()
 				.map(
 						a -> new ActualRuleset.BypassActor(
-								wire(a.actorType()),
+								ConfigSpelling.of(a.actorType()),
 								a.actorId(),
-								wire(a.bypassMode())
+								ConfigSpelling.of(a.bypassMode())
 						)
 				)
 				.toList();
-	}
-
-	/** Not {@link #wire(Enum)}: these are PascalCase on the wire. */
-	private static String wire(
-			RulesetDetailsResponse.BypassActor.ActorType type
-	) {
-		return switch (type) {
-		case INTEGRATION -> "Integration";
-		case ORGANIZATION_ADMIN -> "OrganizationAdmin";
-		case REPOSITORY_ROLE -> "RepositoryRole";
-		case TEAM -> "Team";
-		case DEPLOY_KEY -> "DeployKey";
-		case USER -> "User";
-		};
-	}
-
-	private static String wire(
-			RulesetDetailsResponse.BypassActor.BypassMode mode
-	) {
-		return switch (mode) {
-		case ALWAYS -> "always";
-		case PULL_REQUEST -> "pull_request";
-		case EXEMPT -> "exempt";
-		};
 	}
 
 	// ─── Branch protection
@@ -702,8 +669,7 @@ public final class ActualTypes {
 	 */
 	public static ActualPages pages(PagesResponse response) {
 		return new ActualPages(
-				response.buildType() == null ? null
-						: response.buildType().name().toLowerCase(Locale.ROOT),
+				ConfigSpelling.of(response.buildType()),
 				response.source() == null ? Optional.empty()
 						: Optional.of(
 								new ActualPages.Source(
@@ -902,8 +868,8 @@ public final class ActualTypes {
 				response.slug(),
 				response.name(),
 				Objects.toString(response.description(), ""),
-				wire(response.privacy()),
-				wire(response.notificationSetting()),
+				ConfigSpelling.of(response.privacy()),
+				ConfigSpelling.of(response.notificationSetting()),
 				response.parent() == null ? null : response.parent().slug(),
 				members.stream()
 						.map(SimpleUser::login)

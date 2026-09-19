@@ -81,6 +81,21 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   nulls that mean `""` — in `ActualTypes`, not in a group.
   `ActualStateBoundaryTest` fails a group or state field that holds a client
   type other than `GitHubClient`, `RepoRef` or an enum.
+- **A client enum is spelled by `ConfigSpelling`, never by `toString()`.**
+  Three vocabularies name the same value — the Java constant
+  (`ORGANIZATION_ADMIN`), GitHub's wire spelling (the `@JsonProperty`), and the
+  schema's own literal (`"OrganizationAdmin"`) — and only the third may reach an
+  `actual/*` field or an exported file, because the adopter loads that file back
+  through Pkl. `ConfigSpelling.of` answers a generated `Drifty` constant rather
+  than a string, so a misspelling does not compile and a renamed union member
+  breaks the build. It replaced a rule that lower-cased the constant name, which
+  is wrong for 13 of the 111 spellings GitHub uses and wrote
+  `actorType = "ORGANIZATION_ADMIN"` into a file that would not then evaluate,
+  and seven hand-written tables of string literals. A new enum-valued field adds
+  an overload there and a pair to `ConfigSpellingTest`, which looks each union
+  member up by the client constant's own name and so fails a mis-mapped arm.
+  `Pages.buildType` is the one spelling with no `Drifty` constant to name: its
+  union is written inline in the schema, so codegen leaves it a `String`.
 - **Repositories nest under the account that owns them.** `config/drifty.pkl`
   has `organizations` and `users`, both keyed by login; the key is the owner and
   `Repository` has no `owner` field. `RepositoryState.ref()` is what carries the
