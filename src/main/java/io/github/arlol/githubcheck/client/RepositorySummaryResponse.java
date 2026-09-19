@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@GitHubEndpoint(response = { "GET /user/repos", "GET /orgs/{org}/repos" })
 public record RepositorySummaryResponse(
 		Long id,
 		String nodeId,

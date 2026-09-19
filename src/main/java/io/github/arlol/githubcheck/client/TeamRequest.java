@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * The POST does not accept that null, so it uses {@link TeamCreateRequest}.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(request = "PATCH /orgs/{org}/teams/{team_slug}")
 public record TeamRequest(
 		String name,
 		String description,

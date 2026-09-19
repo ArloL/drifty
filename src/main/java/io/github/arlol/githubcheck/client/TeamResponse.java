@@ -2,6 +2,7 @@ package io.github.arlol.githubcheck.client;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@GitHubEndpoint(response = "GET /orgs/{org}/teams/{team_slug}")
 public record TeamResponse(
 		long id,
 		String name,

@@ -5,6 +5,9 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(
+		request = "PUT /repos/{owner}/{repo}/environments/{environment_name}"
+)
 public record EnvironmentUpdateRequest(
 		Integer waitTimer,
 		Boolean preventSelfReview,

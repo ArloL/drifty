@@ -10,6 +10,7 @@ package io.github.arlol.githubcheck.client;
  * Component order follows the spec's two tables, writable settings first,
  * matching {@code ActualOrganization} field for field.
  */
+@GitHubEndpoint(response = "GET /orgs/{org}")
 public record OrganizationResponse(
 		String login,
 		String name,

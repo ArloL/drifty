@@ -11,6 +11,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * config object replaces what GitHub had.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(
+		request = { "POST /repos/{owner}/{repo}/hooks",
+				"PATCH /repos/{owner}/{repo}/hooks/{hook_id}",
+				"POST /orgs/{org}/hooks", "PATCH /orgs/{org}/hooks/{hook_id}" }
+)
 public record WebhookRequest(
 		String name,
 		Config config,

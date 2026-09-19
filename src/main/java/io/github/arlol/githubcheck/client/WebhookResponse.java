@@ -8,6 +8,7 @@ import java.util.List;
  * {@code config.insecure_ssl} arrives as the string or number {@code "0"} or
  * {@code "1"}, which Jackson coerces to a String either way.
  */
+@GitHubEndpoint(response = "GET /repos/{owner}/{repo}/hooks/{hook_id}")
 public record WebhookResponse(
 		long id,
 		String name,

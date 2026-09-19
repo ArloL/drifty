@@ -11,6 +11,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * are only carried for the select types; the other types reject them.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(
+		request = "PUT /orgs/{org}/properties/schema/{custom_property_name}"
+)
 public record CustomPropertyRequest(
 		String valueType,
 		boolean required,

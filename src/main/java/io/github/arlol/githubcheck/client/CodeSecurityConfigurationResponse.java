@@ -9,6 +9,7 @@ import java.util.List;
  * setup runner, the delegated bypass reviewers, the labeled
  * dependency-submission runner and {@code code_scanning_options} are all read.
  */
+@GitHubEndpoint(response = "GET /orgs/{org}/code-security/configurations")
 public record CodeSecurityConfigurationResponse(
 		long id,
 		String targetType,

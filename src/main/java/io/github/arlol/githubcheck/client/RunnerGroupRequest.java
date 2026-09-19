@@ -10,6 +10,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * leaves them null.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@GitHubEndpoint(
+		request = { "POST /orgs/{org}/actions/runner-groups",
+				"PATCH /orgs/{org}/actions/runner-groups/{runner_group_id}" }
+)
 public record RunnerGroupRequest(
 		String name,
 		String visibility,

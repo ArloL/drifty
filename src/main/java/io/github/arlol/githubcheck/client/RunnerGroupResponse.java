@@ -5,6 +5,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /** One entry of {@code GET /orgs/{org}/actions/runner-groups}. */
+@GitHubEndpoint(response = "POST /orgs/{org}/actions/runner-groups")
 public record RunnerGroupResponse(
 		long id,
 		String name,
