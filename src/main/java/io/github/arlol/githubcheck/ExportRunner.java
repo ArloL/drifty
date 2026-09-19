@@ -27,9 +27,9 @@ import io.github.arlol.githubcheck.state.DriftyState;
 
 /**
  * Drives {@code drifty --export}: resolves each login to an organization or a
- * personal account, reads everything {@link OrganizationChecker} and
- * {@link RepositoryChecker} can reach with every group managed, and writes the
- * result through {@link DriftyFileExporter}.
+ * personal account, reads everything {@link OrganizationStateReader} and
+ * {@link RepositoryStateReader} can reach with every group managed, and writes
+ * the result through {@link DriftyFileExporter}.
  * <p>
  * Every group read here goes through a {@link FetchFailures#collecting()}
  * instance rather than the {@link FetchFailures#STRICT} a check or fix run
@@ -213,18 +213,15 @@ final class ExportRunner {
 			List<FetchFailures.Failure> unreadableGroups
 	) {
 		System.out.println("Fetching repo list for organization: " + login);
-		var orgChecker = new OrganizationChecker(
+		var reader = new OrganizationStateReader(
 				client,
-				false,
-				Map.of(),
-				new DriftyState(),
 				FetchFailures.collecting()
 		);
-		OrganizationState state = orgChecker.fetchState(
+		OrganizationState state = reader.fetchState(
 				login,
 				ManagedGroups.all(Drifty.OrgGroupName.class)
 		);
-		unreadableGroups.addAll(orgChecker.fetchFailures());
+		unreadableGroups.addAll(reader.fetchFailures());
 		List<RepositorySummaryResponse> repos = client.listOrgRepos(login)
 				.orElse(List.of());
 		System.out.printf("Found %d repos.%n", repos.size());
@@ -237,7 +234,7 @@ final class ExportRunner {
 		);
 		return AccountExporter.organization(
 				state,
-				orgChecker.fetchFailures(),
+				reader.fetchFailures(),
 				repositories,
 				defaults
 		);
@@ -245,12 +242,12 @@ final class ExportRunner {
 
 	/**
 	 * One repository at a time, each through its own fresh
-	 * {@link RepositoryChecker} and its own {@link FetchFailures#collecting()}:
-	 * reusing one collector across the loop would attribute one repository's
-	 * group failures to whichever repository rendered next, since
-	 * {@code Failure} carries only a group name, not which repository it
-	 * belongs to. A group's read failing does not abort the repository either
-	 * way, and a repository whose own details ({@code GET
+	 * {@link RepositoryStateReader} and its own
+	 * {@link FetchFailures#collecting()}: reusing one collector across the loop
+	 * would attribute one repository's group failures to whichever repository
+	 * rendered next, since {@code Failure} carries only a group name, not which
+	 * repository it belongs to. A group's read failing does not abort the
+	 * repository either way, and a repository whose own details ({@code GET
 	 * /repos/{owner}/{repo}}, never wrapped by {@link FetchFailures}) cannot be
 	 * read at all becomes a note in the listing instead of losing every other
 	 * repository's export.
@@ -273,33 +270,26 @@ final class ExportRunner {
 		var everything = ManagedGroups.all(Drifty.GroupName.class);
 		var entries = new ArrayList<PklNode>();
 		for (RepositorySummaryResponse summary : sorted) {
-			var repositoryChecker = new RepositoryChecker(
+			var reader = new RepositoryStateReader(
 					client,
-					false,
-					Map.of(),
-					new DriftyState(),
 					FetchFailures.collecting()
 			);
 			try {
-				RepositoryState state = repositoryChecker.fetchState(
+				RepositoryState state = reader.fetchState(
 						new RepoRef(owner, summary.name()),
 						summary,
 						// RepositoryExporter.entry renders no group's section
 						// for an archived repository — it writes one note in
 						// place of all of them — so reading them is a request
 						// per group whose answer is dropped.
-						summary.archived()
-								? everything
-										.and(RepositoryChecker.ARCHIVED_ONLY)
+						summary.archived() ? everything
+								.and(RepositoryStateReader.ARCHIVED_ONLY)
 								: everything
 				);
-				unreadableGroups.addAll(repositoryChecker.fetchFailures());
+				unreadableGroups.addAll(reader.fetchFailures());
 				entries.add(
-						RepositoryExporter.entry(
-								state,
-								repositoryChecker.fetchFailures(),
-								defaults
-						)
+						RepositoryExporter
+								.entry(state, reader.fetchFailures(), defaults)
 				);
 			} catch (GitHubApiException e) {
 				entries.add(

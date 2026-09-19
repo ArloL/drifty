@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
@@ -132,7 +133,7 @@ class SecurityFlagSourceTest {
 				.withSecretScanning(true)
 				.withSecretScanningPushProtection(true);
 
-		List<String> paths = new RepositoryChecker((String) null, false)
+		List<String> paths = new RepositoryChecker((GitHubClient) null, false)
 				.createDriftGroups(state, desired)
 				.stream()
 				.filter(group -> group.name() == groupName)

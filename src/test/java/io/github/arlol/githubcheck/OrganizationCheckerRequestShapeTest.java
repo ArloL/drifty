@@ -113,11 +113,9 @@ class OrganizationCheckerRequestShapeTest {
 	void anOrganizationWaitsOnItsExistenceCheckAndOneListing() {
 		stubOrganization();
 
-		new OrganizationChecker(
+		new OrganizationStateReader(
 				new GitHubClient(wm.getRuntimeInfo().getHttpBaseUrl(), "t"),
-				false,
-				Map.of(),
-				new DriftyState()
+				FetchFailures.STRICT
 		).fetchState("acme", ManagedGroups.all(Drifty.OrgGroupName.class));
 
 		List<String> order = arrivalOrder();

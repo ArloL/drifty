@@ -35,7 +35,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
  */
 class GitHubClientRateLimitTest {
 
-	private static final String PATH = "/repos/owner/repo/vulnerability-alerts";
+	private static final String PATH = "/repos/owner/repo/private-vulnerability-reporting";
 
 	@RegisterExtension
 	static WireMockExtension wm = WireMockExtension.newInstance().build();
@@ -44,7 +44,8 @@ class GitHubClientRateLimitTest {
 	void aSecondaryRateLimitIsWaitedOutAndTheRequestResent() {
 		refusedOnce(aResponse().withStatus(403).withHeader("Retry-After", "0"));
 
-		assertThat(client().getVulnerabilityAlerts("owner", "repo")).isTrue();
+		assertThat(client().getPrivateVulnerabilityReporting("owner", "repo"))
+				.isTrue();
 		assertThat(wm.getAllServeEvents()).hasSize(2);
 	}
 
@@ -52,7 +53,8 @@ class GitHubClientRateLimitTest {
 	void a429IsWaitedOutAndTheRequestResent() {
 		refusedOnce(aResponse().withStatus(429).withHeader("Retry-After", "0"));
 
-		assertThat(client().getVulnerabilityAlerts("owner", "repo")).isTrue();
+		assertThat(client().getPrivateVulnerabilityReporting("owner", "repo"))
+				.isTrue();
 		assertThat(wm.getAllServeEvents()).hasSize(2);
 	}
 
@@ -68,7 +70,8 @@ class GitHubClientRateLimitTest {
 						.withHeader("X-RateLimit-Reset", dueNow())
 		);
 
-		assertThat(client().getVulnerabilityAlerts("owner", "repo")).isTrue();
+		assertThat(client().getPrivateVulnerabilityReporting("owner", "repo"))
+				.isTrue();
 		assertThat(wm.getAllServeEvents()).hasSize(2);
 	}
 
@@ -81,8 +84,7 @@ class GitHubClientRateLimitTest {
 	void aGoodResponseThatSpendsTheLastOfTheBudgetIsReturnedAfterAPause() {
 		wm.stubFor(
 				get(urlPathEqualTo(PATH)).willReturn(
-						aResponse().withStatus(204)
-								.withHeader("X-RateLimit-Remaining", "0")
+						answered().withHeader("X-RateLimit-Remaining", "0")
 								.withHeader(
 										"X-RateLimit-Reset",
 										dueNextSecond()
@@ -91,7 +93,8 @@ class GitHubClientRateLimitTest {
 		);
 
 		Instant before = Instant.now();
-		assertThat(client().getVulnerabilityAlerts("owner", "repo")).isTrue();
+		assertThat(client().getPrivateVulnerabilityReporting("owner", "repo"))
+				.isTrue();
 
 		assertThat(wm.getAllServeEvents()).hasSize(1);
 		assertThat(Duration.between(before, Instant.now()))
@@ -112,7 +115,7 @@ class GitHubClientRateLimitTest {
 		);
 
 		assertThatThrownBy(
-				() -> client().getVulnerabilityAlerts("owner", "repo")
+				() -> client().getPrivateVulnerabilityReporting("owner", "repo")
 		).isInstanceOf(GitHubApiException.class).hasMessageContaining("403");
 		assertThat(wm.getAllServeEvents()).hasSize(1);
 	}
@@ -132,7 +135,7 @@ class GitHubClientRateLimitTest {
 		);
 
 		assertThatThrownBy(
-				() -> client().getVulnerabilityAlerts("owner", "repo")
+				() -> client().getPrivateVulnerabilityReporting("owner", "repo")
 		).isInstanceOf(GitHubApiException.class).hasMessageContaining("429");
 		assertThat(wm.getAllServeEvents()).hasSize(3);
 	}
@@ -144,17 +147,27 @@ class GitHubClientRateLimitTest {
 	@Test
 	void aRetryAfterOnAResponseThatWasNotRefusedIsIgnored() {
 		wm.stubFor(
-				get(urlPathEqualTo(PATH)).willReturn(
-						aResponse().withStatus(204)
-								.withHeader("Retry-After", "60")
-				)
+				get(urlPathEqualTo(PATH))
+						.willReturn(answered().withHeader("Retry-After", "60"))
 		);
 
 		Instant before = Instant.now();
-		assertThat(client().getVulnerabilityAlerts("owner", "repo")).isTrue();
+		assertThat(client().getPrivateVulnerabilityReporting("owner", "repo"))
+				.isTrue();
 
 		assertThat(Duration.between(before, Instant.now()))
 				.isLessThan(Duration.ofSeconds(5));
+	}
+
+	/**
+	 * What the endpoint answers when nothing is refusing it. Returned fresh so
+	 * a caller can hang rate-limit headers off it; nothing here depends on the
+	 * body, only on the request succeeding.
+	 */
+	private static ResponseDefinitionBuilder answered() {
+		return aResponse().withStatus(200)
+				.withHeader("Content-Type", "application/json")
+				.withBody("{\"enabled\": true}");
 	}
 
 	/** Refused once, then answered. */
@@ -168,7 +181,7 @@ class GitHubClientRateLimitTest {
 		wm.stubFor(
 				get(urlPathEqualTo(PATH)).inScenario("rate limit")
 						.whenScenarioStateIs("lifted")
-						.willReturn(aResponse().withStatus(204))
+						.willReturn(answered())
 		);
 	}
 

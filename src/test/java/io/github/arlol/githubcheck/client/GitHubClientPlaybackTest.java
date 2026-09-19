@@ -63,12 +63,6 @@ class GitHubClientPlaybackTest {
 	}
 
 	@Test
-	void getVulnerabilityAlerts_returnsRecordedState() throws Exception {
-		boolean enabled = client.getVulnerabilityAlerts("ArloL", "drifty-test");
-		assertThat(enabled).isTrue();
-	}
-
-	@Test
 	void getImmutableReleases_succeeds() {
 		assertThatNoException().isThrownBy(() -> {
 			client.getImmutableReleases("ArloL", "drifty-test");
@@ -82,13 +76,6 @@ class GitHubClientPlaybackTest {
 		assertThat(perms.defaultWorkflowPermissions())
 				.isEqualTo(DefaultWorkflowPermissions.READ);
 		assertThat(perms.canApprovePullRequestReviews()).isFalse();
-	}
-
-	@Test
-	void getAutomatedSecurityFixes_returnsRecordedState() throws Exception {
-		boolean enabled = client
-				.getAutomatedSecurityFixes("ArloL", "drifty-test");
-		assertThat(enabled).isFalse();
 	}
 
 	@Test
@@ -131,26 +118,6 @@ class GitHubClientPlaybackTest {
 								.build()
 				)
 		);
-	}
-
-	@Test
-	void listRulesets_succeeds() {
-		assertThatNoException().isThrownBy(() -> {
-			var rulesets = client.listRulesets("ArloL", "drifty-test");
-			assertThat(rulesets).isNotEmpty();
-			assertThat(rulesets).extracting(RulesetSummaryResponse::name)
-					.contains("main-branch-rules");
-			var ruleset = client.getRuleset(
-					"ArloL",
-					"drifty-test",
-					rulesets.getFirst().id()
-			);
-			assertThat(ruleset).isNotNull();
-			assertThat(ruleset.conditions()).isNotNull();
-			assertThat(ruleset.conditions().refName()).isNotNull();
-			assertThat(ruleset.conditions().refName().include())
-					.contains("refs/heads/main");
-		});
 	}
 
 	@Test
@@ -202,16 +169,6 @@ class GitHubClientPlaybackTest {
 		boolean enabled = client
 				.getCodeScanningDefaultSetup("ArloL", "drifty-test");
 		assertThat(enabled).isTrue();
-	}
-
-	@Test
-	void getBranchProtection_succeeds() throws Exception {
-		BranchProtectionResponse bp = client
-				.getBranchProtection("ArloL", "drifty-test", "main")
-				.orElseThrow();
-		assertThat(bp.enforceAdmins().enabled()).isTrue();
-		assertThat(bp.requiredLinearHistory().enabled()).isTrue();
-		assertThat(bp.allowForcePushes().enabled()).isFalse();
 	}
 
 	@Test

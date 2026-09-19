@@ -106,11 +106,6 @@ class GitHubClientRecordingTest {
 							false
 					)
 			);
-			var branches = client.getBranches(owner, repo, true);
-			for (var branch : branches) {
-				client.getBranchProtection(owner, repo, branch.name());
-			}
-
 			client.updateWorkflowPermissions(
 					owner,
 					repo,
@@ -122,7 +117,6 @@ class GitHubClientRecordingTest {
 			client.getWorkflowPermissions(owner, repo);
 
 			client.enableVulnerabilityAlerts(owner, repo);
-			client.getVulnerabilityAlerts(owner, repo);
 			client.disableVulnerabilityAlerts(owner, repo);
 
 			client.enablePrivateVulnerabilityReporting(owner, repo);
@@ -165,9 +159,6 @@ class GitHubClientRecordingTest {
 							List.of(new Rule.RequiredLinearHistory())
 					)
 			);
-			var rulesets = client.listRulesets(owner, repo);
-			client.getRuleset(owner, repo, rulesets.getFirst().id());
-
 			client.getPages(owner, repo);
 			client.createPages(
 					owner,

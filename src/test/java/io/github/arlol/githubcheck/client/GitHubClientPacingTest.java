@@ -17,6 +17,7 @@ import java.util.concurrent.Future;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 
@@ -29,8 +30,8 @@ import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
  */
 class GitHubClientPacingTest {
 
-	private static final String PATH = "/repos/owner/repo/vulnerability-alerts";
-	private static final String OTHER_PATH = "/repos/owner/other/vulnerability-alerts";
+	private static final String PATH = "/repos/owner/repo/private-vulnerability-reporting";
+	private static final String OTHER_PATH = "/repos/owner/other/private-vulnerability-reporting";
 	private static final Duration WINDOW = Duration.ofMillis(500);
 
 	@RegisterExtension
@@ -38,15 +39,13 @@ class GitHubClientPacingTest {
 
 	@Test
 	void theRequestPastTheWindowWaitsForItToTurnOver() {
-		wm.stubFor(
-				get(urlPathEqualTo(PATH))
-						.willReturn(aResponse().withStatus(204))
-		);
+		wm.stubFor(get(urlPathEqualTo(PATH)).willReturn(answered()));
 		GitHubClient client = client(new RequestPacer(2, WINDOW));
 
 		Instant before = Instant.now();
 		for (int i = 0; i < 3; i++) {
-			assertThat(client.getVulnerabilityAlerts("owner", "repo")).isTrue();
+			assertThat(client.getPrivateVulnerabilityReporting("owner", "repo"))
+					.isTrue();
 		}
 
 		assertThat(wm.getAllServeEvents()).hasSize(3);
@@ -65,15 +64,13 @@ class GitHubClientPacingTest {
 				put(urlPathEqualTo(PATH))
 						.willReturn(aResponse().withStatus(204))
 		);
-		wm.stubFor(
-				get(urlPathEqualTo(PATH))
-						.willReturn(aResponse().withStatus(204))
-		);
+		wm.stubFor(get(urlPathEqualTo(PATH)).willReturn(answered()));
 		GitHubClient client = client(new RequestPacer(5, WINDOW));
 
 		Instant before = Instant.now();
-		client.enableVulnerabilityAlerts("owner", "repo");
-		assertThat(client.getVulnerabilityAlerts("owner", "repo")).isTrue();
+		client.enablePrivateVulnerabilityReporting("owner", "repo");
+		assertThat(client.getPrivateVulnerabilityReporting("owner", "repo"))
+				.isTrue();
 
 		assertThat(Duration.between(before, Instant.now()))
 				.as("the read waited out the window the write filled")
@@ -90,24 +87,23 @@ class GitHubClientPacingTest {
 	@Test
 	void aRefusedRequestHoldsBackAThreadThatHasNotSentYet() throws Exception {
 		refusedOnce();
-		wm.stubFor(
-				get(urlPathEqualTo(OTHER_PATH))
-						.willReturn(aResponse().withStatus(204))
-		);
+		wm.stubFor(get(urlPathEqualTo(OTHER_PATH)).willReturn(answered()));
 		GitHubClient client = client(new RequestPacer());
 
 		try (ExecutorService executor = Executors
 				.newVirtualThreadPerTaskExecutor()) {
 			Future<Boolean> refused = executor.submit(
-					() -> client.getVulnerabilityAlerts("owner", "repo")
+					() -> client
+							.getPrivateVulnerabilityReporting("owner", "repo")
 			);
 			long refusedAt = awaitFirstRequest();
 			// Far enough after the refusal that the gate is certainly up, and
 			// far short of the second it lasts.
 			Thread.sleep(100);
 
-			assertThat(client.getVulnerabilityAlerts("owner", "other"))
-					.isTrue();
+			assertThat(
+					client.getPrivateVulnerabilityReporting("owner", "other")
+			).isTrue();
 
 			assertThat(receivedAt(OTHER_PATH) - refusedAt)
 					.as("the second thread's request waited for the gate")
@@ -132,7 +128,7 @@ class GitHubClientPacingTest {
 		wm.stubFor(
 				get(urlPathEqualTo(PATH)).inScenario("rate limit")
 						.whenScenarioStateIs("lifted")
-						.willReturn(aResponse().withStatus(204))
+						.willReturn(answered())
 		);
 	}
 
@@ -177,6 +173,16 @@ class GitHubClientPacingTest {
 				ResponseCache.NONE,
 				pacer
 		);
+	}
+
+	/**
+	 * What the endpoint answers. Nothing here depends on the body, only on the
+	 * request being one the client actually sends.
+	 */
+	private static ResponseDefinitionBuilder answered() {
+		return aResponse().withStatus(200)
+				.withHeader("Content-Type", "application/json")
+				.withBody("{\"enabled\": true}");
 	}
 
 }

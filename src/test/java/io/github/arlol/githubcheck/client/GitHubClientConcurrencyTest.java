@@ -47,10 +47,13 @@ class GitHubClientConcurrencyTest {
 		wm.stubFor(
 				get(
 						urlPathMatching(
-								"/repos/owner/repo-.*/vulnerability-alerts"
+								"/repos/owner/repo-.*/private-vulnerability-reporting"
 						)
 				).willReturn(
-						aResponse().withStatus(204).withFixedDelay(DELAY_MILLIS)
+						aResponse().withStatus(200)
+								.withHeader("Content-Type", "application/json")
+								.withBody("{\"enabled\": true}")
+								.withFixedDelay(DELAY_MILLIS)
 				)
 		);
 		GitHubClient client = new GitHubClient(
@@ -64,10 +67,11 @@ class GitHubClientConcurrencyTest {
 			List<Future<Boolean>> futures = IntStream.range(0, REQUESTS)
 					.mapToObj(
 							i -> executor.submit(
-									() -> client.getVulnerabilityAlerts(
-											"owner",
-											"repo-" + i
-									)
+									() -> client
+											.getPrivateVulnerabilityReporting(
+													"owner",
+													"repo-" + i
+											)
 							)
 					)
 					.toList();
@@ -97,7 +101,8 @@ class GitHubClientConcurrencyTest {
 		Thread.currentThread().interrupt();
 		try {
 			assertThatThrownBy(
-					() -> client.getVulnerabilityAlerts("owner", "repo-0")
+					() -> client
+							.getPrivateVulnerabilityReporting("owner", "repo-0")
 			).isInstanceOf(GitHubApiException.class)
 					.hasMessageContaining("interrupted");
 			assertThat(Thread.currentThread().isInterrupted())

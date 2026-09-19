@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modularity Review</title>
+<style>
+  :root {
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+    --max-width: 820px;
+  }
+
+  :root[data-theme="light"] {
+    --bg: #ffffff;
+    --bg-secondary: #f6f8fa;
+    --bg-tertiary: #eef1f5;
+    --text: #1a1a1a;
+    --text-secondary: #4a5568;
+    --text-muted: #718096;
+    --border: #e2e8f0;
+    --accent: #2b6cb0;
+    --accent-light: #ebf4ff;
+    --severity-critical: #c53030;
+    --severity-critical-bg: #fff5f5;
+    --severity-significant: #c05621;
+    --severity-significant-bg: #fffaf0;
+    --severity-minor: #2b6cb0;
+    --severity-minor-bg: #ebf8ff;
+    --table-stripe: #f7fafc;
+    --link: #2b6cb0;
+    --link-hover: #1a4971;
+    --shadow: rgba(0, 0, 0, 0.06);
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #1a1a1a;
+    --bg-secondary: #242424;
+    --bg-tertiary: #2e2e2e;
+    --text: #e2e2e2;
+    --text-secondary: #a0a0a0;
+    --text-muted: #717171;
+    --border: #333333;
+    --accent: #b0b0b0;
+    --accent-light: #2a2a2a;
+    --severity-critical: #fc8181;
+    --severity-critical-bg: #2d1b1b;
+    --severity-significant: #f6ad55;
+    --severity-significant-bg: #2d2415;
+    --severity-minor: #a0a0a0;
+    --severity-minor-bg: #282828;
+    --table-stripe: #222222;
+    --link: #e0c97f;
+    --link-hover: #f0dca0;
+    --shadow: rgba(0, 0, 0, 0.2);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    margin: 0;
+    padding: 2rem 1.5rem;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  .container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: var(--text);
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    z-index: 100;
+  }
+
+  .theme-toggle:hover {
+    background: var(--bg-tertiary);
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem 0;
+    color: var(--text);
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 2.5rem 0 1rem 0;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1.8rem 0 0.6rem 0;
+    color: var(--text);
+  }
+
+  p {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary);
+  }
+
+  a {
+    color: var(--link);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+  }
+
+  a:hover {
+    color: var(--link-hover);
+    border-bottom-color: var(--link-hover);
+  }
+
+  /* Metadata */
+  .meta {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .meta strong {
+    color: var(--text-secondary);
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+  }
+
+  th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  td {
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  tr:nth-child(even) td {
+    background: var(--table-stripe);
+  }
+
+  /* Severity badges */
+  .severity {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.15rem 0.6rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .severity-critical {
+    color: var(--severity-critical);
+    background: var(--severity-critical-bg);
+  }
+
+  .severity-significant {
+    color: var(--severity-significant);
+    background: var(--severity-significant-bg);
+  }
+
+  .severity-minor {
+    color: var(--severity-minor);
+    background: var(--severity-minor-bg);
+  }
+
+  /* Issue cards */
+  .issue {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 1px 3px var(--shadow);
+  }
+
+  .issue h2 {
+    margin-top: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .issue h3 {
+    font-size: 1rem;
+  }
+
+  .issue-meta {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+
+  /* Lists */
+  ul, ol {
+    padding-left: 1.5rem;
+    color: var(--text-secondary);
+  }
+
+  li {
+    margin-bottom: 0.35rem;
+  }
+
+  /* Code */
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--bg-tertiary);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+  }
+
+  /* Horizontal rule */
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 3rem 0 1.5rem 0;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .footer a {
+    color: var(--text-muted);
+    border-bottom-color: var(--border);
+  }
+
+  .footer a:hover {
+    color: var(--link);
+  }
+
+  /* Print */
+  @media print {
+    .theme-toggle { display: none; }
+    body { padding: 0; }
+    .issue { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+  <span id="theme-icon"></span>
+</button>
+
+<div class="container">
+  <h1>Modularity Review</h1>
+  <div class="meta"><strong>Scope</strong>: Entire codebase — <code>src/main/java/io/github/arlol/githubcheck</code> (CLI, two checkers, 27 repository and 12 organization drift groups, the GitHub REST/GraphQL client, the Pkl exporter, the state store) plus <code>config/drifty.pkl</code><br><strong>Date</strong>: 2026-09-19</div>
+  <h2>Executive Summary</h2>
+  <p>drifty reads a GitHub account&#x27;s real settings, compares them against a desired state declared in Pkl, reports the difference, and with <code>--fix</code> writes it away. Since the <a href="../2026-08-30/modularity-review.html">previous review</a> the three findings it called Critical and Significant have all been resolved — fix accounting is keyed on <code>DriftItem</code> identity rather than rendered strings, the <code>actual/*</code> package is now a real <a href="https://coupling.dev/posts/related-topics/domain-driven-design/">anti-corruption layer</a> on the read side to match <code>PklTypes</code> on the write side, <code>RepoRef</code> carries owner identity, and <code>DriftGroup.runsBeforeOtherFixes()</code> states the unarchive-first rule where the group that needs it lives. The design is in good health and the remaining imbalances are narrower.</p>
+  <p><strong>The most important finding is that two records in the <code>actual</code> package carried strings whose spelling was <code>Enum.toString()</code> of a client enum, and the exporter wrote those strings into the config file verbatim.</strong> Exporting any ruleset with a bypass actor produced <code>actorType = &quot;ORGANIZATION_ADMIN&quot;</code> and <code>bypassMode = &quot;PULL_REQUEST&quot;</code>, where <code>config/drifty.pkl</code> declares <code>&quot;Integration&quot; | &quot;OrganizationAdmin&quot; | &quot;RepositoryRole&quot; | &quot;Team&quot;</code> and <code>&quot;always&quot; | &quot;pull_request&quot;</code>. The exported file did not evaluate. Both sides were tested and both tests passed, because each constructed its own half of the vocabulary. The defect is now fixed; the arrangement that produced it — one spelling stated independently in several places, with nothing checking the copies agree — is not, and is now stated in seven places rather than five.</p>
+  <p>Below that, two pieces of hard-won reconciliation logic exist as verbatim copies — the settings-table PATCH machinery (73 identical lines in <code>RepoSettingsDriftGroup</code> and <code>OrgSettingsDriftGroup</code>, already diverged in their prose) and the check-to-report pipeline in the two checkers (already diverged in which exceptions it catches). Both are places where the two copies must agree and nothing makes them.</p>
+  <p><strong>What this branch changed.</strong> Issues 2 to 5 are fixed here. Issue 1 was fixed in parallel by &quot;Read and export every kind of ruleset bypass actor&quot;, which is already on <code>main</code>; it is described below as found, with a note on what that fix settled and what it did not.</p>
+  <h2>Coupling Overview Table</h2>
+  <p>Level of abstraction analysed: <strong>packages and classes within one deployable</strong>. Per the model&#x27;s <a href="https://coupling.dev/posts/core-concepts/balance/">fractal geometry</a>, the highest distance available here is the cross-package boundary; GitHub&#x27;s API is a separate system, and the <code>main</code> ↔ <code>test</code> source-root boundary sits between the two. There is one maintainer, so <a href="https://coupling.dev/posts/dimensions-of-coupling/distance/">socio-technical distance</a> adds nothing.</p>
+  <table>
+  <thead><tr><th>Integration</th><th><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Strength</a></th><th><a href="https://coupling.dev/posts/dimensions-of-coupling/distance/">Distance</a></th><th><a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/">Volatility</a></th><th><a href="https://coupling.dev/posts/core-concepts/balance/">Balanced?</a></th></tr></thead>
+  <tbody>
+  <tr><td>Enum spelling as a bare <code>String</code> through <code>ActualTypes</code> → <code>actual/*</code> → the exporters</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a>, implicit — one rule, seven independent statements of it</td><td>High (three packages; only a Pkl evaluation of the output would notice)</td><td>High — rulesets are the most-edited part of the schema</td><td><strong>No — Critical</strong> (the defect is fixed; the shape is not)</td></tr>
+  <tr><td><code>RepoSettingsDriftGroup</code> ↔ <code>OrgSettingsDriftGroup</code> (the <code>Setting</code> table and the 422 re-send rule)</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a>, duplicated</td><td>Low (same package) but both copies must agree</td><td>High — a managed setting is added most weeks</td><td><strong>No — Significant</strong></td></tr>
+  <tr><td><code>RepositoryChecker.entry</code> ↔ <code>OrganizationChecker.check</code> (state → <code>CheckResult.Entry</code>)</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a>, duplicated</td><td>Low (same package) but both copies must agree</td><td>High — <code>fixPreview</code>, <code>unmanaged</code> and <code>fixReports</code> were each added to both</td><td><strong>No — Significant</strong></td></tr>
+  <tr><td><code>ExportRunner</code> → <code>RepositoryChecker</code> / <code>OrganizationChecker</code> (uses the read half, constructs the whole)</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a> — depends on the checker&#x27;s shape to reach <code>fetchState</code></td><td>Medium (same package only because <code>fetchState</code> is package-private)</td><td>High — every read change lands here</td><td><strong>No — Significant</strong></td></tr>
+  <tr><td><code>client/*</code> REST read methods the GraphQL query replaced</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a>, unused</td><td>High (cross-package)</td><td>Low — dead code does not change</td><td><strong>No — Minor</strong></td></tr>
+  <tr><td><code>drift/*DriftGroup</code> → <code>GitHubClient</code> (typed facade)</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a></td><td>High (cross-package + external system)</td><td>High</td><td>Yes — low strength offsets high distance</td></tr>
+  <tr><td><code>drift/*</code> and <code>export/*</code> → <code>actual/*</code> records</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a> — drifty&#x27;s own vocabulary, guarded by <code>ActualStateBoundaryTest</code></td><td>High (cross-package)</td><td>High</td><td>Yes — this is the pattern the Critical issue breaks</td></tr>
+  <tr><td><code>PklTypes</code>: <code>Drifty.*</code> enums → <code>client</code> enums</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a></td><td>Medium</td><td>Medium</td><td>Yes</td></tr>
+  <tr><td><code>GitHubClient</code> transport core ↔ its ~130 endpoint methods (one 3,104-line class)</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a> — a four-method seam (<code>get</code>, <code>sendRequest</code>, <code>readValue</code>, <code>writeValue</code>)</td><td>Low (same class)</td><td>High on both halves</td><td>Tolerable — see note</td></tr>
+  <tr><td><code>DriftGroup</code> → <code>DriftFixer</code> (<code>DriftItem</code> identity, <code>runsBeforeOtherFixes</code>)</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a></td><td>Medium</td><td>High</td><td>Yes — the previous review&#x27;s Critical finding, now fixed</td></tr>
+  <tr><td><code>state/DriftyState</code> ↔ secret groups and the response cache</td><td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a></td><td>Low (same process, <code>ConcurrentHashMap</code>)</td><td>Low — supporting subdomain</td><td>Yes</td></tr>
+  </tbody></table>
+  <p><strong>Note on <code>GitHubClient</code>&#x27;s size.</strong> Transport policy (semaphore, <code>RequestPacer</code>, <code>ResponseCache</code>, rate-limit retries, <code>Link</code>-header pagination, JSON mapping) and an endpoint catalogue of ~130 typed methods share one 3,104-line class, meeting only at <code>get</code>/<code>sendRequest</code>/<code>readValue</code>/<code>writeValue</code>. Low strength at the lowest possible distance is <a href="https://coupling.dev/posts/core-concepts/balance/">low cohesion</a>, and the cost is real: changing pagination means scrolling past 130 endpoints. But nothing outside the class depends on the arrangement, so no change cascades — the class&#x27;s <em>external</em> coupling is <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">contract coupling</a> at high distance, which is balanced. The <a href="https://coupling.dev/posts/core-concepts/balance/">balance rule</a> does not call for restructuring here, and a 780-line move would be churn against a class the recent performance work has been editing continuously. Recorded, not recommended.</p>
+  <div class="issue">
+  <h2>Issue: An enum&#x27;s spelling is decided by <code>Enum.toString()</code> and consumed as a config literal</h2>
+  <div class="issue-meta"><strong>Integration</strong>: <code>ActualTypes.bypassActors</code> → <code>actual/ActualRuleset.BypassActor</code> → <code>export/RulesetExporter</code> and <code>drift/RulesetComparison</code><br><strong>Severity</strong>: <span class="severity severity-critical">Critical</span><br><strong>Status</strong>: the defect is fixed on <code>main</code>; see <em>What the fix settled</em> below</div>
+  <h3>Knowledge Leakage</h3>
+  <p><code>ActualRuleset.BypassActor</code> declares its two enum-valued fields as <code>String</code>:</p>
+  <pre><code>public record BypassActor(String actorType, Long actorId, String bypassMode)</code></pre>
+  <p><code>ActualTypes</code> fills them with <code>String.valueOf(a.actorType())</code> and <code>String.valueOf(a.bypassMode())</code> — the <em>Java constant name</em> of a <code>client</code> enum. That is a third vocabulary, distinct from both the one GitHub uses on the wire (<code>OrganizationAdmin</code>, declared in the enum&#x27;s <code>@JsonProperty</code>) and the one <code>config/drifty.pkl</code> declares (<code>&quot;OrganizationAdmin&quot;</code>, <code>&quot;pull_request&quot;</code>).</p>
+  <p>Two components then read that field with incompatible expectations, and neither says so:</p>
+  <ul>
+  <li><code>RulesetComparison.compareBypassActors</code> builds the wanted side as <code>PklTypes.actorType(a.actorType) + &quot;:&quot; + a.actorId + &quot;:&quot; + PklTypes.bypassMode(a.bypassMode)</code>, which is also <code>Enum.toString()</code> of a client enum. It needs the Java constant name, and gets it.</li>
+  <li><code>RulesetExporter.bypassActor</code> writes <code>required(&quot;actorType&quot;, actor.actorType())</code> straight into the Pkl file. It needs the config spelling, and gets the Java constant name.</li>
+  </ul>
+  <p>This is <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">functional coupling in its implicit form</a>: the rule &quot;how an enum is spelled&quot; is shared knowledge, and it is shared by convention through an untyped <code>String</code> rather than through a contract. <code>AccountExporter</code> records the hazard in a class comment and defends against it with four hand-written <code>wire()</code> switches, <code>RepositoryExporter</code> with a fifth, and <code>ActualTypes</code> with a private <code>wire(Enum&lt;?&gt;)</code> that lower-cases the name — four independent encodings of one rule, none of which reaches <code>bypassActors</code>. The lower-casing rule is itself false for 13 of the 111 <code>@JsonProperty</code>-annotated client enum constants, among them every <code>ActorType</code>.</p>
+  <h3>Complexity Impact</h3>
+  <p>This is <a href="https://coupling.dev/posts/core-concepts/complexity/">complexity</a> in the Cynefin sense: the outcome is only visible by running the export and then evaluating its output. Running it confirms the defect:</p>
+  <pre><code>bypassActors {
+  new {
+    actorId = 5
+    actorType = &quot;ORGANIZATION_ADMIN&quot;
+    bypassMode = &quot;PULL_REQUEST&quot;
+  }
+}</code></pre>
+  <p>against a schema that declares <code>typealias ActorType = &quot;Integration&quot; | &quot;OrganizationAdmin&quot; | &quot;RepositoryRole&quot; | &quot;Team&quot;</code> and <code>typealias BypassMode = &quot;always&quot; | &quot;pull_request&quot;</code>. The file <code>--export</code> writes does not evaluate, so the adopter&#x27;s very first <code>drifty</code> run fails on the file drifty just produced — the same class of failure as issue #136, arriving through a different door.</p>
+  <p>The test suite cannot see it. <code>ActualTypesTest.readsBypassActors</code> asserts <code>&quot;TEAM:5:ALWAYS&quot;</code>, which is what the read path produces. <code>RulesetExporterTest.workflowsAndBypassActorsAreFullyRequiredFields</code> hand-constructs <code>new ActualRuleset.BypassActor(&quot;Team&quot;, 7L, &quot;always&quot;)</code> and asserts the exporter writes <code>&quot;Team&quot;</code>, which is what the render path does with the value the test gave it. Each test agrees with itself; nothing runs the two halves against each other, and <code>ExportRoundTripTest</code> declares no bypass actor.</p>
+  <p>The cognitive load is the giveaway. To predict what one exported field contains, a reader must hold: the client enum&#x27;s constant name, its <code>@JsonProperty</code> value, the Pkl union&#x27;s literal, which of five <code>wire()</code> functions applies, and the fact that this particular field reaches the exporter through none of them — past the 4±1 working-memory budget <a href="https://coupling.dev/posts/core-concepts/modularity/">modular design</a> exists to respect.</p>
+  <h3>Cascading Changes</h3>
+  <ul>
+  <li><strong>Any new enum-valued field on an <code>actual/*</code> record.</strong> The author must independently rediscover which of the three vocabularies the consumer needs. Nothing in the type system distinguishes a <code>String</code> holding a wire value from one holding a Java constant name.</li>
+  <li><strong>A GitHub rename.</strong> GitHub changing <code>OrganizationAdmin</code> means editing the <code>@JsonProperty</code>; the comparison path keeps working (both sides use the constant name) while the export path stays wrong in a new way. The two paths fail independently, which is why one has been wrong without the other noticing.</li>
+  <li><strong>A schema vocabulary change.</strong> Editing a <code>typealias</code> in <code>config/drifty.pkl</code> regenerates <code>Drifty.java</code> and breaks <code>PklTypes</code>&#x27; exhaustive switch at compile time — but nothing connects it to the <code>String</code> the exporter writes.</li>
+  </ul>
+  <h3>Recommended Improvement</h3>
+  <p>Reduce <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">strength</a> by making the spelling explicit and single-sourced, rather than reducing distance.</p>
+  <ol>
+  <li><strong>Give <code>actual/*</code> one vocabulary and say which.</strong> These records are drifty&#x27;s own read model — <code>ActualStateBoundaryTest</code> already enforces that they hold no client response type. Extend that intent: an enum-valued field carries the <strong>config spelling</strong>, because the config is the only vocabulary both consumers can be held to. <code>ActualTypes</code> becomes the one translator, which it already is for every other field.</li>
+  <li><strong>Derive the spelling from the <code>@JsonProperty</code> annotation instead of restating it.</strong> One translation function replaces <code>ActualTypes.wire</code>&#x27;s lower-casing rule, the four <code>wire()</code> switches in <code>AccountExporter</code> and the fifth in <code>RepositoryExporter</code> — and cannot disagree with what Jackson actually sends, because it reads the same annotation.</li>
+  <li><strong>Pin the invariant with a test.</strong> Assert that every <code>@JsonProperty</code>-annotated client enum constant appearing in an exported field spells the value <code>config/drifty.pkl</code>&#x27;s union declares. That test is what stops the next enum-valued field from reintroducing this.</li>
+  <li><strong>Fix the comparison side to match</strong>, so <code>RulesetComparison</code> builds its wanted set from the same vocabulary rather than from <code>Enum.toString()</code>.</li>
+  </ol>
+  <p><strong>Trade-off</strong>: reading the annotation costs a small amount of reflection, which the native image needs metadata for — the project already maintains that metadata and the types are its own. The alternative, keeping hand-written switches but adding the guard test, is cheaper but leaves five tables to keep current. Single-sourcing is worth the reflection because the failure mode is a file that does not parse, discovered by the adopter rather than by CI.</p>
+  <h3>What the fix settled</h3>
+  <p>The fix landed while this review was being written. It fixed the defect and found three more the analysis above missed, because it went to a live ruleset rather than to the code: the client enum knew four of GitHub&#x27;s six actor types and two of its three bypass modes, so a ruleset letting an individual user bypass it failed the whole repository read, and the GraphQL path put an <code>actorId</code> of 1 on an <code>OrganizationAdmin</code> actor that REST never returns. It took recommendation 1 — <code>actual/*</code> now carries the config spelling, and <code>RulesetComparison</code> was moved to match — and step 4. It made the schema stronger than proposed: <code>actorId</code> is not merely nullable but constrained to be null for exactly the two id-less types.</p>
+  <p>It did not take recommendations 2 and 3, and the residual imbalance is worth naming. The spelling is still restated by hand — two more <code>wire()</code> switches were added beside the five that existed, and <code>ActualTypes.wire(Enum&lt;?&gt;)</code>&#x27;s lower-casing rule still sits next to them while being false for 13 of the 111 <code>@JsonProperty</code>-annotated client enum constants. What has changed is the blast radius: an exhaustive switch now forces an arm for a new actor type, and <code>ExportRoundTripTest</code> carries all six types and all three modes through a real Pkl evaluation, so the remaining hole is narrow — an arm added with a misspelled string, for a type nobody adds to that fixture. Recommendations 2 and 3 close it; nothing else does.</p>
+  </div>
+  <div class="issue">
+  <h2>Issue: The 422 re-send rule is written twice</h2>
+  <div class="issue-meta"><strong>Integration</strong>: <code>drift/RepoSettingsDriftGroup</code> ↔ <code>drift/OrgSettingsDriftGroup</code><br><strong>Severity</strong>: <span class="severity severity-significant">Significant</span></div>
+  <h3>Knowledge Leakage</h3>
+  <p>Both groups hold a private <code>Setting</code> record pairing a comparison with the builder call that writes it, and both implement <code>fix</code> / <code>write</code> / <code>writeIndividually</code> / <code>request</code> on top of it. The <code>Setting</code> record is byte-identical once the builder type is renamed; the 73-line tail differs only in the two <code>client.update*</code> calls, the builder class, and — already — the wording of the shared javadoc, where one copy says &quot;reporting the whole request as failed <em>told</em> the operator the opposite of what had happened&quot; and the other says &quot;<em>would tell</em>&quot;.</p>
+  <p>What is duplicated is not boilerplate but a business rule, and one the project treats as hard-won: <em>GitHub applies the fields it accepts and rejects the rest, so a 422 attributes to no field; re-send each field alone and report only the ones that fail again.</em> CLAUDE.md records it as an invariant with the failure it was written to prevent. Holding it in two places is <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">duplicated functional coupling</a> — the extreme case the model names explicitly, where a specification change not reflected in both copies simultaneously leaves the system inconsistent.</p>
+  <h3>Complexity Impact</h3>
+  <p><a href="https://coupling.dev/posts/dimensions-of-coupling/distance/">Distance is low</a> — same package, adjacent files — so a change is cheap to make in both. The problem is not cost but <em>consistency</em>: two copies can be updated to disagree, and the prose already has. A reader who fixes an attribution bug in one file has no signal that the other exists; the only thing connecting them is that they look alike.</p>
+  <p>The rule is also subtle enough that a partial fix looks correct. <code>writeIndividually</code> re-sending a field that the batch already applied is deliberate (it simply repeats), and the <code>writable.size() == 1</code> short-circuit is deliberate (a single-field request is its own attribution). Someone reconstructing that reasoning for a third settings group — or correcting one copy — has to rediscover both.</p>
+  <h3>Cascading Changes</h3>
+  <ul>
+  <li><strong>A third PATCH-shaped group.</strong> Teams, environments and code security configurations each already batch several fields into one write; any of them adopting per-field attribution means a third copy.</li>
+  <li><strong>Changing what a rejection reports.</strong> Adding the HTTP status to the reason, or capping the individual re-sends, is a two-file edit that nothing enforces.</li>
+  <li><strong>A new check-only setting.</strong> Both tables carry <code>Setting.checkOnly</code> with a group-specific reason constant; the mechanism is duplicated even though the reasons rightly differ.</li>
+  </ul>
+  <h3>Recommended Improvement</h3>
+  <p>Reduce strength by extracting the shared rule into one <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">integration contract</a>, keeping the per-scope tables where they are.</p>
+  <ol>
+  <li><strong>Extract a generic <code>SettingTable&lt;B&gt;</code></strong> into the <code>drift</code> package holding <code>Setting&lt;B&gt;</code> (path, wanted, got, <code>Consumer&lt;B&gt; write</code>, <code>unfixableReason</code>) and the whole <code>fix</code> / <code>write</code> / <code>writeIndividually</code> / <code>request</code> sequence, parameterised by a <code>Supplier&lt;B&gt;</code> for the builder and a <code>Consumer&lt;B&gt;</code> for the send. Each group keeps only its own rows and its own reason constant — the part that genuinely differs.</li>
+  <li><strong>Write the javadoc once</strong>, on the extracted type, so the reasoning lives next to the code it explains rather than in two copies that have already drifted apart.</li>
+  <li><strong>Keep <code>OrgSettingsDriftGroupTest.everyWritableSettingWritesTheFieldItCompared</code></strong> reading its cases out of the table, and give <code>RepoSettingsDriftGroup</code> the same test — the extraction makes that a shared helper rather than a second copy.</li>
+  </ol>
+  <p><strong>Trade-off</strong>: a generic type over a builder is slightly more indirection than two concrete copies, and a reader of <code>RepoSettingsDriftGroup</code> now has one more hop to make to see what <code>fix</code> does. That is the right trade: the hop leads to a single statement of a rule that currently exists twice, and the rows — the part a maintainer actually edits when adding a setting — stay exactly where they are.</p>
+  </div>
+  <div class="issue">
+  <h2>Issue: The check-to-report pipeline is written twice</h2>
+  <div class="issue-meta"><strong>Integration</strong>: <code>RepositoryChecker.entry</code> / <code>computeGroupDrifts</code> ↔ <code>OrganizationChecker.check</code> / <code>computeGroupDrifts</code><br><strong>Severity</strong>: <span class="severity severity-significant">Significant</span></div>
+  <h3>Knowledge Leakage</h3>
+  <p>Turning a set of drift groups into a <code>CheckResult.Entry</code> is one rule with five steps: name the unmanaged groups from the config&#x27;s own block; run <code>detect()</code> and keep only groups that reported a drifted item; in fix mode run <code>DriftFixer.applyFixes</code> and build <code>Entry.fixed</code> from <code>render</code> plus <code>fixReports</code>; otherwise flatten every item to its message; and return <code>Entry.ok</code> or <code>Entry.drift</code> with the <code>Would fix:</code> preview. It is implemented twice, once per checker, with <code>computeGroupDrifts</code> duplicated verbatim.</p>
+  <p>Nothing in the type system says the two must agree. They are two statements of one rule, connected only by looking alike — <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">implicit functional coupling</a> in its duplicated form. The copies are not identical, and the one real difference is instructive: <code>RepositoryChecker.entry</code> catches <code>IOException</code> and <code>InterruptedException</code> as well as <code>GitHubApiException</code>, while <code>OrganizationChecker.check</code> catches only the last. That one turns out to be correct rather than drifted — <code>RepositoryStateReader.fetchState</code> declares the two checked exceptions and the organization&#x27;s does not, because <code>Fanout</code> converts an interrupt into a <code>GitHubApiException</code> before it gets out — but establishing that takes reading three files, which is exactly the cognitive cost the duplication imposes. A reader who assumed the copies should match would &quot;fix&quot; the organization side and add an unreachable arm.</p>
+  <h3>Complexity Impact</h3>
+  <p>Every addition to the report contract has had to be made twice, and the history shows it: the <code>unmanaged</code> list, the <code>fixPreview</code> that issue #156 added, and the <code>fixReports</code> that made SPEC.md&#x27;s per-setting <code>FIXED</code>/<code>FAILED</code> output real were each applied to both files. Three for three is not luck to rely on — it is the count of times a single-copy rule has been re-entered by hand.</p>
+  <p>The failure mode when it is missed is quiet. A <code>Would fix:</code> preview added only to repositories does not fail any test; it produces an organization report that is subtly less informative than the repository report beside it, and only a reader comparing the two would notice.</p>
+  <h3>Cascading Changes</h3>
+  <ul>
+  <li><strong>Any change to what an entry carries.</strong> SPEC.md&#x27;s end-of-run failure summary, a machine-readable output mode, or a per-group timing line each mean two edits.</li>
+  <li><strong>Changing how group drifts are computed.</strong> <code>computeGroupDrifts</code>&#x27;s &quot;keep a group only when it reported a drifted item&quot; rule exists twice; it was introduced to stop the preview naming groups that had not drifted, and the organization copy carries a javadoc pointing at the repository copy for the explanation — the code already admits the duplication.</li>
+  <li><strong>A third scope.</strong> Enterprise-level settings are named in SPEC.md as out of scope today; if that changes, the natural move is a third checker and a third copy.</li>
+  </ul>
+  <h3>Recommended Improvement</h3>
+  <p>Reduce strength by giving the rule one home. It is already generic over the group-name enum — <code>DriftGroup&lt;N&gt;</code>, <code>ManagedGroups&lt;N&gt;</code> and <code>DriftFixer</code> all are — so this needs no new abstraction, only a place to put it.</p>
+  <ol>
+  <li><strong>Extract the pipeline into the <code>drift</code> package</strong>, beside <code>DriftFixer</code>, which already produces <code>CheckResult</code> types and already serves both scopes: <code>entry(name, ManagedGroups&lt;N&gt;, groups, fix)</code> returning the <code>CheckResult.Entry</code>. Both checkers call it.</li>
+  <li><strong>Move <code>computeGroupDrifts</code> with it</strong>, since it is the same method twice and its explanation is already written once with a cross-reference.</li>
+  <li><strong>Leave failure handling at the call sites.</strong> What each checker has to catch is decided by its own fetch, not by the report, so the shared version should not take it over — and with the pipeline gone from around them, the two <code>catch</code> blocks stop looking like a discrepancy and start reading as the two different fetches they belong to.</li>
+  </ol>
+  <p><strong>Trade-off</strong>: the checkers lose a little self-containment — reading <code>RepositoryChecker.checkOne</code> no longer shows the whole path to the report. In exchange, the path is stated once, and the failure handling that genuinely differs stays visible at each call site instead of hiding among five steps that do not.</p>
+  </div>
+  <div class="issue">
+  <h2>Issue: The export depends on the checkers to use only their read half</h2>
+  <div class="issue-meta"><strong>Integration</strong>: <code>ExportRunner</code> → <code>RepositoryChecker</code> / <code>OrganizationChecker</code><br><strong>Severity</strong>: <span class="severity severity-significant">Significant</span></div>
+  <h3>Knowledge Leakage</h3>
+  <p>Reading an entity&#x27;s actual state and comparing it against a config are two jobs, and each checker does both. The export needs only the first, and says so at every call site:</p>
+  <pre><code>var repositoryChecker = new RepositoryChecker(
+        client, false, Map.of(), new DriftyState(), FetchFailures.collecting());</code></pre>
+  <p>Three of the five arguments are inert. <code>fix</code> is false because nothing is fixed, <code>githubSecrets</code> is empty because no secret is written, <code>state</code> is fresh because no baseline is recorded — three values chosen to neutralise a half of the class the export never enters. The one thing it wants, <code>fetchState</code>, is package-private, so <code>ExportRunner</code> cannot leave the root package to get at it, and neither can <code>Fanout</code>, <code>FetchFailures</code>, <code>RepositoryState</code> or <code>OrganizationState</code>.</p>
+  <p>The leakage is that the export depends on the <em>shape of the checker</em> — its constructor arity, its field set, which of its methods are visible — rather than on a contract for reading state. That is <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">model coupling</a> where <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">contract coupling</a> would serve, and <code>ExportRunner</code>&#x27;s own javadoc spends a paragraph explaining which parts of <code>RepositoryChecker</code> it is and is not using.</p>
+  <h3>Complexity Impact</h3>
+  <p>The class names mislead. <code>ExportRunner</code> constructs a &quot;checker&quot; per repository and never checks; <code>RepositoryChecker</code> carries five constructors, three of which exist only so tests can omit arguments, one of which builds a <code>GitHubClient</code> from a token it is handed as <code>(String) null</code>. A reader working out what an export does must first work out which half of a checker is live.</p>
+  <p>It also blurs a real invariant. <code>FetchFailures.STRICT</code> versus <code>collecting()</code> is the whole difference between &quot;a 403 ends this entry&quot; and &quot;a 403 becomes a note in the file&quot; — a decision that belongs to the reader of state, not to the comparer. Today it is a constructor argument on a class that does both, so nothing says which half it governs.</p>
+  <h3>Cascading Changes</h3>
+  <ul>
+  <li><strong>Any change to the read path.</strong> The GraphQL rewrite, the response cache, the two-level <code>Fanout</code> and the <code>ARCHIVED_ONLY</code> narrowing each touched <code>RepositoryChecker</code>, and each had to be re-checked against an export path that enters the class by a different door.</li>
+  <li><strong>Fanning the export out.</strong> The export reads repositories strictly one at a time while the check fans them out; making them match means either duplicating <code>check</code>&#x27;s executor logic in <code>ExportRunner</code> or widening the checker further.</li>
+  <li><strong>A fourth consumer.</strong> A dry-run or diff-against-file mode would face the same choice: construct a checker it does not want, or copy <code>fetchState</code>.</li>
+  </ul>
+  <h3>Recommended Improvement</h3>
+  <p>Reduce strength by splitting the class along the seam that already exists, without increasing distance.</p>
+  <ol>
+  <li><strong>Extract <code>RepositoryStateReader</code> and <code>OrganizationStateReader</code></strong> into the same package, each taking exactly <code>(GitHubClient, FetchFailures)</code> and exposing <code>fetchState</code> and <code>fetchFailures</code>. The checkers hold one; <code>ExportRunner</code> constructs one with the two things it actually needs.</li>
+  <li><strong>Let the extraction delete the inert arguments</strong> rather than merely hiding them, so a reader of <code>ExportRunner</code> sees a reader being built, not a checker being neutralised.</li>
+  <li><strong>Drop the test-only checker constructors</strong> the split makes unnecessary, including the one that manufactures a client from a null token.</li>
+  </ol>
+  <p><strong>Trade-off</strong>: two more classes, and the checkers gain a delegation hop. The hop is worth it because the seam is not invented — it is already where <code>ExportRunner</code>&#x27;s javadoc, <code>FetchFailures</code>&#x27; two implementations and the <code>fix</code> flag all fall — and naming it is what lets the export path stop describing, in prose, which half of a class it is allowed to touch.</p>
+  </div>
+  <div class="issue">
+  <h2>Issue: The REST read path the GraphQL query replaced is still public API</h2>
+  <div class="issue-meta"><strong>Integration</strong>: <code>client/GitHubClient</code> → its callers<br><strong>Severity</strong>: <span class="severity severity-minor">Minor</span></div>
+  <h3>Knowledge Leakage</h3>
+  <p><code>GitHubClient.graphqlRepository</code> replaced six REST reads with one query, and the six methods are still there: <code>getVulnerabilityAlerts</code>, <code>getBranchProtection</code>, <code>getCollaborators</code>, <code>getRuleset</code>, <code>listRulesets</code> and, for a different reason, <code>getAutomatedSecurityFixes</code> — which was dropped when the same bit turned out to be on the repository details response. No production code calls any of them; all but <code>getCollaborators</code> are still exercised by client tests.</p>
+  <p>Nothing depends on them, so no change cascades — this is not unbalanced coupling but <a href="https://coupling.dev/posts/core-concepts/balance/">low cohesion</a>: a module offering capabilities nobody uses. What leaks is the <em>answer to &quot;how does drifty read a ruleset&quot;</em>, which now has two plausible answers in the same class and no marker saying which is live.</p>
+  <h3>Complexity Impact</h3>
+  <p>Modest, and ranked Minor for that reason. The cost is a reader&#x27;s time and a misleading signal from the suite: <code>GitHubClientPlaybackTest</code> and <code>GitHubClientRecordingTest</code> maintain fixtures for endpoints the binary never calls, so a passing client suite says less about the shipped read path than its size suggests. CLAUDE.md&#x27;s claim that the query &quot;replaced&quot; six requests is true of the request count and not of the code.</p>
+  <h3>Cascading Changes</h3>
+  <p>Few, which is the point — but not zero. Each dead method is a <code>client</code> record and a test fixture that a GitHub API version bump invites someone to update, and a plausible mistake for a future group is to call one of them and quietly reintroduce the per-repository request the query exists to avoid.</p>
+  <h3>Recommended Improvement</h3>
+  <p>Delete them, and repoint the tests that used them as a convenient GET onto a method the binary still calls — <code>getRepo</code> or <code>getPrivateVulnerabilityReporting</code> — so the rate-limit, pacing and concurrency tests keep testing what they were testing.</p>
+  <p><strong>Trade-off</strong>: the REST fallback goes away, so a token that may not use GraphQL has no other route. That is already true in practice: nothing selects between the two paths, and restoring a fallback would mean building the selection as well as the method. Deleting states the current design honestly; keeping it states a choice that was never implemented.</p>
+  </div>
+  <h2>What Is Working</h2>
+  <p>Worth recording, because the recommendations above ask to extend these rather than replace them:</p>
+  <ul>
+  <li><strong>Every finding of the previous review has been addressed, and the fixes match what was recommended.</strong> Fix accounting is by <code>DriftItem</code> identity; <code>DriftGroup.detect()</code> namespaces paths under the group name so two groups cannot collide; <code>FixResult.Unfixed</code> carries reasons and <code>SPEC.md</code>&#x27;s FIXED/FAILED output is real; <code>ActualTypes</code> and the <code>actual/*</code> package are the anti-corruption layer the read side lacked; <code>RepoRef</code> replaced the loose owner/name pair; <code>DriftGroup.runsBeforeOtherFixes()</code> states the unarchive-first rule where the group that needs it lives.</li>
+  <li><strong><code>ActualStateBoundaryTest</code> and <code>DriftPathNamespacingTest</code> are structural guards, not sample-based ones.</strong> They pin the invariant rather than an example of it, which is why the Critical issue above is about the one field that escapes them rather than about the boundary in general.</li>
+  <li><strong><code>ManagedGroups</code> is consulted at all three points it has to be</strong> — group construction, request sending, and secret collection — with a class comment explaining why skipping any one of them is wrong.</li>
+  <li><strong><code>Fanout</code> and <code>FetchFailures</code> are small, generic over the group-name enum, and independently testable</strong>, and <code>RepositoryCheckerRequestShapeTest</code> and <code>OrganizationCheckerRequestShapeTest</code> fail on a fan-out that grows a level.</li>
+  <li><strong>The performance reasoning is written down where the code is</strong>, with measurements, in CLAUDE.md and <code>docs/performance/where-a-checks-time-goes.md</code>, including the dead ends — which is what keeps a future reader from re-trying them.</li>
+  </ul>
+  <hr>
+  <div class="footer">This analysis was performed using the <a href="https://coupling.dev">Balanced Coupling</a> model by <a href="https://vladikk.com">Vlad Khononov</a>.</div>
+</div>
+
+<script>
+  function getDefaultTheme() {
+    const hour = new Date().getHours();
+    return (hour >= 7 && hour < 19) ? 'light' : 'dark';
+  }
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('modularity-review-theme', theme);
+    document.getElementById('theme-icon').textContent = theme === 'light' ? '☾' : '☀';
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    setTheme(current === 'light' ? 'dark' : 'light');
+  }
+
+  const saved = localStorage.getItem('modularity-review-theme');
+  setTheme(saved || getDefaultTheme());
+</script>
+</body>
+</html>

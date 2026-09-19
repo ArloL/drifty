@@ -703,7 +703,7 @@ public class GitHubCheck {
 			// it was never going to do.
 			ManagedGroups<Drifty.GroupName> managed = repo.archived
 					? ManagedGroups.of(repo.managed)
-							.and(RepositoryChecker.ARCHIVED_ONLY)
+							.and(RepositoryStateReader.ARCHIVED_ONLY)
 					: ManagedGroups.of(repo.managed);
 			if (managed.manages(Drifty.GroupName.ACTION_SECRETS)) {
 				addMissingSecrets(

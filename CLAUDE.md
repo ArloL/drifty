@@ -55,8 +55,26 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
 
 ## Adding or changing a managed setting
 
-- **Drift groups never see GitHub response types.** `RepositoryChecker.fetchState`
-  and `OrganizationChecker.fetchState` translate every `client/*Response` into
+- **Reading state and comparing it are different classes.**
+  `RepositoryStateReader` and `OrganizationStateReader` hold `fetchState`;
+  `RepositoryChecker` and `OrganizationChecker` hold the comparison and the
+  fix. A check builds a checker, which builds its own reader with
+  `FetchFailures.STRICT`; `ExportRunner` builds a reader alone, with
+  `FetchFailures.collecting()`, because an export reads and never compares.
+  Adding a read goes in the reader, and the export gets it without being
+  touched — which is the point of the split: the export used to construct a
+  whole checker and pass three arguments chosen to neutralise the half it did
+  not want.
+- **One entity's report entry is built in `DriftReport`, for both scopes.**
+  `groupDrifts` keeps a group only when it reported a drifted item — its keys
+  are the `Would fix:` preview, and keying on "returned a fix" named groups
+  that had no drift — and `entry` turns those into `OK`, `DRIFT` or the
+  per-setting FIXED/FAILED of a `--fix` run. It is generic over the group-name
+  enum, like `DriftGroup`, `ManagedGroups` and `Fanout`. A new field on the
+  report goes here once; it used to go in both checkers, and three of them
+  (`unmanaged`, the preview, the fix reports) did.
+- **Drift groups never see GitHub response types.** The two readers'
+  `fetchState` translate every `client/*Response` into
   an `actual/*` record through `ActualTypes` (the mirror of `PklTypes` on the
   desired side), and `RepositoryState`/`OrganizationState` hold only those. Put
   wire-shape knowledge — omitted sections, `{"status": "enabled"}` wrappers,
@@ -79,17 +97,18 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   `DriftPathNamespacingTest` fails a group whose constant is missing from
   either union, and a `Managed.groups` or `OrgManaged.groups` entry naming a
   group that does not exist fails at config eval. If the group sends its own
-  requests, guard them in `RepositoryChecker.fetchState` or
-  `OrganizationChecker.fetchState` too — filtering the group alone still sends
+  requests, guard them in the matching reader's `fetchState` too — filtering
+  the group alone still sends
   them, and an account someone else administers is where those return 403.
 - **`GET /orgs/{org}` is sent even when `org_settings` is unmanaged.** It is how
-  `OrganizationChecker.fetchState` learns the organization exists — a 404 there
+  `OrganizationStateReader.fetchState` learns the organization exists — a 404
+  there
   is what makes the entry `MISSING` — and any member can read it. Every other
   org request is guarded by its group.
 - **Two repository endpoints exist only under an organization.** `GET
   /repos/{owner}/{repo}/teams` and `GET /repos/{owner}/{repo}/properties/values`
   answer 404 on a user-owned repository whatever the token can do, so
-  `RepositoryChecker.fetchState` guards both on
+  `RepositoryStateReader.fetchState` guards both on
   `ActualRepository.organizationOwned()` — which is why
   `ActualTypes.repository(details)` is built before them, not after.
   `CustomPropertiesDriftGroup` takes the same flag and reports the properties
@@ -152,7 +171,9 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   when one field inside it is forbidden: one alias each is what keeps a token
   that may not read branch protection from losing the rulesets too, and
   `GraphQlQuery.read` fails only the section whose error path names it. A fifth
-  thing to read belongs in a fifth alias, not inside an existing one.
+  thing to read belongs in a fifth alias, not inside an existing one. The six
+  REST reads it replaced are deleted rather than left unused, so there is one
+  read path to reason about and nothing to call by accident.
 - **The GraphQL answer is rewritten as the REST shape, not as new records.**
   `GraphQlShape` turns each node into the JSON `RulesetDetailsResponse`,
   `BranchProtectionResponse` and `CollaboratorResponse` already parse, so
@@ -169,11 +190,13 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   REST has an `actor_type` string.
 - **The query asks `includeParents: false` and still reads `source`.** An
   organization's ruleset the repository endpoint cannot delete is not the
-  repository's to reconcile, and `RepositoryChecker.rulesets` filters it out by
+  repository's to reconcile, and `RepositoryStateReader.rulesets` filters it out
+  by
   `sourceType` the way the REST path always did. Hardcoding `source_type` to
   `Repository` would mislabel one and produce a fix that always fails.
 - **An organization's budget is three round trips, one more than a
-  repository's.** `OrganizationChecker.fetchState` shares the same `Fanout`,
+  repository's.** `OrganizationStateReader.fetchState` shares the same
+  `Fanout`,
   and the extra level is `GET /orgs/{org}`: it is how the checker learns the
   organization exists, so every group waits on it rather than firing two dozen
   requests at a login GitHub has never heard of. Below it each group's listing
@@ -239,7 +262,7 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   `RepositoryExporter.entry` writes an archived repository's settings down even
   though it compares none of them, and the listing omits the merge fields — so
   `ExportRunner` still reads `GET /repos/{owner}/{repo}` under
-  `RepositoryChecker.ARCHIVED_ONLY`, and `collectMissingSecrets` narrows the
+  `RepositoryStateReader.ARCHIVED_ONLY`, and `collectMissingSecrets` narrows the
   same way so `--fix` is not aborted over a secret nothing will write. The
   check side keys on `desired.archived`, not on `actual`: a repository that is
   archived while the config wants it active still reads everything, because
@@ -344,35 +367,34 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
 - **`RepositoryChecker.entry` catches `GitHubApiException`.** It runs inside
   a virtual thread whose `Future.get()` nothing above `check` handles, so
   without that arm one repository's 403 ends the run for every repository after
-  it — the shape of issue #135. `OrganizationChecker.checkOne` has the same
-  arm; keep both.
+  it — the shape of issue #135. `OrganizationChecker.check` has the same arm;
+  keep both. The repository side catches `IOException` and
+  `InterruptedException` besides, because `RepositoryStateReader.fetchState`
+  declares them and the organization's does not — not a discrepancy to
+  "fix" by adding unreachable arms to the organization side.
 - **Eight groups PATCH the same `/repos/{owner}/{repo}` resource.** Each
   request carries only its own fields because `RepositoryUpdateRequest` is
   all nullable wrappers under `NON_NULL`; keep it that way.
-- **`RepoSettingsDriftGroup` sends only the fields that drifted.** Its
-  `Setting` table pairs each comparison with the builder call that writes it,
-  and the PATCH is built from the drifted entries alone. Building the body
-  from `desired` instead is the shape to avoid: it sent `allow_forking` on
-  every org-owned repository, and an org with
-  `members_can_fork_private_repositories` off answers that field with a 422
-  even when it already holds the wanted value, failing a description change
-  over a setting that had not drifted. A `Setting` with a null `write` is
-  reported but never sent — `visibility` is the only one on the repository
-  side, per SPEC.md.
-- **`OrgSettingsDriftGroup` is the same shape for the same reason.** Its PATCH
-  carries only the drifted fields and re-sends per field on a 422, because
-  `members_can_create_internal_repositories` is the org-side `allow_forking`:
-  GitHub rejects it on any organization outside Enterprise even when it already
-  holds the wanted value. Ten of its settings have a null `write` — `GET
-  /orgs/{org}` returns them and the PATCH accepts none of them.
-  `OrgSettingsDriftGroupTest.everyWritableSettingWritesTheFieldItCompared`
+- **A settings group is a table of rows; `SettingTable` is everything else.**
+  Each row pairs a comparison with the builder call that writes it, and the
+  PATCH carries the drifted rows alone. Building the body from `desired`
+  instead is the shape to avoid: it sent `allow_forking` on every org-owned
+  repository, and an org with `members_can_fork_private_repositories` off
+  answers that field with a 422 even when it already holds the wanted value,
+  failing a description change over a setting that had not drifted.
+  `members_can_create_internal_repositories` is the org-side case — a 422 on
+  any organization outside Enterprise. A row with a null `write` is reported
+  but never sent: `visibility` on the repository side per SPEC.md, and ten
+  organization settings `GET /orgs/{org}` returns that the PATCH accepts none
+  of. A third settings group supplies rows and a send, and inherits the rest;
+  do not copy the machinery again.
+  `everyWritableSettingWritesTheFieldItCompared` exists on both group tests and
   reads its cases out of the table, so a new row needs no test change and a row
   whose builder call writes a different setting than it compared fails it.
 - **A rejected PATCH is not a failed PATCH.** GitHub applies the fields it
   accepts and rejects the rest, so a 422 attributes to no field. When a
-  multi-field request fails, `RepoSettingsDriftGroup` and
-  `OrgSettingsDriftGroup` re-send each field on its own and report only the
-  ones that fail again. Collapsing that back to
+  multi-field request fails, `SettingTable` re-sends each field on its own and
+  reports only the ones that fail again. Collapsing that back to
   "the request threw, so nothing was fixed" is what made a run report every
   setting unfixed after GitHub had already changed most of them.
 - **The team POST and PATCH need different bodies.** `TeamRequest` serializes
@@ -418,7 +440,7 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   rulesets whose `source_type` is `Enterprise`, custom properties whose
   `source_type` is `enterprise`, teams whose `type` is `enterprise` and code
   security configurations whose `target_type` is `global` before building
-  the state, the way `RepositoryChecker.fetchRulesets` drops organization
+  the state, the way `RepositoryStateReader.rulesets` drops organization
   rulesets. Reporting them as extra produces a fix that always fails.
 - **`Ruleset` is `open` so `OrgRuleset` can extend it.** The generated
   `Repository.rulesets` is therefore `Map<String, ? extends Ruleset>`; a
@@ -497,7 +519,8 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   is the one form a later run cannot act on, so the exported file failed on
   exactly the request the export had already failed on. Emit the block before
   the archived branch in `RepositoryExporter.entry` —
-  `RepositoryChecker.fetchState` reads a group for an archived repository too.
+  `RepositoryStateReader.fetchState` reads a group for an archived repository
+  too.
 - **`schemas/` holds the endpoint shapes.** It is gitignored;
   `python3 download-schemas.py --filter '/orgs/{org}/...'` recreates the
   part you need. Check a new record's field names and enums there before

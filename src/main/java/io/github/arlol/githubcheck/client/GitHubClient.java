@@ -435,39 +435,6 @@ public class GitHubClient {
 		return readValue(resp.body(), RepositoryDetailsResponse.class);
 	}
 
-	public boolean getVulnerabilityAlerts(String owner, String repo) {
-		HttpResponse<String> resp = get(
-				repoUrl(owner, repo) + PATH_VULNERABILITY_ALERTS
-		);
-		if (resp.statusCode() == 204) {
-			return true;
-		}
-		if (resp.statusCode() == 404) {
-			return false;
-		}
-		throw new GitHubApiException(
-				"HTTP " + resp.statusCode() + " GET vulnerability-alerts on "
-						+ repo
-		);
-	}
-
-	public boolean getAutomatedSecurityFixes(String owner, String repo) {
-		HttpResponse<String> resp = get(
-				repoUrl(owner, repo) + PATH_AUTOMATED_SECURITY_FIXES
-		);
-		if (resp.statusCode() == 200) {
-			return readValue(resp.body(), AutomatedSecurityFixesResponse.class)
-					.enabled();
-		}
-		if (resp.statusCode() == 404) {
-			return false;
-		}
-		throw new GitHubApiException(
-				"HTTP " + resp.statusCode()
-						+ " GET automated-security-fixes on " + repo
-		);
-	}
-
 	public Optional<ImmutableReleasesResponse> getImmutableReleases(
 			String owner,
 			String repo
@@ -510,27 +477,6 @@ public class GitHubClient {
 		return collectPaginatedArrayItems(resp, null).stream()
 				.map(e -> mapper.convertValue(e, BranchResponse.class))
 				.toList();
-	}
-
-	public Optional<BranchProtectionResponse> getBranchProtection(
-			String owner,
-			String repo,
-			String branch
-	) {
-		HttpResponse<String> resp = get(
-				branchProtectionUrl(owner, repo, branch)
-		);
-		if (resp.statusCode() == 404) {
-			return Optional.empty();
-		}
-		if (resp.statusCode() != 200) {
-			throw new GitHubApiException(
-					"HTTP " + resp.statusCode() + " GET branch protection on "
-							+ repo
-			);
-		}
-		return Optional
-				.of(readValue(resp.body(), BranchProtectionResponse.class));
 	}
 
 	public List<Secret> getActionSecrets(String owner, String repo) {
@@ -826,26 +772,6 @@ public class GitHubClient {
 
 	// ─── Collaborators, teams and members
 	// ──────────────────────────────────────────────────────────
-
-	/** Direct collaborators only: {@code affiliation=direct}. */
-	public List<CollaboratorResponse> getCollaborators(
-			String owner,
-			String repo
-	) {
-		HttpResponse<String> resp = get(
-				repoUrl(owner, repo)
-						+ "/collaborators?affiliation=direct&per_page=100"
-		);
-		if (resp.statusCode() != 200) {
-			throw new GitHubApiException(
-					"HTTP " + resp.statusCode() + " for collaborators of "
-							+ owner + "/" + repo + ": " + resp.body()
-			);
-		}
-		return collectPaginatedArrayItems(resp, null).stream()
-				.map(c -> mapper.convertValue(c, CollaboratorResponse.class))
-				.toList();
-	}
 
 	/** Adds or updates a collaborator; 201 invites, 204 updates. */
 	public void addCollaborator(
@@ -2105,28 +2031,6 @@ public class GitHubClient {
 		}
 	}
 
-	public List<RulesetSummaryResponse> listRulesets(
-			String owner,
-			String repo
-	) {
-		String url = repoUrl(owner, repo) + "/rulesets?per_page=100";
-		HttpResponse<String> resp = get(url);
-		if (resp.statusCode() != 200) {
-			throw new GitHubApiException(
-					"HTTP " + resp.statusCode() + " listing rulesets for "
-							+ owner + "/" + repo + ": " + resp.body()
-			);
-		}
-		return collectPaginatedArrayItems(resp, null).stream()
-				.map(
-						node -> mapper.convertValue(
-								node,
-								RulesetSummaryResponse.class
-						)
-				)
-				.toList();
-	}
-
 	public RulesetDetailsResponse createRuleset(
 			String owner,
 			String repo,
@@ -3078,27 +2982,6 @@ public class GitHubClient {
 			}
 		}
 		return null;
-	}
-
-	public RulesetDetailsResponse getRuleset(
-			String owner,
-			String repo,
-			long rulesetId
-	) {
-		HttpResponse<String> resp = get(rulesetUrl(owner, repo, rulesetId));
-		if (resp.statusCode() == 403) {
-			throw new GitHubApiException(
-					"HTTP 403 for workflow permissions on " + repo
-							+ " — token may lack admin scope"
-			);
-		}
-		if (resp.statusCode() != 200) {
-			throw new GitHubApiException(
-					"HTTP " + resp.statusCode()
-							+ " GET workflow permissions on " + repo
-			);
-		}
-		return readValue(resp.body(), RulesetDetailsResponse.class);
 	}
 
 }

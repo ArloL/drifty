@@ -42,7 +42,7 @@ import io.github.arlol.githubcheck.testsupport.GraphQlStub;
  * the security settings, so they all read false).
  */
 @WireMockTest
-class RepositoryCheckerFetchStateTest {
+class RepositoryStateReaderTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper()
 			.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
@@ -83,12 +83,12 @@ class RepositoryCheckerFetchStateTest {
 
 	private static final RepoRef REF = new RepoRef("owner", "repo");
 
-	private RepositoryChecker checker;
+	private RepositoryStateReader reader;
 
 	@BeforeEach
 	void setUp(WireMockRuntimeInfo wm) {
 		var client = new GitHubClient(wm.getHttpBaseUrl(), "test-token");
-		checker = new RepositoryChecker(client, false);
+		reader = new RepositoryStateReader(client, FetchFailures.STRICT);
 		// Four groups read one query; a test about any other group only needs
 		// it not to fail.
 		stubFor(GraphQlStub.atDefaults());
@@ -155,7 +155,7 @@ class RepositoryCheckerFetchStateTest {
 										"""))
 		);
 
-		RepositoryState state = checker.fetchState(
+		RepositoryState state = reader.fetchState(
 				REF,
 				summary(false, "public"),
 				ManagedGroups.all(Drifty.GroupName.class)
@@ -259,7 +259,7 @@ class RepositoryCheckerFetchStateTest {
 		);
 
 		assertThatThrownBy(
-				() -> checker.fetchState(
+				() -> reader.fetchState(
 						REF,
 						summary(false, "public"),
 						ManagedGroups.all(Drifty.GroupName.class)
@@ -282,7 +282,7 @@ class RepositoryCheckerFetchStateTest {
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		RepositoryState state = checker.fetchState(
+		RepositoryState state = reader.fetchState(
 				REF,
 				summary(false, "private"),
 				ManagedGroups.all(Drifty.GroupName.class)
@@ -313,7 +313,7 @@ class RepositoryCheckerFetchStateTest {
 				""");
 		stubStandardEndpoints();
 
-		RepositoryState state = checker.fetchState(
+		RepositoryState state = reader.fetchState(
 				REF,
 				summary(true, "public"),
 				ManagedGroups.all(Drifty.GroupName.class)
@@ -367,7 +367,7 @@ class RepositoryCheckerFetchStateTest {
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		RepositoryState state = checker.fetchState(
+		RepositoryState state = reader.fetchState(
 				REF,
 				summary(false, "private"),
 				ManagedGroups.all(Drifty.GroupName.class)
@@ -401,7 +401,7 @@ class RepositoryCheckerFetchStateTest {
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		RepositoryState state = checker.fetchState(
+		RepositoryState state = reader.fetchState(
 				REF,
 				summary(false, "public"),
 				ManagedGroups.all(Drifty.GroupName.class)
@@ -471,7 +471,7 @@ class RepositoryCheckerFetchStateTest {
 				)
 		);
 
-		RepositoryState state = checker
+		RepositoryState state = reader
 				.fetchState(REF, summary(false, "public"), managed);
 
 		assertThat(state.actionSecrets()).isEmpty();
@@ -574,7 +574,7 @@ class RepositoryCheckerFetchStateTest {
 						)
 				)
 		);
-		RepositoryState state = checker
+		RepositoryState state = reader
 				.fetchState(REF, summary(false, "public"), environments);
 
 		assertThat(state.environments().get("prod").branchPolicies())
@@ -597,7 +597,7 @@ class RepositoryCheckerFetchStateTest {
 						List.of(Drifty.GroupName.ENVIRONMENT_SECRETS)
 				)
 		);
-		checker.fetchState(REF, summary(false, "public"), secretsOnly);
+		reader.fetchState(REF, summary(false, "public"), secretsOnly);
 		verify(
 				1,
 				getRequestedFor(
@@ -662,7 +662,7 @@ class RepositoryCheckerFetchStateTest {
 				)
 		);
 
-		RepositoryState state = checker.fetchState(
+		RepositoryState state = reader.fetchState(
 				REF,
 				summary(false, "public"),
 				ManagedGroups.of(
@@ -710,7 +710,7 @@ class RepositoryCheckerFetchStateTest {
 						.willReturn(aResponse().withStatus(404))
 		);
 
-		RepositoryState state = checker.fetchState(
+		RepositoryState state = reader.fetchState(
 				REF,
 				summary(false, "public"),
 				ManagedGroups.all(Drifty.GroupName.class)
@@ -754,7 +754,7 @@ class RepositoryCheckerFetchStateTest {
 		stubStandardEndpoints();
 		stubEmptyListings();
 
-		RepositoryState state = checker.fetchState(
+		RepositoryState state = reader.fetchState(
 				REF,
 				summary(false, "public"),
 				ManagedGroups.all(Drifty.GroupName.class)
@@ -786,7 +786,7 @@ class RepositoryCheckerFetchStateTest {
 		stubStandardEndpoints();
 		stubEmptyListings();
 
-		RepositoryState state = checker.fetchState(
+		RepositoryState state = reader.fetchState(
 				REF,
 				summaryWithoutPages(),
 				ManagedGroups.all(Drifty.GroupName.class)
