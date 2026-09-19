@@ -556,6 +556,73 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   not speed; the production image stays at `-O2`. The build report's
   "registered for reflection" and "Peak RSS" lines are the numbers to watch.
 
+## Checking the wire against GitHub's spec
+
+- **A new request or response record names its endpoint, or the build fails.**
+  `@GitHubEndpoint(request = ..., response = ...)` on every record in `client`
+  whose name ends in `Request` or `Response`; a nested record needs none,
+  because the walk reaches it from an annotated root. This is a fourth place a
+  new wire field appears, beside the reader, the group and the exporter.
+  `GitHubApiContractTest` compares each one against
+  `src/test/resources/github-api-contract.json`, which
+  `python3 download-schemas.py --contract` rewrites from GitHub's own spec.
+  Refresh is manual and nothing reports that the copy has aged; the file's
+  `specEtag` is what says which one it is.
+- **Ask Jackson for a wire name; never derive one.** `WireShape` introspects
+  through the same `ObjectMapper` configuration `GitHubClient` builds, so
+  `@JsonProperty` overrides, `SNAKE_CASE` and `@JsonIgnore` are already
+  applied, and an enum value is whatever serializing the constant produces.
+  Reimplementing `SNAKE_CASE` in the test would check a second guess against
+  the spec while the mapper did something else — and the wire names are
+  exactly what is under test, so a shared mistake would be invisible. The two
+  directions introspect different configs on purpose: `@JsonInclude(NON_NULL)`
+  is a serialization concern and `RepositoryUpdateRequest`'s whole
+  nullable-wrapper design lives there.
+- **`unmanaged` and `undocumented` are not interchangeable.** `unmanaged` says
+  GitHub carries a field drifty does not model; `undocumented` says drifty
+  reads a field GitHub's spec has not caught up with. Each entry is
+  `"path — reason"`, dotted for a nested property and `#`-suffixed for one enum
+  value (`target#actions`). An entry no binding of its record used fails
+  `noExclusionIsDead`, so a fix that removes a finding has to remove its
+  declaration too — which is how the `current_user_can_bypass#exempt` entry was
+  caught the moment the constant that made it unnecessary was added.
+- **`ROOT_METADATA` matches at the root of a response and nowhere else.** A
+  webhook's `config.url` is the payload URL, a managed setting at depth 1, so a
+  blanket `*_url` rule would hide the one URL that matters. Silence a finding
+  with a declaration on the record that carries its reason, never by widening
+  this list.
+- **A response enum needs a constant for every value the spec lists, even when
+  nothing compares the field.** `currentUserCanBypass` describes the token
+  rather than the ruleset and no group reads it, but it is parsed: GitHub's
+  fourth value `exempt` against drifty's three constants was an
+  `InvalidFormatException` that ended that repository's check. Reaching for
+  `READ_UNKNOWN_ENUM_VALUES_AS_NULL` instead would turn every future addition
+  into a silent null.
+- **A component whose wire name is a Java keyword carries `@JsonProperty`.**
+  `RepositoryCreateRequest.isPrivate` sent `is_private` where `POST /user/repos`
+  accepts `private`; GitHub ignores an unknown field, so asking for a private
+  repository created a public one. `RepositoryDetailsResponse` had it right and
+  nothing made the two agree until this check existed.
+- **The contract keeps a discriminated `oneOf` branch by branch.** GitHub writes
+  ruleset rules as 25 branches each pinning `type` to a single-value enum, and
+  `Rule` mirrors them with `@JsonSubTypes`. Merging the branches — which is what
+  the extractor does for `allOf` and an undiscriminated `anyOf`, because Jackson
+  flattens those into one record — would compare every subtype against the union
+  of all rules' fields and so find nothing wrong, ever. The discriminator
+  property itself is written by `@JsonTypeInfo`, not by a component, so the walk
+  treats it as declared.
+- **The contract is per endpoint because the same field name means different
+  things.** A ruleset's `source_type` is `Repository`/`Organization`/
+  `Enterprise` and a custom property's is `organization`/`enterprise`; a
+  ruleset's `target` accepts `repository` at the organization endpoints and not
+  at the repository ones. A global field-name lookup would report conflicts that
+  are not conflicts and miss the ones that are.
+- **`GraphQlRepositoryResponse` and `CachedHttpResponse` answer to no OpenAPI
+  endpoint** and are named in `NOT_OPENAPI`. The GraphQL rewrite is still
+  pinned: `GraphQlShape` writes into `RulesetDetailsResponse`,
+  `BranchProtectionResponse` and `CollaboratorResponse`, each checked against
+  its REST endpoint.
+
 ## Native-image reachability metadata
 
 - **Take the collection types Pkl's mapper already has metadata for.**
