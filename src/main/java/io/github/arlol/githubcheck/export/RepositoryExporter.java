@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.github.arlol.githubcheck.ConfigSpelling;
 import io.github.arlol.githubcheck.FetchFailures;
 import io.github.arlol.githubcheck.RepositoryState;
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
@@ -18,7 +19,6 @@ import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis.BypassReview
 import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
-import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
 /**
@@ -134,7 +134,7 @@ public final class RepositoryExporter {
 			ActualRepository actual,
 			Drifty.Repository base
 	) {
-		String visibility = wire(actual.visibility());
+		String visibility = ConfigSpelling.of(actual.visibility());
 		return Fields.members(
 				Fields.field("archived", actual.archived(), base.archived),
 				Fields.field(
@@ -688,8 +688,7 @@ public final class RepositoryExporter {
 		return Fields.members(
 				Fields.field(
 						"defaultWorkflowPermissions",
-						AccountExporter
-								.wire(actual.defaultWorkflowPermissions()),
+						ConfigSpelling.of(actual.defaultWorkflowPermissions()),
 						base.defaultWorkflowPermissions.toString()
 				),
 				Fields.field(
@@ -706,21 +705,6 @@ public final class RepositoryExporter {
 
 	private static PklNode.Member required(String name, String value) {
 		return Fields.required(name, value).orElseThrow();
-	}
-
-	/**
-	 * GitHub's visibility spells its constants upper-case
-	 * ({@link RepositoryVisibility#PUBLIC}); the schema spells the same union
-	 * lower-case ({@code Drifty.Visibility.PUBLIC.toString()} is
-	 * {@code "public"}). Comparing the two as enums would compare like with
-	 * unlike, so this maps to the schema's own spelling first.
-	 */
-	private static String wire(RepositoryVisibility value) {
-		return switch (value) {
-		case PUBLIC -> "public";
-		case PRIVATE -> "private";
-		case INTERNAL -> "internal";
-		};
 	}
 
 }
