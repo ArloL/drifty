@@ -39,6 +39,20 @@ import io.github.arlol.githubcheck.testsupport.GraphQlStub;
  * default. The fixture below is deliberately not at GitHub's defaults: an
  * organization at its defaults exports an empty file and would pass this test
  * whether or not the exporter worked at all.
+ * <p>
+ * Two ways a section can be in the fixture and still prove nothing, both of
+ * which have happened. A stub answering an empty listing exports nothing, and a
+ * stub answering something drifty cannot parse fails the group, which the
+ * export then writes out as a {@code managed} exclusion the check skips —
+ * silently, and indistinguishably from a section that round-tripped. The
+ * assertion that no group was left unmanaged is what catches the second;
+ * against the first there is only reading the fixture.
+ * <p>
+ * The one thing here that cannot round-trip is a secret. GitHub never returns a
+ * secret's value, so the state file has no baseline for one on a freshly
+ * exported config and the first run reports {@code SecretMissingBaseline} — for
+ * a hand-written config just the same. The three secret listings are therefore
+ * the only ones deliberately left empty.
  */
 @WireMockTest
 class ExportRoundTripTest {
@@ -54,7 +68,7 @@ class ExportRoundTripTest {
 	) throws Exception {
 		stubOrganization();
 		stubRepository();
-		stubFor(GraphQlStub.atDefaults());
+		stubFor(GraphQlStub.answering(REPOSITORY_GRAPHQL));
 
 		GitHubClient client = new GitHubClient(
 				wm.getHttpBaseUrl(),
@@ -66,6 +80,17 @@ class ExportRoundTripTest {
 		assertThat(exitCode).isZero();
 
 		DriftyConfig config = PklConfigLoader.load(out);
+		// A group whose read failed is exported as a `managed` exclusion, and
+		// the check then skips it — so a stub answering something drifty
+		// cannot parse makes its whole section pass this test by not being
+		// there. Stating that nothing was excluded is what keeps every stub
+		// below honest: a Pages payload missing one primitive field slipped
+		// through exactly this way.
+		Drifty.Organization org = config.organizations().get("my-org");
+		assertThat(org.managed.groups).isEmpty();
+		assertThat(org.repositories).allSatisfy(
+				repository -> assertThat(repository.managed.groups).isEmpty()
+		);
 		var orgChecker = new OrganizationChecker(
 				client,
 				false,
@@ -136,8 +161,10 @@ class ExportRoundTripTest {
 		assertThat(config.organizations().get("my-org").managed.groups)
 				.containsExactly(Drifty.OrgGroupName.ORG_TEAMS);
 		assertThat(
-				config.organizations().get("my-org").repositories
-						.getFirst().managed.groups
+				config.organizations().get("my-org").repositories.stream()
+						.filter(r -> "widget".equals(r.name))
+						.findFirst()
+						.orElseThrow().managed.groups
 		).containsExactly(Drifty.GroupName.ACTION_SECRETS);
 
 		CheckResult result = GitHubCheck.check(
@@ -193,7 +220,112 @@ class ExportRoundTripTest {
 		return problems;
 	}
 
+	/**
+	 * The same property for a personal account, which reaches none of the code
+	 * above: its repositories come from {@code /user/repos} rather than an
+	 * organization listing, and the file nests them under {@code users} instead
+	 * of {@code organizations}. Two repository reads are skipped as well —
+	 * {@code /teams} and {@code /properties/values} answer 404 on a user-owned
+	 * repository whatever the token can do — so a config naming either would be
+	 * one drifty could not satisfy.
+	 * <p>
+	 * One repository off its defaults in one field is enough: everything
+	 * between the listing and the file is the same code the organization test
+	 * above already drives.
+	 */
+	@Test
+	void aPersonalAccountsExportReportsNoDriftEither(
+			WireMockRuntimeInfo wm,
+			@TempDir Path dir
+	) throws Exception {
+		stubFor(
+				get(urlPathEqualTo("/orgs/solo"))
+						.willReturn(aResponse().withStatus(404))
+		);
+		stubFor(get(urlPathEqualTo("/user")).willReturn(okJson("""
+				{"login": "solo", "id": 1, "type": "User", "site_admin": false}
+				""")));
+		stubFor(
+				get(urlPathEqualTo("/user/repos")).willReturn(
+						okJson(
+								"""
+										[{"id": 1, "name": "sketch", "archived": false, "visibility": "public"}]
+										"""
+						)
+				)
+		);
+		stubPersonalRepository();
+		stubFor(GraphQlStub.atDefaults());
+
+		GitHubClient client = new GitHubClient(
+				wm.getHttpBaseUrl(),
+				"test-token"
+		);
+		Path out = dir.resolve("export.pkl");
+
+		assertThat(ExportRunner.run(client, List.of("solo"), out, SCHEMA))
+				.isZero();
+
+		DriftyConfig config = PklConfigLoader.load(out);
+		assertThat(config.users()).containsOnlyKeys("solo");
+		assertThat(config.users().get("solo").repositories).allSatisfy(
+				repository -> assertThat(repository.managed.groups).isEmpty()
+		);
+
+		CheckResult result = GitHubCheck.check(
+				config,
+				client,
+				new OrganizationChecker(
+						client,
+						false,
+						Map.of(),
+						new DriftyState()
+				),
+				new RepositoryChecker(client, false)
+		);
+
+		assertThat(problems(result)).isEmpty();
+		assertThat(result.hasDrift()).isFalse();
+	}
+
 	// ─── Stubs ────────────────────────────────────────────────────────────
+
+	/**
+	 * The one query {@code fetchState} sends, answered with a repository
+	 * ruleset, a branch protection and a direct collaborator. These three
+	 * groups are reachable only through GraphQL — the REST reads they replaced
+	 * are gone — so a fixture that stubs the endpoints and leaves this at
+	 * {@code atDefaults()} exercises none of them.
+	 */
+	private static final String REPOSITORY_GRAPHQL = GraphQlStub.sections(
+			"""
+					{
+					  "databaseId": 42, "name": "main-rules",
+					  "target": "BRANCH", "enforcement": "ACTIVE",
+					  "source": {"__typename": "Repository"},
+					  "conditions": {"refName": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+					  "bypassActors": {"nodes": []},
+					  "rules": {"nodes": [
+					    {"type": "REQUIRED_LINEAR_HISTORY", "parameters": null},
+					    {"type": "NON_FAST_FORWARD", "parameters": null}
+					  ]}
+					}
+					""",
+			"""
+					{
+					  "pattern": "release/*",
+					  "matchingRefs": {"nodes": []},
+					  "isAdminEnforced": true, "requiresLinearHistory": true,
+					  "requiresStatusChecks": false, "requiresApprovingReviews": false,
+					  "restrictsPushes": false, "allowsForcePushes": false,
+					  "requiresConversationResolution": true
+					}
+					""",
+			"""
+					{"permission": "MAINTAIN", "node": {"login": "carol"}}
+					""",
+			true
+	);
 
 	/**
 	 * An organization with a non-default {@code description}, a check-only
@@ -203,6 +335,49 @@ class ExportRoundTripTest {
 	 * {@code config/drifty.pkl}'s defaults, so only the fields named above are
 	 * expected to appear in the exported file.
 	 */
+	/**
+	 * One organization-owned configuration, off GitHub's defaults in every
+	 * field {@code config/drifty.pkl} declares, plus the two sub-option objects
+	 * the schema leaves nullable. A configuration set to the schema's defaults
+	 * would round-trip as an empty body and prove nothing about the seventeen
+	 * toggles.
+	 */
+	private static final String CODE_SECURITY_CONFIGURATIONS = """
+			[
+			  {
+			    "id": 3,
+			    "target_type": "organization",
+			    "name": "baseline",
+			    "description": "The one every repository gets",
+			    "advanced_security": "enabled",
+			    "dependency_graph": "enabled",
+			    "dependency_graph_autosubmit_action": "enabled",
+			    "dependency_graph_autosubmit_action_options": {"labeled_runners": true},
+			    "dependabot_alerts": "enabled",
+			    "dependabot_security_updates": "enabled",
+			    "dependabot_delegated_alert_dismissal": "enabled",
+			    "code_scanning_default_setup": "enabled",
+			    "code_scanning_default_setup_options": {
+			      "runner_type": "labeled", "runner_label": "code-scanning"
+			    },
+			    "code_scanning_options": {"allow_advanced": true},
+			    "code_scanning_delegated_alert_dismissal": "enabled",
+			    "secret_scanning": "enabled",
+			    "secret_scanning_push_protection": "enabled",
+			    "secret_scanning_delegated_bypass": "enabled",
+			    "secret_scanning_delegated_bypass_options": {
+			      "reviewers": [{"security_configuration_id": 3, "reviewer_id": 1, "reviewer_type": "TEAM"}]
+			    },
+			    "secret_scanning_validity_checks": "enabled",
+			    "secret_scanning_non_provider_patterns": "enabled",
+			    "secret_scanning_generic_secrets": "enabled",
+			    "secret_scanning_delegated_alert_dismissal": "enabled",
+			    "private_vulnerability_reporting": "enabled",
+			    "enforcement": "unenforced"
+			  }
+			]
+			""";
+
 	private static void stubOrganization() {
 		stubFor(get(urlPathEqualTo("/orgs/my-org")).willReturn(okJson("""
 				{
@@ -230,10 +405,38 @@ class ExportRoundTripTest {
 				get(urlPathEqualTo("/orgs/my-org/actions/permissions"))
 						.willReturn(okJson("""
 								{
-								  "enabled_repositories": "all",
-								  "allowed_actions": "all"
+								  "enabled_repositories": "selected",
+								  "allowed_actions": "selected"
 								}
 								"""))
+		);
+		// Both "selected" modes, each of which hangs a second listing off the
+		// permissions read — the allow-list and the repository selection.
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/orgs/my-org/actions/permissions/selected-actions"
+						)
+				).willReturn(okJson("""
+						{
+						  "github_owned_allowed": false,
+						  "verified_allowed": true,
+						  "patterns_allowed": ["my-org/*"]
+						}
+						"""))
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/orgs/my-org/actions/permissions/repositories"
+						)
+				).willReturn(
+						okJson(
+								"""
+										{"repositories": [{"id": 1, "name": "widget", "archived": false}]}
+										"""
+						)
+				)
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/actions/permissions/workflow"))
@@ -252,9 +455,15 @@ class ExportRoundTripTest {
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/actions/variables"))
-						.willReturn(okJson("""
-								{"variables": []}
-								"""))
+						.willReturn(
+								okJson(
+										"""
+												{"variables": [
+												  {"name": "REGION", "value": "eu-central-1", "visibility": "all"}
+												]}
+												"""
+								)
+						)
 		);
 		stubFor(get(urlPathEqualTo("/orgs/my-org/hooks")).willReturn(okJson("""
 				[
@@ -274,7 +483,19 @@ class ExportRoundTripTest {
 				""")));
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/properties/schema"))
-						.willReturn(okJson("[]"))
+						.willReturn(
+								okJson(
+										"""
+												[
+												  {"property_name": "owning-team", "source_type": "organization",
+												   "value_type": "single_select", "required": true,
+												   "default_value": "platform", "description": "Who is paged",
+												   "allowed_values": ["platform", "payments"],
+												   "values_editable_by": "org_actors"}
+												]
+												"""
+								)
+						)
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/rulesets")).willReturn(
@@ -301,7 +522,23 @@ class ExportRoundTripTest {
 										    "ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}
 										  },
 										  "rules": [
-										    {"type": "pull_request", "parameters": {"required_approving_review_count": 1}}
+										    {"type": "pull_request", "parameters": {"required_approving_review_count": 1}},
+										    {"type": "required_status_checks", "parameters": {
+										      "strict_required_status_checks_policy": true,
+										      "required_status_checks": [{"context": "build", "integration_id": 15368}]
+										    }},
+										    {"type": "workflows", "parameters": {"workflows": [
+										      {"path": ".github/workflows/ci.yml", "repository_id": 1, "ref": "refs/heads/main"}
+										    ]}},
+										    {"type": "merge_queue", "parameters": {
+										      "check_response_timeout_minutes": 60,
+										      "grouping_strategy": "ALLGREEN",
+										      "max_entries_to_build": 5,
+										      "max_entries_to_merge": 5,
+										      "merge_method": "SQUASH",
+										      "min_entries_to_merge": 1,
+										      "min_entries_to_merge_wait_minutes": 5
+										    }}
 										  ],
 										  "bypass_actors": [
 										    {"actor_id": null, "actor_type": "OrganizationAdmin", "bypass_mode": "always"},
@@ -318,7 +555,33 @@ class ExportRoundTripTest {
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/code-security/configurations"))
-						.willReturn(okJson("[]"))
+						.willReturn(okJson(CODE_SECURITY_CONFIGURATIONS))
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/orgs/my-org/code-security/configurations/defaults"
+						)
+				).willReturn(
+						okJson(
+								"""
+										[{"default_for_new_repos": "public", "configuration": {"id": 3}}]
+										"""
+						)
+				)
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/orgs/my-org/code-security/configurations/3/repositories"
+						)
+				).willReturn(
+						okJson(
+								"""
+										[{"status": "attached", "repository": {"id": 1, "name": "widget"}}]
+										"""
+						)
+				)
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/teams")).willReturn(
@@ -335,34 +598,53 @@ class ExportRoundTripTest {
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/teams/platform/members"))
 						.withQueryParam("role", equalTo("member"))
-						.willReturn(okJson("[]"))
+						.willReturn(okJson("""
+								[{"login": "bob", "id": 2}]
+								"""))
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/teams/platform/members"))
 						.withQueryParam("role", equalTo("maintainer"))
-						.willReturn(okJson("[]"))
+						.willReturn(okJson("""
+								[{"login": "alice", "id": 1}]
+								"""))
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/members"))
 						.withQueryParam("role", equalTo("admin"))
-						.willReturn(okJson("[]"))
+						.willReturn(okJson("""
+								[{"login": "alice", "id": 1}]
+								"""))
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/members"))
 						.withQueryParam("role", equalTo("member"))
-						.willReturn(okJson("[]"))
+						.willReturn(okJson("""
+								[{"login": "bob", "id": 2}]
+								"""))
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/actions/runner-groups"))
-						.willReturn(okJson("""
-								{"runner_groups": []}
-								"""))
+						.willReturn(
+								okJson(
+										"""
+												{"runner_groups": [
+												  {"id": 2, "name": "gpu", "visibility": "all", "default": false,
+												   "inherited": false, "allows_public_repositories": false,
+												   "restricted_to_workflows": false, "selected_workflows": []}
+												]}
+												"""
+								)
+						)
 		);
 		stubFor(
 				get(urlPathEqualTo("/orgs/my-org/repos")).willReturn(
 						okJson(
 								"""
-										[{"id": 1, "name": "widget", "archived": false, "visibility": "public"}]
+										[
+										  {"id": 1, "name": "widget", "archived": false, "visibility": "public"},
+										  {"id": 2, "name": "legacy", "archived": true, "visibility": "private"}
+										]
 										"""
 						)
 				)
@@ -390,6 +672,7 @@ class ExportRoundTripTest {
 										{
 										  "id": 1,
 										  "name": "widget",
+										  "owner": {"login": "my-org", "type": "Organization"},
 										  "description": "A GitHub Actions action that creates a new version using a CalVer-style derivative and pushes it",
 										  "private": false,
 										  "fork": false,
@@ -402,7 +685,7 @@ class ExportRoundTripTest {
 										  "has_projects": true,
 										  "has_wiki": true,
 										  "has_discussions": false,
-										  "has_pages": false,
+										  "has_pages": true,
 										  "allow_forking": true,
 										  "web_commit_signoff_required": false,
 										  "allow_squash_merge": true,
@@ -475,9 +758,13 @@ class ExportRoundTripTest {
 		);
 		stubFor(
 				get(urlPathEqualTo("/repos/my-org/widget/actions/variables"))
-						.willReturn(okJson("""
-								{"variables": []}
-								"""))
+						.willReturn(
+								okJson(
+										"""
+												{"variables": [{"name": "STAGE", "value": "production"}]}
+												"""
+								)
+						)
 		);
 		stubFor(
 				get(urlPathEqualTo("/repos/my-org/widget/environments"))
@@ -514,19 +801,44 @@ class ExportRoundTripTest {
 		);
 		stubFor(
 				get(urlPathEqualTo("/repos/my-org/widget/hooks"))
-						.willReturn(okJson("[]"))
+						.willReturn(okJson("""
+								[
+								  {
+								    "id": 11,
+								    "name": "web",
+								    "active": false,
+								    "events": ["push", "release"],
+								    "config": {
+								      "url": "https://example.com/repo-hook",
+								      "content_type": "form",
+								      "insecure_ssl": "1"
+								    },
+								    "updated_at": "2024-01-01T00:00:00Z"
+								  }
+								]
+								"""))
 		);
 		stubFor(
 				get(urlPathEqualTo("/repos/my-org/widget/collaborators"))
 						.willReturn(okJson("[]"))
 		);
 		stubFor(
-				get(urlPathEqualTo("/repos/my-org/widget/teams"))
-						.willReturn(okJson("[]"))
+				get(urlPathEqualTo("/repos/my-org/widget/teams")).willReturn(
+						okJson(
+								"""
+										[{"slug": "platform", "permission": "push", "access_source": "direct",
+										  "permissions": {"pull": true, "triage": true, "push": true,
+										                  "maintain": false, "admin": false}}]
+										"""
+						)
+				)
 		);
 		stubFor(
-				get(urlPathEqualTo("/repos/my-org/widget/properties/values"))
-						.willReturn(okJson("[]"))
+				get(
+						urlPathEqualTo("/repos/my-org/widget/properties/values")
+				).willReturn(okJson("""
+						[{"property_name": "owning-team", "value": "platform"}]
+						"""))
 		);
 		stubFor(
 				get(
@@ -544,9 +856,175 @@ class ExportRoundTripTest {
 				get(urlPathEqualTo("/repos/my-org/widget/rulesets"))
 						.willReturn(okJson("[]"))
 		);
+		// An archived repository, whose export reads its details and nothing
+		// else: RepositoryExporter writes settings it never compares, and the
+		// account listing omits the merge fields, so ARCHIVED_ONLY still costs
+		// this one request.
 		stubFor(
-				get(urlPathEqualTo("/repos/my-org/widget/pages"))
-						.willReturn(aResponse().withStatus(404))
+				get(urlPathEqualTo("/repos/my-org/legacy")).willReturn(
+						okJson(
+								"""
+										{
+										  "id": 2,
+										  "name": "legacy",
+										  "owner": {"login": "my-org", "type": "Organization"},
+										  "description": "Retired, kept for its history",
+										  "private": true,
+										  "fork": false,
+										  "archived": true,
+										  "disabled": false,
+										  "is_template": false,
+										  "visibility": "private",
+										  "default_branch": "master",
+										  "has_issues": false,
+										  "has_projects": false,
+										  "has_wiki": false,
+										  "has_discussions": false,
+										  "has_pages": false,
+										  "allow_forking": true,
+										  "web_commit_signoff_required": false,
+										  "allow_squash_merge": true,
+										  "allow_merge_commit": true,
+										  "allow_rebase_merge": true,
+										  "allow_auto_merge": false,
+										  "delete_branch_on_merge": false,
+										  "allow_update_branch": false,
+										  "squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+										  "squash_merge_commit_message": "COMMIT_MESSAGES",
+										  "merge_commit_title": "MERGE_MESSAGE",
+										  "merge_commit_message": "PR_TITLE"
+										}
+										"""
+						)
+				)
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/my-org/widget/pages")).willReturn(
+						okJson(
+								"""
+										{
+										  "url": "https://api.github.com/repos/my-org/widget/pages",
+										  "status": "built",
+										  "custom_404": false,
+										  "build_type": "legacy",
+										  "source": {"branch": "gh-pages", "path": "/docs"},
+										  "public": true,
+										  "https_enforced": true
+										}
+										"""
+						)
+				)
+		);
+	}
+
+	/**
+	 * One user-owned repository, at GitHub's defaults except
+	 * {@code allowAutoMerge}. {@code /teams} and {@code /properties/values} are
+	 * deliberately unstubbed: {@code fetchState} must not send them for a
+	 * repository no organization owns, and a stub here would hide it doing so.
+	 */
+	private static void stubPersonalRepository() {
+		stubFor(get(urlPathEqualTo("/repos/solo/sketch")).willReturn(okJson("""
+				{
+				  "id": 1,
+				  "name": "sketch",
+				  "owner": {"login": "solo", "type": "User"},
+				  "private": false,
+				  "fork": false,
+				  "archived": false,
+				  "disabled": false,
+				  "is_template": false,
+				  "visibility": "public",
+				  "default_branch": "main",
+				  "has_issues": true,
+				  "has_projects": true,
+				  "has_wiki": true,
+				  "has_discussions": false,
+				  "has_pages": false,
+				  "allow_forking": true,
+				  "web_commit_signoff_required": false,
+				  "allow_squash_merge": true,
+				  "allow_merge_commit": true,
+				  "allow_rebase_merge": true,
+				  "allow_auto_merge": true,
+				  "delete_branch_on_merge": false,
+				  "allow_update_branch": false,
+				  "squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+				  "squash_merge_commit_message": "COMMIT_MESSAGES",
+				  "merge_commit_title": "MERGE_MESSAGE",
+				  "merge_commit_message": "PR_TITLE"
+				}
+				""")));
+		stubFor(
+				get(urlPathEqualTo("/repos/solo/sketch/vulnerability-alerts"))
+						.willReturn(aResponse().withStatus(204))
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/solo/sketch/automated-security-fixes"
+						)
+				).willReturn(okJson("""
+						{"enabled": false}
+						"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/solo/sketch/immutable-releases"))
+						.willReturn(okJson("""
+								{"enabled": false}
+								"""))
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/solo/sketch/private-vulnerability-reporting"
+						)
+				).willReturn(okJson("""
+						{"enabled": false}
+						"""))
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/solo/sketch/code-scanning/default-setup"
+						)
+				).willReturn(okJson("""
+						{"state": "not-configured"}
+						"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/solo/sketch/actions/secrets"))
+						.willReturn(okJson("""
+								{"secrets": []}
+								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/solo/sketch/actions/variables"))
+						.willReturn(okJson("""
+								{"variables": []}
+								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/solo/sketch/environments"))
+						.willReturn(okJson("""
+								{"environments": []}
+								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/solo/sketch/hooks"))
+						.willReturn(okJson("[]"))
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/solo/sketch/actions/permissions/workflow"
+						)
+				).willReturn(okJson("""
+						{
+						  "default_workflow_permissions": "write",
+						  "can_approve_pull_request_reviews": true
+						}
+						"""))
 		);
 	}
 
