@@ -4587,6 +4587,9 @@
       "glob": "export-defaults.pkl"
     },
     {
+      "glob": "io/github/arlol/githubcheck/drifty.pkl"
+    },
+    {
       "glob": "org/pkl/core/Release.properties"
     },
     {

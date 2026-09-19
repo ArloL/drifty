@@ -10,6 +10,7 @@ import org.pkl.config.java.Config;
 import org.pkl.config.java.ConfigEvaluator;
 import org.pkl.core.ModuleSource;
 
+import io.github.arlol.githubcheck.BundledSchema;
 import io.github.arlol.githubcheck.pkl.Drifty;
 
 /**
@@ -24,8 +25,6 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * own defaults already imply, or leave out ones they do not.
  */
 public final class SchemaDefaults {
-
-	public static final String MAIN_SCHEMA_URI = "https://raw.githubusercontent.com/ArloL/drifty/refs/heads/main/config/drifty.pkl";
 
 	private static final String TEMPLATE = "/export-defaults.pkl";
 
@@ -100,16 +99,19 @@ public final class SchemaDefaults {
 	 *                  did.
 	 */
 	public static SchemaDefaults of(String schemaUri) {
-		String uri = importUri(schemaUri);
-		try (var evaluator = ConfigEvaluator.preconfigured()) {
-			return new SchemaDefaults(
-					uri,
-					evaluator.evaluate(
-							ModuleSource
-									.text(template().replace("@schema@", uri))
-					)
-			);
+		try (var evaluator = BundledSchema.evaluatorBuilder().build()) {
+			return of(schemaUri, evaluator);
 		}
+	}
+
+	static SchemaDefaults of(String schemaUri, ConfigEvaluator evaluator) {
+		String uri = importUri(schemaUri);
+		return new SchemaDefaults(
+				uri,
+				evaluator.evaluate(
+						ModuleSource.text(template().replace("@schema@", uri))
+				)
+		);
 	}
 
 	/**

@@ -99,7 +99,7 @@ public class GitHubCheck {
 						new GitHubClient(token, state),
 						exportLogins,
 						out,
-						schema == null ? SchemaDefaults.MAIN_SCHEMA_URI : schema
+						schema == null ? BundledSchema.MAIN_SCHEMA_URI : schema
 				);
 			} finally {
 				// The save runs whether or not ExportRunner.run returns: past

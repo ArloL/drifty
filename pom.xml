@@ -291,6 +291,15 @@
 									<directory>
 										${project.build.directory}/generated-sources/pkl/resources</directory>
 								</resource>
+								<!-- The schema the binary answers its own main-branch
+								     URL with; see BundledSchema. -->
+								<resource>
+									<directory>${project.basedir}/config</directory>
+									<includes>
+										<include>drifty.pkl</include>
+									</includes>
+									<targetPath>io/github/arlol/githubcheck</targetPath>
+								</resource>
 							</resources>
 						</configuration>
 					</execution>

@@ -122,7 +122,8 @@ public final class ReachabilityMetadata {
 			"META-INF/org/pkl/", // Pkl java-config class mappers
 			"META-INF/services/org.pkl.", // Pkl ServiceLoader providers
 			"org/pkl/", // Pkl stdlib + Release.properties
-			"export-defaults.pkl" // SchemaDefaults' bundled template
+			"export-defaults.pkl", // SchemaDefaults' bundled template
+			"io/github/arlol/githubcheck/drifty.pkl" // BundledSchema
 	);
 
 	/**
