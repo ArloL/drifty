@@ -138,7 +138,7 @@ repository is read for needs another repository — and which
 ## Request count is also the headroom
 
 `RequestPacer` bills a read one point against GitHub's 900 per minute, and a
-check of this account costs 742. Two checks inside a minute exceed the budget —
+check of this account costs 519. Two checks inside a minute exceed the budget —
 which the replay experiments here ran into, drawing 403s on 663 of 742 requests
 until they were spaced 200 s apart.
 

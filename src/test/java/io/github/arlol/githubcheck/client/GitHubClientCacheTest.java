@@ -26,7 +26,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 /**
  * A GET drifty has seen before is asked conditionally, and GitHub's 304 is
  * answered from the body it kept. A 304 costs no primary rate limit, which is
- * the whole point: a 742-request check of an unchanged account spends none of
+ * the whole point: a 519-request check of an unchanged account spends none of
  * the 5000 an hour.
  * <p>
  * Every case here is about what may and may not become an entry. Serving a

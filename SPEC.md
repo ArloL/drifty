@@ -131,6 +131,10 @@ drifty                 # Report drift; loads ./drifty.pkl by default
 drifty --fix           # Apply all fixable changes
 drifty --config <path> # Use a config file at an explicit path
 drifty --state <path>  # Use a state file at an explicit path
+drifty --export <login>... # Write a config from what the accounts already have
+drifty --out <path>    # Where --export writes. Default: ./export.pkl
+drifty --schema <uri>  # The schema --export amends and omits defaults from
+drifty --max-concurrent-requests <n> # In-flight requests, 1 to 100. Default: 100
 drifty --self-test     # Run the token- and network-free smoke test
 drifty --version       # Print the version
 drifty --help          # Print the usage; -h is the same flag
@@ -859,7 +863,9 @@ The tool never fails fast — it always attempts all fixes and provides a comple
 
 ### API Strategy
 
-REST API only. Both reads and writes use the GitHub REST API v3. GraphQL for bulk reads is a future consideration, and was measured once: ~3x slower in wall clock for this workload, because one query is serialized server-side where 94 REST calls are not, and it covers none of `security_and_analysis`, Actions secrets, variables or permissions, webhooks, Pages or code-scanning setup.
+REST API v3 for every write and for all but four of the reads. One GraphQL query per repository answers its rulesets and their rules, its branch protections, its collaborators and its vulnerability-alerts flag, where REST needed six requests and a second level of waiting — 268 of a 101-repository check's 742 requests, which is why the check now costs 519. The answer is rewritten into the REST shape the same records already parse, so both routes produce the same comparison.
+
+GraphQL covers nothing else drifty reads. Of the `Repository` type's 141 fields none carries `immutable_releases`, private vulnerability reporting or any scanning flag, and none replaces `/hooks`, `/actions/secrets`, `/actions/variables`, `/actions/permissions/workflow` or `/pages` — checked 2026-09-19. The nine REST requests per active repository that remain are not a backlog waiting on a wider query.
 
 A listing longer than one page is read from the `Link` header's `rel="last"`, so every page after the first goes out together. Walking `rel="next"` paid a round trip per page before anything else could start.
 
@@ -872,7 +878,7 @@ Drifty stays inside the secondary limits by construction rather than by being re
 | Secondary limit | What drifty does |
 |---|---|
 | 900 points a minute | `RequestPacer` books a request's points before it is sent and schedules it so that no 60-second window holds more than 900. A check that fits in the window is not slowed at all; one that does not is spread out rather than refused |
-| 100 concurrent requests | The in-flight cap of 90 below, which the single HTTP/2 connection needs anyway |
+| 100 concurrent requests | The in-flight cap below, which is set to this same hundred and which the single HTTP/2 connection needs anyway |
 | 90 seconds of CPU per 60 | Nothing — no response reports server CPU, and response time is a poor proxy for it. A refusal is what drifty learns from here |
 
 The response cache buys nothing against these: a 304 is still a request and still costs its point. What the pacing costs is wall clock on an account past the limit — a 2000-point check takes over two minutes whatever the network does — and one line on stderr saying that is what is happening.
@@ -887,16 +893,22 @@ Three things can then say to wait, and all three are honoured:
 
 A 403 with neither is not a rate limit — a token without a scope — and reaches the caller as the failure it is. One line per pause is printed to stderr, once per window rather than once per waiting thread.
 
-A pause holds back every thread, not only the one that was refused. The limit belongs to the token, and a run has up to ninety requests in flight: the eighty-nine that were not refused would otherwise spend the pause collecting refusals of their own, and the three attempts would go to requests that never had a chance.
+A pause holds back every thread, not only the one that was refused. The limit belongs to the token, and a run has up to a hundred requests in flight: the ninety-nine that were not refused would otherwise spend the pause collecting refusals of their own, and the three attempts would go to requests that never had a chance.
 
-One check of a 101-repository account costs about 800 requests of the 5000/hour REST budget, so roughly six runs an hour.
+One check of a 101-repository account cost 519 requests of the 5000/hour REST budget when it was traced on 2026-09-19, so roughly nine runs an hour.
 
-`GitHubClient` also caps its own in-flight requests at 90. GitHub answers over
+`GitHubClient` also caps its own in-flight requests at 100. GitHub answers over
 one HTTP/2 connection whose `SETTINGS_MAX_CONCURRENT_STREAMS` is 100, and the
 JDK client does not queue past it — an account with more than ~100 configured
 repositories would otherwise die on `too many concurrent streams` before
-checking anything. It is below GitHub's documented ceiling of 100 concurrent
-requests for the same reason it is below the stream limit.
+checking anything.
+
+The cap is GitHub's documented ceiling rather than a margin under it, because a
+token given to drifty is normally drifty's alone: interleaved three times
+against each other on a 101-repository account, ninety permits averaged 2.23s
+and a hundred 1.97s with nothing refused. `--max-concurrent-requests` is how a
+shared token asks for the margin back; a value above the ceiling is refused
+rather than sent.
 
 ### Authentication
 
@@ -916,7 +928,6 @@ The tool is run **on-demand** (e.g. via `workflow_dispatch`). No scheduled cron 
 
 These are explicitly out of scope for the initial version but acknowledged as potential additions:
 
-- **GraphQL for bulk reads** — REST first, profile and optimize later.
 - **Repository lifecycle** — create/delete/transfer repos is out of scope. drifty only manages settings of existing repos plus archival.
 - **Per-target rule validation for rulesets** — drifty writes whatever rules the config puts on a `push` or `repository` ruleset and lets GitHub reject the ones the target does not take; the schema could refuse them at config eval once the vocabulary is stable.
 - **Custom repository roles** as collaborator permissions.

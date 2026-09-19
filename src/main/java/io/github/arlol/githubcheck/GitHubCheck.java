@@ -150,7 +150,7 @@ public class GitHubCheck {
 		var client = new GitHubClient(token, state, permits);
 		// Built and connected before the config is evaluated, not after: the
 		// handshake and the Pkl evaluation have nothing to say to each other,
-		// and the run's first ninety requests would otherwise each hold a
+		// and the run's first wave of requests would otherwise each hold a
 		// permit through it.
 		client.warmUp();
 
@@ -576,11 +576,12 @@ public class GitHubCheck {
 	}
 
 	/**
-	 * How many requests may be in flight at once. GitHub documents a hundred
-	 * and {@code GitHubClient} defaults to ninety, which is the margin under
-	 * it; spending that margin is worth about eleven per cent of a check and is
-	 * only safe when nothing else is using the same token at the same time.
-	 * Drifty cannot know that and the person running it can.
+	 * How many requests may be in flight at once. A token given to drifty is
+	 * normally drifty's alone, so {@code GitHubClient} defaults to the whole
+	 * hundred GitHub documents rather than to a margin under it. A token drifty
+	 * shares is what wants the margin back, and lowering it costs about a tenth
+	 * of a check. Drifty cannot know whether the token is shared and the person
+	 * running it can.
 	 */
 	static int maxConcurrentRequests(List<String> argsList) {
 		String value = optionValue(argsList, "--max-concurrent-requests");

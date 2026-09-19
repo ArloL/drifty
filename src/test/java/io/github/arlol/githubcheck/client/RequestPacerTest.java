@@ -100,8 +100,8 @@ class RequestPacerTest {
 	/**
 	 * The whole point of the gate: one thread's {@code Retry-After} holds back
 	 * the requests that have not gone out yet, not only the one that was
-	 * refused. Without it the other eighty-nine threads keep sending into a
-	 * limit GitHub has just said is tripped.
+	 * refused. Without it every other thread keeps sending into a limit GitHub
+	 * has just said is tripped.
 	 */
 	@Test
 	void aBackOffHoldsBackARequestWhoseBudgetIsUntouched() throws Exception {
