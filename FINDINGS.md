@@ -55,15 +55,18 @@ records, so `ActualTypes` stays the one translator; the two routes produced
 identical `ActualRuleset` and `ActualBranchProtection` values for all 45 active
 repositories. See `GraphQlQuery` and `GraphQlShape`.
 
-The fetch window went from 3.09 s to 2.57 s on the first two changes, with 77%
-of it at 90 requests in flight against a 2.31 s floor:
+The fetch window went from 3.09 s to 2.00 s, and what it spends its time doing
+changed with it:
 
-| in flight | before | after |
-| --- | --- | --- |
-| 90+ | 1788 ms (57.8%) | 1970 ms (76.6%) |
-| 80–89 | 310 ms | 249 ms |
-| under 10, at the head | 596 ms | 0 ms |
-| under 10, at the tail | 195 ms | 152 ms |
+| | before | after the listing | after GraphQL |
+| --- | --- | --- | --- |
+| requests | 742 | 742 | 519 |
+| in-flight seconds | 197.4 | 207.7 | 157.8 |
+| floor at 90 permits | 2.19 s | 2.31 s | 1.75 s |
+| fetch window | 3.09 s | 2.57 s | 2.00 s |
+| at 90+ in flight | 57.8% | 76.6% | 71.4% |
+| under 10, at the head | 596 ms | 0 ms | 0 ms |
+| under 10, at the tail | 195 ms | 152 ms | 166 ms |
 
 ## Measured and not worth doing
 
@@ -72,7 +75,8 @@ Each of these was tried against the live API rather than reasoned about.
 | idea | result |
 | --- | --- |
 | Dispatch parent reads ahead of leaves | nothing there. Replaying the trace's durations through a scheduler gives 2597 ms for parents-first; the run already lands at 2573 ms, so the arbitrary order is already as good |
-| A second HTTP/2 connection | nothing there at equal permits: two connections of 45 averaged 2617 ms against 2527 ms for one of 90, over two rounds each |
+| A second HTTP/2 connection, for REST | nothing there at equal permits: two connections of 45 averaged 2617 ms against 2527 ms for one of 90, over two rounds each |
+| A second connection for the GraphQL queries | nothing there either, and the reason to want one does not hold. A GraphQL response is 2.3 KB where a conditional GET's is headers, so the guess was that it delays the REST streams behind it on the shared connection. Measured over a real check: REST latency against how many GraphQL queries were in flight beside it is 242 ms at 10–19 and 230 ms at 20–29, against 244 ms overall |
 | More permits than 90 | 99 works and buys 8%, but 100 is GitHub's documented ceiling and 90 is the whole of the run's margin |
 | One GraphQL query for the whole account | 6.5 s. The per-query floor is paid once but ~0.15 s per repository is not |
 | Conditional requests, for time | a 304 costs what a 200 costs |
@@ -81,22 +85,30 @@ Each of these was tried against the live API rather than reasoned about.
 
 ## What is left
 
-Nothing with a measured number behind it. The floor is now 1.76 s of in-flight
-time divided by 90 permits, the fetch runs ~0.3 s above it, and the three terms
+One thing, and it is a judgement rather than a measurement: the permit count.
+90 is the margin under GitHub's documented 100, and 99 measured 8% faster on
+the old request set. Whether to spend that margin depends on whether anything
+else uses the same token at the same time, which drifty cannot know.
+
+Nothing else has a number behind it. The floor is 1.75 s of in-flight time
+divided by 90 permits, the fetch runs ~0.25 s above it, and the three terms
 that set it are where they were: GitHub's latency, GitHub's concurrency
 ceiling, and 519 requests.
 
-Of those 519, 360 are eight per active repository that GraphQL cannot answer —
-of the `Repository` type's 141 fields none covers `security_and_analysis`,
-`/immutable-releases`, `/private-vulnerability-reporting`,
-`/code-scanning/default-setup`, `/hooks`, `/actions/secrets`,
+Of those 519, 405 are nine per active repository that GraphQL cannot answer,
+and the details response does not carry them either: checked on 2026-09-19 it
+has no `immutable_releases`, no `private_vulnerability_reporting` and no
+scanning fields, and its `security_and_analysis` block holds only the five
+secret-scanning and dependabot flags. Of the `Repository` type's 141 GraphQL
+fields none covers any of those, nor `/hooks`, `/actions/secrets`,
 `/actions/variables`, `/actions/permissions/workflow` or `/pages`.
+
 `Environment` comes closest and still falls short: `DeploymentProtectionRule`
 carries `preventSelfReview`, `reviewers`, `timeout` and `type`, but not the
 deployment branch policies or their ids, which `--fix` needs to delete one.
 
 Batching several repositories into one GraphQL query would take the floor to
-1.62 s. It is not taken: it needs a batch shared across repositories, which
+about 1.6 s. It is not taken: it needs a batch shared across repositories, which
 contradicts the property every other part of the fetch is built on — nothing a
 repository is read for needs another repository — and which
 `RepositoryCheckerRequestShapeTest` encodes. ~0.14 s is not worth that.
