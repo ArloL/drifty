@@ -79,8 +79,8 @@ final class RequestPacer {
 
 	/**
 	 * @param pointsPerWindow at least what one request costs, or a single
-	 *                        write's five points would be weighed against
-	 *                        slots the same call is about to overwrite.
+	 *                        write's five points would be weighed against slots
+	 *                        the same call is about to overwrite.
 	 *                        {@link #POINTS_PER_MINUTE} is far past that; a
 	 *                        test window is not necessarily.
 	 */

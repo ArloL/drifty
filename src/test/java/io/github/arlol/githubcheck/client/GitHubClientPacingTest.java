@@ -138,8 +138,8 @@ class GitHubClientPacingTest {
 
 	/**
 	 * When the server saw the request it is about to refuse. Taken as the
-	 * earliest of what it has logged rather than off one end of the list,
-	 * which WireMock is free to order either way.
+	 * earliest of what it has logged rather than off one end of the list, which
+	 * WireMock is free to order either way.
 	 */
 	private static long awaitFirstRequest() throws InterruptedException {
 		for (int i = 0; i < 100; i++) {
