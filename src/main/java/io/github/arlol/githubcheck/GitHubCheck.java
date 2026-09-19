@@ -449,9 +449,9 @@ public class GitHubCheck {
 				                   Default: config/drifty.pkl on drifty's main branch.
 				  --max-concurrent-requests <n>
 				                   How many requests may be in flight at once, 1 to 100.
-				                   Default: 90, which leaves room under GitHub's limit
-				                   of 100 for anything else using the same token. Going
-				                   to 100 is worth about a tenth of a check.
+				                   Default: 100, which is GitHub's limit for one token.
+				                   Lower it to leave room for anything else using the
+				                   same token; it costs about a tenth of a check.
 				  --self-test      Run the token- and network-free smoke test and exit.
 				  --version        Print the version and exit.
 				  --help, -h       Print this and exit.
