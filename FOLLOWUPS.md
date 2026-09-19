@@ -108,48 +108,43 @@ components, and the SPEC.md table; then delete this entry. If GitHub answers
 the field as null on a bare configuration, it reads as `not_set` — the
 `settings.replaceAll` in `ActualTypes` already does that for every toggle.
 
-## 4. `ExportRoundTripTest` covers roughly a third of the exporters
+## 4. `ExportRoundTripTest` does not reach three ruleset conditions
 
-Unlike 1 and 2, nothing upstream needs to move for this one — it is a
-test-coverage gap, carried here instead of closed because closing it
-properly (a dedicated all-drifted fixture per section, the way
-`SchemaCoverageTest`'s own "Not covered" list already admits for the plain
-field-name check) is a task in its own right, not something to fold into
-whichever change happens to touch the export next.
+**Carrying:** the round trip's fixture now exercises the organization's
+settings, `selected` Actions permissions with both listings behind it,
+variables, webhooks, custom property definitions, a code security
+configuration with both nullable sub-option objects, teams and their
+membership, organization members, a runner group, an organization ruleset
+with all six bypass actor types and all three modes, and a ruleset carrying
+pull request, status check, workflow and merge queue rules; an
+organization-owned repository with its settings, variables, webhook, custom
+property values, team access, Pages, environment, repository ruleset, branch
+protection and collaborator; an archived repository; and a personal account
+whose repository comes from `/user/repos`.
 
-**Carrying:** `ExportRoundTripTest`'s single WireMock fixture exercises an
-organization's settings, actions permissions, one ruleset and one repository
-with a handful of its own settings. It does not touch: org secrets and
-variables, custom properties, code security configurations, runner groups,
-org members, `selected` Actions mode, repository webhooks, branch
-protections, repository rulesets, collaborators, custom property values,
-Pages, bypass actors, status checks, workflows, merge queue, an archived
-repository, or a `users` account.
+Still outside it: a repository ruleset targeting `tag` or `push`, an
+organization ruleset's repository-name and repository-property conditions,
+and a deployment branch policy on an environment.
 
-**Why it matters:** the round trip is what catches a field the assembler
+**What cannot be there:** a secret of any kind. GitHub never returns a
+secret's value, so a freshly exported config has no baseline for one and the
+first run reports `SecretMissingBaseline` — see SPEC.md's "What does not
+round-trip". The three secret listings in the fixture are empty for that
+reason and not by omission.
+
+**Why the rest matters:** the round trip is what catches a field the assembler
 dropped, mis-keyed, or paired with the wrong schema default — a value that
-never round-trips looks identical to no value at all until something loads
-the file back and compares. Both Critical findings in the 2026-09-07 fix wave
-(a webhook's `events` listing unioning with the schema default instead of
+never round-trips looks identical to no value at all until something loads the
+file back and compares. Both Critical findings in the 2026-09-07 fix wave (a
+webhook's `events` listing unioning with the schema default instead of
 replacing it, and a ruleset pattern rule noted instead of exported and then
-deleted by the next `--fix`) lived in sections this fixture never reached;
-an exporter's own unit tests caught neither, because both assert what one
-field renders as, not whether the file the export produces is one drifty
-itself agrees has zero drift. Every section still outside this fixture is
-exposed to the same class of bug with nothing here to catch it.
+deleted by the next `--fix`) lived in sections the fixture did not then reach.
 
-**What already closed the two known holes:** `WebhookExporterTest` gained a
-case whose `events` exclude `push`, and `ExportRoundTripTest`'s own webhook
-fixture had `push` removed from its `events` list, closing the listing-
-replacement hole directly; `RulesetExporterTest` and `ActualTypesTest` gained
-cases for a pattern rule's name, negate flag and operator, closing the
-pattern-rule hole. Neither addition widened `ExportRoundTripTest`'s account-
-level fixture — they cover the same ground at the unit level, which is
-narrower than a round trip but was enough to pin both specific regressions.
-
-**How to check whether it's fixed:** extend the WireMock stubs in
-`ExportRoundTripTest` (or add sibling tests using the same pattern) so each
-section in the list above appears at least once with a non-default value,
-export it, load the export back through `PklConfigLoader`, and assert
-`GitHubCheck.check` reports zero drift — the same property the existing test
-checks, just reaching further into the schema.
+**How to check whether it's fixed:** add the condition or policy to the
+fixture's stubs and run `ExportRoundTripTest`. Two ways an addition can pass
+without proving anything: a stub answering an empty listing exports nothing,
+and a stub answering something drifty cannot parse fails the group, which the
+export writes out as a `managed` exclusion the check then skips. The test
+asserts no group was left unmanaged, which catches the second — a Pages
+payload missing one primitive field was caught exactly that way. Against the
+first there is only reading the fixture.

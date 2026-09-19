@@ -18,6 +18,7 @@ import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.SecretVisibility;
+import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.TeamResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.pkl.Drifty;
@@ -41,6 +42,9 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * constant whose union has no member of that name.
  */
 class ConfigSpellingTest {
+
+	private static final SecurityAndAnalysis.BypassReviewer.ReviewerType[] REVIEWER_TYPES = SecurityAndAnalysis.BypassReviewer.ReviewerType
+			.values();
 
 	@ParameterizedTest(name = "{0}")
 	@MethodSource
@@ -80,6 +84,11 @@ class ConfigSpellingTest {
 								RulesetDetailsResponse.BypassActor.BypassMode
 										.values(),
 								Drifty.BypassMode.class,
+								ConfigSpelling::of
+						),
+						cases(
+								REVIEWER_TYPES,
+								Drifty.SecretScanningBypassReviewerType.class,
 								ConfigSpelling::of
 						),
 						cases(

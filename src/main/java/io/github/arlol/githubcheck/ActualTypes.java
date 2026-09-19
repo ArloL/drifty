@@ -653,7 +653,7 @@ public final class ActualTypes {
 				.filter(r -> r.reviewerId() != null)
 				.map(
 						r -> new ActualSecurityAndAnalysis.BypassReviewer(
-								String.valueOf(r.reviewerType()),
+								ConfigSpelling.of(r.reviewerType()),
 								r.reviewerId()
 						)
 				)

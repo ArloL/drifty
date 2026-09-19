@@ -9,6 +9,7 @@ import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
 import io.github.arlol.githubcheck.client.RulesetTarget;
 import io.github.arlol.githubcheck.client.SecretVisibility;
+import io.github.arlol.githubcheck.client.SecurityAndAnalysis;
 import io.github.arlol.githubcheck.client.TeamResponse;
 import io.github.arlol.githubcheck.client.WorkflowPermissions;
 import io.github.arlol.githubcheck.pkl.Drifty;
@@ -83,6 +84,15 @@ public final class ConfigSpelling {
 		case ALWAYS -> Drifty.BypassMode.ALWAYS;
 		case PULL_REQUEST -> Drifty.BypassMode.PULL_REQUEST;
 		case EXEMPT -> Drifty.BypassMode.EXEMPT;
+		}).toString();
+	}
+
+	public static String of(
+			SecurityAndAnalysis.BypassReviewer.ReviewerType value
+	) {
+		return value == null ? null : (switch (value) {
+		case TEAM -> Drifty.SecretScanningBypassReviewerType.TEAM;
+		case ROLE -> Drifty.SecretScanningBypassReviewerType.ROLE;
 		}).toString();
 	}
 
