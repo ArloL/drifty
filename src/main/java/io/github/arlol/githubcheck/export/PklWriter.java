@@ -2,6 +2,7 @@ package io.github.arlol.githubcheck.export;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntConsumer;
 
 /**
  * Renders a {@link PklNode} tree as Pkl source.
@@ -85,18 +86,18 @@ public final class PklWriter {
 			out.append(indent(depth)).append(name);
 			writeBlock(
 					out,
-					obj.members().isEmpty(),
+					obj.members(),
 					depth,
-					() -> writeMembers(out, obj.members(), depth + 1)
+					body -> writeMembers(out, obj.members(), body)
 			);
 		}
 		case PklNode.Mapping mapping -> {
 			out.append(indent(depth)).append(name);
 			writeBlock(
 					out,
-					mapping.entries().isEmpty(),
+					mapping.entries(),
 					depth,
-					() -> writeMapping(out, mapping, depth + 1)
+					body -> writeMapping(out, mapping, body)
 			);
 		}
 		case PklNode.Listing listing -> {
@@ -106,9 +107,9 @@ public final class PklWriter {
 			}
 			writeBlock(
 					out,
-					listing.elements().isEmpty(),
+					listing.elements(),
 					depth,
-					() -> writeListing(out, listing, depth + 1)
+					body -> writeListing(out, listing, body)
 			);
 		}
 		}
@@ -148,20 +149,44 @@ public final class PklWriter {
 	 * written on the line — a field name, {@code new}, {@code = new Listing}.
 	 * An empty body is {@code {}} on that same line, because that is what
 	 * {@code pkl format} collapses one to.
+	 * <p>
+	 * A body holding nothing but comments is the third shape, and it is the
+	 * formatter's and not a choice: {@code pkl format} indents a comment to the
+	 * member it precedes, and with no member to precede it falls back to the
+	 * enclosing level, so it writes
+	 *
+	 * <pre>
+	 *
+	 * security {
+	 * // vulnerability_alerts: HTTP 403
+	 * }
+	 * </pre>
+	 *
+	 * where every instinct says two more spaces. Reproducing it is the same
+	 * bargain as the other two shapes — the writer's job is the formatter's
+	 * output, not the prettier of the two — and the alternative is a rule
+	 * saying no exporter may leave a block holding only notes, spread across a
+	 * dozen exporters with nothing to check it. A future pkl release that
+	 * indents these properly fails {@code PklWriterAgreesWithTheFormatterTest}
+	 * on the version bump, which is where finding out belongs.
 	 */
 	private static void writeBlock(
 			StringBuilder out,
-			boolean empty,
+			List<?> items,
 			int depth,
-			Runnable body
+			IntConsumer body
 	) {
-		if (empty) {
+		if (items.isEmpty()) {
 			out.append(" {}\n");
 			return;
 		}
 		out.append(" {\n");
-		body.run();
+		body.accept(onlyNotes(items) ? depth : depth + 1);
 		out.append(indent(depth)).append("}\n");
+	}
+
+	private static boolean onlyNotes(List<?> items) {
+		return items.stream().allMatch(PklNode.Note.class::isInstance);
 	}
 
 	private static void writeMapping(
@@ -195,27 +220,27 @@ public final class PklWriter {
 				out.append(indent(depth)).append("new");
 				writeBlock(
 						out,
-						obj.members().isEmpty(),
+						obj.members(),
 						depth,
-						() -> writeMembers(out, obj.members(), depth + 1)
+						body -> writeMembers(out, obj.members(), body)
 				);
 			}
 			case PklNode.Mapping mapping -> {
 				out.append(indent(depth)).append("new");
 				writeBlock(
 						out,
-						mapping.entries().isEmpty(),
+						mapping.entries(),
 						depth,
-						() -> writeMapping(out, mapping, depth + 1)
+						body -> writeMapping(out, mapping, body)
 				);
 			}
 			case PklNode.Listing nested -> {
 				out.append(indent(depth)).append("new");
 				writeBlock(
 						out,
-						nested.elements().isEmpty(),
+						nested.elements(),
 						depth,
-						() -> writeListing(out, nested, depth + 1)
+						body -> writeListing(out, nested, body)
 				);
 			}
 			}
@@ -237,10 +262,21 @@ public final class PklWriter {
 		}
 	}
 
+	/**
+	 * Splits on any run of whitespace, not on a single space, because a
+	 * {@code //} comment ends at the first line break: a note carrying one
+	 * would put everything after it into the file as bare Pkl. Most of what a
+	 * note says is drifty's own prose, but the reason in a failure note comes
+	 * from an exception message, which is somebody else's text.
+	 * {@code FetchFailures.firstLine} takes the first line of one today, and
+	 * that is a guard a layer away from the syntax it protects — this is the
+	 * layer that owns the syntax, so it does not depend on the other one still
+	 * being there.
+	 */
 	private static List<String> wrap(String text, int width) {
 		var lines = new ArrayList<String>();
 		var line = new StringBuilder();
-		for (String word : text.split(" ")) {
+		for (String word : text.strip().split("\\s+")) {
 			if (!line.isEmpty() && line.length() + 1 + word.length() > width) {
 				lines.add(line.toString());
 				line.setLength(0);

@@ -675,6 +675,39 @@ raise it by widening the excludes.
   are left where they are however long they get, so do not bring them to 80
   columns too. Issue #138 was the export failing that check on its first CI
   run.
+- **Three shapes, and the third one looks wrong.** `PklWriter`'s model of
+  `pkl format` is: an empty body is `{}` on the line that opens it, a scalar
+  assignment past `LINE_WIDTH` moves its value to its own line one level in,
+  and a body holding nothing but notes keeps them at the *enclosing* indent
+  rather than one level in. The formatter indents a comment to the member it
+  precedes, and with no member to precede it falls back to the block's own
+  line — so `security {` is followed by `// ...` at `security`'s indent, not
+  two spaces past it. The writer reproduces it for the same reason it
+  reproduces the other two: the alternative is a rule saying no exporter may
+  leave a block holding only notes, spread across a dozen exporters with
+  nothing to check it. A pkl release that indents these properly fails
+  `PklWriterAgreesWithTheFormatterTest` on the version bump, which is where
+  finding out belongs.
+- **A note's text is normalised, because a `//` comment ends at a line
+  break.** `PklWriter.wrap` splits on any run of whitespace, so a note
+  carrying a newline stays one comment instead of dropping everything after
+  the break into the file as bare Pkl — no exception, a file that does not
+  evaluate. `FetchFailures.firstLine` takes the first line of the one reason
+  that comes from somebody else's text, and that is a guard a layer away from
+  the syntax it protects; this is the layer that owns the syntax.
+- **The writer is also checked against trees nobody wrote down.**
+  `PklWriterAgreesWithTheFormatterTest` generates `PklNode` trees and asserts
+  the formatter leaves the writer's output alone — which covers parsing too,
+  since the formatter cannot format what it cannot parse. Every file the other
+  two formatter tests see came out of an exporter, so every string in it is a
+  GitHub value somebody put in a fixture; the input space is what this
+  reaches, and it is where both shapes above came from. The seeds are fixed:
+  a generative test that picks a new one every run reports a failure the next
+  run cannot reproduce, and this one runs in CI where nobody is watching. Its
+  `shrink` is what replaces a property-testing dependency — the tree that
+  fails is a hundred nodes and what a reader needs is the three that matter.
+  It only ever removes, so it terminates. Adding a seed is a commit; adding
+  jqwik would be a test dependency the native test image needs metadata for.
 - **The formatter is asked, not described.** Those two shapes are
   `PklWriter`'s model of `pkl format`, and a model agrees with itself: before
   `pkl-formatter` was a test dependency the only thing that ever disagreed

@@ -29,6 +29,7 @@ specific to this project:
 | `SchemaCoverageTest` | a new schema field has no exporter line |
 | `ExportRoundTripTest` | an exported config does not load back clean, or is not `pkl format` output |
 | `TrackedPklFilesAreFormattedTest` | a `.pkl` file in the repository is not formatted |
+| `PklWriterAgreesWithTheFormatterTest` | `PklWriter` renders some tree in a way `pkl format` would rewrite, or cannot parse |
 | `*RequestShapeTest` | a read got deeper, or sends more requests per entity |
 | `*FixConvergenceTest` | a field the check reports but `--fix` never writes, so the drift survives the fix |
 | `jacoco:check` | line or branch coverage drops below 80% |
