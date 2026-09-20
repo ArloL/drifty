@@ -806,6 +806,64 @@ class RepositoryStateReaderTest {
 		);
 	}
 
+	/** The 404 the endpoint answers for a repository that has them off. */
+	@Test
+	void automatedSecurityFixesAbsent_readsAsDisabled() throws Exception {
+		stubRepoDetails(
+				", \"owner\": {\"login\": \"owner\", \"type\": \"User\"}"
+		);
+		stubSecurityEndpoints();
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/owner/repo/automated-security-fixes"
+						)
+				).willReturn(aResponse().withStatus(404))
+		);
+		stubStandardEndpoints();
+		stubEmptyListings();
+
+		RepositoryState state = reader.fetchState(
+				REF,
+				summary(false, "public"),
+				ManagedGroups.all(Drifty.GroupName.class)
+		);
+
+		assertThat(state.automatedSecurityFixes()).isFalse();
+	}
+
+	/**
+	 * A token that may not read the endpoint fails the entry rather than
+	 * reporting the setting off, which is what every other security endpoint
+	 * does under {@link FetchFailures#STRICT} — and the reason the details
+	 * response is preferred wherever it carries the section.
+	 */
+	@Test
+	void automatedSecurityFixesForbidden_failsTheRead() throws Exception {
+		stubRepoDetails(
+				", \"owner\": {\"login\": \"owner\", \"type\": \"User\"}"
+		);
+		stubSecurityEndpoints();
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/owner/repo/automated-security-fixes"
+						)
+				).willReturn(aResponse().withStatus(403))
+		);
+		stubStandardEndpoints();
+		stubEmptyListings();
+
+		assertThatThrownBy(
+				() -> reader.fetchState(
+						REF,
+						summary(false, "public"),
+						ManagedGroups.all(Drifty.GroupName.class)
+				)
+		).isInstanceOf(GitHubApiException.class)
+				.hasMessageContaining("automated-security-fixes");
+	}
+
 	/**
 	 * {@code has_pages} on the listing the checker already holds answers what
 	 * {@code GET /repos/\{owner\}/\{repo\}/pages} answers with a 404: there is
