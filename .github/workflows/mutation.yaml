@@ -1,0 +1,58 @@
+name: Mutation
+
+# Line coverage says a table's row ran; a surviving mutant says nothing checked
+# what it did, which is the failure mode a table-driven design invites — and
+# `drift` and `export` are tables. See CLAUDE.md.
+#
+# On a schedule rather than on every pull request. A run re-executes the suite
+# against each mutant, which is about as long as a native build, and unlike the
+# native build it is not answering a question about the commit in front of it:
+# the score moves when test quality moves, which is a slower thing than a
+# branch. Run it on demand before merging something that adds a table row —
+# `workflow_dispatch` above, or locally:
+#
+#   ./mvnw test-compile pitest:mutationCoverage
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: "13 4 7 * *"
+permissions: {}
+
+jobs:
+  mutation:
+    name: Mutation coverage
+    # Temurin keeps the graal profile from firing and building an image this
+    # job would throw away: the profile activates on a JAVA_HOME that has a
+    # native-image.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      env:
+        # renovate: datasource=java-version depName=java extractVersion=^(?<version>\d+\.\d+\.\d+)
+        JAVA_VERSION: 25.0.4
+      with:
+        cache: maven
+        distribution: temurin
+        java-version: ${{ env.JAVA_VERSION }}
+    - name: Run mutation testing
+      run: |
+        set -o xtrace
+        ./mvnw \
+          --batch-mode \
+          -Dsha1="${GITHUB_SHA}" \
+          test-compile \
+          pitest:mutationCoverage
+    # Uploaded on failure too: the score alone does not say which mutant
+    # survived, and the HTML report is what names the line.
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      if: always()
+      with:
+        name: mutation-report
+        path: target/pit-reports
+    - name: Make sure build did not change anything
+      run: git diff --exit-code

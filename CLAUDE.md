@@ -70,11 +70,15 @@ killed, **90.1%**, and `mutationThreshold` is 85. The 111 survivors sit in
 and 63 of them are a removed void call — an `items.add(...)` no assertion
 misses.
 
-It is not bound to a phase, because a run re-executes the suite against each
-mutant; `main.yaml`'s `mutation` job is where it gates, on Temurin so the graal
-profile does not fire and build an image the job would throw away.
-`NativeExecutableIT` is excluded: it runs the built binary, which that job has
-not produced, and PIT refuses to start unless every test it sees is green.
+It is not bound to a phase, and it is not on every pull request either.
+`mutation.yaml` runs it monthly and on `workflow_dispatch`, on Temurin so the
+graal profile does not fire and build an image the job would throw away. The
+reason it is not a required check: a run costs about what a native build does,
+and it is not answering a question about the commit in front of it — the score
+moves when test quality moves, which is slower than a branch. Dispatch it
+before merging something that adds a table row. `NativeExecutableIT` is
+excluded: it runs the built binary, which that job has not produced, and PIT
+refuses to start unless every test it sees is green.
 
 `jacoco:check` runs at `verify` and fails the build under 80% line or branch
 coverage. The measured bundle excludes `io.github.arlol.githubcheck.pkl`,
