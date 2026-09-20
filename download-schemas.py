@@ -305,6 +305,19 @@ def write_contract(api_version: str) -> None:
             + "\n\nThe path must be spelled as OpenAPI spells it, braces included."
         )
 
+    # Read before overwriting: specEtag moves on every commit to
+    # github/rest-api-description, including the ones that touch an endpoint
+    # drifty has never heard of, so "the file changed" says nothing about
+    # whether GitHub changed anything drifty compares. The endpoints object is
+    # what does, and it is the only thing GitHubApiContractTest reads.
+    previous = {}
+    if CONTRACT_FILE.is_file():
+        try:
+            previous = json.loads(CONTRACT_FILE.read_text())
+        except json.JSONDecodeError:
+            pass
+    endpoints_changed = previous.get("endpoints", {}) != contract
+
     document = {
         "apiVersion": api_version,
         "specEtag": spec_identity(),
@@ -317,6 +330,29 @@ def write_contract(api_version: str) -> None:
     covered = sum(1 for e in contract.values() if "request" in e)
     print(f"\nWrote {CONTRACT_FILE} — {len(contract)} endpoint(s), "
           f"{covered} with a request body, {len(blob) / 1024:.0f} KB.")
+
+    if previous:
+        print(
+            "Endpoint shapes changed — run GitHubApiContractTest."
+            if endpoints_changed
+            else "Endpoint shapes unchanged; at most specEtag moved."
+        )
+    report_endpoints_changed(endpoints_changed)
+
+
+def report_endpoints_changed(changed: bool) -> None:
+    """Hand the answer to the workflow that asked.
+
+    The refresh is worth committing either way — a stale specEtag is a copy
+    that cannot say which spec it was cut from — but only an endpoints change
+    is worth a human reading the diff, so the caller titles its pull request
+    from this.
+    """
+    github_output = os.environ.get("GITHUB_OUTPUT")
+    if not github_output:
+        return
+    with open(github_output, "a", encoding="utf-8") as handle:
+        handle.write(f"endpoints_changed={str(changed).lower()}\n")
 
 def matches_any_prefix(path: str, prefixes: list[str]) -> bool:
     return any(path.startswith(prefix) for prefix in prefixes)

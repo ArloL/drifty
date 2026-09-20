@@ -593,8 +593,20 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   `GitHubApiContractTest` compares each one against
   `src/test/resources/github-api-contract.json`, which
   `python3 download-schemas.py --contract` rewrites from GitHub's own spec.
-  Refresh is manual and nothing reports that the copy has aged; the file's
-  `specEtag` is what says which one it is.
+  The file's `specEtag` is what says which spec it was cut from.
+- **The contract refreshes itself, and only an endpoint change asks to be
+  read.** `api-contract.yaml` reruns `--contract` monthly and opens a pull
+  request, so GitHub moving under drifty arrives as a failing
+  `GitHubApiContractTest` on a diff rather than as an
+  `InvalidFormatException` in somebody's run. The refresh is committed either
+  way — a stale `specEtag` is a copy that cannot say what it was cut from —
+  but `specEtag` moves on *every* commit to `github/rest-api-description`,
+  most of which touch endpoints drifty has never heard of, so the file
+  changing says nothing on its own. `write_contract` compares the `endpoints`
+  object, the only part `GitHubApiContractTest` reads, and reports
+  `endpoints_changed` on `GITHUB_OUTPUT`; the workflow titles its pull request
+  from that. Without the split, a monthly one-line etag bump would be
+  indistinguishable from GitHub adding a field, and both would be ignored.
 - **Ask Jackson for a wire name; never derive one.** `WireShape` introspects
   through the same `ObjectMapper` configuration `GitHubClient` builds, so
   `@JsonProperty` overrides, `SNAKE_CASE` and `@JsonIgnore` are already
