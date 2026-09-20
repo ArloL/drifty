@@ -24,6 +24,10 @@
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 		<sonar.organization>arlol</sonar.organization>
 		<sonar.projectKey>ArloL_drifty</sonar.projectKey>
+		<!-- Same reason as the jacoco excludes below, one layer up: Sonar's
+		     new-code quality gate was grading pkl-codegen-java's output, where
+		     nothing a reviewer can act on lives. -->
+		<sonar.exclusions>target/generated-sources/**/*</sonar.exclusions>
 	</properties>
 
 	<profiles>
@@ -433,6 +437,20 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.15</version>
+				<configuration>
+					<!-- Drifty.java is pkl-codegen-java's output from
+					     config/drifty.pkl, and measuring it reports on the
+					     generator rather than on drifty: its withX, equals and
+					     toString are emitted for every field whether or not
+					     anything calls them. Counting them put the whole
+					     project at 73.5% instruction and 59.3% branch against
+					     the 91.9%/80.8% the hand-written code actually holds,
+					     which is a threshold that moves when a schema field is
+					     added and not when a test is deleted. -->
+					<excludes>
+						<exclude>io/github/arlol/githubcheck/pkl/**</exclude>
+					</excludes>
+				</configuration>
 				<executions>
 					<execution>
 						<id>prepare-agent</id>
