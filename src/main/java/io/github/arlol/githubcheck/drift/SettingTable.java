@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -39,10 +41,10 @@ public final class SettingTable<B> {
 	 */
 	public record Setting<B>(
 			String path,
-			Object wanted,
-			Object got,
-			Consumer<B> write,
-			String unfixableReason
+			@Nullable Object wanted,
+			@Nullable Object got,
+			@Nullable Consumer<B> write,
+			@Nullable String unfixableReason
 	) {
 
 		public static <B> Setting<B> of(
@@ -175,7 +177,13 @@ public final class SettingTable<B> {
 
 	private void sendAll(List<Setting<B>> settingsToWrite) {
 		B builder = newBuilder.get();
-		settingsToWrite.forEach(setting -> setting.write().accept(builder));
+		// Only settings whose writable() — that is, write() != null — said yes
+		// reach this, so the lookup cannot miss; say so rather than leave a
+		// bare call.
+		settingsToWrite.forEach(
+				setting -> Objects.requireNonNull(setting.write())
+						.accept(builder)
+		);
 		send.accept(builder);
 	}
 

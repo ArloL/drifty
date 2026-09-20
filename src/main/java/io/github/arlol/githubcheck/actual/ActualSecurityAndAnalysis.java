@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.actual;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -36,7 +38,7 @@ public record ActualSecurityAndAnalysis(
 	 * @param reviewerId   the team's or role's numeric id
 	 */
 	public record BypassReviewer(
-			String reviewerType,
+			@Nullable String reviewerType,
 			long reviewerId
 	) {
 

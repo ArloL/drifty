@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.actual;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Optional;
 import java.util.Set;
 
@@ -35,8 +37,8 @@ public record ActualBranchProtection(
 	public record PullRequestReviews(
 			boolean dismissStaleReviews,
 			boolean requireCodeOwnerReviews,
-			Integer requiredApprovingReviewCount,
-			Boolean requireLastPushApproval,
+			@Nullable Integer requiredApprovingReviewCount,
+			@Nullable Boolean requireLastPushApproval,
 			Actors dismissalRestrictions,
 			Actors bypassPullRequestAllowances
 	) {

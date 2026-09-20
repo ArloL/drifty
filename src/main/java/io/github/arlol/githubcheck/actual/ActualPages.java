@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.actual;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Optional;
 
 /**
@@ -13,7 +15,7 @@ import java.util.Optional;
  * @param httpsEnforced whether GitHub redirects to HTTPS
  */
 public record ActualPages(
-		String buildType,
+		@Nullable String buildType,
 		Optional<Source> source,
 		boolean httpsEnforced
 ) {

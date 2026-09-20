@@ -4,6 +4,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import org.jspecify.annotations.Nullable;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @GitHubEndpoint(
 		request = "PUT /repos/{owner}/{repo}/environments/{environment_name}"
@@ -17,7 +19,7 @@ public record EnvironmentUpdateRequest(
 		// takes.
 		@JsonInclude(
 			JsonInclude.Include.ALWAYS
-		) DeploymentBranchPolicy deploymentBranchPolicy
+		) @Nullable DeploymentBranchPolicy deploymentBranchPolicy
 ) {
 
 	public EnvironmentUpdateRequest {

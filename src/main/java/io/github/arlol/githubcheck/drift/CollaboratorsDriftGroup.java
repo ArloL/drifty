@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -36,7 +38,7 @@ public class CollaboratorsDriftGroup extends DriftGroup<Drifty.GroupName> {
 	public CollaboratorsDriftGroup(
 			Map<String, Drifty.CollaboratorPermission> users,
 			Map<String, Drifty.CollaboratorPermission> teams,
-			ActualCollaborators actual,
+			@Nullable ActualCollaborators actual,
 			boolean organizationOwned,
 			GitHubClient client,
 			RepoRef ref

@@ -4,6 +4,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Body of the runner group POST and PATCH. The repository ids are only accepted
  * by the POST; the PATCH has its own repositories endpoint, so a PATCH body
@@ -22,10 +24,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public record RunnerGroupRequest(
 		String name,
 		String visibility,
-		List<Long> selectedRepositoryIds,
+		@Nullable List<Long> selectedRepositoryIds,
 		boolean allowsPublicRepositories,
 		boolean restrictedToWorkflows,
-		List<String> selectedWorkflows
+		@Nullable List<String> selectedWorkflows
 ) {
 
 	public RunnerGroupRequest {

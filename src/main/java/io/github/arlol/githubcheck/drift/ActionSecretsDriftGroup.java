@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -74,7 +76,7 @@ public class ActionSecretsDriftGroup extends DriftGroup<Drifty.GroupName> {
 		return fixes;
 	}
 
-	private DriftFix secretDriftFix(String secretName) {
+	private @Nullable DriftFix secretDriftFix(String secretName) {
 		var path = secretName;
 		ActualSecret actualSecret = actual.get(secretName);
 		DriftItem driftItem;

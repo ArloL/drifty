@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.export;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -25,15 +27,15 @@ public final class Fields {
 	private Fields() {
 	}
 
-	private static PklNode.Scalar scalar(String value) {
+	private static PklNode.Scalar scalar(@Nullable String value) {
 		return value == null ? PklNode.Scalar.nullValue()
 				: PklNode.Scalar.of(value);
 	}
 
 	public static Optional<PklNode.Member> field(
 			String name,
-			String actual,
-			String defaultValue
+			@Nullable String actual,
+			@Nullable String defaultValue
 	) {
 		return Objects.equals(actual, defaultValue) ? Optional.empty()
 				: Optional.of(new PklNode.Field(name, scalar(actual)));
@@ -61,8 +63,8 @@ public final class Fields {
 
 	public static Optional<PklNode.Member> field(
 			String name,
-			Integer actual,
-			Integer defaultValue
+			@Nullable Integer actual,
+			@Nullable Integer defaultValue
 	) {
 		if (Objects.equals(actual, defaultValue)) {
 			return Optional.empty();
@@ -84,8 +86,8 @@ public final class Fields {
 	 */
 	public static Optional<PklNode.Member> field(
 			String name,
-			Boolean actual,
-			Boolean defaultValue
+			@Nullable Boolean actual,
+			@Nullable Boolean defaultValue
 	) {
 		if (Objects.equals(actual, defaultValue)) {
 			return Optional.empty();
@@ -108,8 +110,8 @@ public final class Fields {
 	 */
 	public static Optional<PklNode.Member> field(
 			String name,
-			Enum<?> actual,
-			String defaultValue
+			@Nullable Enum<?> actual,
+			@Nullable String defaultValue
 	) {
 		return field(
 				name,
@@ -118,7 +120,10 @@ public final class Fields {
 		);
 	}
 
-	public static Optional<PklNode.Member> required(String name, String value) {
+	public static Optional<PklNode.Member> required(
+			String name,
+			@Nullable String value
+	) {
 		return Optional.of(new PklNode.Field(name, scalar(value)));
 	}
 
@@ -133,7 +138,7 @@ public final class Fields {
 	 * {@code RepositoryExporter.collaboratorEntries} and
 	 * {@code AccountExporter.memberEntry} each built this by hand before.
 	 */
-	public static PklNode.Member entry(String name, String value) {
+	public static PklNode.Member entry(String name, @Nullable String value) {
 		return new PklNode.Field(name, scalar(value));
 	}
 
@@ -147,7 +152,10 @@ public final class Fields {
 	 * merely optional in the schema. Writes an explicit {@code null} instead of
 	 * dropping the field, since the schema still requires it.
 	 */
-	public static Optional<PklNode.Member> required(String name, Long value) {
+	public static Optional<PklNode.Member> required(
+			String name,
+			@Nullable Long value
+	) {
 		return Optional.of(
 				new PklNode.Field(
 						name,
@@ -246,8 +254,8 @@ public final class Fields {
 	 */
 	public static Optional<PklNode.Member> note(
 			String text,
-			Object actual,
-			Object defaultValue
+			@Nullable Object actual,
+			@Nullable Object defaultValue
 	) {
 		return Objects.equals(actual, defaultValue) ? Optional.empty()
 				: Optional.of(new PklNode.Note(text));

@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.actual;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Map;
 import java.util.Set;
 
@@ -25,9 +27,9 @@ public record ActualCodeSecurityConfiguration(
 		Map<String, String> settings,
 		String enforcement,
 		boolean dependencyGraphAutosubmitLabeledRunners,
-		String codeScanningRunnerType,
-		String codeScanningRunnerLabel,
-		Boolean codeScanningAllowAdvanced,
+		@Nullable String codeScanningRunnerType,
+		@Nullable String codeScanningRunnerLabel,
+		@Nullable Boolean codeScanningAllowAdvanced,
 		Set<BypassReviewer> secretScanningDelegatedBypassReviewers,
 		String defaultForNewRepos,
 		Set<String> repositories

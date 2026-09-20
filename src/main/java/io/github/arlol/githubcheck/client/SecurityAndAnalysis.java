@@ -5,19 +5,21 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.jspecify.annotations.Nullable;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record SecurityAndAnalysis(
-		StatusObject secretScanning,
-		StatusObject secretScanningPushProtection,
-		StatusObject advancedSecurity,
-		StatusObject dependabotSecurityUpdates,
-		StatusObject codeSecurity,
-		StatusObject secretScanningNonProviderPatterns,
-		StatusObject secretScanningValidityChecks,
-		StatusObject secretScanningAiDetection,
-		StatusObject secretScanningDelegatedAlertDismissal,
-		StatusObject secretScanningDelegatedBypass,
-		DelegatedBypassOptions secretScanningDelegatedBypassOptions
+		@Nullable StatusObject secretScanning,
+		@Nullable StatusObject secretScanningPushProtection,
+		@Nullable StatusObject advancedSecurity,
+		@Nullable StatusObject dependabotSecurityUpdates,
+		@Nullable StatusObject codeSecurity,
+		@Nullable StatusObject secretScanningNonProviderPatterns,
+		@Nullable StatusObject secretScanningValidityChecks,
+		@Nullable StatusObject secretScanningAiDetection,
+		@Nullable StatusObject secretScanningDelegatedAlertDismissal,
+		@Nullable StatusObject secretScanningDelegatedBypass,
+		@Nullable DelegatedBypassOptions secretScanningDelegatedBypassOptions
 ) {
 
 	public static Builder builder() {
@@ -29,24 +31,24 @@ public record SecurityAndAnalysis(
 	 * repositories and individual toggles for others, and both mean "off" —
 	 * which is why this is the single place that decides it.
 	 */
-	public static boolean isEnabled(StatusObject statusObject) {
+	public static boolean isEnabled(@Nullable StatusObject statusObject) {
 		return statusObject != null
 				&& statusObject.status() == StatusObject.Status.ENABLED;
 	}
 
 	public static final class Builder {
 
-		private StatusObject secretScanning;
-		private StatusObject secretScanningPushProtection;
-		private StatusObject advancedSecurity;
-		private StatusObject dependabotSecurityUpdates;
-		private StatusObject codeSecurity;
-		private StatusObject secretScanningNonProviderPatterns;
-		private StatusObject secretScanningValidityChecks;
-		private StatusObject secretScanningAiDetection;
-		private StatusObject secretScanningDelegatedAlertDismissal;
-		private StatusObject secretScanningDelegatedBypass;
-		private DelegatedBypassOptions secretScanningDelegatedBypassOptions;
+		private @Nullable StatusObject secretScanning;
+		private @Nullable StatusObject secretScanningPushProtection;
+		private @Nullable StatusObject advancedSecurity;
+		private @Nullable StatusObject dependabotSecurityUpdates;
+		private @Nullable StatusObject codeSecurity;
+		private @Nullable StatusObject secretScanningNonProviderPatterns;
+		private @Nullable StatusObject secretScanningValidityChecks;
+		private @Nullable StatusObject secretScanningAiDetection;
+		private @Nullable StatusObject secretScanningDelegatedAlertDismissal;
+		private @Nullable StatusObject secretScanningDelegatedBypass;
+		private @Nullable DelegatedBypassOptions secretScanningDelegatedBypassOptions;
 
 		private Builder() {
 		}

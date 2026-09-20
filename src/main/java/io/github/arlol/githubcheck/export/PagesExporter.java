@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.export;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -55,7 +57,7 @@ public final class PagesExporter {
 	 * a value onto a field the schema cannot hold null in.
 	 */
 	private static Optional<PklNode.Member> buildType(
-			String actual,
+			@Nullable String actual,
 			String base
 	) {
 		if (actual == null) {

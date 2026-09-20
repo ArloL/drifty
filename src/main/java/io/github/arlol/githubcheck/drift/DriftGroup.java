@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -91,16 +93,16 @@ public abstract class DriftGroup<N extends Enum<N>> {
 
 	protected static List<DriftItem> compare(
 			String path,
-			Object wanted,
-			Object got
+			@Nullable Object wanted,
+			@Nullable Object got
 	) {
 		return ocompare(path, wanted, got).map(List::of).orElse(List.of());
 	}
 
 	protected static Optional<DriftItem> ocompare(
 			String path,
-			Object wanted,
-			Object got
+			@Nullable Object wanted,
+			@Nullable Object got
 	) {
 		if (!Objects.equals(wanted, got)) {
 			return Optional.of(new DriftItem.FieldMismatch(path, wanted, got));

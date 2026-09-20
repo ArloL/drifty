@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,13 +84,14 @@ public final class OrganizationStateReader {
 		var settings = ActualTypes.organization(organization.orElseThrow());
 
 		try (var fanout = new Fanout<>(failures, managed)) {
-			Supplier<ActualOrgActionsPermissions> permissions = fanout.read(
-					Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS,
-					() -> actionsPermissions(fanout, login),
-					null
-			);
+			Supplier<@Nullable ActualOrgActionsPermissions> permissions = fanout
+					.read(
+							Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS,
+							() -> actionsPermissions(fanout, login),
+							null
+					);
 
-			Supplier<ActualWorkflowPermissions> workflowPermissions = fanout
+			Supplier<@Nullable ActualWorkflowPermissions> workflowPermissions = fanout
 					.read(
 							Drifty.OrgGroupName.ORG_WORKFLOW_PERMISSIONS,
 							() -> ActualTypes.workflowPermissions(

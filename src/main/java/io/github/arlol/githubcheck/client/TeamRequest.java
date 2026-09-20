@@ -2,6 +2,8 @@ package io.github.arlol.githubcheck.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Body of the team PATCH. {@code parent_team_id} is sent even when null: that
  * is how a parent is removed, and omitting it would keep the one GitHub has.
@@ -16,9 +18,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 )
 public record TeamRequest(
 		String name,
-		String description,
-		String privacy,
-		String notificationSetting,
-		@JsonInclude(JsonInclude.Include.ALWAYS) Long parentTeamId
+		@Nullable String description,
+		@Nullable String privacy,
+		@Nullable String notificationSetting,
+		@JsonInclude(JsonInclude.Include.ALWAYS) @Nullable Long parentTeamId
 ) {
 }

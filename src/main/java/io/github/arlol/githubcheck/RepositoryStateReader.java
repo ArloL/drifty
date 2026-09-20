@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -216,7 +218,7 @@ public final class RepositoryStateReader {
 					managed
 			);
 
-			Supplier<ActualWorkflowPermissions> workflowPermissions = fanout
+			Supplier<@Nullable ActualWorkflowPermissions> workflowPermissions = fanout
 					.read(
 							Drifty.GroupName.WORKFLOW_PERMISSIONS,
 							() -> ActualTypes.workflowPermissions(
@@ -474,11 +476,13 @@ public final class RepositoryStateReader {
 						envName,
 						ActualTypes.environment(env.env(), env.policies().get())
 				);
-				if (env.secrets() != null) {
-					envSecrets.put(envName, env.secrets().get());
+				var envSecretsRead = env.secrets();
+				if (envSecretsRead != null) {
+					envSecrets.put(envName, envSecretsRead.get());
 				}
-				if (env.variables() != null) {
-					envVariables.put(envName, env.variables().get());
+				var envVariablesRead = env.variables();
+				if (envVariablesRead != null) {
+					envVariables.put(envName, envVariablesRead.get());
 				}
 			}
 			return new Environments(environments, envSecrets, envVariables);
@@ -493,8 +497,8 @@ public final class RepositoryStateReader {
 	private record PendingEnvironment(
 			EnvironmentDetailsResponse env,
 			Supplier<List<DeploymentBranchPolicyResponse>> policies,
-			Supplier<List<ActualSecret>> secrets,
-			Supplier<List<ActualVariable>> variables
+			@Nullable Supplier<List<ActualSecret>> secrets,
+			@Nullable Supplier<List<ActualVariable>> variables
 	) {
 	}
 

@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Map;
 
@@ -40,7 +42,9 @@ public class OrgWebhooksDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 					}
 
 					@Override
-					public DriftyState.SecretRecord record(String name) {
+					public DriftyState.@Nullable SecretRecord record(
+							String name
+					) {
 						return state.orgWebhookSecretRecord(org, name);
 					}
 

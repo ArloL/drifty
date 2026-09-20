@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.actual;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * A required status check, as drifty compares them.
  *
@@ -8,7 +10,7 @@ package io.github.arlol.githubcheck.actual;
  */
 public record StatusCheck(
 		String context,
-		Integer appId
+		@Nullable Integer appId
 ) {
 
 	@Override

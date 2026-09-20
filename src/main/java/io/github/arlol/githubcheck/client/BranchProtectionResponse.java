@@ -4,6 +4,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.jspecify.annotations.Nullable;
+
 @GitHubEndpoint(
 		response = "GET /repos/{owner}/{repo}/branches/{branch}/protection",
 		undocumented = {
@@ -86,7 +88,7 @@ public record BranchProtectionResponse(
 	}
 
 	public record RequiredStatusChecks(
-			String url, // optional
+			@Nullable String url, // optional
 			EnforcementLevel enforcementLevel, // optional
 			boolean strict,
 			// Modern API returns checks[].context; legacy returns contexts[].
@@ -119,10 +121,11 @@ public record BranchProtectionResponse(
 			String url, // optional
 			boolean dismissStaleReviews,
 			boolean requireCodeOwnerReviews,
-			Integer requiredApprovingReviewCount, // optional
-			Boolean requireLastPushApproval, // optional, default false
-			Actors dismissalRestrictions, // optional
-			Actors bypassPullRequestAllowances // optional
+			@Nullable Integer requiredApprovingReviewCount, // optional
+			@Nullable Boolean requireLastPushApproval, // optional, default
+													   // false
+			@Nullable Actors dismissalRestrictions, // optional
+			@Nullable Actors bypassPullRequestAllowances // optional
 	) {
 
 		public RequiredPullRequestReviews(

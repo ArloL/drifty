@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -28,7 +30,7 @@ public record CheckResult(
 	public record FixReport(
 			String path,
 			boolean fixed,
-			String reason
+			@Nullable String reason
 	) {
 
 		public String message() {
@@ -49,7 +51,7 @@ public record CheckResult(
 			List<String> diffs,
 			List<String> fixPreview,
 			List<FixReport> fixReports,
-			String error,
+			@Nullable String error,
 			List<String> unmanaged
 	) {
 
@@ -128,7 +130,7 @@ public record CheckResult(
 			);
 		}
 
-		public static Entry error(String name, String error) {
+		public static Entry error(String name, @Nullable String error) {
 			return new Entry(
 					name,
 					Status.ERROR,

@@ -1,5 +1,9 @@
 package io.github.arlol.githubcheck.drift;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 import io.github.arlol.githubcheck.PklTypes;
@@ -20,14 +24,14 @@ public class OrgWorkflowPermissionsDriftGroup
 
 	private final Drifty.WorkflowPermissions desiredPermissions;
 	private final boolean desiredCanApprove;
-	private final ActualWorkflowPermissions actual;
+	private final @Nullable ActualWorkflowPermissions actual;
 	private final GitHubClient client;
 	private final String org;
 
 	public OrgWorkflowPermissionsDriftGroup(
 			Drifty.WorkflowPermissions desiredPermissions,
 			boolean desiredCanApprove,
-			ActualWorkflowPermissions actual,
+			@Nullable ActualWorkflowPermissions actual,
 			GitHubClient client,
 			String org
 	) {
@@ -36,6 +40,17 @@ public class OrgWorkflowPermissionsDriftGroup
 		this.actual = actual;
 		this.client = client;
 		this.org = org;
+	}
+
+	/**
+	 * The section this group compares. Null only for a group the config does
+	 * not manage, whose read was therefore never sent — and an unmanaged group
+	 * is filtered out before {@code detectDrift} runs, in
+	 * {@code OrganizationChecker.createDriftGroups}. Saying so here turns a
+	 * would-be NullPointerException into a named invariant.
+	 */
+	private ActualWorkflowPermissions present() {
+		return Objects.requireNonNull(actual);
 	}
 
 	@Override
@@ -49,12 +64,12 @@ public class OrgWorkflowPermissionsDriftGroup
 				compare(
 						"default_workflow_permissions",
 						PklTypes.workflowPermissions(desiredPermissions),
-						actual.defaultWorkflowPermissions()
+						present().defaultWorkflowPermissions()
 				),
 				compare(
 						"can_approve_pull_request_reviews",
 						desiredCanApprove,
-						actual.canApprovePullRequestReviews()
+						present().canApprovePullRequestReviews()
 				)
 		);
 		return List.of(new DriftFix(items, () -> {

@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.client;
 
+import org.jspecify.annotations.Nullable;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
@@ -46,7 +48,10 @@ final class CachedHttpResponse implements HttpResponse<String> {
 	 * live one is the current answer and the cached one is not, so a
 	 * {@code Link} already on {@code live} is left alone.
 	 */
-	private static HttpHeaders withCachedLink(HttpHeaders live, String link) {
+	private static HttpHeaders withCachedLink(
+			HttpHeaders live,
+			@Nullable String link
+	) {
 		if (link == null || live.firstValue("link").isPresent()) {
 			return live;
 		}

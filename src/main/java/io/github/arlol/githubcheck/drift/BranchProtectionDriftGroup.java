@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -191,7 +193,7 @@ public class BranchProtectionDriftGroup extends DriftGroup<Drifty.GroupName> {
 	private static void comparePullRequestReviews(
 			String pattern,
 			Drifty.BranchProtection wanted,
-			ActualBranchProtection.PullRequestReviews rpr,
+			ActualBranchProtection.@Nullable PullRequestReviews rpr,
 			List<DriftItem> items
 	) {
 		String prefix = key(pattern, ".required_pull_request_reviews");
@@ -299,7 +301,7 @@ public class BranchProtectionDriftGroup extends DriftGroup<Drifty.GroupName> {
 	private static void compareRestrictions(
 			String pattern,
 			Drifty.BranchProtection wanted,
-			ActualBranchProtection.Restrictions restrictions,
+			ActualBranchProtection.@Nullable Restrictions restrictions,
 			List<DriftItem> items
 	) {
 		if (restrictions == null) {

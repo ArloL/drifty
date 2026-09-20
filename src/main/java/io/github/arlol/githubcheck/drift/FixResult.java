@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -19,7 +21,7 @@ public record FixResult(
 	 */
 	public record Unfixed(
 			DriftItem item,
-			String reason
+			@Nullable String reason
 	) {
 	}
 
@@ -27,7 +29,7 @@ public record FixResult(
 		return new FixResult(List.of());
 	}
 
-	public static FixResult unfixed(DriftItem item, String reason) {
+	public static FixResult unfixed(DriftItem item, @Nullable String reason) {
 		return new FixResult(List.of(new Unfixed(item, reason)));
 	}
 

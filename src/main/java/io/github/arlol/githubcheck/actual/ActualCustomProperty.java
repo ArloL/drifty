@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.actual;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -12,7 +14,7 @@ public record ActualCustomProperty(
 		String name,
 		String valueType,
 		boolean required,
-		String defaultValue,
+		@Nullable String defaultValue,
 		List<String> defaultValues,
 		String description,
 		List<String> allowedValues,

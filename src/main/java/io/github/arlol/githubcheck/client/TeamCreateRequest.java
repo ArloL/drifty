@@ -2,6 +2,8 @@ package io.github.arlol.githubcheck.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Body of {@code POST /orgs/{org}/teams}. Same fields as {@link TeamRequest},
  * but {@code parent_team_id} is omitted when null instead of being sent: the
@@ -18,10 +20,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 )
 public record TeamCreateRequest(
 		String name,
-		String description,
-		String privacy,
-		String notificationSetting,
-		Long parentTeamId
+		@Nullable String description,
+		@Nullable String privacy,
+		@Nullable String notificationSetting,
+		@Nullable Long parentTeamId
 ) {
 
 	public static TeamCreateRequest from(TeamRequest team) {

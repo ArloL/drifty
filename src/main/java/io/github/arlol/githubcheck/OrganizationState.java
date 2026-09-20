@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 import io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration;
@@ -26,9 +28,9 @@ import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
  */
 public record OrganizationState(
 		String login,
-		ActualOrganization settings,
-		ActualOrgActionsPermissions actionsPermissions,
-		ActualWorkflowPermissions workflowPermissions,
+		@Nullable ActualOrganization settings,
+		@Nullable ActualOrgActionsPermissions actionsPermissions,
+		@Nullable ActualWorkflowPermissions workflowPermissions,
 		List<ActualOrgSecret> actionSecrets,
 		List<ActualOrgVariable> actionVariables,
 		List<ActualWebhook> webhooks,
@@ -55,9 +57,9 @@ public record OrganizationState(
 	/** A state with nothing in the sections added after the first five. */
 	public OrganizationState(
 			String login,
-			ActualOrganization settings,
-			ActualOrgActionsPermissions actionsPermissions,
-			ActualWorkflowPermissions workflowPermissions,
+			@Nullable ActualOrganization settings,
+			@Nullable ActualOrgActionsPermissions actionsPermissions,
+			@Nullable ActualWorkflowPermissions workflowPermissions,
 			List<ActualOrgSecret> actionSecrets
 	) {
 		this(

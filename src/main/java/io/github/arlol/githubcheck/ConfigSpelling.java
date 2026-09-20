@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.PagesBuildType;
@@ -38,7 +40,7 @@ public final class ConfigSpelling {
 	private ConfigSpelling() {
 	}
 
-	public static String of(RulesetTarget value) {
+	public static @Nullable String of(@Nullable RulesetTarget value) {
 		return value == null ? null : (switch (value) {
 		case BRANCH -> Drifty.RulesetTarget.BRANCH;
 		case TAG -> Drifty.RulesetTarget.TAG;
@@ -47,7 +49,7 @@ public final class ConfigSpelling {
 		}).toString();
 	}
 
-	public static String of(RulesetEnforcement value) {
+	public static @Nullable String of(@Nullable RulesetEnforcement value) {
 		return value == null ? null : (switch (value) {
 		case ACTIVE -> Drifty.RulesetEnforcement.ACTIVE;
 		case EVALUATE -> Drifty.RulesetEnforcement.EVALUATE;
@@ -55,7 +57,7 @@ public final class ConfigSpelling {
 		}).toString();
 	}
 
-	public static String of(RulePatternOperator value) {
+	public static @Nullable String of(@Nullable RulePatternOperator value) {
 		return value == null ? null : (switch (value) {
 		case STARTS_WITH -> Drifty.PatternOperator.STARTS_WITH;
 		case ENDS_WITH -> Drifty.PatternOperator.ENDS_WITH;
@@ -64,8 +66,8 @@ public final class ConfigSpelling {
 		}).toString();
 	}
 
-	public static String of(
-			RulesetDetailsResponse.BypassActor.ActorType value
+	public static @Nullable String of(
+			RulesetDetailsResponse.BypassActor.@Nullable ActorType value
 	) {
 		return value == null ? null : (switch (value) {
 		case INTEGRATION -> Drifty.ActorType.INTEGRATION;
@@ -77,8 +79,8 @@ public final class ConfigSpelling {
 		}).toString();
 	}
 
-	public static String of(
-			RulesetDetailsResponse.BypassActor.BypassMode value
+	public static @Nullable String of(
+			RulesetDetailsResponse.BypassActor.@Nullable BypassMode value
 	) {
 		return value == null ? null : (switch (value) {
 		case ALWAYS -> Drifty.BypassMode.ALWAYS;
@@ -87,8 +89,8 @@ public final class ConfigSpelling {
 		}).toString();
 	}
 
-	public static String of(
-			SecurityAndAnalysis.BypassReviewer.ReviewerType value
+	public static @Nullable String of(
+			SecurityAndAnalysis.BypassReviewer.@Nullable ReviewerType value
 	) {
 		return value == null ? null : (switch (value) {
 		case TEAM -> Drifty.SecretScanningBypassReviewerType.TEAM;
@@ -96,14 +98,16 @@ public final class ConfigSpelling {
 		}).toString();
 	}
 
-	public static String of(TeamResponse.Privacy value) {
+	public static @Nullable String of(TeamResponse.@Nullable Privacy value) {
 		return value == null ? null : (switch (value) {
 		case CLOSED -> Drifty.TeamPrivacy.CLOSED;
 		case SECRET -> Drifty.TeamPrivacy.SECRET;
 		}).toString();
 	}
 
-	public static String of(TeamResponse.NotificationSetting value) {
+	public static @Nullable String of(
+			TeamResponse.@Nullable NotificationSetting value
+	) {
 		return value == null ? null : (switch (value) {
 		case NOTIFICATIONS_ENABLED ->
 			Drifty.TeamNotificationSetting.NOTIFICATIONS_ENABLED;
@@ -112,7 +116,9 @@ public final class ConfigSpelling {
 		}).toString();
 	}
 
-	public static String of(ActionsEnabledRepositories value) {
+	public static @Nullable String of(
+			@Nullable ActionsEnabledRepositories value
+	) {
 		return value == null ? null : (switch (value) {
 		case ALL -> Drifty.ActionsEnabledRepositories.ALL;
 		case NONE -> Drifty.ActionsEnabledRepositories.NONE;
@@ -120,7 +126,7 @@ public final class ConfigSpelling {
 		}).toString();
 	}
 
-	public static String of(AllowedActions value) {
+	public static @Nullable String of(@Nullable AllowedActions value) {
 		return value == null ? null : (switch (value) {
 		case ALL -> Drifty.AllowedActions.ALL;
 		case LOCAL_ONLY -> Drifty.AllowedActions.LOCAL_ONLY;
@@ -128,7 +134,7 @@ public final class ConfigSpelling {
 		}).toString();
 	}
 
-	public static String of(SecretVisibility value) {
+	public static @Nullable String of(@Nullable SecretVisibility value) {
 		return value == null ? null : (switch (value) {
 		case ALL -> Drifty.SecretVisibility.ALL;
 		case PRIVATE -> Drifty.SecretVisibility.PRIVATE;
@@ -136,8 +142,8 @@ public final class ConfigSpelling {
 		}).toString();
 	}
 
-	public static String of(
-			WorkflowPermissions.DefaultWorkflowPermissions value
+	public static @Nullable String of(
+			WorkflowPermissions.@Nullable DefaultWorkflowPermissions value
 	) {
 		return value == null ? null : (switch (value) {
 		case READ -> Drifty.WorkflowPermissions.READ;
@@ -145,7 +151,7 @@ public final class ConfigSpelling {
 		}).toString();
 	}
 
-	public static String of(RepositoryVisibility value) {
+	public static @Nullable String of(@Nullable RepositoryVisibility value) {
 		return value == null ? null : (switch (value) {
 		case PUBLIC -> Drifty.Visibility.PUBLIC;
 		case PRIVATE -> Drifty.Visibility.PRIVATE;
@@ -161,7 +167,7 @@ public final class ConfigSpelling {
 	 * either member of that union is the one vocabulary change this class does
 	 * not catch at compile time.
 	 */
-	public static String of(PagesBuildType value) {
+	public static @Nullable String of(@Nullable PagesBuildType value) {
 		return value == null ? null : switch (value) {
 		case WORKFLOW -> "workflow";
 		case LEGACY -> "legacy";

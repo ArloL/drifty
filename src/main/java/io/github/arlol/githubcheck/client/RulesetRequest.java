@@ -5,6 +5,8 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.jspecify.annotations.Nullable;
+
 @GitHubEndpoint(
 		request = { "POST /repos/{owner}/{repo}/rulesets",
 				"PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}",
@@ -36,7 +38,9 @@ public record RulesetRequest(
 		 * Omitted when null rather than sent as {@code null} or {@code {}}: a
 		 * repository push ruleset has no conditions at all.
 		 */
-		@JsonInclude(JsonInclude.Include.NON_NULL) Conditions conditions,
+		@JsonInclude(
+			JsonInclude.Include.NON_NULL
+		) @Nullable Conditions conditions,
 		List<Rule> rules
 ) {
 
@@ -55,10 +59,10 @@ public record RulesetRequest(
 
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	public record Conditions(
-			RefName refName,
-			RepositoryName repositoryName,
-			RepositoryId repositoryId,
-			RepositoryProperty repositoryProperty
+			@Nullable RefName refName,
+			@Nullable RepositoryName repositoryName,
+			@Nullable RepositoryId repositoryId,
+			@Nullable RepositoryProperty repositoryProperty
 	) {
 
 		public record RefName(
@@ -77,7 +81,7 @@ public record RulesetRequest(
 		public record RepositoryName(
 				List<String> include,
 				List<String> exclude,
-				@JsonProperty("protected") Boolean isProtected
+				@JsonProperty("protected") @Nullable Boolean isProtected
 		) {
 
 			public RepositoryName {

@@ -4,16 +4,18 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import org.jspecify.annotations.Nullable;
+
 @GitHubEndpoint(
 		request = "PUT /repos/{owner}/{repo}/branches/{branch}/protection",
 		unmanaged = {
 				"required_status_checks.contexts — deprecated by GitHub in favour of checks, which carries the same contexts plus the app id that says which app reports them" }
 )
 public record BranchProtectionRequest(
-		RequiredStatusChecks requiredStatusChecks,
+		@Nullable RequiredStatusChecks requiredStatusChecks,
 		boolean enforceAdmins,
-		RequiredPullRequestReviews requiredPullRequestReviews,
-		Restrictions restrictions,
+		@Nullable RequiredPullRequestReviews requiredPullRequestReviews,
+		@Nullable Restrictions restrictions,
 		boolean requiredLinearHistory,
 		boolean allowForcePushes,
 		boolean allowDeletions,
@@ -34,7 +36,9 @@ public record BranchProtectionRequest(
 
 		public record StatusCheck(
 				String context,
-				@JsonInclude(JsonInclude.Include.NON_NULL) Integer appId
+				@JsonInclude(
+					JsonInclude.Include.NON_NULL
+				) @Nullable Integer appId
 		) {
 		}
 
@@ -44,10 +48,10 @@ public record BranchProtectionRequest(
 	public record RequiredPullRequestReviews(
 			boolean dismissStaleReviews,
 			boolean requireCodeOwnerReviews,
-			Integer requiredApprovingReviewCount,
-			Boolean requireLastPushApproval,
-			Actors dismissalRestrictions,
-			Actors bypassPullRequestAllowances
+			@Nullable Integer requiredApprovingReviewCount,
+			@Nullable Boolean requireLastPushApproval,
+			@Nullable Actors dismissalRestrictions,
+			@Nullable Actors bypassPullRequestAllowances
 	) {
 	}
 

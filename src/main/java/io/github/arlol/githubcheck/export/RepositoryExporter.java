@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.export;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -501,14 +503,15 @@ public final class RepositoryExporter {
 				Drifty.GroupName.CUSTOM_PROPERTIES
 		);
 
-		if (state.collaborators() != null) {
+		var collaborators = state.collaborators();
+		if (collaborators != null) {
 			Fields.mapping(
 					"collaborators",
-					collaboratorEntries(state.collaborators().users())
+					collaboratorEntries(collaborators.users())
 			).ifPresent(members::add);
 			Fields.mapping(
 					"teamPermissions",
-					collaboratorEntries(state.collaborators().teams())
+					collaboratorEntries(collaborators.teams())
 			).ifPresent(members::add);
 		}
 		AccountExporter.addFailureNote(
@@ -703,7 +706,10 @@ public final class RepositoryExporter {
 		return Fields.required(name, value).orElseThrow();
 	}
 
-	private static PklNode.Member required(String name, String value) {
+	private static PklNode.Member required(
+			String name,
+			@Nullable String value
+	) {
 		return Fields.required(name, value).orElseThrow();
 	}
 

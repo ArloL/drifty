@@ -2,6 +2,8 @@ package io.github.arlol.githubcheck.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import org.jspecify.annotations.Nullable;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @GitHubEndpoint(
 		request = "PUT /repos/{owner}/{repo}/pages",
@@ -10,8 +12,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 )
 public record PagesUpdateRequest(
 		PagesBuildType buildType,
-		Source source,
-		Boolean httpsEnforced
+		@Nullable Source source,
+		@Nullable Boolean httpsEnforced
 ) {
 
 	public record Source(

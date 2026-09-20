@@ -8,6 +8,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+import org.jspecify.annotations.Nullable;
+
 @JsonTypeInfo(
 		use = JsonTypeInfo.Id.NAME,
 		property = "type",
@@ -50,12 +52,13 @@ public sealed interface Rule
 		Rule.FileExtensionRestriction, Rule.MaxFileSize, Rule.Unknown {
 
 	@JsonIgnore
+	@Nullable
 	RulesetRuleType type();
 
 	record RequiredLinearHistory(
 	) implements Rule {
 
-		public RulesetRuleType type() {
+		public @Nullable RulesetRuleType type() {
 			return RulesetRuleType.REQUIRED_LINEAR_HISTORY;
 		}
 
@@ -80,8 +83,8 @@ public sealed interface Rule
 
 		@JsonInclude(JsonInclude.Include.NON_NULL)
 		public record Parameters(
-				List<StatusCheck> requiredStatusChecks,
-				Boolean strictRequiredStatusChecksPolicy
+				@Nullable List<StatusCheck> requiredStatusChecks,
+				@Nullable Boolean strictRequiredStatusChecksPolicy
 		) {
 
 			public Parameters {
@@ -103,12 +106,12 @@ public sealed interface Rule
 
 		@JsonInclude(JsonInclude.Include.NON_NULL)
 		public record Parameters(
-				Integer requiredApprovingReviewCount,
-				Boolean dismissStaleReviewsOnPush,
-				Boolean requireCodeOwnerReview,
-				Boolean requireLastPushApproval,
-				Boolean requiredReviewThreadResolution,
-				List<String> allowedMergeMethods
+				@Nullable Integer requiredApprovingReviewCount,
+				@Nullable Boolean dismissStaleReviewsOnPush,
+				@Nullable Boolean requireCodeOwnerReview,
+				@Nullable Boolean requireLastPushApproval,
+				@Nullable Boolean requiredReviewThreadResolution,
+				@Nullable List<String> allowedMergeMethods
 		) {
 
 			public Parameters {
@@ -315,7 +318,7 @@ public sealed interface Rule
 
 		@JsonInclude(JsonInclude.Include.NON_NULL)
 		public record Parameters(
-				Boolean doNotEnforceOnCreate,
+				@Nullable Boolean doNotEnforceOnCreate,
 				List<Workflow> workflows
 		) {
 
@@ -330,7 +333,7 @@ public sealed interface Rule
 				String path,
 				Long repositoryId,
 				String ref,
-				String sha
+				@Nullable String sha
 		) {
 		}
 
@@ -413,7 +416,7 @@ public sealed interface Rule
 			@JsonProperty("type") String rawType
 	) implements Rule {
 
-		public RulesetRuleType type() {
+		public @Nullable RulesetRuleType type() {
 			return null;
 		}
 
@@ -422,7 +425,7 @@ public sealed interface Rule
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	record StatusCheck(
 			String context,
-			Integer integrationId
+			@Nullable Integer integrationId
 	) {
 	}
 

@@ -2,6 +2,8 @@ package io.github.arlol.githubcheck.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Body of {@code PATCH /orgs/{org}}.
  * <p>
@@ -28,26 +30,26 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 				"members_allowed_repository_creation_type — deprecated by GitHub in favour of the members_can_create_* booleans, which OrgSettingsDriftGroup does compare" }
 )
 public record OrganizationUpdateRequest(
-		String name,
-		String description,
-		String blog,
-		String company,
-		String email,
-		String location,
-		String twitterUsername,
-		Boolean hasOrganizationProjects,
-		Boolean hasRepositoryProjects,
-		String defaultRepositoryPermission,
-		Boolean membersCanCreateRepositories,
-		Boolean membersCanCreatePublicRepositories,
-		Boolean membersCanCreatePrivateRepositories,
-		Boolean membersCanCreateInternalRepositories,
-		Boolean membersCanCreatePages,
-		Boolean membersCanCreatePublicPages,
-		Boolean membersCanCreatePrivatePages,
-		Boolean membersCanForkPrivateRepositories,
-		Boolean webCommitSignoffRequired,
-		Boolean deployKeysEnabledForRepositories
+		@Nullable String name,
+		@Nullable String description,
+		@Nullable String blog,
+		@Nullable String company,
+		@Nullable String email,
+		@Nullable String location,
+		@Nullable String twitterUsername,
+		@Nullable Boolean hasOrganizationProjects,
+		@Nullable Boolean hasRepositoryProjects,
+		@Nullable String defaultRepositoryPermission,
+		@Nullable Boolean membersCanCreateRepositories,
+		@Nullable Boolean membersCanCreatePublicRepositories,
+		@Nullable Boolean membersCanCreatePrivateRepositories,
+		@Nullable Boolean membersCanCreateInternalRepositories,
+		@Nullable Boolean membersCanCreatePages,
+		@Nullable Boolean membersCanCreatePublicPages,
+		@Nullable Boolean membersCanCreatePrivatePages,
+		@Nullable Boolean membersCanForkPrivateRepositories,
+		@Nullable Boolean webCommitSignoffRequired,
+		@Nullable Boolean deployKeysEnabledForRepositories
 ) {
 
 	public static Builder builder() {
@@ -56,26 +58,26 @@ public record OrganizationUpdateRequest(
 
 	public static final class Builder {
 
-		private String name;
-		private String description;
-		private String blog;
-		private String company;
-		private String email;
-		private String location;
-		private String twitterUsername;
-		private Boolean hasOrganizationProjects;
-		private Boolean hasRepositoryProjects;
-		private String defaultRepositoryPermission;
-		private Boolean membersCanCreateRepositories;
-		private Boolean membersCanCreatePublicRepositories;
-		private Boolean membersCanCreatePrivateRepositories;
-		private Boolean membersCanCreateInternalRepositories;
-		private Boolean membersCanCreatePages;
-		private Boolean membersCanCreatePublicPages;
-		private Boolean membersCanCreatePrivatePages;
-		private Boolean membersCanForkPrivateRepositories;
-		private Boolean webCommitSignoffRequired;
-		private Boolean deployKeysEnabledForRepositories;
+		private @Nullable String name;
+		private @Nullable String description;
+		private @Nullable String blog;
+		private @Nullable String company;
+		private @Nullable String email;
+		private @Nullable String location;
+		private @Nullable String twitterUsername;
+		private @Nullable Boolean hasOrganizationProjects;
+		private @Nullable Boolean hasRepositoryProjects;
+		private @Nullable String defaultRepositoryPermission;
+		private @Nullable Boolean membersCanCreateRepositories;
+		private @Nullable Boolean membersCanCreatePublicRepositories;
+		private @Nullable Boolean membersCanCreatePrivateRepositories;
+		private @Nullable Boolean membersCanCreateInternalRepositories;
+		private @Nullable Boolean membersCanCreatePages;
+		private @Nullable Boolean membersCanCreatePublicPages;
+		private @Nullable Boolean membersCanCreatePrivatePages;
+		private @Nullable Boolean membersCanForkPrivateRepositories;
+		private @Nullable Boolean webCommitSignoffRequired;
+		private @Nullable Boolean deployKeysEnabledForRepositories;
 
 		private Builder() {
 		}
