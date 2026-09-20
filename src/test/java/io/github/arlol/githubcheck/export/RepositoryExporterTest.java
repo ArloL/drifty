@@ -9,6 +9,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import io.github.arlol.githubcheck.FetchFailures;
 import io.github.arlol.githubcheck.RepositoryState;
@@ -32,6 +34,7 @@ import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.SquashMergeCommitMessage;
 import io.github.arlol.githubcheck.client.SquashMergeCommitTitle;
 import io.github.arlol.githubcheck.client.WorkflowPermissions.DefaultWorkflowPermissions;
+import io.github.arlol.githubcheck.pkl.Drifty;
 
 class RepositoryExporterTest {
 
@@ -291,6 +294,62 @@ class RepositoryExporterTest {
 	 * this also proves a note earlier in the method doesn't swallow or reorder
 	 * one that comes later.
 	 */
+	/**
+	 * Eleven group names have no read of their own to fail, so there is no
+	 * section for a note to sit beside: eight are fields of
+	 * {@code security_and_analysis} on {@code GET /repos/\{owner\}/\{repo\}},
+	 * {@code repo_settings} and {@code topics} are fields of that same
+	 * response, and {@code archived} comes from the account listing. A failure
+	 * there fails the whole entry rather than one group.
+	 */
+	private static final Set<Drifty.GroupName> NO_READ_OF_THEIR_OWN = Set.of(
+			Drifty.GroupName.ARCHIVED,
+			Drifty.GroupName.REPO_SETTINGS,
+			Drifty.GroupName.TOPICS,
+			Drifty.GroupName.ADVANCED_SECURITY,
+			Drifty.GroupName.SECRET_SCANNING,
+			Drifty.GroupName.SECRET_SCANNING_AI_DETECTION,
+			Drifty.GroupName.SECRET_SCANNING_DELEGATED_ALERT_DISMISSAL,
+			Drifty.GroupName.SECRET_SCANNING_DELEGATED_BYPASS,
+			Drifty.GroupName.SECRET_SCANNING_NON_PROVIDER_PATTERNS,
+			Drifty.GroupName.SECRET_SCANNING_PUSH_PROTECTION,
+			Drifty.GroupName.SECRET_SCANNING_VALIDITY_CHECKS
+	);
+
+	/**
+	 * Issue #136 was an exported file that failed on exactly the request the
+	 * export had already failed on, because the reason was a {@code //} comment
+	 * and nothing else. The {@code managed} exclusion is what a later run acts
+	 * on; the note is what tells a reader why. Both have to be there for
+	 * <em>every</em> group, and the test above only ever proved it for two of
+	 * them — a note dropped from any other group changed nothing any assertion
+	 * could see.
+	 * <p>
+	 * Reading the cases out of the enum is what makes a new group's missing
+	 * note a failure here rather than a discovery in somebody's export.
+	 */
+	@ParameterizedTest(name = "{0}")
+	@EnumSource(Drifty.GroupName.class)
+	void everyGroupWithAReadOfItsOwnSaysWhyItIsMissing(Drifty.GroupName group) {
+		var failures = List.of(
+				new FetchFailures.Failure(
+						group.toString(),
+						"the token cannot read it"
+				)
+		);
+
+		String written = PklWriter.write(
+				RepositoryExporter.entry(defaultState(), failures, DEFAULTS)
+		);
+
+		String note = "// " + group + ": the token cannot read it";
+		if (NO_READ_OF_THEIR_OWN.contains(group)) {
+			assertThat(written).doesNotContain(note);
+		} else {
+			assertThat(written).contains(note);
+		}
+	}
+
 	@Test
 	void aGroupFailureBecomesANoteWhereTheGroupWouldSit() {
 		var failures = List.of(

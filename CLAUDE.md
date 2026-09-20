@@ -64,11 +64,25 @@ where it pays.**
 builder call that writes it, an exporter line pairs a field with its schema
 default — and a table is the shape most likely to be *executed* by a test that
 asserts nothing about it. Line coverage says the row ran; a surviving mutant
-says nothing checked what it did. Measured 2026-09-20: 1118 mutations, 1007
-killed, **90.1%**, and `mutationThreshold` is 85. The 111 survivors sit in
-`RulesetComparison` (28), `RepositoryExporter` (15) and `AccountExporter` (12),
-and 63 of them are a removed void call — an `items.add(...)` no assertion
-misses.
+says nothing checked what it did. Measured 2026-09-20: 1118 mutations, 1073
+killed, **96.0%**, and `mutationThreshold` is 92.
+
+The first run scored 90.1%, and what the 111 survivors turned out to be is the
+argument for running it at all — each was a whole behaviour nothing asserted,
+not a missing edge case:
+
+| What survived | Why it mattered |
+| --- | --- |
+| 25 × `addFailureNote` removed | Issue #136's note, pinned for two groups out of 27 |
+| 18 ruleset fields | `ocompare(...).ifPresent(items::add)` — drop the `ifPresent` and drifty compares the field, builds the item and discards it |
+| 6 × Actions-permissions fixes | Detected, built, never executed — including "a name with no id fails the whole fix", which CLAUDE.md states and nothing tested |
+| 8 × deployment branch policies | The one part of an environment `--fix` **deletes** |
+| 6 × `PklWriter` nested listings | Both arms unexecuted, and with them the `depth + 1` that indents |
+| 1 × `recordActionSecret` | The baseline that tells the next run "unchanged" from "rotated" |
+
+The 45 left are a different shape: mostly a fix lambda's `return
+FixResult.success()` on a path another test already drives. Worth doing, not
+worth doing before the next real gap.
 
 It is not bound to a phase, and it is not on every pull request either.
 `mutation.yaml` runs it monthly and on `workflow_dispatch`, on Temurin so the

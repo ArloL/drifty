@@ -554,17 +554,22 @@
 						<param>XML</param>
 					</outputFormats>
 					<timestampedReports>false</timestampedReports>
-					<!-- 85 against the 90.1% measured on 2026-09-20 (1118
-					     mutations, 1007 killed). The five points of headroom
+					<!-- 92 against the 96.0% measured on 2026-09-20 (1118
+					     mutations, 1073 killed). The four points of headroom
 					     are for a change that legitimately adds a branch
 					     before the test that pins it; they are not a budget to
-					     spend. The 111 that survive are concentrated in
-					     RulesetComparison (28), RepositoryExporter (15) and
-					     AccountExporter (12), and 63 of them are a removed
-					     void call — an `items.add(...)` whose absence no
-					     assertion notices. Raise the bound as those come
-					     down. -->
-					<mutationThreshold>85</mutationThreshold>
+					     spend.
+
+					     The 45 left are the long tail, and they are a
+					     different shape from the 111 this started at: those
+					     were whole behaviours nothing asserted — an export
+					     note, a ruleset field's drift, a fix that was built
+					     and never run. What remains is mostly a fix lambda's
+					     `return FixResult.success()` on a path some other test
+					     already drives, where killing the mutant means
+					     executing that one fix for its own sake. Worth doing;
+					     not worth doing before the next real gap. -->
+					<mutationThreshold>92</mutationThreshold>
 				</configuration>
 				<dependencies>
 					<dependency>
