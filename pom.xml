@@ -28,6 +28,13 @@
 		     new-code quality gate was grading pkl-codegen-java's output, where
 		     nothing a reviewer can act on lives. -->
 		<sonar.exclusions>target/generated-sources/**/*</sonar.exclusions>
+		<!-- The one pkl pin. The code generator, the formatter the export is
+		     held to and the CLI main.yaml downloads are the same release, and
+		     the workflow reads this property rather than repeating it: a
+		     formatter checking drifty's output against different rules than
+		     the binary an adopter's CI runs is the failure this pin exists to
+		     make impossible. -->
+		<pkl.version>0.32.1</pkl.version>
 	</properties>
 
 	<profiles>
@@ -255,6 +262,16 @@
 		<dependency>
 			<groupId>org.awaitility</groupId>
 			<artifactId>awaitility</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<!-- The formatter `pkl format` itself runs, so the exported file
+			     is checked against the real rules rather than against
+			     PklWriterTest's model of them. Test scope: nothing in the
+			     shipped binary formats anything. -->
+			<groupId>org.pkl-lang</groupId>
+			<artifactId>pkl-formatter</artifactId>
+			<version>${pkl.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -546,7 +563,7 @@
 					<dependency>
 						<groupId>org.pkl-lang</groupId>
 						<artifactId>pkl-codegen-java</artifactId>
-						<version>0.32.1</version>
+						<version>${pkl.version}</version>
 					</dependency>
 					<dependency>
 						<groupId>com.github.ajalt.clikt</groupId>

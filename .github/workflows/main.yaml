@@ -195,18 +195,26 @@ jobs:
       run: git diff --exit-code
   pkl-format:
     runs-on: ubuntu-latest
-    env:
-      # renovate: datasource=github-releases depName=apple/pkl
-      PKL_VERSION: 0.32.1
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
+    # The version is read from pom.xml's pkl.version rather than pinned again
+    # here, because pkl-formatter — the library ExportRoundTripTest holds the
+    # exported file to — resolves to that same property. Two pins would let
+    # this job check the tracked files against one set of rules while drifty's
+    # own export is held to another, and the disagreement would surface as an
+    # adopter's CI failure rather than as ours. Renovate bumps the property
+    # through the Maven manager, so nothing here needs its own annotation.
+    #
     # --proto/--proto-redir pin both the request and the release asset's
     # redirect to https: a GitHub release download always redirects, and
     # --location alone would follow one to plain http.
     - name: Install pkl
       run: |
+        PKL_VERSION="$(sed -n 's|.*<pkl.version>\(.*\)</pkl.version>.*|\1|p' pom.xml)"
+        # A sed that matched nothing would otherwise download a 404 page
+        test -n "${PKL_VERSION}"
         curl --proto "=https" --proto-redir "=https" \
           --location --fail --silent --show-error \
           --output "${RUNNER_TEMP}/pkl" \

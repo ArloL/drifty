@@ -529,6 +529,19 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   are left where they are however long they get, so do not bring them to 80
   columns too. Issue #138 was the export failing that check on its first CI
   run.
+- **The formatter is asked, not described.** Those two shapes are
+  `PklWriter`'s model of `pkl format`, and a model agrees with itself: before
+  `pkl-formatter` was a test dependency the only thing that ever disagreed
+  with it was an adopter's CI. `PklFormat.assertFormatted` runs the formatter
+  the command runs, `ExportRoundTripTest` holds all three exported files to
+  it, and `TrackedPklFilesAreFormattedTest` holds the repository's own four —
+  which is also where a library that stopped agreeing with the binary would
+  show up, since `main.yaml`'s `pkl-format` job checks those same files with
+  the CLI. `pom.xml`'s `pkl.version` is the one pin: the generator, the
+  formatter and the CLI the workflow downloads all resolve it, and the
+  workflow reads it out of the pom with `sed` rather than repeating it.
+  Keep `PklWriterTest` anyway — it is what says which shape a change broke,
+  where the formatter only says the file differs.
 - **A new schema field needs an exporter line.** `SchemaCoverageTest` fails
   the build otherwise, and nothing else would: a field the export omits is one
   the config leaves at its default, so the round-trip test agrees with itself

@@ -23,6 +23,7 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 import io.github.arlol.githubcheck.testsupport.GraphQlStub;
+import io.github.arlol.githubcheck.testsupport.PklFormat;
 
 /**
  * Exports a state and loads the exported file straight back through
@@ -78,6 +79,8 @@ class ExportRoundTripTest {
 
 		int exitCode = ExportRunner.run(client, List.of("my-org"), out, SCHEMA);
 		assertThat(exitCode).isZero();
+
+		PklFormat.assertFormatted(out);
 
 		DriftyConfig config = PklConfigLoader.load(out);
 		// A group whose read failed is exported as a `managed` exclusion, and
@@ -156,6 +159,8 @@ class ExportRoundTripTest {
 
 		int exitCode = ExportRunner.run(client, List.of("my-org"), out, SCHEMA);
 		assertThat(exitCode).isZero();
+
+		PklFormat.assertFormatted(out);
 
 		DriftyConfig config = PklConfigLoader.load(out);
 		assertThat(config.organizations().get("my-org").managed.groups)
@@ -265,6 +270,8 @@ class ExportRoundTripTest {
 
 		assertThat(ExportRunner.run(client, List.of("solo"), out, SCHEMA))
 				.isZero();
+
+		PklFormat.assertFormatted(out);
 
 		DriftyConfig config = PklConfigLoader.load(out);
 		assertThat(config.users()).containsOnlyKeys("solo");
