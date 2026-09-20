@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.LocalDate;
 import java.util.Arrays;
 
@@ -58,9 +59,9 @@ public class StateStore {
 
 	/**
 	 * Writes {@code state} to {@code path}, unless the file would say nothing
-	 * drifty does not already know: a state without a single secret record
-	 * creates no file at all, and a state that serializes to what the file
-	 * already holds leaves it untouched.
+	 * drifty does not already know: a state holding neither a secret baseline
+	 * nor a cached response creates no file at all, and a state that serializes
+	 * to what the file already holds leaves it untouched.
 	 * <p>
 	 * The write goes through a sibling temp file and an atomic move rather than
 	 * truncating {@code path} in place: this file holds secret baselines the
@@ -82,7 +83,10 @@ public class StateStore {
 		}
 		Path tmp = path.resolveSibling(path.getFileName() + ".tmp");
 		try {
+			createOwnerOnly(tmp);
 			Files.write(tmp, json);
+			// ATOMIC_MOVE carries the mode with the inode, so the file that
+			// lands at path is the one created above.
 			Files.move(
 					tmp,
 					path,
@@ -91,6 +95,35 @@ public class StateStore {
 			);
 		} finally {
 			Files.deleteIfExists(tmp);
+		}
+	}
+
+	/**
+	 * Creates {@code tmp} readable and writable by its owner and nobody else.
+	 * <p>
+	 * The mode is an attribute of the <em>create</em>, not a chmod afterwards:
+	 * setting it after the write leaves a window in which the salted secret
+	 * hashes and the cached response bodies — organization settings, member
+	 * logins, webhook payload URLs — sit in a world-readable file, which on a
+	 * shared CI runner is the whole of the exposure.
+	 * <p>
+	 * Windows has no POSIX modes and throws
+	 * {@link UnsupportedOperationException} for the attribute; there the file
+	 * inherits the directory's ACL, which is what governs it on that platform.
+	 * drifty ships a Windows binary, so this falls back rather than failing the
+	 * run.
+	 */
+	private static void createOwnerOnly(Path tmp) throws IOException {
+		Files.deleteIfExists(tmp);
+		try {
+			Files.createFile(
+					tmp,
+					PosixFilePermissions.asFileAttribute(
+							PosixFilePermissions.fromString("rw-------")
+					)
+			);
+		} catch (UnsupportedOperationException e) {
+			Files.createFile(tmp);
 		}
 	}
 
