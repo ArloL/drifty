@@ -47,8 +47,11 @@ import io.github.arlol.githubcheck.testsupport.PklFormat;
  * stub answering something drifty cannot parse fails the group, which the
  * export then writes out as a {@code managed} exclusion the check skips —
  * silently, and indistinguishably from a section that round-tripped. The
- * assertion that no group was left unmanaged is what catches the second;
- * against the first there is only reading the fixture.
+ * assertion that no group was left unmanaged catches the second;
+ * {@link #assertTheHardSectionsAreInThere} catches the first, by naming a
+ * distinctive value out of each section a stub could answer emptily. Before it
+ * there was only reading the fixture, and three ruleset conditions and a
+ * deployment branch policy sat outside this test while it passed.
  * <p>
  * The one thing here that cannot round-trip is a secret. GitHub never returns a
  * secret's value, so the state file has no baseline for one on a freshly
@@ -82,6 +85,7 @@ class ExportRoundTripTest {
 		assertThat(exitCode).isZero();
 
 		PklFormat.assertFormatted(out);
+		assertTheHardSectionsAreInThere(Files.readString(out));
 
 		DriftyConfig config = PklConfigLoader.load(out);
 		// A group whose read failed is exported as a `managed` exclusion, and
@@ -111,6 +115,40 @@ class ExportRoundTripTest {
 		// instead of an hour spent re-deriving which one from scratch.
 		assertThat(problems(result)).isEmpty();
 		assertThat(result.hasDrift()).isFalse();
+	}
+
+	/**
+	 * The sections a stub can answer emptily without anyone noticing.
+	 * <p>
+	 * "No drift" is not evidence that a section was exported: a listing that
+	 * answers nothing produces no config and then agrees with itself, which is
+	 * how three ruleset conditions and a deployment branch policy sat outside
+	 * this fixture while it passed. Naming the values here is the check the
+	 * follow-up asked for — before it, the only thing standing against an empty
+	 * stub was reading the fixture.
+	 * <p>
+	 * Each is a distinctive value, not a shape: a field name would also match
+	 * the schema default rendered beside it, and a whole-file comparison would
+	 * fail on every unrelated change.
+	 */
+	private static void assertTheHardSectionsAreInThere(String exported) {
+		assertThat(exported).as("a tag-targeted repository ruleset")
+				.contains("target = \"tag\"")
+				.contains("refs/tags/v0*")
+				.as(
+						"a push-targeted repository ruleset, which has no ref conditions"
+				)
+				.contains("target = \"push\"")
+				.contains("maxFilePathLength = 255")
+				.as("an organization ruleset's repository-name condition")
+				.contains("repositoryNameExclude")
+				.contains("repositoryNameProtected = true")
+				.as("an organization ruleset's repository-property conditions")
+				.contains("repositoryPropertyInclude")
+				.contains("repositoryPropertyExclude")
+				.as("an environment's custom deployment branch policies")
+				.contains("deploymentBranchPatterns")
+				.contains("deploymentTagPatterns");
 	}
 
 	/**
@@ -407,6 +445,31 @@ class ExportRoundTripTest {
 					    {"type": "REQUIRED_LINEAR_HISTORY", "parameters": null},
 					    {"type": "NON_FAST_FORWARD", "parameters": null}
 					  ]}
+					},
+					{
+					  "databaseId": 43, "name": "release-tags",
+					  "target": "TAG", "enforcement": "EVALUATE",
+					  "source": {"__typename": "Repository"},
+					  "conditions": {"refName": {"include": ["refs/tags/v*"], "exclude": ["refs/tags/v0*"]}},
+					  "bypassActors": {"nodes": []},
+					  "rules": {"nodes": [
+					    {"type": "TAG_NAME_PATTERN", "parameters": {
+					      "name": "semver", "negate": false, "operator": "STARTS_WITH", "pattern": "v"
+					    }}
+					  ]}
+					},
+					{
+					  "databaseId": 44, "name": "no-binaries",
+					  "target": "PUSH", "enforcement": "ACTIVE",
+					  "source": {"__typename": "Repository"},
+					  "conditions": null,
+					  "bypassActors": {"nodes": []},
+					  "rules": {"nodes": [
+					    {"type": "FILE_PATH_RESTRICTION", "parameters": {"restrictedFilePaths": ["secrets/*"]}},
+					    {"type": "MAX_FILE_PATH_LENGTH", "parameters": {"maxFilePathLength": 255}},
+					    {"type": "FILE_EXTENSION_RESTRICTION", "parameters": {"restrictedFileExtensions": [".exe"]}},
+					    {"type": "MAX_FILE_SIZE", "parameters": {"maxFileSize": 100}}
+					  ]}
 					}
 					""",
 			"""
@@ -600,7 +663,8 @@ class ExportRoundTripTest {
 						okJson(
 								"""
 										[
-										  {"id": 1, "name": "protect-main", "source_type": "Organization", "enforcement": "active"}
+										  {"id": 1, "name": "protect-main", "source_type": "Organization", "enforcement": "active"},
+										  {"id": 2, "name": "protect-owned", "source_type": "Organization", "enforcement": "active"}
 										]
 										"""
 						)
@@ -617,7 +681,8 @@ class ExportRoundTripTest {
 										  "enforcement": "active",
 										  "source_type": "Organization",
 										  "conditions": {
-										    "ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}
+										    "ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []},
+										    "repository_name": {"include": ["widget"], "exclude": ["legacy"], "protected": true}
 										  },
 										  "rules": [
 										    {"type": "pull_request", "parameters": {"required_approving_review_count": 1}},
@@ -646,6 +711,32 @@ class ExportRoundTripTest {
 										    {"actor_id": 11, "actor_type": "User", "bypass_mode": "always"},
 										    {"actor_id": null, "actor_type": "DeployKey", "bypass_mode": "always"}
 										  ]
+										}
+										"""
+						)
+				)
+		);
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/rulesets/2")).willReturn(
+						okJson(
+								"""
+										{
+										  "id": 2,
+										  "name": "protect-owned",
+										  "target": "branch",
+										  "enforcement": "active",
+										  "source_type": "Organization",
+										  "conditions": {
+										    "ref_name": {"include": ["~ALL"], "exclude": []},
+										    "repository_property": {
+										      "include": [{"name": "owning-team", "property_values": ["platform"], "source": "custom"}],
+										      "exclude": [{"name": "tier", "property_values": ["experimental"], "source": "custom"}]
+										    }
+										  },
+										  "rules": [
+										    {"type": "required_signatures"}
+										  ],
+										  "bypass_actors": []
 										}
 										"""
 						)
@@ -873,11 +964,27 @@ class ExportRoundTripTest {
 								      "name": "prod",
 								      "protection_rules": [
 								        {"type": "wait_timer", "wait_timer": 10}
-								      ]
+								      ],
+								      "deployment_branch_policy": {
+								        "protected_branches": false,
+								        "custom_branch_policies": true
+								      }
 								    }
 								  ]
 								}
 								"""))
+		);
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/my-org/widget/environments/prod/deployment-branch-policies"
+						)
+				).willReturn(okJson("""
+						{"branch_policies": [
+						  {"id": 21, "name": "release/*", "type": "branch"},
+						  {"id": 22, "name": "v*", "type": "tag"}
+						]}
+						"""))
 		);
 		stubFor(
 				get(
