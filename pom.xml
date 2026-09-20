@@ -467,6 +467,35 @@
 					<excludes>
 						<exclude>io/github/arlol/githubcheck/pkl/**</exclude>
 					</excludes>
+					<!-- The rules sit here rather than in the check execution
+					     so `./mvnw jacoco:check` answers the same question the
+					     build does, instead of passing with no rules at all.
+
+					     80% against the 92.1% line and 81.8% branch the suite
+					     holds today. Line has room; branch has 1.8 points,
+					     which is the point — the branches drifty does not
+					     reach are concentrated in GitHubClient's transport
+					     arms (65.1%) and GitHubCheck's argument handling
+					     (72.2%), so a bound that bites is one that notices a
+					     new arm going in untested. Raise it when those two
+					     come up; do not raise it by excluding them. -->
+					<rules>
+						<rule>
+							<element>BUNDLE</element>
+							<limits>
+								<limit>
+									<counter>LINE</counter>
+									<value>COVEREDRATIO</value>
+									<minimum>0.80</minimum>
+								</limit>
+								<limit>
+									<counter>BRANCH</counter>
+									<value>COVEREDRATIO</value>
+									<minimum>0.80</minimum>
+								</limit>
+							</limits>
+						</rule>
+					</rules>
 				</configuration>
 				<executions>
 					<execution>
@@ -479,6 +508,14 @@
 						<id>report</id>
 						<goals>
 							<goal>report</goal>
+						</goals>
+					</execution>
+					<execution>
+						<!-- verify, so it runs after the report the whole
+						     suite feeds. `./mvnw test` does not reach it. -->
+						<id>check</id>
+						<goals>
+							<goal>check</goal>
 						</goals>
 					</execution>
 				</executions>

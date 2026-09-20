@@ -22,6 +22,17 @@ Fix them with:
 git ls-files -z '*.pkl' | xargs -0 pkl format -w
 ```
 
+`jacoco:check` runs at `verify` and fails the build under 80% line or branch
+coverage. The measured bundle excludes `io.github.arlol.githubcheck.pkl`,
+which is `pkl-codegen-java`'s output: counting its generated `withX`, `equals`
+and `toString` arms reported 73.5% instruction against the 92.1% the
+hand-written code holds, and moved the number when a schema field was added
+rather than when a test was deleted. `sonar.exclusions` drops the same
+directory for the same reason. Branch coverage sits at 81.8%, so the bound
+bites — what it does not reach is concentrated in `GitHubClient`'s transport
+arms and `GitHubCheck`'s argument handling. Cover those to raise it; never
+raise it by widening the excludes.
+
 ## Releasing
 
 - **A release asset's name is the installer's only input.** mise scores assets
