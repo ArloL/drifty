@@ -55,11 +55,20 @@ sensitivity:
   endpoints returned — organization settings, member and collaborator logins,
   webhook payload URLs.
 
-Treat it as you would any build cache holding account metadata: it belongs
-next to the config, not in a public repository or a shared artifact. Deleting
-it is always safe — the next run costs one uncached check and, if a secret
-baseline is lost, reports the secret as needing a baseline rather than doing
-anything silently.
+drifty creates it readable and writable by its owner alone (`0600`), and sets
+that mode as an attribute of the create rather than as a chmod after the
+write, so there is no window in which the cached bodies sit in a
+world-readable file — which on a shared CI runner is the whole of the
+exposure. Windows has no POSIX mode and the file inherits the directory's ACL
+there instead. A file an earlier version left readable is tightened by the
+next run, because each save lands through a fresh temp file and an atomic
+move.
+
+Beyond that, treat it as you would any build cache holding account metadata:
+it belongs next to the config, not in a public repository or a shared
+artifact. Deleting it is always safe — the next run costs one uncached check
+and, if a secret baseline is lost, reports the secret as needing a baseline
+rather than doing anything silently.
 
 ## Secret values
 

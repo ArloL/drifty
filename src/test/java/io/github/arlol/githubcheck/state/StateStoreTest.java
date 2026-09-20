@@ -7,9 +7,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 class StateStoreTest {
@@ -53,6 +57,71 @@ class StateStoreTest {
 				.environmentSecretRecord("repo", "production", "DB_PASS");
 		assertThat(env.updatedAt()).isEqualTo("2024-02-01T00:00:00Z");
 		assertThat(env.valueHash()).isEqualTo(state.hash("db"));
+	}
+
+	/**
+	 * The file holds salted hashes of every secret drifty pushed and the bodies
+	 * of every GET it cached — organization settings, member logins, webhook
+	 * payload URLs. Default umask on a shared CI runner makes that
+	 * world-readable, and it sits next to the config by default, so it is not
+	 * somewhere a user thinks to look.
+	 * <p>
+	 * Skipped where POSIX modes do not exist: drifty ships a Windows binary and
+	 * the file inherits the directory's ACL there, which is that platform's
+	 * answer rather than a gap.
+	 */
+	@Test
+	@EnabledOnOs({ OS.LINUX, OS.MAC })
+	void save_writesAFileOnlyItsOwnerCanRead(@TempDir Path dir)
+			throws Exception {
+		var path = dir.resolve("drifty-state.json");
+		var state = new DriftyState();
+		state.recordActionSecret(
+				"repo",
+				"PAT",
+				"2024-01-01T00:00:00Z",
+				state.hash("value")
+		);
+
+		store.save(path, state);
+
+		assertThat(Files.getPosixFilePermissions(path))
+				.containsExactlyInAnyOrder(
+						PosixFilePermission.OWNER_READ,
+						PosixFilePermission.OWNER_WRITE
+				);
+	}
+
+	/**
+	 * Saving over a file an earlier drifty left world-readable tightens it. The
+	 * move replaces the inode, so the mode that lands is the temp file's and
+	 * not whatever was there — which is the only reason an upgrade fixes an
+	 * existing state file rather than leaving it as it found it.
+	 */
+	@Test
+	@EnabledOnOs({ OS.LINUX, OS.MAC })
+	void save_tightensAFileAnEarlierRunLeftReadable(@TempDir Path dir)
+			throws Exception {
+		var path = dir.resolve("drifty-state.json");
+		Files.writeString(path, "{}");
+		Files.setPosixFilePermissions(
+				path,
+				PosixFilePermissions.fromString("rw-r--r--")
+		);
+		var state = new DriftyState();
+		state.recordActionSecret(
+				"repo",
+				"PAT",
+				"2024-01-01T00:00:00Z",
+				state.hash("value")
+		);
+
+		store.save(path, state);
+
+		assertThat(Files.getPosixFilePermissions(path)).doesNotContain(
+				PosixFilePermission.GROUP_READ,
+				PosixFilePermission.OTHERS_READ
+		);
 	}
 
 	@Test

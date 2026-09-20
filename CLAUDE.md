@@ -474,7 +474,14 @@ raise it by widening the excludes.
   `StateStore.save` writes through a temp file and moves it into place
   atomically instead of truncating the target: a run that saves on every
   check, not only the occasional `--fix`, is a run where a Ctrl-C or a full
-  disk mid-write is no longer rare enough to ignore.
+  disk mid-write is no longer rare enough to ignore. That temp file is created
+  `rw-------` as a *creation attribute*, never chmod'd after the write: the
+  file holds cached response bodies — organization settings, member logins,
+  webhook payload URLs — and a mode set afterwards leaves a world-readable
+  window, which on a shared CI runner is the whole of the exposure. Windows
+  throws `UnsupportedOperationException` for the attribute and falls back to
+  the directory's ACL, so the two tests covering it are `@EnabledOnOs({
+  OS.LINUX, OS.MAC })`.
 - **The repository listing is not a substitute for `GET
   /repos/{owner}/{repo}`.** Dropping the per-repository details request is the
   obvious way to save one request per repository and it does not work: diffing
