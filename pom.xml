@@ -512,6 +512,69 @@
 				</executions>
 			</plugin>
 			<plugin>
+				<!-- Mutation testing. Not bound to a phase: a run mutates the
+				     drift and export packages and re-runs the suite against
+				     each surviving mutant, which is minutes rather than
+				     seconds, so it is asked for rather than paid for on every
+				     build:
+
+				       ./mvnw test-compile pitest:mutationCoverage
+
+				     What it answers that jacoco cannot: these two packages are
+				     tables — a Setting row pairs a comparison with the builder
+				     call that writes it, an exporter line pairs a field with
+				     its schema default — and a table is the shape most likely
+				     to be executed by a test that asserts nothing about it.
+				     Line coverage says the row ran; a surviving mutant says
+				     nothing checked what it did.
+
+				     The report lands in target/pit-reports. -->
+				<groupId>org.pitest</groupId>
+				<artifactId>pitest-maven</artifactId>
+				<version>1.30.0</version>
+				<configuration>
+					<targetClasses>
+						<param>io.github.arlol.githubcheck.drift.*</param>
+						<param>io.github.arlol.githubcheck.export.*</param>
+					</targetClasses>
+					<!-- Drifty.java is generated, and mutating a generated
+					     equals() measures pkl-codegen-java. -->
+					<excludedClasses>
+						<param>io.github.arlol.githubcheck.pkl.*</param>
+					</excludedClasses>
+					<!-- *IT is failsafe's: NativeExecutableIT runs the built
+					     binary, which a pitest run has not produced, and PIT
+					     refuses to start unless every test it sees is green.
+					     -->
+					<excludedTestClasses>
+						<param>io.github.arlol.githubcheck.*IT</param>
+					</excludedTestClasses>
+					<outputFormats>
+						<param>HTML</param>
+						<param>XML</param>
+					</outputFormats>
+					<timestampedReports>false</timestampedReports>
+					<!-- 85 against the 90.1% measured on 2026-09-20 (1118
+					     mutations, 1007 killed). The five points of headroom
+					     are for a change that legitimately adds a branch
+					     before the test that pins it; they are not a budget to
+					     spend. The 111 that survive are concentrated in
+					     RulesetComparison (28), RepositoryExporter (15) and
+					     AccountExporter (12), and 63 of them are a removed
+					     void call — an `items.add(...)` whose absence no
+					     assertion notices. Raise the bound as those come
+					     down. -->
+					<mutationThreshold>85</mutationThreshold>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-junit5-plugin</artifactId>
+						<version>1.2.3</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.15</version>
