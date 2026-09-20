@@ -7108,6 +7108,23 @@
     "type": "object"
    }
   },
+  "GET /repos/{owner}/{repo}/automated-security-fixes": {
+   "response": {
+    "properties": {
+     "enabled": {
+      "type": "boolean"
+     },
+     "paused": {
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "enabled",
+     "paused"
+    ],
+    "type": "object"
+   }
+  },
   "GET /repos/{owner}/{repo}/branches": {
    "response": {
     "items": {

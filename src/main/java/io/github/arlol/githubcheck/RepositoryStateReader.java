@@ -169,6 +169,23 @@ public final class RepositoryStateReader {
 					? () -> SecurityFlags.NONE
 					: fetchSecurityFlags(fanout, graph, org, name);
 
+			// The endpoint answers the bit the details response carries as
+			// security_and_analysis.dependabot_security_updates, so it is
+			// asked only where GitHub omits that section: it does so entirely
+			// on a repository whose account has none of the security features
+			// — every private repository of a Free-plan organization, whatever
+			// the token can do — and an absent section read as false reported
+			// drift on four such repositories that had the setting on, which
+			// no --fix could clear. An account that carries the section spends
+			// no request here, and this is the last level of the fan-out, so
+			// the wait on the details costs nothing.
+			Supplier<Boolean> securityFixesEndpoint = fanout.read(
+					Drifty.GroupName.AUTOMATED_SECURITY_FIXES,
+					() -> details.get().securityAndAnalysis() == null
+							&& client.getAutomatedSecurityFixes(org, name),
+					false
+			);
+
 			Supplier<Map<String, ActualBranchProtection>> branchProtections = fanout
 					.read(
 							Drifty.GroupName.BRANCH_PROTECTION,
@@ -291,7 +308,9 @@ public final class RepositoryStateReader {
 					ActualTypes.repository(repoDetails),
 					ActualTypes.securityAndAnalysis(repoDetails),
 					flags.vulnAlerts(),
-					ActualTypes.dependabotSecurityUpdates(repoDetails),
+					repoDetails.securityAndAnalysis() != null
+							? ActualTypes.dependabotSecurityUpdates(repoDetails)
+							: securityFixesEndpoint.get(),
 					flags.immutableReleases(),
 					flags.privateVulnerabilityReporting(),
 					flags.codeScanningDefaultSetup(),
@@ -621,11 +640,13 @@ public final class RepositoryStateReader {
 	 * as {@code security_and_analysis.dependabot_security_updates} on the
 	 * repository's own details, which is read for eight other security groups
 	 * anyway, so asking {@code /automated-security-fixes} as well cost one
-	 * request per repository for a value already in hand. The endpoint's
-	 * {@code paused} field is the only thing it carries that the details do
-	 * not, and nothing compares it. Unlike the four flags above, it is not
-	 * forced false for an archived repository — {@code repoDetails} is read
-	 * regardless, and its value is whatever GitHub reports.
+	 * request per repository for a value already in hand — except on an account
+	 * that has the section omitted, where {@code fetchState} falls back to the
+	 * endpoint. The endpoint's {@code paused} field is the only thing it
+	 * carries that the details do not, and nothing compares it. Unlike the four
+	 * flags above, it is not forced false for an archived repository — {@code
+	 * repoDetails} is read regardless, and its value is whatever GitHub
+	 * reports.
 	 */
 	private record SecurityFlags(
 			boolean vulnAlerts,

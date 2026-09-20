@@ -299,6 +299,19 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   Before adding a read for a new group, diff what it returns against
   `schemas/repos/{owner}/{repo}/get/` and against the listing — one request per
   repository is ~0.3s of a run per 90 repositories.
+- **An omitted section is not a section of falses.** GitHub leaves
+  `security_and_analysis` out altogether on a repository whose account has none
+  of the security features — every private repository of a Free-plan
+  organization, under a token with full administration — and reading the absent
+  section as `false` reported `automated_security_fixes` drift on four
+  repositories that had it on, which no `--fix` could clear. So `fetchState`
+  falls back to `/automated-security-fixes` exactly where the section is null:
+  an account that carries it spends no request, and the fallback waits on the
+  details response the way `/pages` does. A value taken off a shared response
+  rather than its own endpoint is only as good as the accounts the section is
+  sent for — verify against an account that has the feature turned off, not
+  only the one it was measured on. The four secret-scanning flags read `false`
+  there too and have no endpoint to fall back to.
 - **The config says which repositories to check; the listing runs beside
   them.** `RepositoryChecker.check` submits every repository the config
   declares and does not want archived before it joins

@@ -72,13 +72,16 @@ class RepositoryCheckerRequestShapeTest {
 	 * <p>
 	 * Three security flags rather than five. Automated security fixes are
 	 * {@code security_and_analysis.dependabot_security_updates} on the details
-	 * response, which is read for eight other security groups anyway, and
-	 * vulnerability alerts come from the GraphQL query. That query also answers
-	 * the rulesets and their rules, the branch protections, and the
-	 * collaborators — six requests and both of the repository's two-level
-	 * chains, in one. Pages is here only because the details response says
-	 * {@code has_pages}; a repository with no site is not asked, which is the
-	 * case {@code RepositoryCheckerFetchStateTest} pins.
+	 * response, which is read for eight other security groups anyway — the
+	 * fixture carries that section, as GitHub does for an account that has the
+	 * security features; a repository whose details omit it costs one request
+	 * more, which is what {@code RepositoryStateReaderTest} pins. Vulnerability
+	 * alerts come from the GraphQL query. That query also answers the rulesets
+	 * and their rules, the branch protections, and the collaborators — six
+	 * requests and both of the repository's two-level chains, in one. Pages is
+	 * here only because the details response says {@code has_pages}; a
+	 * repository with no site is not asked, which is the case
+	 * {@code RepositoryCheckerFetchStateTest} pins.
 	 */
 	private static final int ACTIVE_REPOSITORY_REQUESTS = 15;
 
@@ -94,12 +97,13 @@ class RepositoryCheckerRequestShapeTest {
 	private static final int ARCHIVED_REPOSITORY_REQUESTS = 0;
 
 	/**
-	 * The seven reads that may not go out until something else has answered: a
+	 * The eight reads that may not go out until something else has answered: a
 	 * branch's protection and a ruleset's rules on the listing that named them,
 	 * an environment's secrets and variables on the environment listing, and on
 	 * {@code GET /repos/{owner}/{repo}} the two endpoints that exist only under
-	 * an organization — it is what says whether one owns it — and Pages, which
-	 * it is what says there is a site to ask about.
+	 * an organization — it is what says whether one owns it — Pages, which it
+	 * is what says there is a site to ask about, and automated security fixes,
+	 * which it is what says are worth asking about.
 	 * <p>
 	 * A new group whose read waits on another read belongs in this set, and a
 	 * new group that reads an endpoint outright does not. Getting that wrong is
@@ -113,7 +117,11 @@ class RepositoryCheckerRequestShapeTest {
 			"/repos/acme/active/environments/prod/variables",
 			"/repos/acme/active/properties/values",
 			"/repos/acme/active/teams",
-			"/repos/acme/active/pages"
+			"/repos/acme/active/pages",
+			// Sent only where the details omit security_and_analysis, and it
+			// waits on them to learn that; the fixture carries the section, so
+			// nothing here is served under this path.
+			"/repos/acme/active/automated-security-fixes"
 	);
 
 	private static final Pattern REPOSITORY_PATH = Pattern
@@ -455,7 +463,10 @@ class RepositoryCheckerRequestShapeTest {
 					"allow_rebase_merge": true,
 					"allow_auto_merge": false,
 					"delete_branch_on_merge": false,
-					"allow_update_branch": false
+					"allow_update_branch": false,
+					"security_and_analysis": {
+						"dependabot_security_updates": {"status": "disabled"}
+					}
 				}
 				""";
 	}

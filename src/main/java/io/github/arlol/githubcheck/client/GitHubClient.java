@@ -1867,6 +1867,31 @@ public class GitHubClient {
 		}
 	}
 
+	/**
+	 * Whether Dependabot security updates are on, asked of the endpoint.
+	 * <p>
+	 * {@code security_and_analysis.dependabot_security_updates} on the
+	 * repository's own details is the same bit and costs no request, so
+	 * {@code RepositoryStateReader} asks here only where GitHub omits that
+	 * section.
+	 */
+	public boolean getAutomatedSecurityFixes(String owner, String repo) {
+		HttpResponse<String> resp = get(
+				repoUrl(owner, repo) + PATH_AUTOMATED_SECURITY_FIXES
+		);
+		if (resp.statusCode() == 200) {
+			return readValue(resp.body(), AutomatedSecurityFixesResponse.class)
+					.enabled();
+		}
+		if (resp.statusCode() == 404) {
+			return false;
+		}
+		throw new GitHubApiException(
+				"HTTP " + resp.statusCode()
+						+ " GET automated-security-fixes on " + repo
+		);
+	}
+
 	public void enableAutomatedSecurityFixes(String owner, String repo) {
 		HttpResponse<String> resp = put(
 				repoUrl(owner, repo) + PATH_AUTOMATED_SECURITY_FIXES
