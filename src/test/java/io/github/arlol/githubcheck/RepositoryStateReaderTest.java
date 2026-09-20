@@ -772,6 +772,41 @@ class RepositoryStateReaderTest {
 	}
 
 	/**
+	 * GitHub omits {@code security_and_analysis} altogether on a private
+	 * repository of an organization without the security features — every
+	 * repository of one Free-plan organization, checked under a token with full
+	 * administration. Reading the absent section as {@code false} reported
+	 * drift on four repositories that had Dependabot security updates on, and a
+	 * {@code --fix} would have re-sent the same PUT on every run.
+	 */
+	@Test
+	void automatedSecurityFixesIsAskedForWhenTheDetailsOmitSecurityAndAnalysis()
+			throws Exception {
+		stubRepoDetails(
+				", \"owner\": {\"login\": \"owner\", \"type\": \"User\"}"
+		);
+		stubSecurityEndpoints();
+		stubStandardEndpoints();
+		stubEmptyListings();
+
+		RepositoryState state = reader.fetchState(
+				REF,
+				summary(false, "public"),
+				ManagedGroups.all(Drifty.GroupName.class)
+		);
+
+		assertThat(state.automatedSecurityFixes()).isTrue();
+		verify(
+				1,
+				getRequestedFor(
+						urlPathEqualTo(
+								"/repos/owner/repo/automated-security-fixes"
+						)
+				)
+		);
+	}
+
+	/**
 	 * {@code has_pages} on the listing the checker already holds answers what
 	 * {@code GET /repos/\{owner\}/\{repo\}/pages} answers with a 404: there is
 	 * no site. 37 of one account's 45 active repositories spent a request on
