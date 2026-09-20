@@ -30,6 +30,7 @@ specific to this project:
 | `ExportRoundTripTest` | an exported config does not load back clean, or is not `pkl format` output |
 | `TrackedPklFilesAreFormattedTest` | a `.pkl` file in the repository is not formatted |
 | `*RequestShapeTest` | a read got deeper, or sends more requests per entity |
+| `RulesetFixConvergenceTest` | a ruleset field the check reports but `--fix` never writes |
 | `jacoco:check` | line or branch coverage drops below 80% |
 | `pitest` (monthly, or `workflow_dispatch`) | the mutation score over `drift`/`export` drops below 92% — not a required check, so run it yourself with `./mvnw test-compile pitest:mutationCoverage` when you add a table row |
 | NullAway | `src/main` dereferences something `@Nullable`, or a signature hides that it can be null |

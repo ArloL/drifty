@@ -564,6 +564,23 @@ raise it by widening the excludes.
   membership are reported with a reason and left alone. A new keyed group
   picks one of the two and says why in its class comment; SPEC.md's "What
   `--fix` Deletes" lists both sets.
+- **A fix has to converge, and only one test asks whether it does.** Every
+  other fix test stops at the request — a drifted field produced a PUT, and
+  sometimes the PUT carried the field. A field the comparison reports but the
+  request never writes passes all of them: drifty reports the drift, sends a
+  request GitHub accepts, prints the setting FIXED and reports it again on the
+  next run, forever, with no error anywhere. `RulesetFixConvergenceTest` reads
+  the captured request body back as the response it shares a shape with — a
+  ruleset's POST, PUT and GET carry the same document, which is why
+  `RulesetRequest` and `RulesetDetailsResponse` are near-mirrors — and asserts
+  the comparison is then empty. It takes its cases from
+  `RulesetDriftGroupTest`'s own per-field table so the two directions cannot
+  fall out of step, plus one maximal ruleset for the ten fields that table
+  does not reach; `everyFieldDiffersFromTheSchemaDefault` is what stops that
+  fixture quietly decaying when a schema field is added. What it does not
+  model is GitHub rejecting or normalising a value, which is deliberate:
+  which rules a target accepts is not checked anywhere, and GitHub's 422 is
+  the report.
 - **An item drifty reports but never writes is `DriftFix.reported`.** The
   `Would fix:` preview names the groups holding at least one fix that can act,
   so a `new DriftFix(item, () -> FixResult.unfixed(...))` built by hand is
