@@ -67,3 +67,12 @@ did. Drop the name once the token can read the group.
 
 See [SPEC.md](SPEC.md#export) for the full set of flags and what does not
 round-trip.
+
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md) covers the build and what it checks;
+[CLAUDE.md](CLAUDE.md) is the design documentation behind it.
+
+Found a vulnerability? Please report it privately — see
+[SECURITY.md](SECURITY.md). It also covers what the token drifty is given can
+do and what the state file holds.
