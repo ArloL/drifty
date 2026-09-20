@@ -469,6 +469,72 @@ class PklWriterTest {
 				""");
 	}
 
+	/**
+	 * A block holding nothing but notes keeps them at the enclosing indent, not
+	 * one level in.
+	 * <p>
+	 * That looks wrong and is what {@code pkl format} writes: it indents a
+	 * comment to the member it precedes, and with no member to precede it falls
+	 * back to the level of the block's own line. The writer's contract is the
+	 * formatter's output, so it does the same.
+	 * {@code PklWriterAgreesWithTheFormatterTest} is what found it and what
+	 * holds it to the real formatter; this states the shape, so a change says
+	 * which one broke.
+	 */
+	@Test
+	void aBlockOfOnlyNotesKeepsThemAtTheEnclosingIndent() {
+		var inner = new PklNode.Obj(
+				List.of(new PklNode.Note("one"), new PklNode.Note("two"))
+		);
+		var outer = new PklNode.Obj(
+				List.of(new PklNode.Field("security", inner))
+		);
+
+		assertThat(PklWriter.write(outer)).isEqualTo("""
+				security {
+				// one
+				// two
+				}
+				""");
+	}
+
+	/** One member beside them and the notes indent like anything else. */
+	@Test
+	void aNoteBesideAFieldIndentsWithIt() {
+		var inner = new PklNode.Obj(
+				List.of(
+						new PklNode.Note("one"),
+						new PklNode.Field("alerts", PklNode.Scalar.of(true))
+				)
+		);
+		var outer = new PklNode.Obj(
+				List.of(new PklNode.Field("security", inner))
+		);
+
+		assertThat(PklWriter.write(outer)).isEqualTo("""
+				security {
+				  // one
+				  alerts = true
+				}
+				""");
+	}
+
+	/**
+	 * A note whose text carries a line break stays one comment. A raw break
+	 * would end the {@code //} and drop everything after it into the file as
+	 * bare Pkl — no exception, a file that does not evaluate.
+	 */
+	@Test
+	void aNoteWithALineBreakStaysCommented() {
+		var outer = new PklNode.Obj(
+				List.of(new PklNode.Note("first line\nsecond line"))
+		);
+
+		assertThat(PklWriter.write(outer)).isEqualTo("""
+				// first line second line
+				""");
+	}
+
 	private static PklNode keyed(String value) {
 		var mapping = new PklNode.Mapping(
 				List.of(new PklNode.Field("NAME", PklNode.Scalar.of(value)))
