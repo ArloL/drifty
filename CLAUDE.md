@@ -96,6 +96,20 @@ git ls-files -z '*.pkl' | xargs -0 pkl format -w
   member up by the client constant's own name and so fails a mis-mapped arm.
   `Pages.buildType` is the one spelling with no `Drifty` constant to name: its
   union is written inline in the schema, so codegen leaves it a `String`.
+- **Both directions of that spelling are pinned, and by different tests.**
+  `ConfigSpellingTest` covers the read direction — a client constant the schema
+  has no member for. `PklTypesTest` covers the write direction: every
+  `PklTypes` mapping answers the client constant whose *name* matches the
+  `Drifty` member's, so an arm answering the wrong constant of the right union
+  (`ALWAYS -> PULL_REQUEST`) fails there. It has to be its own test, because
+  the exhaustive `switch` catches only a missing arm and the four
+  `valueOf(v.name())` mappings throw at runtime rather than at build time. A
+  test that builds desired state from the schema carries a swapped value intact
+  into the request body, so the run succeeds and GitHub is told to do something
+  the config never asked for. The two spellings that reach GitHub as bare
+  strings — `Pages.buildType` and `defaultRepositoryPermission` — are pinned
+  against the vendored contract's own enum instead, since no client enum would
+  notice them drifting.
 - **Repositories nest under the account that owns them.** `config/drifty.pkl`
   has `organizations` and `users`, both keyed by login; the key is the owner and
   `Repository` has no `owner` field. `RepositoryState.ref()` is what carries the
