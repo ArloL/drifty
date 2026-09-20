@@ -53,6 +53,29 @@ builds absent values on purpose (a response with the section missing, a secret
 with no baseline), which is the behaviour under test: 526 findings there
 against zero in `src/main`.
 
+**Mutation testing answers what coverage cannot, and only for the two packages
+where it pays.**
+
+```bash
+./mvnw test-compile pitest:mutationCoverage    # target/pit-reports
+```
+
+`drift` and `export` are tables — a `Setting` row pairs a comparison with the
+builder call that writes it, an exporter line pairs a field with its schema
+default — and a table is the shape most likely to be *executed* by a test that
+asserts nothing about it. Line coverage says the row ran; a surviving mutant
+says nothing checked what it did. Measured 2026-09-20: 1118 mutations, 1007
+killed, **90.1%**, and `mutationThreshold` is 85. The 111 survivors sit in
+`RulesetComparison` (28), `RepositoryExporter` (15) and `AccountExporter` (12),
+and 63 of them are a removed void call — an `items.add(...)` no assertion
+misses.
+
+It is not bound to a phase, because a run re-executes the suite against each
+mutant; `main.yaml`'s `mutation` job is where it gates, on Temurin so the graal
+profile does not fire and build an image the job would throw away.
+`NativeExecutableIT` is excluded: it runs the built binary, which that job has
+not produced, and PIT refuses to start unless every test it sees is green.
+
 `jacoco:check` runs at `verify` and fails the build under 80% line or branch
 coverage. The measured bundle excludes `io.github.arlol.githubcheck.pkl`,
 which is `pkl-codegen-java`'s output: counting its generated `withX`, `equals`
