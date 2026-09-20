@@ -1,0 +1,79 @@
+name: API contract
+
+# src/test/resources/github-api-contract.json is GitHub's own OpenAPI spec,
+# reduced to the endpoints @GitHubEndpoint names. GitHubApiContractTest is what
+# catches a wire record that has drifted from it — a field GitHub added and
+# drifty does not model, an enum value drifty would fail to parse, a request
+# component spelled something the endpoint does not accept.
+#
+# That check is only ever as current as the vendored copy, and the copy was
+# refreshed by hand with nothing reporting that it had aged. This is what
+# reports it: the refresh lands as a pull request, and that pull request runs
+# the contract test against the new spec, so GitHub moving under drifty shows
+# up as a failing check on a diff rather than as a 403 or an
+# InvalidFormatException in somebody's run.
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: "41 7 14 * *"
+permissions: {}
+
+jobs:
+  refresh:
+    name: Refresh the vendored contract
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    # Standard library only, so no Python setup step: the script reads the
+    # endpoint list off the @GitHubEndpoint annotations in src/main/java and
+    # downloads the dereferenced spec itself.
+    - name: Rewrite the contract from GitHub's spec
+      id: refresh
+      run: python3 download-schemas.py --contract
+    # specEtag is the raw spec file's ETag and moves on every commit to
+    # github/rest-api-description, most of which touch endpoints drifty has
+    # never heard of. Committing the refresh either way is right — a stale
+    # etag is a copy that cannot say what it was cut from — but only an
+    # endpoints change is worth reading, so the title and body say which of
+    # the two this is instead of leaving every month's diff to be opened.
+    - name: Describe what moved
+      id: describe
+      env:
+        ENDPOINTS_CHANGED: ${{ steps.refresh.outputs.endpoints_changed }}
+      run: |
+        if [ "${ENDPOINTS_CHANGED}" = "true" ]; then
+          echo "title=chore: an endpoint drifty models changed shape" >> "${GITHUB_OUTPUT}"
+          {
+            echo "body<<BODY"
+            echo "\`download-schemas.py --contract\` rewrote the vendored contract from GitHub's OpenAPI spec."
+            echo
+            echo "**An endpoint shape changed.** Read the diff, then this pull request's \`GitHubApiContractTest\`:"
+            echo "a failure there names the record and the field, and is a finding about drifty rather than about"
+            echo "the refresh. A field GitHub added that drifty should not model is silenced with an \`unmanaged\`"
+            echo "declaration carrying its reason — never by widening an ignore list."
+            echo "BODY"
+          } >> "${GITHUB_OUTPUT}"
+        else
+          echo "title=chore: refresh the vendored GitHub API contract" >> "${GITHUB_OUTPUT}"
+          {
+            echo "body<<BODY"
+            echo "\`download-schemas.py --contract\` rewrote the vendored contract from GitHub's OpenAPI spec."
+            echo
+            echo "Only \`specEtag\` moved — no endpoint drifty models changed shape. Nothing to review beyond the"
+            echo "green build."
+            echo "BODY"
+          } >> "${GITHUB_OUTPUT}"
+        fi
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+      with:
+        body: ${{ steps.describe.outputs.body }}
+        branch: github-api-contract/refresh
+        commit-message: "chore: refresh the vendored GitHub API contract"
+        labels: dependencies
+        title: ${{ steps.describe.outputs.title }}
