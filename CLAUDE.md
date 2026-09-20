@@ -909,7 +909,25 @@ absent from the shipped image — `StateStoreTest` round-trips both a repository
 and an organization secret record for that reason.
 
 The main file is then augmented with every public `client`/`pkl` record via
-ClassGraph so the project's own types are registered even if untested.
+ClassGraph so the project's own types are registered even if untested, and a
+standard class in the `pkl` package gets `allPublicFields` besides.
+`pkl-codegen-java` emits a schema *class*, not a record — `Drifty.Ruleset` has
+public final fields and `withX` methods — so it takes the standard-class
+branch, where the constructor alone is what Pkl's own mapper needs. The fields
+are registered because two tests read one reflectively: the maximality guards
+in `RulesetFixConvergenceTest` and `BranchProtectionFixConvergenceTest`, which
+exist so a field added to `config/drifty.pkl` cannot arrive at its default and
+go unexercised. It is scoped to `pkl` rather than applied to every standard
+class the scan sees, or the same rule would register the public fields of
+`GitHubClient`, three request builders and forty `client` enums, none of which
+anything reflects over.
+
+**`Class.getFields()` needs no metadata; `Field.get` does.** That is why
+`SchemaCoverageTest` has walked the same classes for as long as it has existed
+and never needed this — it reads names. A `MissingReflectionRegistrationError`
+in the *native test image* was the first sign, and only there: the JVM run is
+green, and so is `./mvnw verify -DskipNativeTests`. Anything new that reflects
+over a project type wants the full `./mvnw clean verify` before it is pushed.
 
 The reflection allowlist was established empirically: the production image was
 rebuilt with progressively fewer entries and smoke-tested (Pkl load + TLS to
