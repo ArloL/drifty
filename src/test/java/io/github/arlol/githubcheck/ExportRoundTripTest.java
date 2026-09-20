@@ -8,6 +8,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -110,6 +111,96 @@ class ExportRoundTripTest {
 		// instead of an hour spent re-deriving which one from scratch.
 		assertThat(problems(result)).isEmpty();
 		assertThat(result.hasDrift()).isFalse();
+	}
+
+	/**
+	 * An export of an unchanged account produces the identical file every time.
+	 * That is what lets an adopter commit the file and read a later diff as
+	 * "something on GitHub changed" rather than "drifty ran again", and nothing
+	 * tested it.
+	 * <p>
+	 * What actually provides it, established by reversing each in turn: the
+	 * {@code sorted()} in {@code AccountExporter.addUnmanagedGroups} orders the
+	 * {@code managed} block, and {@code addFailureNote} emits each note where
+	 * the exporter puts that group's section, so note order is the exporter's
+	 * fixed order rather than arrival order. CLAUDE.md credited
+	 * {@code FetchFailures.Collecting}'s own {@code sorted()} for this; that
+	 * one is redundant — every consumer sorts again — and removing it leaves
+	 * this test green. Its {@code synchronized} is the half that is
+	 * load-bearing, because one repository's groups now fail on different
+	 * threads.
+	 * <p>
+	 * Two of the three failures are in the same repository on purpose: there is
+	 * one {@code Collecting} per entity, so a fixture with one failure each
+	 * would sort trivially and pass whatever the ordering rule did.
+	 * <p>
+	 * Three runs rather than two. Thread scheduling is what varies, and one
+	 * repeat is weak evidence about a race; three is not proof either, but the
+	 * ordering assertion below is the part that does not depend on luck.
+	 * Everything but the first line is compared: that line carries
+	 * {@code Instant.now()}, which is the one thing that has to differ.
+	 */
+	@Test
+	void anExportIsByteIdenticalEveryTimeItRuns(
+			WireMockRuntimeInfo wm,
+			@TempDir Path dir
+	) throws Exception {
+		stubOrganization();
+		stubRepository();
+		stubFor(GraphQlStub.atDefaults());
+		// Three failures, and two of them in the same repository on purpose:
+		// one Collecting per entity, so a single failure sorts trivially and
+		// would prove nothing about the ordering rule.
+		stubFor(
+				get(urlPathEqualTo("/orgs/my-org/teams"))
+						.willReturn(aResponse().withStatus(403).withBody("""
+								{"message": "Forbidden"}
+								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/my-org/widget/actions/secrets"))
+						.willReturn(aResponse().withStatus(403).withBody("""
+								{"message": "Forbidden"}
+								"""))
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/my-org/widget/hooks"))
+						.willReturn(aResponse().withStatus(403).withBody("""
+								{"message": "Forbidden"}
+								"""))
+		);
+
+		var bodies = new ArrayList<String>();
+		for (int run = 0; run < 3; run++) {
+			Path out = dir.resolve("export-" + run + ".pkl");
+			// A fresh client each time, so every run is cold: the question is
+			// whether thread order reaches the file, not whether the response
+			// cache does.
+			int exitCode = ExportRunner.run(
+					new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
+					List.of("my-org"),
+					out,
+					SCHEMA
+			);
+			assertThat(exitCode).isZero();
+			String file = Files.readString(out);
+			bodies.add(file.substring(file.indexOf('\n') + 1));
+		}
+
+		assertThat(bodies).as(
+				"three cold exports of the same state, differing only in the"
+						+ " timestamp line this strips"
+		).containsOnly(bodies.getFirst());
+		// Not vacuous: the two same-entity failures have to be in the file,
+		// in the order the comparator puts them, or there is nothing for the
+		// sort to have got right.
+		assertThat(bodies.getFirst()).contains("// org_teams:");
+		assertThat(bodies.getFirst()).containsSubsequence(
+				"\"action_secrets\"",
+				"\"webhooks\"",
+				"// action_secrets:",
+				"// webhooks:"
+		);
 	}
 
 	/**

@@ -271,9 +271,21 @@ raise it by widening the excludes.
   on a per-repository request count that changed. Two things follow: join
   `details` first and outside every `failures.read`, so a repository whose own
   details failed does not report that failure under some group's name, and keep
-  `FetchFailures.Collecting` synchronized and sorted, because one repository's
-  groups now fail on different threads and an export has to be byte-identical
-  twice running.
+  `FetchFailures.Collecting` **synchronized**, because one repository's groups
+  now fail on different threads and they write that list concurrently.
+- **The export's byte-identity comes from the exporter, not from
+  `Collecting`.** An export of an unchanged account has to produce the
+  identical file twice running, or an adopter who commits it reads a later diff
+  as GitHub changing when it was only drifty running again.
+  `anExportIsByteIdenticalEveryTimeItRuns` pins that, and establishes where it
+  comes from by reversing each candidate in turn: `addUnmanagedGroups`' own
+  `sorted()` orders the `managed` block, and `addFailureNote` emits each note
+  where the exporter puts that group's section, so note order is the exporter's
+  fixed order and never arrival order. `Collecting.failures()` sorts too and
+  that sort is *redundant* — every consumer sorts again, and removing it leaves
+  the test green. Do not rely on it, and do not delete a downstream `sorted()`
+  believing it does. A fixture with one failure per entity proves none of this:
+  there is one `Collecting` per entity, so a single failure sorts trivially.
 - **One GraphQL query answers four groups, and it is written as four.**
   `GitHubClient.graphqlRepository` reads a repository's rulesets and their
   rules, its branch protections, its collaborators and its vulnerability-alerts
