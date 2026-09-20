@@ -9,7 +9,7 @@ package io.github.arlol.githubcheck.client;
 		unmanaged = {
 				"configuration.created_at — when GitHub made the configuration, not a setting",
 				"configuration.url — navigation GitHub supplies for the configuration",
-				"configuration.secret_scanning_extended_metadata — no established default; FOLLOWUPS.md entry 3",
+				"configuration.secret_scanning_extended_metadata — no established default; FOLLOWUPS.md's extended-metadata",
 				"configuration.secret_scanning_delegated_bypass_options.reviewers.security_configuration_id — the configuration being read, as on the configuration response" }
 )
 public record CodeSecurityDefaultResponse(
