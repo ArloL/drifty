@@ -212,17 +212,40 @@ public final class ReachabilityMetadata {
 	/**
 	 * Ensure every public record in the client/pkl packages is registered, so
 	 * the project's own Jackson/Pkl types are covered even if untested.
+	 * <p>
+	 * {@code pkl-codegen-java} emits a schema class rather than a record —
+	 * {@code Drifty.Ruleset} is a class with public final fields and
+	 * {@code withX} methods — so it takes the standard-class branch, where
+	 * registering the constructor is what Pkl's own mapper needs. A generated
+	 * schema class gets its <em>fields</em> registered besides, because reading
+	 * one reflectively is a thing this project does: the maximality guards in
+	 * {@code RulesetFixConvergenceTest} and
+	 * {@code BranchProtectionFixConvergenceTest} walk {@code Drifty.Ruleset}'s
+	 * and {@code Drifty.BranchProtection}'s fields so that a schema field added
+	 * to {@code config/drifty.pkl} cannot arrive at its default and go
+	 * unexercised.
+	 * <p>
+	 * Two things about that. It is scoped to the {@code pkl} package rather
+	 * than applied to every standard class the scan sees: in {@code client} the
+	 * same rule would register the public fields of {@code GitHubClient}, three
+	 * request builders and forty enums, none of which anything reflects over.
+	 * And {@code SchemaCoverageTest} walks these same classes and never tripped
+	 * it, because {@code Class.getFields()} needs no registration — only
+	 * {@code Field.get} does, which is why a
+	 * {@code MissingReflectionRegistrationError} in the native test image was
+	 * the first sign of it.
 	 */
+	private static final String CLIENT_PACKAGE = "io.github.arlol.githubcheck.client";
+
+	private static final String PKL_PACKAGE = "io.github.arlol.githubcheck.pkl";
+
 	private static void augmentProjectRecords(ArrayNode mainRefl) {
 		var byType = new TreeMap<String, ObjectNode>();
 		for (JsonNode e : mainRefl) {
 			byType.put(e.path("type").asText(), (ObjectNode) e);
 		}
 		try (ScanResult scan = new ClassGraph().enableClassInfo()
-				.acceptPackages(
-						"io.github.arlol.githubcheck.client",
-						"io.github.arlol.githubcheck.pkl"
-				)
+				.acceptPackages(CLIENT_PACKAGE, PKL_PACKAGE)
 				.scan()) {
 			for (var classInfo : scan.getAllClasses()) {
 				if (!classInfo.isPublic()) {
@@ -241,6 +264,9 @@ public final class ReachabilityMetadata {
 					entry.put("allPublicConstructors", true);
 				} else if (classInfo.isStandardClass()) {
 					entry.put("allPublicConstructors", true);
+					if (classInfo.getPackageName().equals(PKL_PACKAGE)) {
+						entry.put("allPublicFields", true);
+					}
 				}
 			}
 		}
