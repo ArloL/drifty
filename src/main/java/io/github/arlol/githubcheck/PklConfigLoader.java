@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.pkl.config.java.Config;
 import org.pkl.config.java.ConfigEvaluator;
@@ -46,10 +47,26 @@ public final class PklConfigLoader {
 		);
 	}
 
+	/**
+	 * The accounts of one block, keyed by login.
+	 * <p>
+	 * The key is read back out and handed to {@link Config#get}, and the
+	 * {@code requireNonNull} is what says it cannot be null: the schema types
+	 * both blocks {@code Mapping<String, …>}, so a key that reached here null
+	 * would be a Pkl mapping with a null key, which the language has no way to
+	 * write. NullAway cannot see that — the raw value arrives as
+	 * {@code Map<?, ?>}, whose key type it reads as {@code @Nullable Object}
+	 * under JSpecify's rules for an unbounded wildcard, and the cast carries
+	 * that through.
+	 */
 	private static <T> Map<String, T> byLogin(Config accounts, Class<T> type) {
 		var byLogin = new LinkedHashMap<String, T>();
 		for (Object login : ((Map<?, ?>) accounts.getRawValue()).keySet()) {
-			String key = (String) login;
+			String key = Objects.requireNonNull(
+					(String) login,
+					"a Pkl mapping has no null keys, and the schema types both"
+							+ " account blocks Mapping<String, …>"
+			);
 			byLogin.put(key, accounts.get(key).as(type));
 		}
 		return byLogin;

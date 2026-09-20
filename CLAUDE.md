@@ -37,11 +37,19 @@ follow.
   over-annotating is self-correcting: mark a parameter `@Nullable` that is
   never null and the dereference inside it becomes the next error.
 - **A guard the checker cannot see is `Objects.requireNonNull` with a reason,
-  never a cast or a silenced warning.** Four exist: `started.get(name)` in
+  never a cast or a silenced warning.** Five exist: `started.get(name)` in
   `RepositoryChecker`, `setting.write()` in `SettingTable`, `Section.get()`'s
-  value, and `present()` on the three organization groups whose section is null
+  value, `present()` on the three organization groups whose section is null
   only for a group `createDriftGroups`' own filter drops before `detectDrift`
-  runs.
+  runs, and `PklConfigLoader.byLogin`'s mapping key — the raw value arrives as
+  `Map<?, ?>`, whose key type JSpecify reads as `@Nullable Object`, where the
+  schema types both account blocks `Mapping<String, …>` and Pkl has no way to
+  write a null key.
+- **A finding in a file the build did not recompile is a finding you do not
+  see.** `byLogin` was the one above, and it reached CI on four platforms
+  while `./mvnw verify` stayed green here: a non-clean build recompiles only
+  what changed, and Error Prone runs on what javac compiles. Run `./mvnw clean
+  verify` before pushing, not `verify`.
 - **A fallback that may be null wants `<T extends @Nullable Object>`, not a
   cast.** `Fanout.read` and `FetchFailures.read` take one; a caller passing a
   non-null fallback still gets a non-null `T`, and the call site says which it
