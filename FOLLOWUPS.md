@@ -3,7 +3,15 @@
 Things carried here only because something upstream is unfinished. Each entry
 says what to delete once it lands, and how to check.
 
-## 1. Self-supplied JNA reachability metadata
+**An entry is named, never numbered.** The slug before the em dash is its
+identifier, and code and commits cite that. A number would be a position, and a
+position moves the moment an entry above it is deleted — which is how three
+`@GitHubEndpoint` reasons came to point at "entry 3" after the entry above them
+went away, naming the wrong follow-up with nothing to notice it. A slug outlives
+a deletion above it and a reworded title beside it; renaming one is a rename,
+which `grep` finds.
+
+## jna-metadata — self-supplied JNA reachability metadata
 
 **Carrying:** `"com.sun.jna."` in `MAIN_TYPE_PREFIXES`
 (`src/test/java/io/github/arlol/githubcheck/ReachabilityMetadata.java`), which
@@ -63,7 +71,7 @@ Keep `--self-test` and `NativeExecutableIT.selfTest` regardless — they are the
 guard that catches this class of breakage in the shipped binary, not just a
 scaffold for this particular workaround.
 
-## 2. `secret_scanning_extended_metadata` has no established default
+## extended-metadata — `secret_scanning_extended_metadata` has no established default
 
 **Carrying:** nothing in the code — `CodeSecurityConfiguration` in
 `config/drifty.pkl` does not declare the field, so drifty neither compares nor
@@ -92,7 +100,7 @@ curl -H "Authorization: Bearer $DRIFTY_GITHUB_TOKEN" \
 ```
 
 `GitHubApiContractTest` now reports the field too, and
-`CodeSecurityConfigurationRequest` declares it `unmanaged` pointing back here —
+`CodeSecurityConfigurationRequest` declares it `unmanaged` citing this slug —
 so the two say the same thing and the declaration has to go when this entry
 does.
 
@@ -104,7 +112,7 @@ components, and the SPEC.md table; then delete this entry. If GitHub answers
 the field as null on a bare configuration, it reads as `not_set` — the
 `settings.replaceAll` in `ActualTypes` already does that for every toggle.
 
-## 3. `ExportRoundTripTest` does not reach three ruleset conditions
+## round-trip-conditions — `ExportRoundTripTest` does not reach three ruleset conditions
 
 **Carrying:** the round trip's fixture now exercises the organization's
 settings, `selected` Actions permissions with both listings behind it,
