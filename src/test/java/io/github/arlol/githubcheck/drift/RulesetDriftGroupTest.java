@@ -13,9 +13,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -683,6 +687,250 @@ class RulesetDriftGroupTest {
 		assertThat(items).hasSize(2);
 		assertThat(items).anyMatch(i -> i instanceof DriftItem.SectionMissing);
 		assertThat(items).anyMatch(i -> i instanceof DriftItem.SectionExtra);
+	}
+
+	/**
+	 * A merge queue on GitHub's side with every field at its schema default.
+	 */
+	private static ActualRuleset withMergeQueueDefaults() {
+		return responseWith(
+				"rs",
+				List.of(),
+				List.of(
+						new Rule.MergeQueue(
+								new Rule.MergeQueue.Parameters(
+										60,
+										"ALLGREEN",
+										5,
+										5,
+										"MERGE",
+										1,
+										5
+								)
+						)
+				)
+		);
+	}
+
+	/** A pull request rule on GitHub's side, every field at its default. */
+	private static ActualRuleset withPullRequestDefaults() {
+		return responseWith(
+				"rs",
+				List.of(),
+				List.of(
+						new Rule.PullRequest(
+								new Rule.PullRequest.Parameters(
+										0,
+										false,
+										false,
+										false,
+										false,
+										List.of("merge", "squash", "rebase")
+								)
+						)
+				)
+		);
+	}
+
+	/**
+	 * One case per ruleset field: the config differs from GitHub in that field
+	 * alone, and the run has to report that field and nothing else.
+	 * <p>
+	 * Written as a table because the failure it guards against is silent. Every
+	 * comparison here is a
+	 * {@code DriftGroup.ocompare(...).ifPresent(items::add)}, and dropping the
+	 * {@code ifPresent} from any one of them compares the field, builds the
+	 * drift item and throws it away — no error, no failed request, a setting
+	 * drifty quietly stops reporting. Mutation testing found fifteen fields
+	 * where exactly that change broke no test: the comparisons ran under
+	 * fixtures that happened to match, so line coverage was full and nothing
+	 * asserted the result.
+	 * <p>
+	 * The single-element assertion is the load-bearing half. Asserting only
+	 * that the path is present would still pass if a comparison leaked a second
+	 * item, and comparing one field at a time is what says which comparison
+	 * produced which path.
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource
+	void driftInOneFieldIsReportedAsThatField(
+			String path,
+			Drifty.Ruleset wanted,
+			ActualRuleset actual
+	) {
+		assertThat(paths(wanted, actual)).containsExactly(path);
+	}
+
+	static Stream<Arguments> driftInOneFieldIsReportedAsThatField() {
+		var matching = matchingResponse("rs");
+		var mergeQueue = withMergeQueueDefaults();
+		var pullRequest = withPullRequestDefaults();
+		var wantedQueue = Desired.ruleset()
+				.withMergeQueue(Desired.mergeQueueRule());
+		var wantedPr = Desired.ruleset()
+				.withPullRequest(Desired.pullRequestRule());
+		return Stream.of(
+				// Top-level booleans and listings.
+				Arguments.of(
+						"rulesets.rs.creation",
+						Desired.ruleset().withCreation(true),
+						matching
+				),
+				Arguments.of(
+						"rulesets.rs.required_signatures",
+						Desired.ruleset().withRequiredSignatures(true),
+						matching
+				),
+				Arguments.of(
+						"rulesets.rs.update",
+						Desired.ruleset().withUpdate(true),
+						matching
+				),
+				Arguments.of(
+						"rulesets.rs.required_deployments",
+						Desired.ruleset()
+								.withRequiredDeployments(List.of("production")),
+						matching
+				),
+				Arguments.of(
+						"rulesets.rs.max_file_size",
+						Desired.ruleset().withMaxFileSize(50L),
+						matching
+				),
+				// The five pattern rules, each reached by its own
+				// checkPatternRule call.
+				Arguments.of(
+						"rulesets.rs.commit_message_pattern",
+						Desired.ruleset()
+								.withCommitMessagePattern(
+										Desired.rulePattern(
+												Drifty.PatternOperator.STARTS_WITH,
+												"feat:"
+										)
+								),
+						matching
+				),
+				Arguments.of(
+						"rulesets.rs.commit_author_email_pattern",
+						Desired.ruleset()
+								.withCommitAuthorEmailPattern(
+										Desired.rulePattern(
+												Drifty.PatternOperator.ENDS_WITH,
+												"@example.com"
+										)
+								),
+						matching
+				),
+				Arguments.of(
+						"rulesets.rs.committer_email_pattern",
+						Desired.ruleset()
+								.withCommitterEmailPattern(
+										Desired.rulePattern(
+												Drifty.PatternOperator.CONTAINS,
+												"@"
+										)
+								),
+						matching
+				),
+				Arguments.of(
+						"rulesets.rs.branch_name_pattern",
+						Desired.ruleset()
+								.withBranchNamePattern(
+										Desired.rulePattern(
+												Drifty.PatternOperator.REGEX,
+												"^feature/"
+										)
+								),
+						matching
+				),
+				Arguments.of(
+						"rulesets.rs.tag_name_pattern",
+						Desired.ruleset()
+								.withTagNamePattern(
+										Desired.rulePattern(
+												Drifty.PatternOperator.STARTS_WITH,
+												"v"
+										)
+								),
+						matching
+				),
+				// The merge queue's seven fields, against a queue GitHub
+				// already has: a config with no queue at all reports the
+				// section, not the field.
+				Arguments.of(
+						"rulesets.rs.merge_queue.check_response_timeout_minutes",
+						wantedQueue.withMergeQueue(
+								Desired.mergeQueueRule()
+										.withCheckResponseTimeoutMinutes(30L)
+						),
+						mergeQueue
+				),
+				Arguments.of(
+						"rulesets.rs.merge_queue.grouping_strategy",
+						wantedQueue.withMergeQueue(
+								Desired.mergeQueueRule()
+										.withGroupingStrategy(
+												Drifty.MergeQueueGroupingStrategy.HEADGREEN
+										)
+						),
+						mergeQueue
+				),
+				Arguments.of(
+						"rulesets.rs.merge_queue.max_entries_to_build",
+						wantedQueue.withMergeQueue(
+								Desired.mergeQueueRule()
+										.withMaxEntriesToBuild(10L)
+						),
+						mergeQueue
+				),
+				Arguments.of(
+						"rulesets.rs.merge_queue.merge_method",
+						wantedQueue.withMergeQueue(
+								Desired.mergeQueueRule()
+										.withMergeMethod(
+												Drifty.MergeQueueMergeMethod.SQUASH
+										)
+						),
+						mergeQueue
+				),
+				Arguments.of(
+						"rulesets.rs.merge_queue.min_entries_to_merge",
+						wantedQueue.withMergeQueue(
+								Desired.mergeQueueRule()
+										.withMinEntriesToMerge(2L)
+						),
+						mergeQueue
+				),
+				Arguments.of(
+						"rulesets.rs.merge_queue.min_entries_to_merge_wait_minutes",
+						wantedQueue.withMergeQueue(
+								Desired.mergeQueueRule()
+										.withMinEntriesToMergeWaitMinutes(10L)
+						),
+						mergeQueue
+				),
+				// The two pull request fields nothing reached.
+				Arguments.of(
+						"rulesets.rs.pull_request.require_last_push_approval",
+						wantedPr.withPullRequest(
+								Desired.pullRequestRule()
+										.withRequireLastPushApproval(true)
+						),
+						pullRequest
+				),
+				Arguments.of(
+						"rulesets.rs.pull_request.allowed_merge_methods",
+						wantedPr.withPullRequest(
+								Desired.pullRequestRule()
+										.withAllowedMergeMethods(
+												List.of(
+														Drifty.MergeMethod.SQUASH
+												)
+										)
+						),
+						pullRequest
+				)
+		);
 	}
 
 	private static List<DriftItem> items(

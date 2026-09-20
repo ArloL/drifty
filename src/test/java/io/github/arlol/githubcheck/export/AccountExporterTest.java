@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import io.github.arlol.githubcheck.FetchFailures;
 import io.github.arlol.githubcheck.OrganizationState;
@@ -26,6 +28,7 @@ import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.SecretVisibility;
 import io.github.arlol.githubcheck.client.WorkflowPermissions.DefaultWorkflowPermissions;
+import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.testsupport.Actual;
 
 class AccountExporterTest {
@@ -108,6 +111,48 @@ class AccountExporterTest {
 	}
 
 	/** Wraps a single entry the way a real file nests it under the key. */
+	/**
+	 * The one group with no note, and the comment in {@code AccountExporter}
+	 * says why: {@code OrganizationStateReader.fetchState} calls
+	 * {@code client.getOrganization} directly, outside {@link FetchFailures},
+	 * so no {@code Failure} naming this group can exist to look up. A 404 there
+	 * is what makes the whole entry {@code MISSING}.
+	 */
+	private static final Drifty.OrgGroupName NO_FAILURE_CAN_EXIST = Drifty.OrgGroupName.ORG_SETTINGS;
+
+	/**
+	 * The organization half of issue #136 — see
+	 * {@code RepositoryExporterTest.everyGroupWithAReadOfItsOwnSaysWhyItIsMissing}.
+	 * One group was pinned by name below; a note dropped from any of the other
+	 * ten changed nothing any assertion could see.
+	 */
+	@ParameterizedTest(name = "{0}")
+	@EnumSource(Drifty.OrgGroupName.class)
+	void everyGroupThatCanFailSaysWhyItIsMissing(Drifty.OrgGroupName group) {
+		var failures = List.of(
+				new FetchFailures.Failure(
+						group.toString(),
+						"the token cannot read it"
+				)
+		);
+
+		String written = render(
+				AccountExporter.organization(
+						defaultState("acme"),
+						failures,
+						List.of(),
+						DEFAULTS
+				)
+		);
+
+		String note = "// " + group + ": the token cannot read it";
+		if (group == NO_FAILURE_CAN_EXIST) {
+			assertThat(written).doesNotContain(note);
+		} else {
+			assertThat(written).contains(note);
+		}
+	}
+
 	private static String render(PklNode.Member entry) {
 		var outer = new PklNode.Obj(
 				List.of(

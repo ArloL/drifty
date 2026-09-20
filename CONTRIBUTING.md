@@ -31,7 +31,7 @@ specific to this project:
 | `TrackedPklFilesAreFormattedTest` | a `.pkl` file in the repository is not formatted |
 | `*RequestShapeTest` | a read got deeper, or sends more requests per entity |
 | `jacoco:check` | line or branch coverage drops below 80% |
-| `pitest` (monthly, or `workflow_dispatch`) | the mutation score over `drift`/`export` drops below 85% — not a required check, so run it yourself with `./mvnw test-compile pitest:mutationCoverage` when you add a table row |
+| `pitest` (monthly, or `workflow_dispatch`) | the mutation score over `drift`/`export` drops below 92% — not a required check, so run it yourself with `./mvnw test-compile pitest:mutationCoverage` when you add a table row |
 | NullAway | `src/main` dereferences something `@Nullable`, or a signature hides that it can be null |
 | the formatter plugin | never locally — it rewrites your source in place. CI runs `git diff --exit-code` after the build, so commit what it wrote |
 

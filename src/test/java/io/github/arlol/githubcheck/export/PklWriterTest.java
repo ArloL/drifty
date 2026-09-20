@@ -30,6 +30,94 @@ class PklWriterTest {
 				.hasMessageContaining("secretScanning");
 	}
 
+	/**
+	 * A listing whose elements are themselves a mapping or a listing. No
+	 * exporter builds either shape today — every object listing drifty writes
+	 * holds {@code Obj} elements — so both arms went unexecuted, and with them
+	 * the {@code depth + 1} that indents what is inside. The arms exist because
+	 * {@code PklNode.Listing} admits any node; leaving them untested means the
+	 * first exporter to need one finds out whether they work from the file it
+	 * produces.
+	 * <p>
+	 * The assertion is the whole rendering rather than a fragment, because the
+	 * failure being guarded against is an indent level, not a missing word.
+	 */
+	@Test
+	void aListingOfMappingsAndListingsIndentsWhatIsInsideThem() {
+		var node = new PklNode.Obj(
+				List.of(
+						new PklNode.Field(
+								"nested",
+								new PklNode.Listing(
+										List.of(
+												new PklNode.Mapping(
+														List.of(
+																new PklNode.Field(
+																		"a",
+																		PklNode.Scalar
+																				.of(
+																						"one"
+																				)
+																)
+														)
+												),
+												new PklNode.Listing(
+														List.of(
+																PklNode.Scalar
+																		.of(
+																				"inner"
+																		)
+														),
+														false
+												)
+										),
+										false
+								)
+						)
+				)
+		);
+
+		assertThat(PklWriter.write(node)).isEqualTo("""
+				nested {
+				  new {
+				    ["a"] = "one"
+				  }
+				  new {
+				    "inner"
+				  }
+				}
+				""");
+	}
+
+	/** Both nested shapes collapse to {@code {}} when they hold nothing. */
+	@Test
+	void anEmptyNestedMappingOrListingCollapsesLikeAnyOtherBlock() {
+		var node = new PklNode.Obj(
+				List.of(
+						new PklNode.Field(
+								"nested",
+								new PklNode.Listing(
+										List.of(
+												new PklNode.Mapping(List.of()),
+												new PklNode.Listing(
+														List.of(),
+														false
+												)
+										),
+										false
+								)
+						)
+				)
+		);
+
+		assertThat(PklWriter.write(node)).isEqualTo("""
+				nested {
+				  new {}
+				  new {}
+				}
+				""");
+	}
+
 	@Test
 	void scalarsRenderByType() {
 		var obj = new PklNode.Obj(

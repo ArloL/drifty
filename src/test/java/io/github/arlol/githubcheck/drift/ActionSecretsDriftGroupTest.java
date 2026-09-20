@@ -1,5 +1,11 @@
 package io.github.arlol.githubcheck.drift;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.put;
+import static com.github.tomakehurst.wiremock.client.WireMock.status;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
@@ -7,11 +13,16 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+
 import io.github.arlol.githubcheck.actual.ActualSecret;
+import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.state.DriftyState;
 import io.github.arlol.githubcheck.testsupport.Desired;
 
+@WireMockTest
 class ActionSecretsDriftGroupTest {
 
 	private static ActualSecret secret(String name, String updatedAt) {
@@ -217,6 +228,66 @@ class ActionSecretsDriftGroupTest {
 		);
 
 		assertThat(group.detect()).isEmpty();
+	}
+
+	/** 32 zero bytes base64-encoded — a valid-length curve25519 public key. */
+	private static final String TEST_PUBLIC_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
+	/**
+	 * Pushing the secret is only half the fix. GitHub never returns a secret's
+	 * value, so the baseline drifty writes afterwards is the only thing that
+	 * lets the next run tell "unchanged" from "rotated behind our back" — and
+	 * losing it is silent: the push still succeeds, the report still says
+	 * FIXED, and the run after that reports the secret all over again.
+	 * <p>
+	 * The end-to-end fix test does execute this path; it just never looked at
+	 * the state afterwards, so deleting the record changed nothing it asserted.
+	 */
+	@Test
+	void pushingASecretRecordsTheBaselineTheNextRunComparesAgainst(
+			WireMockRuntimeInfo wm
+	) {
+		stubFor(
+				get(urlEqualTo("/repos/owner/repo/actions/secrets/public-key"))
+						.willReturn(okJson("""
+								{"key_id": "123", "key": "%s"}
+								""".formatted(TEST_PUBLIC_KEY)))
+		);
+		stubFor(
+				put(urlEqualTo("/repos/owner/repo/actions/secrets/DEPLOY_KEY"))
+						.willReturn(status(201))
+		);
+		stubFor(
+				get(urlEqualTo("/repos/owner/repo/actions/secrets/DEPLOY_KEY"))
+						.willReturn(okJson("""
+								{
+									"name": "DEPLOY_KEY",
+									"created_at": "2024-01-01T00:00:00Z",
+									"updated_at": "2024-06-01T00:00:00Z"
+								}
+								"""))
+		);
+		var state = new DriftyState();
+		var desired = Desired.repository("repo")
+				.withActionsSecrets(List.of("DEPLOY_KEY"));
+		var group = new ActionSecretsDriftGroup(
+				desired.actionsSecrets,
+				List.of(),
+				Map.of("repo-DEPLOY_KEY", "a-value"),
+				state,
+				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
+				new RepoRef("owner", "repo")
+		);
+
+		assertThat(group.detect().getFirst().fix().execute().unfixedItems())
+				.isEmpty();
+
+		var record = state.actionSecretRecord("repo", "DEPLOY_KEY");
+		assertThat(record).isNotNull();
+		// The timestamp GitHub answered, so an out-of-band change moves it.
+		assertThat(record.updatedAt()).isEqualTo("2024-06-01T00:00:00Z");
+		// The hash of what drifty pushed, so rotating the config value shows.
+		assertThat(record.valueHash()).isEqualTo(state.hash("a-value"));
 	}
 
 }
