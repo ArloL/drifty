@@ -1,5 +1,9 @@
 package io.github.arlol.githubcheck.drift;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,14 +32,14 @@ public class OrgActionsPermissionsDriftGroup
 		extends DriftGroup<Drifty.OrgGroupName> {
 
 	private final Drifty.ActionsPermissions desired;
-	private final ActualOrgActionsPermissions actual;
+	private final @Nullable ActualOrgActionsPermissions actual;
 	private final Map<String, Long> repositoryIds;
 	private final GitHubClient client;
 	private final String org;
 
 	public OrgActionsPermissionsDriftGroup(
 			Drifty.ActionsPermissions desired,
-			ActualOrgActionsPermissions actual,
+			@Nullable ActualOrgActionsPermissions actual,
 			GitHubClient client,
 			String org
 	) {
@@ -48,7 +52,7 @@ public class OrgActionsPermissionsDriftGroup
 	 */
 	public OrgActionsPermissionsDriftGroup(
 			Drifty.ActionsPermissions desired,
-			ActualOrgActionsPermissions actual,
+			@Nullable ActualOrgActionsPermissions actual,
 			Map<String, Long> repositoryIds,
 			GitHubClient client,
 			String org
@@ -58,6 +62,17 @@ public class OrgActionsPermissionsDriftGroup
 		this.repositoryIds = Map.copyOf(repositoryIds);
 		this.client = client;
 		this.org = org;
+	}
+
+	/**
+	 * The section this group compares. Null only for a group the config does
+	 * not manage, whose read was therefore never sent — and an unmanaged group
+	 * is filtered out before {@code detectDrift} runs, in
+	 * {@code OrganizationChecker.createDriftGroups}. Saying so here turns a
+	 * would-be NullPointerException into a named invariant.
+	 */
+	private ActualOrgActionsPermissions present() {
+		return Objects.requireNonNull(actual);
 	}
 
 	@Override
@@ -73,17 +88,17 @@ public class OrgActionsPermissionsDriftGroup
 						PklTypes.enabledRepositories(
 								desired.enabledRepositories
 						),
-						actual.enabledRepositories()
+						present().enabledRepositories()
 				),
 				compare(
 						"allowed_actions",
 						PklTypes.allowedActions(desired.allowedActions),
-						actual.allowedActions()
+						present().allowedActions()
 				),
 				compare(
 						"sha_pinning_required",
 						desired.shaPinningRequired,
-						actual.shaPinningRequired()
+						present().shaPinningRequired()
 				)
 		);
 		var fixes = new ArrayList<DriftFix>();
@@ -106,7 +121,7 @@ public class OrgActionsPermissionsDriftGroup
 		// The selection only exists under "selected"; comparing it otherwise
 		// would report the empty list GitHub returns as drift.
 		if (desired.enabledRepositories == Drifty.ActionsEnabledRepositories.SELECTED
-				|| actual
+				|| present()
 						.enabledRepositories() == ActionsEnabledRepositories.SELECTED) {
 			fixes.add(selectedRepositoriesFix());
 		}
@@ -123,7 +138,7 @@ public class OrgActionsPermissionsDriftGroup
 		var items = compare(
 				"selected_repositories",
 				desired.selectedRepositories,
-				actual.selectedRepositories()
+				present().selectedRepositories()
 		);
 		return new DriftFix(items, () -> {
 			var ids = new ArrayList<Long>();
@@ -156,7 +171,7 @@ public class OrgActionsPermissionsDriftGroup
 	 */
 	private DriftFix selectedActionsFix() {
 		var selected = desired.selectedActions;
-		var current = actual.selectedActions();
+		var current = present().selectedActions();
 		boolean githubOwned = current != null && current.githubOwnedAllowed();
 		boolean verified = current != null && current.verifiedAllowed();
 		List<String> patterns = current == null ? List.of()

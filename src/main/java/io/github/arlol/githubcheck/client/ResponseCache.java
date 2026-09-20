@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.client;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Where {@link GitHubClient} keeps the body behind an ETag.
  * <p>
@@ -24,15 +26,16 @@ public interface ResponseCache {
 	record Entry(
 			String etag,
 			String body,
-			String link
+			@Nullable String link
 	) {
 	}
 
 	/** The entry for {@code key}, or null when there is none. */
+	@Nullable
 	Entry lookup(String key);
 
 	/** Records the body of a 200 that carried {@code etag}. */
-	void store(String key, String etag, String body, String link);
+	void store(String key, String etag, String body, @Nullable String link);
 
 	/**
 	 * Notes that {@code key} was confirmed current by a 304. What keeps an
@@ -44,12 +47,17 @@ public interface ResponseCache {
 	ResponseCache NONE = new ResponseCache() {
 
 		@Override
-		public Entry lookup(String key) {
+		public @Nullable Entry lookup(String key) {
 			return null;
 		}
 
 		@Override
-		public void store(String key, String etag, String body, String link) {
+		public void store(
+				String key,
+				String etag,
+				String body,
+				@Nullable String link
+		) {
 			// Deliberately nothing.
 		}
 

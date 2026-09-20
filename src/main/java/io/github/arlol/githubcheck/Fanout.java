@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -56,7 +58,11 @@ final class Fanout<N extends Enum<N>> implements AutoCloseable {
 	 * sequential version got from {@code &&}, kept because an account someone
 	 * else administers is exactly where these requests return 403.
 	 */
-	<T> Supplier<T> read(N group, Supplier<T> read, T fallback) {
+	<T extends @Nullable Object> Supplier<T> read(
+			N group,
+			Supplier<T> read,
+			T fallback
+	) {
 		if (!managed.manages(group)) {
 			return () -> fallback;
 		}
@@ -84,6 +90,9 @@ final class Fanout<N extends Enum<N>> implements AutoCloseable {
 			throw new GitHubApiException("Interrupted while reading state", e);
 		} catch (ExecutionException e) {
 			Throwable cause = e.getCause();
+			if (cause == null) {
+				throw new GitHubApiException(e.getMessage(), e);
+			}
 			if (cause instanceof GitHubApiException failed) {
 				throw failed;
 			}

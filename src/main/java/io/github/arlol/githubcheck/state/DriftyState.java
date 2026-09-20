@@ -12,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.arlol.githubcheck.client.ResponseCache;
 
 /**
@@ -48,7 +50,7 @@ public class DriftyState implements ResponseCache {
 	public record CacheEntry(
 			String etag,
 			String body,
-			String link,
+			@Nullable String link,
 			String lastValidated
 	) {
 	}
@@ -79,6 +81,7 @@ public class DriftyState implements ResponseCache {
 	static final int CURRENT_VERSION = 1;
 
 	int version = CURRENT_VERSION;
+	@Nullable
 	String salt;
 	ConcurrentHashMap<String, RepoState> repositories = new ConcurrentHashMap<>();
 	/**
@@ -120,12 +123,18 @@ public class DriftyState implements ResponseCache {
 						.allMatch(Map::isEmpty);
 	}
 
-	public SecretRecord webhookSecretRecord(String repo, String name) {
+	public @Nullable SecretRecord webhookSecretRecord(
+			String repo,
+			String name
+	) {
 		RepoState repoState = repositories.get(repo);
 		return repoState == null ? null : repoState.webhookSecrets.get(name);
 	}
 
-	public SecretRecord orgWebhookSecretRecord(String org, String name) {
+	public @Nullable SecretRecord orgWebhookSecretRecord(
+			String org,
+			String name
+	) {
 		OrgState orgState = organizations.get(org);
 		return orgState == null ? null : orgState.webhookSecrets.get(name);
 	}
@@ -150,12 +159,12 @@ public class DriftyState implements ResponseCache {
 				.put(name, new SecretRecord(updatedAt, valueHash));
 	}
 
-	public SecretRecord actionSecretRecord(String repo, String name) {
+	public @Nullable SecretRecord actionSecretRecord(String repo, String name) {
 		RepoState repoState = repositories.get(repo);
 		return repoState == null ? null : repoState.actionSecrets.get(name);
 	}
 
-	public SecretRecord environmentSecretRecord(
+	public @Nullable SecretRecord environmentSecretRecord(
 			String repo,
 			String env,
 			String name
@@ -169,7 +178,10 @@ public class DriftyState implements ResponseCache {
 		return secrets == null ? null : secrets.get(name);
 	}
 
-	public SecretRecord orgActionSecretRecord(String org, String name) {
+	public @Nullable SecretRecord orgActionSecretRecord(
+			String org,
+			String name
+	) {
 		OrgState orgState = organizations.get(org);
 		return orgState == null ? null : orgState.actionSecrets.get(name);
 	}
@@ -234,7 +246,7 @@ public class DriftyState implements ResponseCache {
 	}
 
 	@Override
-	public ResponseCache.Entry lookup(String key) {
+	public ResponseCache.@Nullable Entry lookup(String key) {
 		CacheEntry entry = cache.get(key);
 		return entry == null ? null
 				: new ResponseCache.Entry(
@@ -245,7 +257,12 @@ public class DriftyState implements ResponseCache {
 	}
 
 	@Override
-	public void store(String key, String etag, String body, String link) {
+	public void store(
+			String key,
+			String etag,
+			String body,
+			@Nullable String link
+	) {
 		cache.put(key, new CacheEntry(etag, body, link, today()));
 	}
 

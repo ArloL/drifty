@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -20,8 +22,8 @@ public sealed interface DriftItem {
 
 	record FieldMismatch(
 			String path,
-			Object wanted,
-			Object got
+			@Nullable Object wanted,
+			@Nullable Object got
 	) implements DriftItem {
 
 		@Override

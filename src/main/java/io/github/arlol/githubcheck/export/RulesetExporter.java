@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.export;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -163,18 +165,15 @@ public final class RulesetExporter {
 		// Presence is the setting: an empty pullRequest still requires pull
 		// requests before merging, so it is written even when nothing inside
 		// it drifted, unlike Fields.nested's omit-when-empty.
-		if (actual.pullRequest() != null) {
+		var pullRequestRule = actual.pullRequest();
+		if (pullRequestRule != null) {
 			members.add(
-					pullRequest(
-							actual.pullRequest(),
-							defaults.pullRequestRule()
-					)
+					pullRequest(pullRequestRule, defaults.pullRequestRule())
 			);
 		}
-		if (actual.mergeQueue() != null) {
-			members.add(
-					mergeQueue(actual.mergeQueue(), defaults.mergeQueueRule())
-			);
+		var mergeQueueRule = actual.mergeQueue();
+		if (mergeQueueRule != null) {
+			members.add(mergeQueue(mergeQueueRule, defaults.mergeQueueRule()));
 		}
 		if (orgScope) {
 			// A second call rather than casting base: base is declared
@@ -193,12 +192,12 @@ public final class RulesetExporter {
 		return new PklNode.Field(actual.name(), new PklNode.Obj(members));
 	}
 
-	private static boolean hasRefConditions(String target) {
+	private static boolean hasRefConditions(@Nullable String target) {
 		return "branch".equals(target) || "tag".equals(target);
 	}
 
 	/** The schema leaves both fields unset by default, i.e. null. */
-	private static Integer toInteger(Long value) {
+	private static @Nullable Integer toInteger(@Nullable Long value) {
 		return value == null ? null : value.intValue();
 	}
 
@@ -254,8 +253,9 @@ public final class RulesetExporter {
 	private static PklNode.Obj statusCheck(StatusCheck check) {
 		List<PklNode.Member> members = new ArrayList<>();
 		members.add(required("context", check.context()));
-		if (check.appId() != null) {
-			members.add(required("appId", check.appId().longValue()));
+		Integer appId = check.appId();
+		if (appId != null) {
+			members.add(required("appId", appId.longValue()));
 		}
 		return new PklNode.Obj(members);
 	}
@@ -508,7 +508,7 @@ public final class RulesetExporter {
 	private static void addPatternRule(
 			List<PklNode.Member> members,
 			String name,
-			ActualRuleset.RulePattern actual,
+			ActualRuleset.@Nullable RulePattern actual,
 			Drifty.RulePattern defaults
 	) {
 		if (actual == null) {
@@ -529,7 +529,10 @@ public final class RulesetExporter {
 	 * {@link Fields#required(String, String)} always returns a value; unwrapped
 	 * here so the nested-object builders above read as plain field lists.
 	 */
-	private static PklNode.Member required(String name, String value) {
+	private static PklNode.Member required(
+			String name,
+			@Nullable String value
+	) {
 		return Fields.required(name, value).orElseThrow();
 	}
 
@@ -537,7 +540,7 @@ public final class RulesetExporter {
 		return Fields.required(name, value).orElseThrow();
 	}
 
-	private static PklNode.Member required(String name, Long value) {
+	private static PklNode.Member required(String name, @Nullable Long value) {
 		return Fields.required(name, value).orElseThrow();
 	}
 

@@ -25,6 +25,8 @@ import java.util.stream.IntStream;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
+
+import org.jspecify.annotations.Nullable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
@@ -2429,7 +2431,7 @@ public class GitHubClient {
 	 */
 	private List<JsonNode> collectPaginatedArrayItems(
 			HttpResponse<String> firstResp,
-			String arrayField
+			@Nullable String arrayField
 	) {
 		List<JsonNode> items = new ArrayList<>(
 				arrayItems(firstResp, arrayField)
@@ -2454,7 +2456,7 @@ public class GitHubClient {
 
 	private List<JsonNode> arrayItems(
 			HttpResponse<String> resp,
-			String arrayField
+			@Nullable String arrayField
 	) {
 		JsonNode page = readTree(resp.body());
 		Iterable<JsonNode> array = arrayField != null ? page.path(arrayField)
@@ -2484,7 +2486,7 @@ public class GitHubClient {
 	 */
 	private List<HttpResponse<String>> remainingPages(
 			HttpResponse<String> firstResp,
-			String arrayField
+			@Nullable String arrayField
 	) {
 		String last = extractLink(
 				firstResp.headers().firstValue("Link").orElse(""),
@@ -2497,7 +2499,10 @@ public class GitHubClient {
 		return withGrowthFallback(firstResp, pages, arrayField);
 	}
 
-	private List<HttpResponse<String>> fetchPages(String last, int lastPage) {
+	private List<HttpResponse<String>> fetchPages(
+			@Nullable String last,
+			int lastPage
+	) {
 		try (ExecutorService executor = Executors
 				.newVirtualThreadPerTaskExecutor()) {
 			List<Future<HttpResponse<String>>> pending = IntStream
@@ -2533,7 +2538,7 @@ public class GitHubClient {
 	private List<HttpResponse<String>> withGrowthFallback(
 			HttpResponse<String> firstResp,
 			List<HttpResponse<String>> pages,
-			String arrayField
+			@Nullable String arrayField
 	) {
 		HttpResponse<String> finalPage = pages.isEmpty() ? firstResp
 				: pages.get(pages.size() - 1);
@@ -2605,6 +2610,9 @@ public class GitHubClient {
 			throw new GitHubApiException("Interrupted fetching a page", e);
 		} catch (ExecutionException e) {
 			Throwable cause = e.getCause();
+			if (cause == null) {
+				throw new GitHubApiException(e.getMessage(), e);
+			}
 			if (cause instanceof GitHubApiException failed) {
 				throw failed;
 			}
@@ -2615,7 +2623,7 @@ public class GitHubClient {
 		}
 	}
 
-	private static String pageUrl(String url, int page) {
+	private static String pageUrl(@Nullable String url, int page) {
 		return PAGE_PARAM.matcher(url)
 				.replaceFirst(match -> match.group(1) + page);
 	}
@@ -2891,7 +2899,9 @@ public class GitHubClient {
 	 * was refused, because GitHub also sends {@code Retry-After} on the 202 of
 	 * a computation it has not finished, which is not a limit.
 	 */
-	private static Duration rateLimitPause(HttpResponse<String> resp) {
+	private static @Nullable Duration rateLimitPause(
+			HttpResponse<String> resp
+	) {
 		boolean refused = rateLimited(resp);
 		if (!refused && !budgetSpent(resp)) {
 			return null;
@@ -2970,7 +2980,10 @@ public class GitHubClient {
 		);
 	}
 
-	private static String extractLink(String linkHeader, String rel) {
+	private static @Nullable String extractLink(
+			@Nullable String linkHeader,
+			String rel
+	) {
 		if (linkHeader == null || linkHeader.isBlank()) {
 			return null;
 		}

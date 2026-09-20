@@ -11,6 +11,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.arlol.githubcheck.actual.ActualBranchProtection;
 import io.github.arlol.githubcheck.actual.ActualCodeSecurityConfiguration;
 import io.github.arlol.githubcheck.actual.ActualCollaborators;
@@ -156,12 +158,12 @@ public final class ActualTypes {
 				.collect(Collectors.toMap(Rule::type, r -> r, (a, _) -> a));
 	}
 
-	private static Set<String> patterns(List<String> patterns) {
+	private static Set<String> patterns(@Nullable List<String> patterns) {
 		return patterns == null ? Set.of() : new HashSet<>(patterns);
 	}
 
 	private static Set<ActualRuleset.PropertyCondition> propertyConditions(
-			List<RulesetDetailsResponse.Conditions.RepositoryProperty.PropertyCondition> conditions
+			@Nullable List<RulesetDetailsResponse.Conditions.RepositoryProperty.PropertyCondition> conditions
 	) {
 		if (conditions == null) {
 			return Set.of();
@@ -202,29 +204,27 @@ public final class ActualTypes {
 	private static Set<StatusCheck> statusChecks(
 			Map<RulesetRuleType, Rule> rules
 	) {
-		if (rules.get(
+		if (!(rules.get(
 				RulesetRuleType.REQUIRED_STATUS_CHECKS
-		) instanceof Rule.RequiredStatusChecks rsc && rsc.parameters() != null
-				&& rsc.parameters().requiredStatusChecks() != null) {
-			return rsc.parameters()
-					.requiredStatusChecks()
-					.stream()
-					.map(
-							sc -> new StatusCheck(
-									sc.context(),
-									sc.integrationId()
-							)
-					)
-					.collect(Collectors.toSet());
+		) instanceof Rule.RequiredStatusChecks rsc)) {
+			return Set.of();
 		}
-		return Set.of();
+		var parameters = rsc.parameters();
+		var checks = parameters == null ? null
+				: parameters.requiredStatusChecks();
+		if (checks == null) {
+			return Set.of();
+		}
+		return checks.stream()
+				.map(sc -> new StatusCheck(sc.context(), sc.integrationId()))
+				.collect(Collectors.toSet());
 	}
 
 	/**
 	 * GitHub returns every parameter of a pull_request rule, so a missing one
 	 * is read as the default it would have been created with.
 	 */
-	private static ActualRuleset.PullRequest pullRequest(
+	private static ActualRuleset.@Nullable PullRequest pullRequest(
 			Map<RulesetRuleType, Rule> rules
 	) {
 		if (!(rules.get(
@@ -243,9 +243,9 @@ public final class ActualTypes {
 					Set.of()
 			);
 		}
+		Integer reviewCount = p.requiredApprovingReviewCount();
 		return new ActualRuleset.PullRequest(
-				p.requiredApprovingReviewCount() == null ? 0
-						: p.requiredApprovingReviewCount(),
+				reviewCount == null ? 0 : reviewCount,
 				Boolean.TRUE.equals(p.dismissStaleReviewsOnPush()),
 				Boolean.TRUE.equals(p.requireCodeOwnerReview()),
 				Boolean.TRUE.equals(p.requireLastPushApproval()),
@@ -254,7 +254,7 @@ public final class ActualTypes {
 		);
 	}
 
-	private static ActualRuleset.MergeQueue mergeQueue(
+	private static ActualRuleset.@Nullable MergeQueue mergeQueue(
 			Map<RulesetRuleType, Rule> rules
 	) {
 		if (!(rules
@@ -274,7 +274,7 @@ public final class ActualTypes {
 		);
 	}
 
-	private static int orZero(Integer value) {
+	private static int orZero(@Nullable Integer value) {
 		return value == null ? 0 : value;
 	}
 
@@ -320,7 +320,9 @@ public final class ActualTypes {
 				: Set.of();
 	}
 
-	private static Integer maxFilePathLength(Map<RulesetRuleType, Rule> rules) {
+	private static @Nullable Integer maxFilePathLength(
+			Map<RulesetRuleType, Rule> rules
+	) {
 		return rules.get(
 				RulesetRuleType.MAX_FILE_PATH_LENGTH
 		) instanceof Rule.MaxFilePathLength r && r.parameters() != null
@@ -328,7 +330,9 @@ public final class ActualTypes {
 				: null;
 	}
 
-	private static Integer maxFileSize(Map<RulesetRuleType, Rule> rules) {
+	private static @Nullable Integer maxFileSize(
+			Map<RulesetRuleType, Rule> rules
+	) {
 		return rules.get(
 				RulesetRuleType.MAX_FILE_SIZE
 		) instanceof Rule.MaxFileSize r && r.parameters() != null
@@ -374,7 +378,7 @@ public final class ActualTypes {
 	 * rest of this class's handling of a rule GitHub lists without the fields
 	 * it usually carries.
 	 */
-	private static ActualRuleset.RulePattern pattern(
+	private static ActualRuleset.@Nullable RulePattern pattern(
 			Map<RulesetRuleType, Rule> rules,
 			RulesetRuleType type
 	) {
@@ -495,7 +499,7 @@ public final class ActualTypes {
 	 * Logins and slugs out of the user, team and app objects GitHub returns.
 	 */
 	private static ActualBranchProtection.Actors actors(
-			BranchProtectionResponse.Actors actors
+			BranchProtectionResponse.@Nullable Actors actors
 	) {
 		if (actors == null) {
 			return ActualBranchProtection.Actors.NONE;
@@ -633,8 +637,8 @@ public final class ActualTypes {
 	}
 
 	private static boolean enabled(
-			SecurityAndAnalysis sa,
-			Function<SecurityAndAnalysis, SecurityAndAnalysis.StatusObject> toggle
+			@Nullable SecurityAndAnalysis sa,
+			Function<SecurityAndAnalysis, SecurityAndAnalysis.@Nullable StatusObject> toggle
 	) {
 		return sa != null && SecurityAndAnalysis.isEnabled(toggle.apply(sa));
 	}
@@ -642,14 +646,13 @@ public final class ActualTypes {
 	private static List<ActualSecurityAndAnalysis.BypassReviewer> bypassReviewers(
 			SecurityAndAnalysis sa
 	) {
-		if (sa == null || sa.secretScanningDelegatedBypassOptions() == null
-				|| sa.secretScanningDelegatedBypassOptions()
-						.reviewers() == null) {
+		var options = sa == null ? null
+				: sa.secretScanningDelegatedBypassOptions();
+		var reviewers = options == null ? null : options.reviewers();
+		if (reviewers == null) {
 			return List.of();
 		}
-		return sa.secretScanningDelegatedBypassOptions()
-				.reviewers()
-				.stream()
+		return reviewers.stream()
 				.filter(r -> r.reviewerId() != null)
 				.map(
 						r -> new ActualSecurityAndAnalysis.BypassReviewer(
@@ -751,7 +754,9 @@ public final class ActualTypes {
 	 * {@code User:<login>} or {@code Team:<slug>}, which is how the config
 	 * names a reviewer; null for a reviewer GitHub returned without either.
 	 */
-	private static String reviewer(EnvironmentDetailsResponse.Reviewer r) {
+	private static @Nullable String reviewer(
+			EnvironmentDetailsResponse.Reviewer r
+	) {
 		if (r.type() == null || r.reviewer() == null) {
 			return null;
 		}
@@ -844,7 +849,7 @@ public final class ActualTypes {
 		return new ActualCollaborators(users, bySlug);
 	}
 
-	private static String permissionLevel(
+	private static @Nullable String permissionLevel(
 			io.github.arlol.githubcheck.client.Permissions permissions,
 			String fallback
 	) {
@@ -909,7 +914,7 @@ public final class ActualTypes {
 	 */
 	public static ActualCodeSecurityConfiguration codeSecurityConfiguration(
 			CodeSecurityConfigurationResponse response,
-			String defaultForNewRepos,
+			@Nullable String defaultForNewRepos,
 			List<CodeSecurityRepositoryResponse> repositories
 	) {
 		var settings = new LinkedHashMap<String, String>();
@@ -1056,7 +1061,7 @@ public final class ActualTypes {
 		);
 	}
 
-	private static String stringValue(Object value) {
+	private static @Nullable String stringValue(@Nullable Object value) {
 		return value instanceof String s ? s : null;
 	}
 

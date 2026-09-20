@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -96,7 +98,10 @@ public class OrgActionSecretsDriftGroup
 		return fixes;
 	}
 
-	private DriftFix secretDriftFix(String name, Drifty.OrgSecret wanted) {
+	private @Nullable DriftFix secretDriftFix(
+			String name,
+			Drifty.OrgSecret wanted
+	) {
 		ActualOrgSecret current = actual.get(name);
 		var items = new ArrayList<DriftItem>();
 		if (current == null) {

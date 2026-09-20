@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -425,8 +427,8 @@ final class RulesetComparison {
 
 	private static void compareOptionalInt(
 			String path,
-			Long wanted,
-			Integer got,
+			@Nullable Long wanted,
+			@Nullable Integer got,
 			List<DriftItem> items
 	) {
 		Integer want = wanted == null ? null : wanted.intValue();
@@ -466,8 +468,8 @@ final class RulesetComparison {
 	private static void checkPatternRule(
 			List<DriftItem> items,
 			String path,
-			Drifty.RulePattern wanted,
-			ActualRuleset.RulePattern got
+			Drifty.@Nullable RulePattern wanted,
+			ActualRuleset.@Nullable RulePattern got
 	) {
 		String want = wanted != null ? wanted.pattern : null;
 		String have = got != null ? got.pattern() : null;
@@ -490,7 +492,7 @@ final class RulesetComparison {
 	static RulesetRequest request(
 			String name,
 			Drifty.Ruleset args,
-			RulesetRequest.Conditions conditions
+			RulesetRequest.@Nullable Conditions conditions
 	) {
 		List<Rule> rules = new ArrayList<>();
 		addBooleanRules(args, rules);
@@ -523,7 +525,9 @@ final class RulesetComparison {
 	 * has refs to condition on, and GitHub rejects the condition there. The
 	 * schema keeps the pattern listings empty for those targets.
 	 */
-	static RulesetRequest.Conditions.RefName refName(Drifty.Ruleset args) {
+	static RulesetRequest.Conditions.@Nullable RefName refName(
+			Drifty.Ruleset args
+	) {
 		if (!hasRefConditions(args)) {
 			return null;
 		}

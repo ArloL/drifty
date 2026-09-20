@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.actual;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Set;
 
 /**
@@ -10,7 +12,7 @@ import java.util.Set;
  */
 public record ActualWebhook(
 		long id,
-		String url,
+		@Nullable String url,
 		String contentType,
 		boolean insecureSsl,
 		boolean active,

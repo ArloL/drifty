@@ -2,6 +2,8 @@ package io.github.arlol.githubcheck.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Body of {@code PATCH /repos/{owner}/{repo}}.
  * <p>
@@ -30,28 +32,28 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 				"security_and_analysis.secret_scanning_validity_checks — GitHub returns and accepts it; the spec omits it from this schema" }
 )
 public record RepositoryUpdateRequest(
-		Boolean archived,
-		String description,
-		String homepage,
-		Boolean hasIssues,
-		Boolean hasProjects,
-		Boolean hasWiki,
-		Boolean hasDiscussions,
-		Boolean isTemplate,
-		Boolean allowForking,
-		Boolean webCommitSignoffRequired,
-		Boolean allowMergeCommit,
-		Boolean allowSquashMerge,
-		Boolean allowRebaseMerge,
-		Boolean allowUpdateBranch,
-		Boolean allowAutoMerge,
-		Boolean deleteBranchOnMerge,
-		SquashMergeCommitTitle squashMergeCommitTitle,
-		SquashMergeCommitMessage squashMergeCommitMessage,
-		MergeCommitTitle mergeCommitTitle,
-		MergeCommitMessage mergeCommitMessage,
-		String defaultBranch,
-		SecurityAndAnalysis securityAndAnalysis
+		@Nullable Boolean archived,
+		@Nullable String description,
+		@Nullable String homepage,
+		@Nullable Boolean hasIssues,
+		@Nullable Boolean hasProjects,
+		@Nullable Boolean hasWiki,
+		@Nullable Boolean hasDiscussions,
+		@Nullable Boolean isTemplate,
+		@Nullable Boolean allowForking,
+		@Nullable Boolean webCommitSignoffRequired,
+		@Nullable Boolean allowMergeCommit,
+		@Nullable Boolean allowSquashMerge,
+		@Nullable Boolean allowRebaseMerge,
+		@Nullable Boolean allowUpdateBranch,
+		@Nullable Boolean allowAutoMerge,
+		@Nullable Boolean deleteBranchOnMerge,
+		@Nullable SquashMergeCommitTitle squashMergeCommitTitle,
+		@Nullable SquashMergeCommitMessage squashMergeCommitMessage,
+		@Nullable MergeCommitTitle mergeCommitTitle,
+		@Nullable MergeCommitMessage mergeCommitMessage,
+		@Nullable String defaultBranch,
+		@Nullable SecurityAndAnalysis securityAndAnalysis
 ) {
 
 	public static Builder builder() {
@@ -60,28 +62,28 @@ public record RepositoryUpdateRequest(
 
 	public static final class Builder {
 
-		private Boolean archived;
-		private String description;
-		private String homepage;
-		private Boolean hasIssues;
-		private Boolean hasProjects;
-		private Boolean hasWiki;
-		private Boolean hasDiscussions;
-		private Boolean isTemplate;
-		private Boolean allowForking;
-		private Boolean webCommitSignoffRequired;
-		private Boolean allowMergeCommit;
-		private Boolean allowSquashMerge;
-		private Boolean allowRebaseMerge;
-		private Boolean allowUpdateBranch;
-		private Boolean allowAutoMerge;
-		private Boolean deleteBranchOnMerge;
-		private SquashMergeCommitTitle squashMergeCommitTitle;
-		private SquashMergeCommitMessage squashMergeCommitMessage;
-		private MergeCommitTitle mergeCommitTitle;
-		private MergeCommitMessage mergeCommitMessage;
-		private String defaultBranch;
-		private SecurityAndAnalysis securityAndAnalysis;
+		private @Nullable Boolean archived;
+		private @Nullable String description;
+		private @Nullable String homepage;
+		private @Nullable Boolean hasIssues;
+		private @Nullable Boolean hasProjects;
+		private @Nullable Boolean hasWiki;
+		private @Nullable Boolean hasDiscussions;
+		private @Nullable Boolean isTemplate;
+		private @Nullable Boolean allowForking;
+		private @Nullable Boolean webCommitSignoffRequired;
+		private @Nullable Boolean allowMergeCommit;
+		private @Nullable Boolean allowSquashMerge;
+		private @Nullable Boolean allowRebaseMerge;
+		private @Nullable Boolean allowUpdateBranch;
+		private @Nullable Boolean allowAutoMerge;
+		private @Nullable Boolean deleteBranchOnMerge;
+		private @Nullable SquashMergeCommitTitle squashMergeCommitTitle;
+		private @Nullable SquashMergeCommitMessage squashMergeCommitMessage;
+		private @Nullable MergeCommitTitle mergeCommitTitle;
+		private @Nullable MergeCommitMessage mergeCommitMessage;
+		private @Nullable String defaultBranch;
+		private @Nullable SecurityAndAnalysis securityAndAnalysis;
 
 		private Builder() {
 		}

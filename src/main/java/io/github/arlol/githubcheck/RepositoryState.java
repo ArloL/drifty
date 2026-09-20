@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,7 +64,7 @@ public record RepositoryState(
 		Map<String, List<ActualVariable>> environmentVariables,
 		List<ActualWebhook> webhooks,
 		List<ActualCustomPropertyValue> customPropertyValues,
-		ActualCollaborators collaborators
+		@Nullable ActualCollaborators collaborators
 ) {
 
 	public RepositoryState {

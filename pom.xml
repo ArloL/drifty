@@ -35,6 +35,8 @@
 		     the binary an adopter's CI runs is the failure this pin exists to
 		     make impossible. -->
 		<pkl.version>0.32.1</pkl.version>
+		<error-prone.version>2.50.0</error-prone.version>
+		<nullaway.version>0.14.1</nullaway.version>
 	</properties>
 
 	<profiles>
@@ -284,6 +286,65 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<!-- Error Prone is here only to carry NullAway: every
+					     other check it ships is disabled. "null means
+					     unmanaged" decides whether a code security sub-option
+					     is compared at all, and it was enforced by prose and
+					     by jspecify being on the classpath with nothing
+					     reading it. -->
+					<compilerArgs>
+						<arg>-XDcompilePolicy=simple</arg>
+						<!-- javac stops listing at 100, which reads as a
+						     plateau when you are working a backlog down. -->
+						<arg>-Xmaxerrs</arg>
+						<arg>10000</arg>
+						<arg>--should-stop=ifError=FLOW</arg>
+						<!-- Kept on one line: this is a single javac flag
+						     whose value happens to contain spaces.
+						     -XepExcludedPaths takes a colon, not an equals —
+						     an equals is reported as "invalid flag" with the
+						     rest of the line parsing fine, which reads like a
+						     quoting problem and is not one. Drifty.java is
+						     what it excludes: pkl-codegen-java emits it, and
+						     it is not annotated. -->
+						<arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR -XepOpt:NullAway:JSpecifyMode=true -XepOpt:NullAway:AnnotatedPackages=io.github.arlol.githubcheck -XepExcludedPaths:.*/generated-sources/.*</arg>
+					</compilerArgs>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>com.google.errorprone</groupId>
+							<artifactId>error_prone_core</artifactId>
+							<version>${error-prone.version}</version>
+						</path>
+						<path>
+							<groupId>com.uber.nullaway</groupId>
+							<artifactId>nullaway</artifactId>
+							<version>${nullaway.version}</version>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+				<executions>
+					<execution>
+						<!-- Main sources only. Test code constructs absent
+						     values on purpose — a response with the section
+						     missing, a config that sets nothing, a secret with
+						     no baseline — which is the behaviour under test and
+						     not a defect: NullAway reported 526 of them against
+						     zero in src/main. Checking the code that ships is
+						     the whole of what this buys. -->
+						<id>default-testCompile</id>
+						<goals>
+							<goal>testCompile</goal>
+						</goals>
+						<configuration>
+							<compilerArgs combine.self="override" />
+							<annotationProcessorPaths combine.self="override" />
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>

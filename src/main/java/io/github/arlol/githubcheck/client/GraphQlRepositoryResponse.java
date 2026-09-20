@@ -1,5 +1,9 @@
 package io.github.arlol.githubcheck.client;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Map;
 
@@ -55,8 +59,8 @@ public final class GraphQlRepositoryResponse {
 
 	/** One aliased selection: what it answered, or why it did not. */
 	record Section<T>(
-			T value,
-			String error
+			@Nullable T value,
+			@Nullable String error
 	) {
 
 		static <T> Section<T> of(T value) {
@@ -71,7 +75,7 @@ public final class GraphQlRepositoryResponse {
 			if (error != null) {
 				throw new GitHubApiException(error);
 			}
-			return value;
+			return Objects.requireNonNull(value);
 		}
 
 	}

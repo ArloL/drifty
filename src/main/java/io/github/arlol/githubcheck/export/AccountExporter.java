@@ -90,23 +90,22 @@ public final class AccountExporter {
 		// First, as `managed` is Organization's first field in the schema.
 		addUnmanagedGroups(members, failures);
 
-		if (state.settings() != null) {
+		var settings = state.settings();
+		if (settings != null) {
 			members.addAll(
 					OrganizationExporter
-							.settings(state.settings(), defaults.organization())
+							.settings(settings, defaults.organization())
 			);
 		}
 		// No addFailureNote for org_settings: OrganizationChecker.fetchState
 		// calls client.getOrganization directly, unwrapped by FetchFailures,
 		// so no Failure with that group can ever exist to look up.
 
-		if (state.actionsPermissions() != null) {
+		var actionsPermissions = state.actionsPermissions();
+		if (actionsPermissions != null) {
 			Fields.nested(
 					"actionsPermissions",
-					actionsPermissionsMembers(
-							state.actionsPermissions(),
-							defaults
-					)
+					actionsPermissionsMembers(actionsPermissions, defaults)
 			).ifPresent(members::add);
 		}
 		addFailureNote(
@@ -115,10 +114,11 @@ public final class AccountExporter {
 				Drifty.OrgGroupName.ORG_ACTIONS_PERMISSIONS
 		);
 
-		if (state.workflowPermissions() != null) {
+		var workflowPermissions = state.workflowPermissions();
+		if (workflowPermissions != null) {
 			members.addAll(
 					workflowPermissionsMembers(
-							state.workflowPermissions(),
+							workflowPermissions,
 							defaults.organization()
 					)
 			);
@@ -292,11 +292,12 @@ public final class AccountExporter {
 						)
 				)
 		);
-		if (actual.selectedActions() != null) {
+		var selectedActions = actual.selectedActions();
+		if (selectedActions != null) {
 			Fields.nested(
 					"selectedActions",
 					selectedActionsMembers(
-							actual.selectedActions(),
+							selectedActions,
 							defaults.selectedActions()
 					)
 			).ifPresent(members::add);

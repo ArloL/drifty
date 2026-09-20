@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -30,11 +32,15 @@ public sealed interface FetchFailures {
 	 */
 	record Failure(
 			String group,
-			String reason
+			@Nullable String reason
 	) {
 	}
 
-	<T> T read(Enum<?> group, Supplier<T> read, T fallback);
+	<T extends @Nullable Object> T read(
+			Enum<?> group,
+			Supplier<T> read,
+			T fallback
+	);
 
 	List<Failure> failures();
 
@@ -47,7 +53,11 @@ public sealed interface FetchFailures {
 	final class Strict implements FetchFailures {
 
 		@Override
-		public <T> T read(Enum<?> group, Supplier<T> read, T fallback) {
+		public <T extends @Nullable Object> T read(
+				Enum<?> group,
+				Supplier<T> read,
+				T fallback
+		) {
 			return read.get();
 		}
 
@@ -73,7 +83,11 @@ public sealed interface FetchFailures {
 				.synchronizedList(new ArrayList<>());
 
 		@Override
-		public <T> T read(Enum<?> group, Supplier<T> read, T fallback) {
+		public <T extends @Nullable Object> T read(
+				Enum<?> group,
+				Supplier<T> read,
+				T fallback
+		) {
 			try {
 				return read.get();
 			} catch (GitHubApiException e) {
@@ -102,7 +116,7 @@ public sealed interface FetchFailures {
 		 * repository's own details request, which {@code fetchState} never
 		 * routes through {@link #read}.
 		 */
-		static String firstLine(String message) {
+		static @Nullable String firstLine(@Nullable String message) {
 			if (message == null) {
 				return "read failed";
 			}

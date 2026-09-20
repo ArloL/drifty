@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.export;
 
+import org.jspecify.annotations.Nullable;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +70,7 @@ public final class WebhookExporter {
 	 * endpoint at different paths and the query string carries nothing a config
 	 * author would want to see repeated in a key.
 	 */
-	private static String key(String url) {
+	private static String key(@Nullable String url) {
 		URI uri = URI.create(url);
 		String path = uri.getPath();
 		return uri.getHost() + (path == null ? "" : path);

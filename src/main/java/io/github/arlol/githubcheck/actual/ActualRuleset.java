@@ -3,6 +3,8 @@ package io.github.arlol.githubcheck.actual;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * A ruleset as it exists on GitHub, flattened to the settings drifty compares.
  * Repository and organization rulesets share the shape; the repository
@@ -16,8 +18,8 @@ import java.util.Set;
 public record ActualRuleset(
 		long id,
 		String name,
-		String target,
-		String enforcement,
+		@Nullable String target,
+		@Nullable String enforcement,
 		Set<String> includePatterns,
 		Set<String> excludePatterns,
 		boolean creation,
@@ -29,20 +31,20 @@ public record ActualRuleset(
 		boolean noForcePushes,
 		boolean strictRequiredStatusChecks,
 		Set<StatusCheck> requiredStatusChecks,
-		PullRequest pullRequest,
+		@Nullable PullRequest pullRequest,
 		Set<String> requiredCodeScanningTools,
 		Set<String> requiredDeployments,
-		RulePattern commitMessagePattern,
-		RulePattern commitAuthorEmailPattern,
-		RulePattern committerEmailPattern,
-		RulePattern branchNamePattern,
-		RulePattern tagNamePattern,
-		MergeQueue mergeQueue,
+		@Nullable RulePattern commitMessagePattern,
+		@Nullable RulePattern commitAuthorEmailPattern,
+		@Nullable RulePattern committerEmailPattern,
+		@Nullable RulePattern branchNamePattern,
+		@Nullable RulePattern tagNamePattern,
+		@Nullable MergeQueue mergeQueue,
 		Set<Workflow> workflows,
 		Set<String> filePathRestrictions,
-		Integer maxFilePathLength,
+		@Nullable Integer maxFilePathLength,
 		Set<String> fileExtensionRestrictions,
-		Integer maxFileSize,
+		@Nullable Integer maxFileSize,
 		List<BypassActor> bypassActors,
 		Set<String> repositoryNameInclude,
 		Set<String> repositoryNameExclude,
@@ -63,7 +65,7 @@ public record ActualRuleset(
 	public record RulePattern(
 			String name,
 			boolean negate,
-			String operator,
+			@Nullable String operator,
 			String pattern
 	) {
 	}
@@ -145,9 +147,9 @@ public record ActualRuleset(
 	 * @param bypassMode wire spelling, e.g. {@code pull_request}
 	 */
 	public record BypassActor(
-			String actorType,
+			@Nullable String actorType,
 			Long actorId,
-			String bypassMode
+			@Nullable String bypassMode
 	) {
 
 		@Override

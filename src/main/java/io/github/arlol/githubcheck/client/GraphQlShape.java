@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * GraphQL's answers rewritten as the REST shape they replace.
  * <p>
@@ -275,7 +277,7 @@ final class GraphQlShape {
 				);
 	}
 
-	private static String wire(String value) {
+	private static @Nullable String wire(@Nullable String value) {
 		return value == null ? null : value.toLowerCase(Locale.ROOT);
 	}
 

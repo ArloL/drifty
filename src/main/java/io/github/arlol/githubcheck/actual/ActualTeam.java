@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.actual;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Set;
 
 /**
@@ -12,9 +14,9 @@ public record ActualTeam(
 		String slug,
 		String name,
 		String description,
-		String privacy,
-		String notificationSetting,
-		String parent,
+		@Nullable String privacy,
+		@Nullable String notificationSetting,
+		@Nullable String parent,
 		Set<String> members,
 		Set<String> maintainers
 ) {

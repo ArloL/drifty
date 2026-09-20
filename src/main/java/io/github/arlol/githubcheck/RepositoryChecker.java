@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -178,7 +179,12 @@ public class RepositoryChecker {
 					// decides.
 					results.add(CheckResult.Entry.missing(name));
 				} else if (!entry.getValue().archived) {
-					results.add(started.get(name).get());
+					// started holds exactly the declared repositories this
+					// loop has just tested are not archived, so the lookup
+					// cannot miss; say so rather than leave a bare get().
+					results.add(
+							Objects.requireNonNull(started.get(name)).get()
+					);
 				}
 			}
 		}

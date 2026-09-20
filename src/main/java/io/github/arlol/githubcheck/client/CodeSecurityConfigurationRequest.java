@@ -4,6 +4,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Body of the code security configuration POST and PATCH. The same shape serves
  * both: the config object is the whole desired state, so every field is sent
@@ -33,13 +35,13 @@ public record CodeSecurityConfigurationRequest(
 		String dependabotSecurityUpdates,
 		String dependabotDelegatedAlertDismissal,
 		String codeScanningDefaultSetup,
-		CodeScanningDefaultSetupOptions codeScanningDefaultSetupOptions,
-		CodeScanningOptions codeScanningOptions,
+		@Nullable CodeScanningDefaultSetupOptions codeScanningDefaultSetupOptions,
+		@Nullable CodeScanningOptions codeScanningOptions,
 		String codeScanningDelegatedAlertDismissal,
 		String secretScanning,
 		String secretScanningPushProtection,
 		String secretScanningDelegatedBypass,
-		SecretScanningDelegatedBypassOptions secretScanningDelegatedBypassOptions,
+		@Nullable SecretScanningDelegatedBypassOptions secretScanningDelegatedBypassOptions,
 		String secretScanningValidityChecks,
 		String secretScanningNonProviderPatterns,
 		String secretScanningGenericSecrets,

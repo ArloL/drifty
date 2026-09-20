@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -34,7 +36,7 @@ final class WebhookReconciler {
 		/** The DRIFTY_GITHUB_SECRETS key of a hook's secret. */
 		String secretKey(String name);
 
-		DriftyState.SecretRecord record(String name);
+		DriftyState.@Nullable SecretRecord record(String name);
 
 		void record(String name, String updatedAt, String valueHash);
 
@@ -107,7 +109,20 @@ final class WebhookReconciler {
 			if (!urls.contains(hook.url())) {
 				fixes.add(
 						new DriftFix(
-								new DriftItem.SectionExtra(hook.url()),
+								// GitHub's spec requires a webhook's config but
+								// not a
+								// url inside it, and the url is what identifies
+								// a
+								// hook here. One without it still has an id,
+								// and the
+								// delete below goes by id, so report that
+								// rather than
+								// a path reading "null".
+								new DriftItem.SectionExtra(
+										hook.url() == null
+												? "webhook " + hook.id()
+												: hook.url()
+								),
 								() -> {
 									scope.delete(hook.id());
 									return FixResult.success();
@@ -188,7 +203,7 @@ final class WebhookReconciler {
 	private FixResult write(
 			String name,
 			Drifty.Webhook wanted,
-			ActualWebhook current,
+			@Nullable ActualWebhook current,
 			List<DriftItem> items
 	) {
 		String value = null;

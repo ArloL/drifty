@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.export;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -193,7 +195,7 @@ public final class BranchProtectionExporter {
 	}
 
 	/** The schema has no default for a nullable {@code Int}; null it stays. */
-	private static Integer toInteger(Long value) {
+	private static @Nullable Integer toInteger(@Nullable Long value) {
 		return value == null ? null : value.intValue();
 	}
 
@@ -212,10 +214,10 @@ public final class BranchProtectionExporter {
 	private static PklNode.Obj statusCheck(StatusCheck check) {
 		var members = new ArrayList<PklNode.Member>();
 		members.add(Fields.required("context", check.context()).orElseThrow());
-		if (check.appId() != null) {
+		Integer appId = check.appId();
+		if (appId != null) {
 			members.add(
-					Fields.required("appId", check.appId().longValue())
-							.orElseThrow()
+					Fields.required("appId", appId.longValue()).orElseThrow()
 			);
 		}
 		return new PklNode.Obj(members);

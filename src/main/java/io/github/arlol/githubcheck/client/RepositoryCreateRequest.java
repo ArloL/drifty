@@ -3,6 +3,8 @@ package io.github.arlol.githubcheck.client;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.jspecify.annotations.Nullable;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @GitHubEndpoint(
 		request = "POST /user/repos",
@@ -10,34 +12,34 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 				"team_id — organization-only, and this record is the body of POST /user/repos" }
 )
 public record RepositoryCreateRequest(
-		String name,
-		String description,
-		String homepage,
+		@Nullable String name,
+		@Nullable String description,
+		@Nullable String homepage,
 		/**
 		 * {@code private} is a Java keyword, so the component cannot carry the
 		 * wire name and the annotation has to. Without it SNAKE_CASE sends
 		 * {@code is_private}, which GitHub does not accept and silently ignores
 		 * — the repository is created public.
 		 */
-		@JsonProperty("private") Boolean isPrivate,
-		Boolean hasIssues,
-		Boolean hasProjects,
-		Boolean hasWiki,
-		Boolean hasDiscussions,
-		Boolean hasDownloads,
-		Boolean isTemplate,
-		Boolean autoInit,
-		String gitignoreTemplate,
-		String licenseTemplate,
-		Boolean allowSquashMerge,
-		Boolean allowMergeCommit,
-		Boolean allowRebaseMerge,
-		Boolean allowAutoMerge,
-		Boolean deleteBranchOnMerge,
-		SquashMergeCommitTitle squashMergeCommitTitle,
-		SquashMergeCommitMessage squashMergeCommitMessage,
-		MergeCommitTitle mergeCommitTitle,
-		MergeCommitMessage mergeCommitMessage
+		@JsonProperty("private") @Nullable Boolean isPrivate,
+		@Nullable Boolean hasIssues,
+		@Nullable Boolean hasProjects,
+		@Nullable Boolean hasWiki,
+		@Nullable Boolean hasDiscussions,
+		@Nullable Boolean hasDownloads,
+		@Nullable Boolean isTemplate,
+		@Nullable Boolean autoInit,
+		@Nullable String gitignoreTemplate,
+		@Nullable String licenseTemplate,
+		@Nullable Boolean allowSquashMerge,
+		@Nullable Boolean allowMergeCommit,
+		@Nullable Boolean allowRebaseMerge,
+		@Nullable Boolean allowAutoMerge,
+		@Nullable Boolean deleteBranchOnMerge,
+		@Nullable SquashMergeCommitTitle squashMergeCommitTitle,
+		@Nullable SquashMergeCommitMessage squashMergeCommitMessage,
+		@Nullable MergeCommitTitle mergeCommitTitle,
+		@Nullable MergeCommitMessage mergeCommitMessage
 ) {
 
 	public static Builder builder() {
@@ -46,28 +48,28 @@ public record RepositoryCreateRequest(
 
 	public static final class Builder {
 
-		private String name;
-		private String description;
-		private String homepage;
-		private Boolean isPrivate;
-		private Boolean hasIssues;
-		private Boolean hasProjects;
-		private Boolean hasWiki;
-		private Boolean hasDiscussions;
-		private Boolean hasDownloads;
-		private Boolean isTemplate;
-		private Boolean autoInit;
-		private String gitignoreTemplate;
-		private String licenseTemplate;
-		private Boolean allowSquashMerge;
-		private Boolean allowMergeCommit;
-		private Boolean allowRebaseMerge;
-		private Boolean allowAutoMerge;
-		private Boolean deleteBranchOnMerge;
-		private SquashMergeCommitTitle squashMergeCommitTitle;
-		private SquashMergeCommitMessage squashMergeCommitMessage;
-		private MergeCommitTitle mergeCommitTitle;
-		private MergeCommitMessage mergeCommitMessage;
+		private @Nullable String name;
+		private @Nullable String description;
+		private @Nullable String homepage;
+		private @Nullable Boolean isPrivate;
+		private @Nullable Boolean hasIssues;
+		private @Nullable Boolean hasProjects;
+		private @Nullable Boolean hasWiki;
+		private @Nullable Boolean hasDiscussions;
+		private @Nullable Boolean hasDownloads;
+		private @Nullable Boolean isTemplate;
+		private @Nullable Boolean autoInit;
+		private @Nullable String gitignoreTemplate;
+		private @Nullable String licenseTemplate;
+		private @Nullable Boolean allowSquashMerge;
+		private @Nullable Boolean allowMergeCommit;
+		private @Nullable Boolean allowRebaseMerge;
+		private @Nullable Boolean allowAutoMerge;
+		private @Nullable Boolean deleteBranchOnMerge;
+		private @Nullable SquashMergeCommitTitle squashMergeCommitTitle;
+		private @Nullable SquashMergeCommitMessage squashMergeCommitMessage;
+		private @Nullable MergeCommitTitle mergeCommitTitle;
+		private @Nullable MergeCommitMessage mergeCommitMessage;
 
 		private Builder() {
 		}

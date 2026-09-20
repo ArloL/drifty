@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -406,7 +408,7 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 		);
 	}
 
-	private static CodeSecurityConfigurationRequest.CodeScanningDefaultSetupOptions runnerOptions(
+	private static CodeSecurityConfigurationRequest.@Nullable CodeScanningDefaultSetupOptions runnerOptions(
 			Drifty.CodeSecurityConfiguration c
 	) {
 		var options = c.codeScanningDefaultSetupOptions;
@@ -419,7 +421,7 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 		);
 	}
 
-	private static CodeSecurityConfigurationRequest.CodeScanningOptions codeScanningOptions(
+	private static CodeSecurityConfigurationRequest.@Nullable CodeScanningOptions codeScanningOptions(
 			Drifty.CodeSecurityConfiguration c
 	) {
 		var options = c.codeScanningOptions;
@@ -431,7 +433,7 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 		);
 	}
 
-	private static CodeSecurityConfigurationRequest.SecretScanningDelegatedBypassOptions bypassOptions(
+	private static CodeSecurityConfigurationRequest.@Nullable SecretScanningDelegatedBypassOptions bypassOptions(
 			Drifty.CodeSecurityConfiguration c
 	) {
 		var options = c.secretScanningDelegatedBypassOptions;

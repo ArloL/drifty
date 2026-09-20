@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -89,7 +91,7 @@ public class SecretScanningDelegatedBypassDriftGroup
 		}));
 	}
 
-	private static String key(String reviewerType, long reviewerId) {
+	private static String key(@Nullable String reviewerType, long reviewerId) {
 		return reviewerType + ":" + reviewerId;
 	}
 

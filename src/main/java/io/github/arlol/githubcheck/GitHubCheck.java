@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -296,7 +298,7 @@ public class GitHubCheck {
 	 */
 	private static List<CheckResult.Entry> listingErrors(
 			List<Drifty.Repository> desired,
-			String error
+			@Nullable String error
 	) {
 		return desired.stream()
 				.map(repo -> CheckResult.Entry.error(repo.name, error))
@@ -311,7 +313,7 @@ public class GitHubCheck {
 	private static List<CheckResult.Entry> userListingErrors(
 			String login,
 			List<Drifty.Repository> desired,
-			String error
+			@Nullable String error
 	) {
 		return desired.isEmpty()
 				? List.of(CheckResult.Entry.error(login, error))
@@ -495,7 +497,7 @@ public class GitHubCheck {
 	 * <p>
 	 * The public key is a 32-byte all-zeros key, base64.
 	 */
-	static int selfTest(String configPath) {
+	static int selfTest(@Nullable String configPath) {
 		String publicKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 		String encrypted = Secrets.encryptSecret(publicKey, "drifty-self-test");
 		if (encrypted == null || encrypted.isBlank()) {
@@ -570,7 +572,7 @@ public class GitHubCheck {
 	 * where {@code drifty --config export.pkl} then looks, so the first check
 	 * after an export is already warm.
 	 */
-	static Path stateFile(String statePath, Path beside) {
+	static Path stateFile(@Nullable String statePath, Path beside) {
 		return statePath != null ? Path.of(statePath)
 				: beside.toAbsolutePath().resolveSibling("drifty-state.json");
 	}
@@ -607,7 +609,7 @@ public class GitHubCheck {
 		return requested;
 	}
 
-	static String optionValue(List<String> argsList, String option) {
+	static @Nullable String optionValue(List<String> argsList, String option) {
 		int index = argsList.indexOf(option);
 		return (index >= 0 && index + 1 < argsList.size())
 				? argsList.get(index + 1)

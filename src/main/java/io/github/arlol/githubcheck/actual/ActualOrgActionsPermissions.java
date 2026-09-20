@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.actual;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
@@ -21,7 +23,7 @@ public record ActualOrgActionsPermissions(
 		ActionsEnabledRepositories enabledRepositories,
 		AllowedActions allowedActions,
 		boolean shaPinningRequired,
-		ActualSelectedActions selectedActions,
+		@Nullable ActualSelectedActions selectedActions,
 		List<String> selectedRepositories
 ) {
 

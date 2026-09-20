@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -159,7 +161,7 @@ public class OrgRunnerGroupsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 	private static RunnerGroupRequest request(
 			String name,
 			Drifty.RunnerGroup wanted,
-			List<Long> selectedRepositoryIds
+			@Nullable List<Long> selectedRepositoryIds
 	) {
 		return new RunnerGroupRequest(
 				name,
@@ -172,7 +174,7 @@ public class OrgRunnerGroupsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 	}
 
 	/** The ids of the named repositories, or null when one is unknown. */
-	private List<Long> ids(List<String> repositories) {
+	private @Nullable List<Long> ids(List<String> repositories) {
 		var ids = new ArrayList<Long>();
 		for (String repository : repositories) {
 			Long id = repositoryIds.get(repository);

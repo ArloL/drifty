@@ -4,6 +4,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Body of {@code PUT /orgs/{org}/properties/schema/{name}}. The PUT replaces
  * the definition, so {@code default_value} and {@code description} are sent
@@ -19,10 +21,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public record CustomPropertyRequest(
 		String valueType,
 		boolean required,
-		@JsonInclude(JsonInclude.Include.ALWAYS) Object defaultValue,
-		@JsonInclude(JsonInclude.Include.ALWAYS) String description,
-		List<String> allowedValues,
-		String valuesEditableBy
+		@JsonInclude(JsonInclude.Include.ALWAYS) @Nullable Object defaultValue,
+		@JsonInclude(JsonInclude.Include.ALWAYS) @Nullable String description,
+		@Nullable List<String> allowedValues,
+		@Nullable String valuesEditableBy
 ) {
 
 	public CustomPropertyRequest {

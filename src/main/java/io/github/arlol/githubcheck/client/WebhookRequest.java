@@ -4,6 +4,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Body of the webhook POST and PATCH. {@code name} is only sent on creation,
  * where the repository endpoint requires the literal {@code web}; {@code
@@ -24,7 +26,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 				"name — GitHub requires it as web on the create, which is why the record carries it; the PATCH schema omits it" }
 )
 public record WebhookRequest(
-		String name,
+		@Nullable String name,
 		Config config,
 		List<String> events,
 		boolean active
@@ -38,7 +40,7 @@ public record WebhookRequest(
 	public record Config(
 			String url,
 			String contentType,
-			String secret,
+			@Nullable String secret,
 			String insecureSsl
 	) {
 	}

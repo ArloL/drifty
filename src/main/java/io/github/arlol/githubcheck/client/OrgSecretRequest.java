@@ -4,6 +4,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Body of {@code PUT /orgs/{org}/actions/secrets/{name}}. {@code
  * selectedRepositoryIds} is only meaningful when visibility is {@code
@@ -16,7 +18,7 @@ public record OrgSecretRequest(
 		String encryptedValue,
 		String keyId,
 		SecretVisibility visibility,
-		List<Long> selectedRepositoryIds
+		@Nullable List<Long> selectedRepositoryIds
 ) {
 
 	public OrgSecretRequest {
