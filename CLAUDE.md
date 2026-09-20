@@ -568,6 +568,20 @@ raise it by widening the excludes.
   model is GitHub rejecting or normalising a value, which is deliberate:
   which rules a target accepts is not checked anywhere, and GitHub's 422 is
   the report.
+- **A group whose write replaces rather than patches wants that test twice
+  over.** `PUT /repos/{owner}/{repo}/branches/{branch}/protection` replaces
+  the whole protection, so a field `BranchProtectionDriftGroup` compares but
+  does not put is not merely left drifted — fixing any other field on that
+  branch turns it off, and the run reports FIXED. That is a `--fix` that
+  removes protection a config asked for.
+  `BranchProtectionFixConvergenceTest` runs the maximal config against both an
+  unprotected branch and one protected at every default, for that reason.
+  Here the request and the response are not the same document, so the test
+  carries a translation: `enforce_admins` goes out a boolean and comes back
+  `{"enabled": true}`, an actor goes out a login and comes back an object
+  carrying one. Keep that translation to the wire shape and nothing else — a
+  simulation that started reproducing the group's own semantics would agree
+  with a bug rather than find it.
 - **An item drifty reports but never writes is `DriftFix.reported`.** The
   `Would fix:` preview names the groups holding at least one fix that can act,
   so a `new DriftFix(item, () -> FixResult.unfixed(...))` built by hand is
