@@ -108,6 +108,8 @@
             "com.github.tomakehurst.wiremock.http.Fault",
             "java.util.List",
             "com.github.tomakehurst.wiremock.extension.Parameters",
+            "java.lang.Boolean",
+            "java.lang.Boolean",
             "java.lang.Boolean"
           ]
         },
@@ -149,6 +151,14 @@
         },
         {
           "name": "getJsonBody",
+          "parameterTypes": []
+        },
+        {
+          "name": "getOpenSseChannel",
+          "parameterTypes": []
+        },
+        {
+          "name": "getOpenWebsocketChannel",
           "parameterTypes": []
         },
         {

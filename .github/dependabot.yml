@@ -7,6 +7,10 @@ updates:
   cooldown:
     default-days: 7
   open-pull-requests-limit: 10
+  groups:
+    wiremock:
+      patterns:
+      - "org.wiremock:*"
 - package-ecosystem: "github-actions"
   directory: "/"
   schedule:
