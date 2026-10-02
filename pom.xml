@@ -36,7 +36,7 @@
 		     make impossible. -->
 		<pkl.version>0.32.1</pkl.version>
 		<error-prone.version>2.50.0</error-prone.version>
-		<nullaway.version>0.14.1</nullaway.version>
+		<nullaway.version>0.14.2</nullaway.version>
 	</properties>
 
 	<profiles>
