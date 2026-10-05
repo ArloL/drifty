@@ -38,6 +38,7 @@ import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
 import io.github.arlol.githubcheck.actual.StatusCheck;
+import io.github.arlol.githubcheck.actual.UnavailableFeatures;
 import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.MergeCommitMessage;
@@ -454,7 +455,8 @@ class SchemaCoverageTest {
 				new ActualCollaborators(
 						Map.of("alice", "admin"),
 						Map.of("platform", "push")
-				)
+				),
+				UnavailableFeatures.NONE
 		);
 	}
 

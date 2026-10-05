@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -15,6 +17,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
+import io.github.arlol.githubcheck.actual.UnavailableFeatures;
 import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.RepoRef;
@@ -49,6 +52,7 @@ import io.github.arlol.githubcheck.drift.SecretScanningNonProviderPatternsDriftG
 import io.github.arlol.githubcheck.drift.SecretScanningPushProtectionDriftGroup;
 import io.github.arlol.githubcheck.drift.SecretScanningValidityChecksDriftGroup;
 import io.github.arlol.githubcheck.drift.TopicsDriftGroup;
+import io.github.arlol.githubcheck.drift.UnavailableDriftGroup;
 import io.github.arlol.githubcheck.drift.VulnerabilityAlertsDriftGroup;
 import io.github.arlol.githubcheck.drift.WebhooksDriftGroup;
 import io.github.arlol.githubcheck.drift.WorkflowPermissionsDriftGroup;
@@ -320,6 +324,7 @@ public class RepositoryChecker {
 	) {
 		var ref = actual.ref();
 		ActualSecurityAndAnalysis security = actual.securityAndAnalysis();
+		UnavailableFeatures unavailable = actual.unavailable();
 		ManagedGroups<Drifty.GroupName> managed = ManagedGroups
 				.of(desired.managed);
 
@@ -353,6 +358,7 @@ public class RepositoryChecker {
 				new RepoSettingsDriftGroup(
 						desired,
 						actual.repository(),
+						unavailable.wiki(),
 						client,
 						ref
 				)
@@ -491,19 +497,27 @@ public class RepositoryChecker {
 				)
 		);
 		groups.add(
-				new SecretScanningDriftGroup(
+				unlessUnavailable(
+						unavailable.securityAndAnalysis(),
 						desired.secretScanning,
-						security.secretScanning(),
-						client,
-						ref
+						new SecretScanningDriftGroup(
+								desired.secretScanning,
+								security.secretScanning(),
+								client,
+								ref
+						)
 				)
 		);
 		groups.add(
-				new SecretScanningPushProtectionDriftGroup(
+				unlessUnavailable(
+						unavailable.securityAndAnalysis(),
 						desired.secretScanningPushProtection,
-						security.secretScanningPushProtection(),
-						client,
-						ref
+						new SecretScanningPushProtectionDriftGroup(
+								desired.secretScanningPushProtection,
+								security.secretScanningPushProtection(),
+								client,
+								ref
+						)
 				)
 		);
 		groups.add(
@@ -515,61 +529,89 @@ public class RepositoryChecker {
 				)
 		);
 		groups.add(
-				new CodeScanningDefaultSetupDriftGroup(
+				unlessUnavailable(
+						unavailable.codeScanning(),
 						desired.codeScanningDefaultSetup,
-						actual.codeScanningDefaultSetup(),
-						client,
-						ref
+						new CodeScanningDefaultSetupDriftGroup(
+								desired.codeScanningDefaultSetup,
+								actual.codeScanningDefaultSetup(),
+								client,
+								ref
+						)
 				)
 		);
 		groups.add(
-				new SecretScanningNonProviderPatternsDriftGroup(
+				unlessUnavailable(
+						unavailable.securityAndAnalysis(),
 						desired.secretScanningNonProviderPatterns,
-						security.secretScanningNonProviderPatterns(),
-						client,
-						ref
+						new SecretScanningNonProviderPatternsDriftGroup(
+								desired.secretScanningNonProviderPatterns,
+								security.secretScanningNonProviderPatterns(),
+								client,
+								ref
+						)
 				)
 		);
 		groups.add(
-				new SecretScanningValidityChecksDriftGroup(
+				unlessUnavailable(
+						unavailable.securityAndAnalysis(),
 						desired.secretScanningValidityChecks,
-						security.secretScanningValidityChecks(),
-						client,
-						ref
+						new SecretScanningValidityChecksDriftGroup(
+								desired.secretScanningValidityChecks,
+								security.secretScanningValidityChecks(),
+								client,
+								ref
+						)
 				)
 		);
 		groups.add(
-				new AdvancedSecurityDriftGroup(
+				unlessUnavailable(
+						unavailable.securityAndAnalysis(),
 						desired.advancedSecurity,
-						security.advancedSecurity(),
-						client,
-						ref
+						new AdvancedSecurityDriftGroup(
+								desired.advancedSecurity,
+								security.advancedSecurity(),
+								client,
+								ref
+						)
 				)
 		);
 		groups.add(
-				new SecretScanningAiDetectionDriftGroup(
+				unlessUnavailable(
+						unavailable.securityAndAnalysis(),
 						desired.secretScanningAiDetection,
-						security.secretScanningAiDetection(),
-						client,
-						ref
+						new SecretScanningAiDetectionDriftGroup(
+								desired.secretScanningAiDetection,
+								security.secretScanningAiDetection(),
+								client,
+								ref
+						)
 				)
 		);
 		groups.add(
-				new SecretScanningDelegatedAlertDismissalDriftGroup(
+				unlessUnavailable(
+						unavailable.securityAndAnalysis(),
 						desired.secretScanningDelegatedAlertDismissal,
-						security.secretScanningDelegatedAlertDismissal(),
-						client,
-						ref
+						new SecretScanningDelegatedAlertDismissalDriftGroup(
+								desired.secretScanningDelegatedAlertDismissal,
+								security.secretScanningDelegatedAlertDismissal(),
+								client,
+								ref
+						)
 				)
 		);
 		groups.add(
-				new SecretScanningDelegatedBypassDriftGroup(
+				unlessUnavailable(
+						unavailable.securityAndAnalysis(),
 						desired.secretScanningDelegatedBypass,
-						desired.secretScanningDelegatedBypassReviewers,
-						security.secretScanningDelegatedBypass(),
-						security.bypassReviewers(),
-						client,
-						ref
+						new SecretScanningDelegatedBypassDriftGroup(
+								desired.secretScanningDelegatedBypass,
+								desired.secretScanningDelegatedBypassReviewers,
+								security.secretScanningDelegatedBypass(),
+								security.bypassReviewers(),
+								client,
+								ref
+						)
 				)
 		);
 
@@ -594,6 +636,22 @@ public class RepositoryChecker {
 		);
 
 		return onlyManaged(groups, managed);
+	}
+
+	/**
+	 * {@code group}, or — when GitHub does not offer this repository its
+	 * feature — a group that reports a config wanting it on with the reason and
+	 * never writes. See {@link UnavailableDriftGroup}.
+	 */
+	private static DriftGroup<Drifty.GroupName> unlessUnavailable(
+			@Nullable String reason,
+			boolean desired,
+			DriftGroup<Drifty.GroupName> group
+	) {
+		if (reason == null) {
+			return group;
+		}
+		return new UnavailableDriftGroup(group.name(), desired, reason);
 	}
 
 	/**

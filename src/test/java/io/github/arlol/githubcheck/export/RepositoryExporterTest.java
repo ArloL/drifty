@@ -27,6 +27,7 @@ import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis.BypassReview
 import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
+import io.github.arlol.githubcheck.actual.UnavailableFeatures;
 import io.github.arlol.githubcheck.client.MergeCommitMessage;
 import io.github.arlol.githubcheck.client.MergeCommitTitle;
 import io.github.arlol.githubcheck.client.RepoRef;
@@ -124,7 +125,8 @@ class RepositoryExporterTest {
 				Map.of(),
 				List.of(),
 				List.of(),
-				null
+				null,
+				UnavailableFeatures.NONE
 		);
 	}
 
@@ -235,7 +237,8 @@ class RepositoryExporterTest {
 					environmentVariables,
 					webhooks,
 					customPropertyValues,
-					collaborators
+					collaborators,
+					UnavailableFeatures.NONE
 			);
 		}
 
@@ -1251,7 +1254,8 @@ class RepositoryExporterTest {
 				notArchived.environmentVariables(),
 				notArchived.webhooks(),
 				notArchived.customPropertyValues(),
-				notArchived.collaborators()
+				notArchived.collaborators(),
+				UnavailableFeatures.NONE
 		);
 
 		PklNode entry = RepositoryExporter.entry(state, List.of(), DEFAULTS);
@@ -1326,7 +1330,8 @@ class RepositoryExporterTest {
 				state.environmentVariables(),
 				state.webhooks(),
 				state.customPropertyValues(),
-				state.collaborators()
+				state.collaborators(),
+				UnavailableFeatures.NONE
 		);
 		List<FetchFailures.Failure> failures = List.of(
 				new FetchFailures.Failure(

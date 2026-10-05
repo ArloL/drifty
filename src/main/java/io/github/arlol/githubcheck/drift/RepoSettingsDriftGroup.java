@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.drift;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +24,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 
 	private final Drifty.Repository desired;
 	private final ActualRepository actual;
+	private final @Nullable String wikiUnavailable;
 	private final GitHubClient client;
 	private final String org;
 	private final String name;
@@ -32,8 +35,24 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 			GitHubClient client,
 			RepoRef ref
 	) {
+		this(desired, actual, null, client, ref);
+	}
+
+	/**
+	 * @param wikiUnavailable why GitHub offers this repository no wiki, or
+	 *                        {@code null} when it does or nobody could say: a
+	 *                        private repository needs a paid plan for one
+	 */
+	public RepoSettingsDriftGroup(
+			Drifty.Repository desired,
+			ActualRepository actual,
+			@Nullable String wikiUnavailable,
+			GitHubClient client,
+			RepoRef ref
+	) {
 		this.desired = desired;
 		this.actual = actual;
+		this.wikiUnavailable = wikiUnavailable;
 		this.client = client;
 		this.org = ref.owner();
 		this.name = ref.name();
@@ -104,12 +123,19 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				)
 		);
 		settings.add(
-				Setting.of(
-						"has_wiki",
-						desired.hasWiki,
-						actual.hasWiki(),
-						b -> b.hasWiki(desired.hasWiki)
-				)
+				wikiUnavailable != null
+						? Setting.unavailable(
+								"has_wiki",
+								desired.hasWiki,
+								actual.hasWiki(),
+								wikiUnavailable
+						)
+						: Setting.of(
+								"has_wiki",
+								desired.hasWiki,
+								actual.hasWiki(),
+								b -> b.hasWiki(desired.hasWiki)
+						)
 		);
 		settings.add(
 				Setting.of(

@@ -248,6 +248,8 @@ All settings below are fields on the `Repository` type in `config/drifty.pkl`. T
 | Merge commit title | `"MERGE_MESSAGE"` | Yes | Yes |
 | Merge commit message | `"PR_TITLE"` | Yes | Yes |
 
+GitHub offers wikis on a private repository only on a paid plan. A private repository whose wiki is off has its owner's plan read — `GET /user` when the owner is the token's own account, `GET /orgs/{org}` otherwise, which carries the plan only for an owner — once per account per run. On `"free"`, `hasWiki = true` is reported as unavailable (see below) instead of compared; on any other plan, or when the plan cannot be read, the wiki is compared as usual.
+
 ### Security Settings
 
 All configurable per-repo via the `Repository` class in `drifty.pkl`, with defaults matching GitHub's defaults.
@@ -266,6 +268,16 @@ All configurable per-repo via the `Repository` class in `drifty.pkl`, with defau
 | Private vulnerability reporting | disabled | Yes | Yes |
 | Code scanning default setup | disabled | Yes | Yes |
 | GitHub Advanced Security (GHAS) | disabled | Yes | Yes |
+
+#### Features a repository cannot have
+
+Some features GitHub does not offer a repository at all, whatever the token can do. A config that wants such a feature off already matches. A config that wants it on is reported as `<path>: want=true unavailable: <reason>`, is left out of `Would fix:`, and `--fix` reports it as FAILED with that reason without sending a request. The fix is a config change or a plan change.
+
+| Feature | Unavailable when |
+|---------|------------------|
+| The eight `security_and_analysis` toggles: secret scanning, push protection, validity checks, non-provider patterns, AI detection, delegated alert dismissal, delegated bypass, GHAS | A private or internal repository owned by a personal account, or one whose `GET /repos/{owner}/{repo}` carries no `security_and_analysis` section |
+| Code scanning default setup | `GET .../code-scanning/default-setup` answers 403 saying code scanning is not enabled for the repository, or that it must be enabled to use code scanning. Any other 403 is still an error. |
+| Wiki | A private repository on an account whose plan is `"free"` (see above) |
 
 ### Workflow Settings
 

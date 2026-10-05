@@ -44,6 +44,126 @@ class GitHubClientTest {
 		client = new GitHubClient(baseUrl, "test-token");
 	}
 
+	// ─── getCodeScanningDefaultSetup
+	// ───────────────────────────────────────────────────────────
+
+	/**
+	 * The 403 a private repository of a Free account answers (issue #202):
+	 * GitHub's own words, which say the repository cannot have code scanning.
+	 */
+	@Test
+	void getCodeScanningDefaultSetup_unavailableIsItsOwnException() {
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/owner/repo/code-scanning/default-setup"
+						)
+				).willReturn(
+						aResponse().withStatus(403)
+								.withBody(
+										"""
+												{
+												  "message": "Code scanning is not enabled for this repository. Please enable code scanning in the repository settings.",
+												  "documentation_url": "https://docs.github.com/rest",
+												  "status": "403"
+												}
+												"""
+								)
+				)
+		);
+
+		assertThatThrownBy(
+				() -> client.getCodeScanningDefaultSetup("owner", "repo")
+		).isInstanceOf(FeatureUnavailableException.class)
+				.hasMessage(
+						"Code scanning is not enabled for this repository. Please enable code scanning in the repository settings."
+				);
+	}
+
+	@Test
+	void getCodeScanningDefaultSetup_unlicensedOrganizationIsUnavailableToo() {
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/owner/repo/code-scanning/default-setup"
+						)
+				).willReturn(
+						aResponse().withStatus(403)
+								.withBody(
+										"""
+												{"message": "Advanced Security must be enabled for this repository to use code scanning."}
+												"""
+								)
+				)
+		);
+
+		assertThatThrownBy(
+				() -> client.getCodeScanningDefaultSetup("owner", "repo")
+		).isInstanceOf(FeatureUnavailableException.class);
+	}
+
+	/** A 403 over the token's scope is not the repository's to answer for. */
+	@Test
+	void getCodeScanningDefaultSetup_aScope403StaysAnError() {
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/owner/repo/code-scanning/default-setup"
+						)
+				).willReturn(
+						aResponse().withStatus(403)
+								.withBody(
+										"""
+												{"message": "Resource not accessible by personal access token"}
+												"""
+								)
+				)
+		);
+
+		assertThatThrownBy(
+				() -> client.getCodeScanningDefaultSetup("owner", "repo")
+		).isInstanceOf(GitHubApiException.class)
+				.isNotInstanceOf(FeatureUnavailableException.class)
+				.hasMessageContaining("403");
+	}
+
+	@Test
+	void getCodeScanningDefaultSetup_aNonJson403StaysAnError() {
+		stubFor(
+				get(
+						urlPathEqualTo(
+								"/repos/owner/repo/code-scanning/default-setup"
+						)
+				).willReturn(aResponse().withStatus(403).withBody("nope"))
+		);
+
+		assertThatThrownBy(
+				() -> client.getCodeScanningDefaultSetup("owner", "repo")
+		).isNotInstanceOf(FeatureUnavailableException.class)
+				.hasMessageContaining("403");
+	}
+
+	// ─── getAuthenticatedUserPlan
+	// ───────────────────────────────────────────────────────────
+
+	@Test
+	void getAuthenticatedUserPlan_readsThePlanName() {
+		stubFor(
+				get(urlPathEqualTo("/user")).willReturn(
+						okJson(
+								"""
+										{"login": "me", "id": 1, "plan": {"name": "free", "space": 976562499, "collaborators": 0, "private_repos": 10000}}
+										"""
+						)
+				)
+		);
+
+		var user = client.getAuthenticatedUserPlan();
+
+		assertThat(user.login()).isEqualTo("me");
+		assertThat(user.plan()).isEqualTo(new AccountPlan("free"));
+	}
+
 	// ─── listOrgRepos
 	// ───────────────────────────────────────────────────────────
 

@@ -36,15 +36,19 @@ public final class SettingTable<B> {
 	 * {@code members_can_create_internal_repositories} outside Enterprise — so
 	 * a description change would fail over a setting that had not drifted.
 	 *
-	 * @param write {@code null} for a setting drifty reports but does not
-	 *              change, paired with {@link #unfixableReason}
+	 * @param write       {@code null} for a setting drifty reports but does not
+	 *                    change, paired with {@link #unfixableReason}
+	 * @param unavailable whether GitHub does not offer the setting to this
+	 *                    entity at all, which the report says in the item
+	 *                    itself rather than only when a fix is attempted
 	 */
 	public record Setting<B>(
 			String path,
 			@Nullable Object wanted,
 			@Nullable Object got,
 			@Nullable Consumer<B> write,
-			@Nullable String unfixableReason
+			@Nullable String unfixableReason,
+			boolean unavailable
 	) {
 
 		public static <B> Setting<B> of(
@@ -53,7 +57,7 @@ public final class SettingTable<B> {
 				Object got,
 				Consumer<B> write
 		) {
-			return new Setting<>(path, wanted, got, write, null);
+			return new Setting<>(path, wanted, got, write, null, false);
 		}
 
 		public static <B> Setting<B> checkOnly(
@@ -62,7 +66,21 @@ public final class SettingTable<B> {
 				Object got,
 				String reason
 		) {
-			return new Setting<>(path, wanted, got, null, reason);
+			return new Setting<>(path, wanted, got, null, reason, false);
+		}
+
+		/**
+		 * A setting GitHub does not offer here: compared as usual, so a config
+		 * that wants what GitHub already has matches, and otherwise reported
+		 * with {@code reason} and never written.
+		 */
+		public static <B> Setting<B> unavailable(
+				String path,
+				Object wanted,
+				Object got,
+				String reason
+		) {
+			return new Setting<>(path, wanted, got, null, reason, true);
 		}
 
 		boolean drifted() {
@@ -74,6 +92,9 @@ public final class SettingTable<B> {
 		}
 
 		DriftItem item() {
+			if (unavailable && unfixableReason != null) {
+				return new DriftItem.Unavailable(path, wanted, unfixableReason);
+			}
 			return new DriftItem.FieldMismatch(path, wanted, got);
 		}
 
@@ -105,7 +126,15 @@ public final class SettingTable<B> {
 				.filter(Setting::drifted)
 				.toList();
 		List<DriftItem> items = drifted.stream().map(Setting::item).toList();
-		return List.of(new DriftFix(items, () -> fix(drifted)));
+		// A table whose only drift is rows nothing writes offers no run: the
+		// Would fix: preview would name the group and --fix send nothing.
+		return List.of(
+				new DriftFix(
+						items,
+						() -> fix(drifted),
+						drifted.stream().anyMatch(Setting::writable)
+				)
+		);
 	}
 
 	private FixResult fix(List<Setting<B>> drifted) {

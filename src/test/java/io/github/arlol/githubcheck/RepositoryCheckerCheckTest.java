@@ -553,9 +553,16 @@ class RepositoryCheckerCheckTest {
 		);
 	}
 
+	/**
+	 * The details below carry no owner, which reads as a personal account's
+	 * private repository — one GitHub offers no secret scanning (issue #202),
+	 * so the config for it does not ask for any.
+	 */
 	private static Drifty.Repository entry(String name) {
 		return Desired.repository(name)
-				.withVisibility(Drifty.Visibility.PRIVATE);
+				.withVisibility(Drifty.Visibility.PRIVATE)
+				.withSecretScanning(false)
+				.withSecretScanningPushProtection(false);
 	}
 
 	/** One owner with one repository, plus that repository's details. */

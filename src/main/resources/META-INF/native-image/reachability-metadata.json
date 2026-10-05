@@ -432,11 +432,40 @@
       "type": "io.github.arlol.githubcheck.actual.StatusCheck"
     },
     {
+      "type": "io.github.arlol.githubcheck.client.AccountPlan",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.ActionsEnabledRepositories",
       "allPublicConstructors": true
     },
     {
       "type": "io.github.arlol.githubcheck.client.AllowedActions",
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.AuthenticatedUserResponse",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "io.github.arlol.githubcheck.client.AccountPlan"
+          ]
+        }
+      ],
+      "allPublicFields": true,
+      "allPublicMethods": true,
       "allPublicConstructors": true
     },
     {
@@ -1542,6 +1571,10 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.FeatureUnavailableException",
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.GitHubApiException",
       "allPublicConstructors": true
     },
@@ -1737,7 +1770,8 @@
             "java.lang.Boolean",
             "java.lang.Boolean",
             "java.lang.Boolean",
-            "java.lang.Boolean"
+            "java.lang.Boolean",
+            "io.github.arlol.githubcheck.client.AccountPlan"
           ]
         }
       ],

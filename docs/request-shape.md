@@ -133,6 +133,14 @@
   sent for — verify against an account that has the feature turned off, not
   only the one it was measured on. The four secret-scanning flags read `false`
   there too and have no endpoint to fall back to.
+- **An account's plan is read once per run, and only when it can change a
+  comparison.** `AccountPlans` sends `GET /user` or `GET /orgs/{org}` for a
+  private repository whose details say its wiki is off, and nowhere else. A
+  repository with a public visibility or its wiki on sends nothing. Every
+  repository of the account waits on the same `FutureTask`, so a second
+  private repository costs nothing. The read waits on the details at the last
+  level, the way `/pages` does. A failed read is treated as no plan, because
+  an account-level 403 is not one repository's error to report.
 - **The config says which repositories to check; the listing runs beside
   them.** `RepositoryChecker.check` submits every repository the config
   declares and does not want archived before it joins

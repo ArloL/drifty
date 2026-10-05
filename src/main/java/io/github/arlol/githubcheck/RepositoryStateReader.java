@@ -14,14 +14,17 @@ import io.github.arlol.githubcheck.actual.ActualBranchProtection;
 import io.github.arlol.githubcheck.actual.ActualCollaborators;
 import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
 import io.github.arlol.githubcheck.actual.ActualEnvironment;
+import io.github.arlol.githubcheck.actual.ActualRepository;
 import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualSecret;
 import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
+import io.github.arlol.githubcheck.actual.UnavailableFeatures;
 import io.github.arlol.githubcheck.client.CollaboratorResponse;
 import io.github.arlol.githubcheck.client.DeploymentBranchPolicyResponse;
 import io.github.arlol.githubcheck.client.EnvironmentDetailsResponse;
+import io.github.arlol.githubcheck.client.FeatureUnavailableException;
 import io.github.arlol.githubcheck.client.GitHubApiException;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.client.GraphQlRepositoryResponse;
@@ -90,10 +93,12 @@ public final class RepositoryStateReader {
 
 	private final GitHubClient client;
 	private final FetchFailures failures;
+	private final AccountPlans plans;
 
 	public RepositoryStateReader(GitHubClient client, FetchFailures failures) {
 		this.client = client;
 		this.failures = failures;
+		this.plans = new AccountPlans(client);
 	}
 
 	/**
@@ -187,6 +192,19 @@ public final class RepositoryStateReader {
 							&& client.getAutomatedSecurityFixes(org, name),
 					false
 			);
+
+			// The owner's plan is asked only where it can change the
+			// comparison: a private repository whose wiki is off, which a
+			// Free account cannot turn on. A public repository or one with its
+			// wiki on sends nothing, and an account's repositories share one
+			// read. It waits on the details the way /pages does, at the last
+			// level.
+			Supplier<@Nullable String> wikiUnavailable = archived ? () -> null
+					: fanout.read(
+							Drifty.GroupName.REPO_SETTINGS,
+							() -> wikiUnavailable(details.get(), org),
+							null
+					);
 
 			Supplier<Map<String, ActualBranchProtection>> branchProtections = fanout
 					.read(
@@ -327,7 +345,14 @@ public final class RepositoryStateReader {
 					envs.variables(),
 					webhooks.get(),
 					customPropertyValues.get(),
-					collaborators.get()
+					collaborators.get(),
+					new UnavailableFeatures(
+							wikiUnavailable.get(),
+							ActualTypes.securityAndAnalysisUnavailable(
+									repoDetails
+							),
+							flags.codeScanningUnavailable()
+					)
 			);
 		}
 	}
@@ -571,10 +596,10 @@ public final class RepositoryStateReader {
 				() -> client.getPrivateVulnerabilityReporting(org, name),
 				false
 		);
-		Supplier<Boolean> codeScanningDefaultSetup = fanout.read(
+		Supplier<CodeScanning> codeScanning = fanout.read(
 				Drifty.GroupName.CODE_SCANNING_DEFAULT_SETUP,
-				() -> client.getCodeScanningDefaultSetup(org, name),
-				false
+				() -> codeScanning(org, name),
+				CodeScanning.OFF
 		);
 		return () -> new SecurityFlags(
 				vulnAlerts.get(),
@@ -582,8 +607,53 @@ public final class RepositoryStateReader {
 						.filter(ImmutableReleasesResponse::enabled)
 						.isPresent(),
 				privateVulnerabilityReporting.get(),
-				codeScanningDefaultSetup.get()
+				codeScanning.get().enabled(),
+				codeScanning.get().unavailable()
 		);
+	}
+
+	/**
+	 * Code scanning default setup, or GitHub's reason the repository cannot
+	 * have it. Its endpoint answers that with a 403, the status a token without
+	 * the scope gets too, so the client tells the two apart by GitHub's message
+	 * and only the second arrives here as a value.
+	 */
+	private CodeScanning codeScanning(String org, String name) {
+		try {
+			return new CodeScanning(
+					client.getCodeScanningDefaultSetup(org, name),
+					null
+			);
+		} catch (FeatureUnavailableException e) {
+			return new CodeScanning(false, e.getMessage());
+		}
+	}
+
+	private record CodeScanning(
+			boolean enabled,
+			@Nullable String unavailable
+	) {
+
+		private static final CodeScanning OFF = new CodeScanning(false, null);
+
+	}
+
+	/**
+	 * Why a private repository whose wiki is off cannot turn it on, or
+	 * {@code null} when it can — or when nothing says otherwise, which is every
+	 * account whose plan the token cannot see.
+	 */
+	private @Nullable String wikiUnavailable(
+			RepositoryDetailsResponse details,
+			String owner
+	) {
+		ActualRepository repository = ActualTypes.repository(details);
+		if (repository.visibility() == RepositoryVisibility.PUBLIC
+				|| repository.hasWiki()) {
+			return null;
+		}
+		return plans
+				.privateWikiUnavailable(owner, repository.organizationOwned());
 	}
 
 	/**
@@ -656,14 +726,16 @@ public final class RepositoryStateReader {
 			boolean vulnAlerts,
 			boolean immutableReleases,
 			boolean privateVulnerabilityReporting,
-			boolean codeScanningDefaultSetup
+			boolean codeScanningDefaultSetup,
+			@Nullable String codeScanningUnavailable
 	) {
 
 		private static final SecurityFlags NONE = new SecurityFlags(
 				false,
 				false,
 				false,
-				false
+				false,
+				null
 		);
 
 	}

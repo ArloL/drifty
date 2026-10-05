@@ -576,6 +576,73 @@ class ActualTypesTest {
 		assertThat(environment.customBranchPolicies()).isFalse();
 	}
 
+	// ─── What a repository cannot have
+	// ──────────────────────────────────────────────────────────
+
+	@Test
+	void aPublicRepositoryHasEverySecurityToggle() {
+		assertThat(
+				ActualTypes.securityAndAnalysisUnavailable(
+						details(
+								"""
+										{"visibility": "public", "owner": {"login": "me", "type": "User"}}
+										"""
+						)
+				)
+		).isNull();
+	}
+
+	/**
+	 * Issue #202: a personal account's private repository reads its secret
+	 * scanning as off, and no write can turn it on.
+	 */
+	@Test
+	void aPersonalAccountsPrivateRepositoryHasNone() {
+		assertThat(
+				ActualTypes.securityAndAnalysisUnavailable(
+						details(
+								"""
+										{
+										  "visibility": "private",
+										  "owner": {"login": "me", "type": "User"},
+										  "security_and_analysis": {"secret_scanning": {"status": "disabled"}}
+										}
+										"""
+						)
+				)
+		).contains("only to organizations");
+	}
+
+	@Test
+	void anOrganizationsPrivateRepositoryWithoutTheSectionHasNone() {
+		assertThat(
+				ActualTypes.securityAndAnalysisUnavailable(
+						details(
+								"""
+										{"visibility": "private", "owner": {"login": "org", "type": "Organization"}}
+										"""
+						)
+				)
+		).contains("no security_and_analysis");
+	}
+
+	@Test
+	void anOrganizationsPrivateRepositoryWithTheSectionMayHaveThem() {
+		assertThat(
+				ActualTypes.securityAndAnalysisUnavailable(
+						details(
+								"""
+										{
+										  "visibility": "private",
+										  "owner": {"login": "org", "type": "Organization"},
+										  "security_and_analysis": {"secret_scanning": {"status": "disabled"}}
+										}
+										"""
+						)
+				)
+		).isNull();
+	}
+
 	// ─── Secrets and workflow permissions
 	// ──────────────────────────────────────────────────────────
 
@@ -735,6 +802,7 @@ class ActualTypesTest {
 				null,
 				null,
 				"main",
+				null,
 				null,
 				null,
 				null,

@@ -489,4 +489,99 @@ class RepoSettingsDriftGroupTest {
 		return (ObjectNode) MAPPER.readTree(request.getBodyAsString());
 	}
 
+	/**
+	 * A private repository of a Free account has no wiki to turn on (issue
+	 * #202): wanting one is reported with the reason and never written, and not
+	 * wanting one is no drift at all.
+	 */
+	@Test
+	void anUnavailableWikiIsReportedWithItsReasonAndNeverWritten() {
+		var details = parseDetails(
+				BASE_DETAILS_JSON
+						.replace("\"has_wiki\": true", "\"has_wiki\": false")
+		);
+		var group = new RepoSettingsDriftGroup(
+				desiredFull(),
+				ActualTypes.repository(details),
+				"no wiki on Free",
+				null,
+				new RepoRef("owner", "repo")
+		);
+
+		List<DriftFix> fixes = group.detect();
+
+		assertThat(fixes).singleElement().satisfies(fix -> {
+			assertThat(fix.actionable()).isFalse();
+			assertThat(fix.items()).singleElement()
+					.isEqualTo(
+							new DriftItem.Unavailable(
+									"repo_settings.has_wiki",
+									true,
+									"no wiki on Free"
+							)
+					);
+			assertThat(fix.fix().execute().unfixedItems()).singleElement()
+					.satisfies(
+							unfixed -> assertThat(unfixed.reason())
+									.isEqualTo("no wiki on Free")
+					);
+		});
+	}
+
+	@Test
+	void anUnavailableWikiTheConfigTurnsOffIsNoDrift() {
+		var details = parseDetails(
+				BASE_DETAILS_JSON
+						.replace("\"has_wiki\": true", "\"has_wiki\": false")
+		);
+		var group = new RepoSettingsDriftGroup(
+				desiredFull().withHasWiki(false),
+				ActualTypes.repository(details),
+				"no wiki on Free",
+				null,
+				new RepoRef("owner", "repo")
+		);
+
+		assertThat(group.detect()).flatMap(DriftFix::items).isEmpty();
+	}
+
+	/**
+	 * Only the wiki row changes: a description drifted beside it is still
+	 * written, and the fix is still offered.
+	 */
+	@Test
+	void anUnavailableWikiLeavesTheOtherRowsWritable(WireMockRuntimeInfo wm) {
+		stubFor(
+				patch(urlPathEqualTo("/repos/owner/repo"))
+						.willReturn(aResponse().withStatus(200).withBody("{}"))
+		);
+		var details = parseDetails(
+				BASE_DETAILS_JSON
+						.replace("\"has_wiki\": true", "\"has_wiki\": false")
+		);
+		var group = new RepoSettingsDriftGroup(
+				desired("Desired description"),
+				ActualTypes.repository(details),
+				"no wiki on Free",
+				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
+				new RepoRef("owner", "repo")
+		);
+
+		DriftFix fix = group.detect().getFirst();
+
+		assertThat(fix.actionable()).isTrue();
+		assertThat(fix.fix().execute().unfixedItems())
+				.extracting(unfixed -> unfixed.item().path())
+				.containsExactly("repo_settings.has_wiki");
+		List<LoggedRequest> patches = findAll(
+				patchRequestedFor(urlPathEqualTo("/repos/owner/repo"))
+		);
+		assertThat(patches).singleElement()
+				.satisfies(
+						request -> assertThat(request.getBodyAsString())
+								.contains("description")
+								.doesNotContain("has_wiki")
+				);
+	}
+
 }
