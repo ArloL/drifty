@@ -29,6 +29,7 @@ import io.github.arlol.githubcheck.client.RepoRef;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.testsupport.Desired;
+import io.github.arlol.githubcheck.testsupport.PatchResponse;
 
 @WireMockTest
 class RepoSettingsDriftGroupTest {
@@ -553,7 +554,7 @@ class RepoSettingsDriftGroupTest {
 	void anUnavailableWikiLeavesTheOtherRowsWritable(WireMockRuntimeInfo wm) {
 		stubFor(
 				patch(urlPathEqualTo("/repos/owner/repo"))
-						.willReturn(aResponse().withStatus(200).withBody("{}"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 		var details = parseDetails(
 				BASE_DETAILS_JSON
@@ -582,6 +583,104 @@ class RepoSettingsDriftGroupTest {
 								.contains("description")
 								.doesNotContain("has_wiki")
 				);
+	}
+
+	/**
+	 * The other direction of the test above: every writable row, written and
+	 * answered by a GitHub that applied it, reads back as fixed. A row whose
+	 * write and comparison named different fields would be reported as not
+	 * applied here, since the answer would carry the field it compared
+	 * unchanged.
+	 */
+	@Test
+	void everyWritableSettingIsConfirmedByTheAnswerOfAPatchThatTookIt(
+			WireMockRuntimeInfo wm
+	) throws Exception {
+		ObjectNode before = (ObjectNode) MAPPER
+				.readTree(PatchResponse.REPOSITORY);
+		before.setAll((ObjectNode) MAPPER.readTree(ALL_DRIFTED_DETAILS_JSON));
+		stubFor(
+				patch(urlPathEqualTo("/repos/myorg/repo"))
+						.willReturn(PatchResponse.applying(before.toString()))
+		);
+		var group = new RepoSettingsDriftGroup(
+				desiredFull(),
+				ActualTypes.repository(parseDetails(before.toString())),
+				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
+				new RepoRef("myorg", "repo")
+		);
+
+		FixResult result = group.detect().getFirst().fix().execute();
+
+		assertThat(result.unfixedItems())
+				.as("only visibility, which is never sent")
+				.extracting(unfixed -> unfixed.item().path())
+				.containsExactly("repo_settings.visibility");
+	}
+
+	/**
+	 * Issue #203: GitHub answers 200 to {@code allow_auto_merge} on a private
+	 * repository of a Free account and leaves it off. The answer says so, and
+	 * the fix is reported as failed rather than FIXED and drifted again on the
+	 * next run.
+	 */
+	@Test
+	void aSettingGitHubAcceptsAndIgnoresIsNotFixed(WireMockRuntimeInfo wm) {
+		stubFor(
+				patch(urlPathEqualTo("/repos/owner/repo")).willReturn(
+						PatchResponse.ignoring(PatchResponse.REPOSITORY)
+				)
+		);
+		var group = new RepoSettingsDriftGroup(
+				Desired.repository("repo").withAllowAutoMerge(true),
+				ActualTypes.repository(parseDetails(PatchResponse.REPOSITORY)),
+				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
+				new RepoRef("owner", "repo")
+		);
+
+		FixResult result = group.detect().getFirst().fix().execute();
+
+		assertThat(result.unfixedItems()).singleElement().satisfies(unfixed -> {
+			assertThat(unfixed.item().path())
+					.isEqualTo("repo_settings.allow_auto_merge");
+			assertThat(unfixed.reason()).isEqualTo(
+					"GitHub accepted the change but did not apply it: it still reports false"
+			);
+		});
+	}
+
+	/**
+	 * One field ignored does not make the rest of the same PATCH unfixed: each
+	 * is read back on its own.
+	 */
+	@Test
+	void anIgnoredSettingLeavesTheOthersInTheSamePatchFixed(
+			WireMockRuntimeInfo wm
+	) throws Exception {
+		ObjectNode answer = (ObjectNode) MAPPER
+				.readTree(PatchResponse.REPOSITORY);
+		answer.put("description", "Desired description");
+		stubFor(
+				patch(urlPathEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.ignoring(answer.toString()))
+		);
+		var group = new RepoSettingsDriftGroup(
+				Desired.repository("repo")
+						.withDescription("Desired description")
+						.withAllowAutoMerge(true),
+				ActualTypes.repository(parseDetails(PatchResponse.REPOSITORY)),
+				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
+				new RepoRef("owner", "repo")
+		);
+
+		FixResult result = group.detect().getFirst().fix().execute();
+
+		assertThat(result.unfixedItems())
+				.extracting(unfixed -> unfixed.item().path())
+				.containsExactly("repo_settings.allow_auto_merge");
+		assertThat(
+				findAll(patchRequestedFor(urlPathEqualTo("/repos/owner/repo")))
+		).as("a 200 is not re-sent field by field").hasSize(1);
 	}
 
 }

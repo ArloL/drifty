@@ -25,6 +25,18 @@
   reports only the ones that fail again. Collapsing that back to
   "the request threw, so nothing was fixed" is what made a run report every
   setting unfixed after GitHub had already changed most of them.
+- **An accepted PATCH is not an applied one either.** GitHub answers 200 to
+  a field it ignores. For example, `allow_auto_merge` on a private repository
+  of a Free account stays off, so a run printed FIXED and the next run
+  reported the same drift (issue #203). `updateRepository` and
+  `updateOrganization` return the entity GitHub answers with. `SettingTable`
+  reads each written row back through the same accessor the comparison used,
+  and a row that still differs is unfixed with the value GitHub kept. That is
+  why a row's `read` is a function rather than a value. Test stubs answer
+  with `testsupport.PatchResponse`, because a `{}` answer now means every
+  field is unset. The eight `security_and_analysis` groups and `archived`
+  ignore the answer, so they can still report FIXED for a write GitHub
+  ignored.
 - **The team POST and PATCH need different bodies.** `TeamRequest` serializes
   `parent_team_id` even when null because that is how the PATCH removes a
   parent, but `POST /orgs/{org}/teams` answers 422 to that null instead of

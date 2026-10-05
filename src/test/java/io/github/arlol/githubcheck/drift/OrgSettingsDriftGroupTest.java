@@ -24,6 +24,7 @@ import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.testsupport.Actual;
 import io.github.arlol.githubcheck.testsupport.Desired;
+import io.github.arlol.githubcheck.testsupport.PatchResponse;
 
 @WireMockTest
 class OrgSettingsDriftGroupTest {
@@ -150,6 +151,62 @@ class OrgSettingsDriftGroupTest {
 
 	private static ObjectNode body(LoggedRequest request) throws Exception {
 		return (ObjectNode) MAPPER.readTree(request.getBodyAsString());
+	}
+
+	/**
+	 * Every writable row, answered by a GitHub that applied it, reads back as
+	 * fixed — a row whose write named a different field than it compared would
+	 * read back unchanged and be reported as not applied.
+	 */
+	@Test
+	void everyWritableSettingIsConfirmedByTheAnswerOfAPatchThatTookIt(
+			WireMockRuntimeInfo wm
+	) {
+		stubFor(
+				patch(urlPathEqualTo("/orgs/my-org"))
+						.willReturn(PatchResponse.applyingToOrganization())
+		);
+		var group = new OrgSettingsDriftGroup(
+				Desired.organization(),
+				Actual.driftedOrganization(),
+				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
+				"my-org"
+		);
+
+		FixResult result = group.detect().getFirst().fix().execute();
+
+		assertThat(result.unfixedItems())
+				.as("only the settings the PATCH does not accept")
+				.hasSize(10)
+				.allSatisfy(
+						unfixed -> assertThat(unfixed.reason())
+								.startsWith("cannot be changed through the API")
+				);
+	}
+
+	@Test
+	void aSettingGitHubAcceptsAndIgnoresIsNotFixed(WireMockRuntimeInfo wm) {
+		stubFor(
+				patch(urlPathEqualTo("/orgs/my-org")).willReturn(
+						PatchResponse.ignoring(PatchResponse.ORGANIZATION)
+				)
+		);
+		var group = new OrgSettingsDriftGroup(
+				Desired.organization().withDescription("wanted"),
+				Actual.organization(),
+				new GitHubClient(wm.getHttpBaseUrl(), "test-token"),
+				"my-org"
+		);
+
+		FixResult result = group.detect().getFirst().fix().execute();
+
+		assertThat(result.unfixedItems()).singleElement().satisfies(unfixed -> {
+			assertThat(unfixed.item().path())
+					.isEqualTo("org_settings.description");
+			assertThat(unfixed.reason()).startsWith(
+					"GitHub accepted the change but did not apply it"
+			);
+		});
 	}
 
 }

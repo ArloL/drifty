@@ -1783,7 +1783,11 @@ public class GitHubClient {
 		}
 	}
 
-	public void updateRepository(
+	/**
+	 * Answers the repository as GitHub holds it after the PATCH, which is not
+	 * always what was sent: GitHub answers 200 to a field it ignores.
+	 */
+	public RepositoryDetailsResponse updateRepository(
 			String owner,
 			String repo,
 			RepositoryUpdateRequest request
@@ -1796,6 +1800,7 @@ public class GitHubClient {
 							+ repo + ": " + resp.body()
 			);
 		}
+		return readValue(resp.body(), RepositoryDetailsResponse.class);
 	}
 
 	public Optional<PagesResponse> getPages(String owner, String repo) {
@@ -2303,7 +2308,11 @@ public class GitHubClient {
 		return Optional.of(readValue(resp.body(), OrganizationResponse.class));
 	}
 
-	public void updateOrganization(
+	/**
+	 * Answers the organization as GitHub holds it after the PATCH — see
+	 * {@link #updateRepository}.
+	 */
+	public OrganizationResponse updateOrganization(
 			String org,
 			OrganizationUpdateRequest request
 	) {
@@ -2314,6 +2323,7 @@ public class GitHubClient {
 							+ org + ": " + resp.body()
 			);
 		}
+		return readValue(resp.body(), OrganizationResponse.class);
 	}
 
 	public OrgActionsPermissionsResponse getOrgActionsPermissions(String org) {

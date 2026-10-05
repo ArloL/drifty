@@ -29,6 +29,7 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.testsupport.Desired;
 import io.github.arlol.githubcheck.testsupport.GraphQlStub;
+import io.github.arlol.githubcheck.testsupport.PatchResponse;
 
 /**
  * Covers {@link RepositoryChecker#check}, and in particular which account each
@@ -306,7 +307,7 @@ class RepositoryCheckerCheckTest {
 		);
 		stubFor(
 				patch(urlPathMatching("/repos/[^/]+/[^/]+"))
-						.willReturn(okJson("{}"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 		stubFor(
 				put(urlPathMatching("/repos/[^/]+/[^/]+/vulnerability-alerts"))
@@ -354,7 +355,7 @@ class RepositoryCheckerCheckTest {
 		);
 		stubFor(
 				patch(urlPathMatching("/repos/[^/]+/[^/]+"))
-						.willReturn(okJson("{}"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 		stubFor(
 				put(urlPathMatching("/repos/[^/]+/[^/]+/vulnerability-alerts"))

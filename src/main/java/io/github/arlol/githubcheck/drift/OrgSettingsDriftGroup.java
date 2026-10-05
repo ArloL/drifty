@@ -7,6 +7,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.github.arlol.githubcheck.ActualTypes;
 import io.github.arlol.githubcheck.PklTypes;
 import io.github.arlol.githubcheck.actual.ActualOrganization;
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -62,18 +63,21 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 	protected List<DriftFix> detectDrift() {
 		return new SettingTable<>(
 				OrganizationUpdateRequest::builder,
-				builder -> client.updateOrganization(org, builder.build()),
+				builder -> ActualTypes.organization(
+						client.updateOrganization(org, builder.build())
+				),
+				present(),
 				settings()
 		).detect();
 	}
 
-	private List<Setting<OrganizationUpdateRequest.Builder>> settings() {
-		var settings = new ArrayList<Setting<OrganizationUpdateRequest.Builder>>();
+	private List<Setting<OrganizationUpdateRequest.Builder, ActualOrganization>> settings() {
+		var settings = new ArrayList<Setting<OrganizationUpdateRequest.Builder, ActualOrganization>>();
 		settings.add(
 				Setting.of(
 						"name",
 						desired.displayName,
-						present().displayName(),
+						ActualOrganization::displayName,
 						b -> b.name(desired.displayName)
 				)
 		);
@@ -81,7 +85,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"description",
 						desired.description,
-						present().description(),
+						ActualOrganization::description,
 						b -> b.description(desired.description)
 				)
 		);
@@ -89,7 +93,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"blog",
 						desired.websiteUrl,
-						present().websiteUrl(),
+						ActualOrganization::websiteUrl,
 						b -> b.blog(desired.websiteUrl)
 				)
 		);
@@ -97,7 +101,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"company",
 						desired.company,
-						present().company(),
+						ActualOrganization::company,
 						b -> b.company(desired.company)
 				)
 		);
@@ -105,7 +109,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"email",
 						desired.email,
-						present().email(),
+						ActualOrganization::email,
 						b -> b.email(desired.email)
 				)
 		);
@@ -113,7 +117,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"location",
 						desired.location,
-						present().location(),
+						ActualOrganization::location,
 						b -> b.location(desired.location)
 				)
 		);
@@ -121,7 +125,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"twitter_username",
 						desired.twitterUsername,
-						present().twitterUsername(),
+						ActualOrganization::twitterUsername,
 						b -> b.twitterUsername(desired.twitterUsername)
 				)
 		);
@@ -129,7 +133,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"has_organization_projects",
 						desired.hasOrganizationProjects,
-						present().hasOrganizationProjects(),
+						ActualOrganization::hasOrganizationProjects,
 						b -> b.hasOrganizationProjects(
 								desired.hasOrganizationProjects
 						)
@@ -139,7 +143,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"has_repository_projects",
 						desired.hasRepositoryProjects,
-						present().hasRepositoryProjects(),
+						ActualOrganization::hasRepositoryProjects,
 						b -> b.hasRepositoryProjects(
 								desired.hasRepositoryProjects
 						)
@@ -151,7 +155,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 						PklTypes.repositoryPermission(
 								desired.defaultRepositoryPermission
 						),
-						present().defaultRepositoryPermission(),
+						ActualOrganization::defaultRepositoryPermission,
 						b -> b.defaultRepositoryPermission(
 								PklTypes.repositoryPermission(
 										desired.defaultRepositoryPermission
@@ -163,7 +167,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"members_can_create_repositories",
 						desired.membersCanCreateRepositories,
-						present().membersCanCreateRepositories(),
+						ActualOrganization::membersCanCreateRepositories,
 						b -> b.membersCanCreateRepositories(
 								desired.membersCanCreateRepositories
 						)
@@ -173,7 +177,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"members_can_create_public_repositories",
 						desired.membersCanCreatePublicRepositories,
-						present().membersCanCreatePublicRepositories(),
+						ActualOrganization::membersCanCreatePublicRepositories,
 						b -> b.membersCanCreatePublicRepositories(
 								desired.membersCanCreatePublicRepositories
 						)
@@ -183,7 +187,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"members_can_create_private_repositories",
 						desired.membersCanCreatePrivateRepositories,
-						present().membersCanCreatePrivateRepositories(),
+						ActualOrganization::membersCanCreatePrivateRepositories,
 						b -> b.membersCanCreatePrivateRepositories(
 								desired.membersCanCreatePrivateRepositories
 						)
@@ -193,7 +197,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"members_can_create_internal_repositories",
 						desired.membersCanCreateInternalRepositories,
-						present().membersCanCreateInternalRepositories(),
+						ActualOrganization::membersCanCreateInternalRepositories,
 						b -> b.membersCanCreateInternalRepositories(
 								desired.membersCanCreateInternalRepositories
 						)
@@ -203,7 +207,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"members_can_create_pages",
 						desired.membersCanCreatePages,
-						present().membersCanCreatePages(),
+						ActualOrganization::membersCanCreatePages,
 						b -> b.membersCanCreatePages(
 								desired.membersCanCreatePages
 						)
@@ -213,7 +217,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"members_can_create_public_pages",
 						desired.membersCanCreatePublicPages,
-						present().membersCanCreatePublicPages(),
+						ActualOrganization::membersCanCreatePublicPages,
 						b -> b.membersCanCreatePublicPages(
 								desired.membersCanCreatePublicPages
 						)
@@ -223,7 +227,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"members_can_create_private_pages",
 						desired.membersCanCreatePrivatePages,
-						present().membersCanCreatePrivatePages(),
+						ActualOrganization::membersCanCreatePrivatePages,
 						b -> b.membersCanCreatePrivatePages(
 								desired.membersCanCreatePrivatePages
 						)
@@ -233,7 +237,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"members_can_fork_private_repositories",
 						desired.membersCanForkPrivateRepositories,
-						present().membersCanForkPrivateRepositories(),
+						ActualOrganization::membersCanForkPrivateRepositories,
 						b -> b.membersCanForkPrivateRepositories(
 								desired.membersCanForkPrivateRepositories
 						)
@@ -243,7 +247,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"web_commit_signoff_required",
 						desired.webCommitSignoffRequired,
-						present().webCommitSignoffRequired(),
+						ActualOrganization::webCommitSignoffRequired,
 						b -> b.webCommitSignoffRequired(
 								desired.webCommitSignoffRequired
 						)
@@ -253,7 +257,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.of(
 						"deploy_keys_enabled_for_repositories",
 						desired.deployKeysEnabledForRepositories,
-						present().deployKeysEnabledForRepositories(),
+						ActualOrganization::deployKeysEnabledForRepositories,
 						b -> b.deployKeysEnabledForRepositories(
 								desired.deployKeysEnabledForRepositories
 						)
@@ -263,7 +267,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.checkOnly(
 						"default_repository_branch",
 						desired.defaultRepositoryBranch,
-						present().defaultRepositoryBranch(),
+						ActualOrganization::defaultRepositoryBranch,
 						NOT_WRITABLE
 				)
 		);
@@ -271,7 +275,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.checkOnly(
 						"two_factor_requirement_enabled",
 						desired.twoFactorRequirementEnabled,
-						present().twoFactorRequirementEnabled(),
+						ActualOrganization::twoFactorRequirementEnabled,
 						NOT_WRITABLE
 				)
 		);
@@ -279,7 +283,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.checkOnly(
 						"members_can_delete_repositories",
 						desired.membersCanDeleteRepositories,
-						present().membersCanDeleteRepositories(),
+						ActualOrganization::membersCanDeleteRepositories,
 						NOT_WRITABLE
 				)
 		);
@@ -287,7 +291,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.checkOnly(
 						"members_can_change_repo_visibility",
 						desired.membersCanChangeRepoVisibility,
-						present().membersCanChangeRepoVisibility(),
+						ActualOrganization::membersCanChangeRepoVisibility,
 						NOT_WRITABLE
 				)
 		);
@@ -295,7 +299,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.checkOnly(
 						"members_can_invite_outside_collaborators",
 						desired.membersCanInviteOutsideCollaborators,
-						present().membersCanInviteOutsideCollaborators(),
+						ActualOrganization::membersCanInviteOutsideCollaborators,
 						NOT_WRITABLE
 				)
 		);
@@ -303,7 +307,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.checkOnly(
 						"members_can_delete_issues",
 						desired.membersCanDeleteIssues,
-						present().membersCanDeleteIssues(),
+						ActualOrganization::membersCanDeleteIssues,
 						NOT_WRITABLE
 				)
 		);
@@ -311,7 +315,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.checkOnly(
 						"members_can_create_teams",
 						desired.membersCanCreateTeams,
-						present().membersCanCreateTeams(),
+						ActualOrganization::membersCanCreateTeams,
 						NOT_WRITABLE
 				)
 		);
@@ -319,7 +323,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.checkOnly(
 						"members_can_view_dependency_insights",
 						desired.membersCanViewDependencyInsights,
-						present().membersCanViewDependencyInsights(),
+						ActualOrganization::membersCanViewDependencyInsights,
 						NOT_WRITABLE
 				)
 		);
@@ -327,7 +331,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.checkOnly(
 						"readers_can_create_discussions",
 						desired.readersCanCreateDiscussions,
-						present().readersCanCreateDiscussions(),
+						ActualOrganization::readersCanCreateDiscussions,
 						NOT_WRITABLE
 				)
 		);
@@ -335,7 +339,7 @@ public class OrgSettingsDriftGroup extends DriftGroup<Drifty.OrgGroupName> {
 				Setting.checkOnly(
 						"display_commenter_full_name_setting_enabled",
 						desired.displayCommenterFullNameSettingEnabled,
-						present().displayCommenterFullNameSettingEnabled(),
+						ActualOrganization::displayCommenterFullNameSettingEnabled,
 						NOT_WRITABLE
 				)
 		);

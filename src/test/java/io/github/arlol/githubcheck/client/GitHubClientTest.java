@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.client;
 
+import io.github.arlol.githubcheck.testsupport.PatchResponse;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.delete;
@@ -1238,7 +1240,10 @@ class GitHubClientTest {
 
 	@Test
 	void updateOrganization_sendsOnlySetFields() {
-		stubFor(patch(urlPathEqualTo("/orgs/my-org")).willReturn(okJson("{}")));
+		stubFor(
+				patch(urlPathEqualTo("/orgs/my-org"))
+						.willReturn(PatchResponse.applyingToOrganization())
+		);
 
 		client.updateOrganization(
 				"my-org",
