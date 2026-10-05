@@ -55,6 +55,7 @@ import io.github.arlol.githubcheck.client.OrgVariableResponse;
 import io.github.arlol.githubcheck.client.OrganizationResponse;
 import io.github.arlol.githubcheck.client.PagesResponse;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
+import io.github.arlol.githubcheck.client.RepositoryVisibility;
 import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetRuleType;
@@ -620,6 +621,34 @@ public final class ActualTypes {
 				enabled(sa, SecurityAndAnalysis::secretScanningDelegatedBypass),
 				bypassReviewers(sa)
 		);
+	}
+
+	/**
+	 * Why GitHub offers this repository none of the
+	 * {@code security_and_analysis} toggles, or {@code null} when it may.
+	 * <p>
+	 * A public repository has them all. A private one has them only under an
+	 * organization that pays for them: never under a personal account, and not
+	 * where GitHub leaves the section out altogether, which it does for an
+	 * account with none of the features. Comparing them anyway read the
+	 * schema's {@code secretScanning = true} default as drift on every such
+	 * repository, with a {@code --fix} GitHub cannot carry out (issue #202).
+	 */
+	public static @Nullable String securityAndAnalysisUnavailable(
+			RepositoryDetailsResponse response
+	) {
+		if (response.visibility() == RepositoryVisibility.PUBLIC) {
+			return null;
+		}
+		if (!repository(response).organizationOwned()) {
+			return "GitHub offers secret scanning and advanced security on a "
+					+ "private repository only to organizations";
+		}
+		if (response.securityAndAnalysis() == null) {
+			return "GitHub reports no security_and_analysis for this private "
+					+ "repository: its organization has none of these features";
+		}
+		return null;
 	}
 
 	/**

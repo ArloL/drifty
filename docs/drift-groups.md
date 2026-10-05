@@ -86,6 +86,22 @@
   leaves in place (issue #156). `DriftGroup.detect` rebuilds every fix to
   namespace its paths and has to carry the flag through; dropping it there
   silently makes every group actionable again.
+- **A feature GitHub does not offer the repository is not drift.** A private
+  repository of a Free account has no wiki, no secret scanning and no code
+  scanning, and comparing them as usual reported the schema's defaults as
+  drift that `--fix` could not clear, and failed the whole entry on code
+  scanning's 403 (issue #202). The reader records why each one is unavailable
+  in `UnavailableFeatures`. The checker then swaps a single-toggle group for
+  `UnavailableDriftGroup`, and `RepoSettingsDriftGroup` makes `has_wiki` a
+  `SettingTable.Setting.unavailable` row. A config that wants the feature off
+  matches; one that wants it on gets a `DriftItem.Unavailable` carrying the
+  reason, built with `DriftFix.reported` so the preview does not offer it. Each
+  signal comes from where GitHub states it, never from a guess. The
+  `security_and_analysis` toggles go by visibility, owner type and the
+  section's presence (`ActualTypes`). Code scanning goes by its 403 message,
+  since a scope 403 has the same status (`FeatureUnavailableException`). The
+  wiki goes by the owner's plan (`AccountPlans`). A plan the token cannot see
+  leaves the wiki compared as before.
 - **The account that owns a repository is not one of its collaborators.**
   `affiliation=direct` lists a personal account's owner, as admin, and
   `ActualTypes.collaborators` drops it — the grant is the ownership and no PUT

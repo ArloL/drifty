@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.client;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * The managed subset of {@code GET /orgs/{org}}. Every field is a nullable
  * wrapper: GitHub omits the policy flags entirely for a token without admin
@@ -21,7 +23,11 @@ package io.github.arlol.githubcheck.client;
 				"secret_scanning_push_protection_enabled_for_new_repositories — a default for new repositories, as above",
 				"secret_scanning_push_protection_custom_link — belongs with the push-protection default above and is meaningless without it",
 				"billing_email — billing is not configuration drifty reconciles",
-				"members_allowed_repository_creation_type — deprecated by GitHub in favour of the members_can_create_* booleans, which OrgSettingsDriftGroup does compare" }
+				"members_allowed_repository_creation_type — deprecated by GitHub in favour of the members_can_create_* booleans, which OrgSettingsDriftGroup does compare",
+				"plan.filled_seats — a plan's seats and limits are billing, not configuration; only its name says what a private repository can have",
+				"plan.private_repos — a plan's limit, as above",
+				"plan.seats — a plan's seats, as above",
+				"plan.space — a plan's limit, as above" }
 )
 public record OrganizationResponse(
 		String login,
@@ -54,6 +60,9 @@ public record OrganizationResponse(
 		Boolean membersCanCreateTeams,
 		Boolean membersCanViewDependencyInsights,
 		Boolean readersCanCreateDiscussions,
-		Boolean displayCommenterFullNameSettingEnabled
+		Boolean displayCommenterFullNameSettingEnabled,
+		// Not a setting: present for an owner only, and read for whether the
+		// organization's private repositories can have a wiki.
+		@Nullable AccountPlan plan
 ) {
 }

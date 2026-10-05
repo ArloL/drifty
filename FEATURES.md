@@ -615,3 +615,27 @@ reported item carries a reason `--fix` prints instead of writing, but the
 preview was built from the drifted groups' names alone, so check mode offered
 to remove the owner from their own repositories. It now skips a group with no
 fix that can act.
+
+## ~~56. Features a repository cannot have~~ DONE
+
+Implemented: `RepositoryStateReader` records in `UnavailableFeatures` why a
+repository cannot have a feature. It reads each reason from where GitHub
+states it:
+
+| Feature | Where the reason comes from |
+|---------|-----------------------------|
+| The eight `security_and_analysis` toggles | The repository's visibility, its owner type and whether the section is present (`ActualTypes`) |
+| Code scanning default setup | The 403 message from its endpoint (`FeatureUnavailableException`); a scope 403 stays an error |
+| Wiki | The owner's plan (`AccountPlans`): `GET /user` or `GET /orgs/{org}`, read once per account and only for a private repository whose wiki is off |
+
+`RepositoryChecker` replaces a single-toggle group with
+`UnavailableDriftGroup`, and `RepoSettingsDriftGroup` turns `has_wiki` into a
+`SettingTable.Setting.unavailable` row. A config that wants the feature off
+matches. One that wants it on gets a `DriftItem.Unavailable` with the reason,
+and `--fix` does not offer it.
+
+Issue #202: a private repository on a Free personal account, configured with
+nothing but `visibility = "private"`, failed its whole check on code scanning's
+403. With `code_scanning_default_setup` left unmanaged, it drifted on
+`has_wiki` and both secret scanning toggles. Those come from the schema's
+defaults, and no write can turn them on.

@@ -18,6 +18,7 @@ import io.github.arlol.githubcheck.actual.ActualSecurityAndAnalysis;
 import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.actual.ActualWorkflowPermissions;
+import io.github.arlol.githubcheck.actual.UnavailableFeatures;
 import io.github.arlol.githubcheck.client.RepoRef;
 
 /**
@@ -43,6 +44,10 @@ import io.github.arlol.githubcheck.client.RepoRef;
  * {@code workflow_permissions} group: the response is never fetched, and the
  * group that would read it is not built. {@code collaborators} is null the same
  * way.
+ * <p>
+ * {@code unavailable} is what GitHub does not offer this repository, which
+ * decides whether a setting it reads as off is drift or simply what the
+ * repository can have.
  */
 public record RepositoryState(
 		RepoRef ref,
@@ -64,7 +69,8 @@ public record RepositoryState(
 		Map<String, List<ActualVariable>> environmentVariables,
 		List<ActualWebhook> webhooks,
 		List<ActualCustomPropertyValue> customPropertyValues,
-		@Nullable ActualCollaborators collaborators
+		@Nullable ActualCollaborators collaborators,
+		UnavailableFeatures unavailable
 ) {
 
 	public RepositoryState {
@@ -120,7 +126,8 @@ public record RepositoryState(
 				Map.of(),
 				List.of(),
 				List.of(),
-				null
+				null,
+				UnavailableFeatures.NONE
 		);
 	}
 

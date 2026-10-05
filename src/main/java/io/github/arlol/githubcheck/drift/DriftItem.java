@@ -76,6 +76,31 @@ public sealed interface DriftItem {
 
 	}
 
+	/**
+	 * A setting the config wants that GitHub will not give this repository — a
+	 * wiki on a private repository of a Free account, secret scanning on a
+	 * private repository whose account has no security features. Unlike a
+	 * {@link FieldMismatch} no write can resolve it, so the reason is part of
+	 * the message: what resolves it is a config change or a plan change.
+	 */
+	record Unavailable(
+			String path,
+			@Nullable Object wanted,
+			String reason
+	) implements DriftItem {
+
+		@Override
+		public String message() {
+			return path + ": want=" + wanted + " unavailable: " + reason;
+		}
+
+		@Override
+		public DriftItem withPath(String newPath) {
+			return new Unavailable(newPath, wanted, reason);
+		}
+
+	}
+
 	record SectionMissing(
 			String path
 	) implements DriftItem {

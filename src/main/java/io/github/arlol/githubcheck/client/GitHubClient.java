@@ -8,6 +8,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -2015,10 +2016,45 @@ public class GitHubClient {
 		if (resp.statusCode() == 404) {
 			return false;
 		}
+		if (resp.statusCode() == 403) {
+			String message = errorMessage(resp.body());
+			if (codeScanningUnavailable(message)) {
+				throw new FeatureUnavailableException(message);
+			}
+		}
 		throw new GitHubApiException(
 				"HTTP " + resp.statusCode()
 						+ " GET code-scanning/default-setup on " + repo
 		);
+	}
+
+	/**
+	 * Whether a 403 from the default-setup endpoint says the repository cannot
+	 * have code scanning, rather than that the token may not read it. GitHub
+	 * words it two ways: a private repository of a Free account is "not enabled
+	 * for this repository", one whose organization has not turned on the paid
+	 * product "must be enabled for this repository to use code scanning". A
+	 * scope 403 says neither and stays an error.
+	 */
+	static boolean codeScanningUnavailable(String message) {
+		String lower = message.toLowerCase(Locale.ROOT);
+		return lower.contains("code scanning is not enabled") || lower.contains(
+				"must be enabled for this repository to use code scanning"
+		);
+	}
+
+	/**
+	 * The {@code message} of a GitHub error body, or the body itself when it is
+	 * not one — an error is reported either way, and this only decides which
+	 * words it carries.
+	 */
+	private String errorMessage(String body) {
+		try {
+			JsonNode message = mapper.readTree(body).path("message");
+			return message.isTextual() ? message.asText() : body;
+		} catch (IOException e) {
+			return body;
+		}
 	}
 
 	public void enableCodeScanningDefaultSetup(String owner, String repo) {
@@ -2232,6 +2268,22 @@ public class GitHubClient {
 			);
 		}
 		return readValue(resp.body(), SimpleUser.class);
+	}
+
+	/**
+	 * The token's own account with its plan — the same request as
+	 * {@link #getAuthenticatedUser}, read into the record that carries the
+	 * plan, since a {@link SimpleUser} is also every user nested elsewhere.
+	 */
+	public AuthenticatedUserResponse getAuthenticatedUserPlan() {
+		HttpResponse<String> resp = get(baseUrl + "/user");
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode()
+							+ " getting authenticated user: " + resp.body()
+			);
+		}
+		return readValue(resp.body(), AuthenticatedUserResponse.class);
 	}
 
 	// ─── Organizations
