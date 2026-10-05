@@ -50,6 +50,15 @@
       "type": "com.github.tomakehurst.wiremock.extension.ServeEventListenerDefinition"
     },
     {
+      "type": "com.github.tomakehurst.wiremock.extension.responsetemplating.RequestTemplateModel",
+      "methods": [
+        {
+          "name": "getBody",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "com.github.tomakehurst.wiremock.http.ChunkedDribbleDelay"
     },
     {

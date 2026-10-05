@@ -855,6 +855,8 @@ When `--fix` encounters an error (API failure, insufficient permissions, missing
 
 The tool never fails fast — it always attempts all fixes and provides a complete report.
 
+A request GitHub accepts is not proof the setting changed: GitHub answers `200` to some fields it ignores. For example, `allow_auto_merge` on a private repository of a Free account stays off. Repository and organization settings are checked against the entity the `PATCH` answers with. A setting that still differs is reported FAILED, with the reason `GitHub accepted the change but did not apply it: it still reports <value>`.
+
 ## Technical Architecture
 
 ### Language & Build

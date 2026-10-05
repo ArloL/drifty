@@ -58,6 +58,7 @@ import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.testsupport.Desired;
 import io.github.arlol.githubcheck.drift.DriftItem;
 import io.github.arlol.githubcheck.testsupport.GraphQlStub;
+import io.github.arlol.githubcheck.testsupport.PatchResponse;
 
 @WireMockTest
 class RepositoryCheckerFixTest {
@@ -277,7 +278,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void descriptionDrift_patchesOnlyTheDriftedField() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -310,7 +312,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void undriftedAllowForking_staysOutOfThePatch() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -354,7 +357,7 @@ class RepositoryCheckerFixTest {
 						.withRequestBody(equalToJson("""
 								{"description": "correct"}
 								"""))
-						.willReturn(okJson("{}"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -433,7 +436,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void visibilityDrift_isReportedUnfixed() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -455,7 +459,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void allowRebaseMergeFalse_patchesWithConfigValue() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -484,7 +489,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void multipleFieldsDrift_singlePatchCall() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -521,7 +527,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void unfixableDiffs_remainInList() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 		stubFor(
 				put(urlEqualTo("/repos/owner/repo/vulnerability-alerts"))
@@ -583,7 +590,8 @@ class RepositoryCheckerFixTest {
 						.willReturn(WireMock.noContent())
 		);
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -799,7 +807,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void disableSecretScanning_whenDesiredFalse() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -843,7 +852,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void partialSecretScanningDrift_onlyDriftedFieldPatched() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -875,7 +885,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void secretScanningValidityChecksDrift_patches() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -917,7 +928,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void secretScanningNonProviderPatternsDrift_patches() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -959,7 +971,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void advancedSecurityDrift_patches() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -998,7 +1011,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void secretScanningAiDetectionDrift_patches() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -1040,7 +1054,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void secretScanningDelegatedAlertDismissalDrift_patches() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -1083,7 +1098,8 @@ class RepositoryCheckerFixTest {
 	void secretScanningDelegatedBypassDrift_patchesStatusAndReviewers()
 			throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		Drifty.Repository desired = Desired.repository("repo")
@@ -1844,7 +1860,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void repoFieldsAndTopics_bothFixed() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 		stubFor(
 				put(urlEqualTo("/repos/owner/repo/topics"))
@@ -2649,7 +2666,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void archiveDrift_patches_archivedTrue() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		var desired = Desired.repository("repo").withArchived(true);
@@ -2670,7 +2688,8 @@ class RepositoryCheckerFixTest {
 	@Test
 	void unarchiveDrift_patches_archivedFalse() throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		var desired = Desired.repository("repo"); // not archived
@@ -2700,7 +2719,8 @@ class RepositoryCheckerFixTest {
 	void unarchiveRunsBeforeOtherFixesWhateverTheIterationOrder()
 			throws Exception {
 		stubFor(
-				patch(urlEqualTo("/repos/owner/repo")).willReturn(okJson("{}"))
+				patch(urlEqualTo("/repos/owner/repo"))
+						.willReturn(PatchResponse.applyingToRepository())
 		);
 
 		// Wants the repo active and the description changed, so both the

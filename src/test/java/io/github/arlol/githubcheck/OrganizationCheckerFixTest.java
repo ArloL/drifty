@@ -25,6 +25,7 @@ import io.github.arlol.githubcheck.client.GitHubClient;
 import io.github.arlol.githubcheck.pkl.Drifty;
 import io.github.arlol.githubcheck.state.DriftyState;
 import io.github.arlol.githubcheck.testsupport.Desired;
+import io.github.arlol.githubcheck.testsupport.PatchResponse;
 
 /**
  * The organization twin of {@link RepositoryCheckerFixTest}: what a
@@ -49,7 +50,10 @@ class OrganizationCheckerFixTest {
 	@Test
 	void writesTheDriftedSettingsAndReportsThemFixed() {
 		stubOrg();
-		stubFor(patch(urlPathEqualTo("/orgs/my-org")).willReturn(okJson("{}")));
+		stubFor(
+				patch(urlPathEqualTo("/orgs/my-org"))
+						.willReturn(PatchResponse.applyingToOrganization())
+		);
 
 		CheckResult.Entry entry = fix(
 				onlySettings().withDescription("wanted").withLocation("Berlin")
@@ -100,7 +104,7 @@ class OrganizationCheckerFixTest {
 						.withRequestBody(equalToJson("""
 								{"description": "wanted"}
 								"""))
-						.willReturn(okJson("{}"))
+						.willReturn(PatchResponse.applyingToOrganization())
 		);
 
 		CheckResult.Entry entry = fix(

@@ -5,6 +5,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.github.arlol.githubcheck.ActualTypes;
 import io.github.arlol.githubcheck.PklTypes;
 import io.github.arlol.githubcheck.actual.ActualRepository;
 import io.github.arlol.githubcheck.client.GitHubClient;
@@ -67,18 +68,21 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 	protected List<DriftFix> detectDrift() {
 		return new SettingTable<>(
 				RepositoryUpdateRequest::builder,
-				builder -> client.updateRepository(org, name, builder.build()),
+				builder -> ActualTypes.repository(
+						client.updateRepository(org, name, builder.build())
+				),
+				actual,
 				settings()
 		).detect();
 	}
 
-	private List<Setting<RepositoryUpdateRequest.Builder>> settings() {
-		var settings = new ArrayList<Setting<RepositoryUpdateRequest.Builder>>();
+	private List<Setting<RepositoryUpdateRequest.Builder, ActualRepository>> settings() {
+		var settings = new ArrayList<Setting<RepositoryUpdateRequest.Builder, ActualRepository>>();
 		settings.add(
 				Setting.of(
 						"description",
 						desired.description,
-						actual.description(),
+						ActualRepository::description,
 						b -> b.description(desired.description)
 				)
 		);
@@ -86,7 +90,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"homepage_url",
 						desired.homepageUrl,
-						actual.homepage(),
+						ActualRepository::homepage,
 						b -> b.homepage(desired.homepageUrl)
 				)
 		);
@@ -94,7 +98,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.checkOnly(
 						"visibility",
 						PklTypes.visibility(desired.visibility),
-						actual.visibility(),
+						ActualRepository::visibility,
 						VISIBILITY_CHECK_ONLY
 				)
 		);
@@ -102,7 +106,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"default_branch",
 						desired.defaultBranch,
-						actual.defaultBranch(),
+						ActualRepository::defaultBranch,
 						b -> b.defaultBranch(desired.defaultBranch)
 				)
 		);
@@ -110,7 +114,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"has_issues",
 						desired.hasIssues,
-						actual.hasIssues(),
+						ActualRepository::hasIssues,
 						b -> b.hasIssues(desired.hasIssues)
 				)
 		);
@@ -118,7 +122,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"has_projects",
 						desired.hasProjects,
-						actual.hasProjects(),
+						ActualRepository::hasProjects,
 						b -> b.hasProjects(desired.hasProjects)
 				)
 		);
@@ -127,13 +131,13 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 						? Setting.unavailable(
 								"has_wiki",
 								desired.hasWiki,
-								actual.hasWiki(),
+								ActualRepository::hasWiki,
 								wikiUnavailable
 						)
 						: Setting.of(
 								"has_wiki",
 								desired.hasWiki,
-								actual.hasWiki(),
+								ActualRepository::hasWiki,
 								b -> b.hasWiki(desired.hasWiki)
 						)
 		);
@@ -141,7 +145,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"has_discussions",
 						desired.hasDiscussions,
-						actual.hasDiscussions(),
+						ActualRepository::hasDiscussions,
 						b -> b.hasDiscussions(desired.hasDiscussions)
 				)
 		);
@@ -149,7 +153,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"is_template",
 						desired.isTemplate,
-						actual.isTemplate(),
+						ActualRepository::isTemplate,
 						b -> b.isTemplate(desired.isTemplate)
 				)
 		);
@@ -157,7 +161,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"web_commit_signoff_required",
 						desired.webCommitSignoffRequired,
-						actual.webCommitSignoffRequired(),
+						ActualRepository::webCommitSignoffRequired,
 						b -> b.webCommitSignoffRequired(
 								desired.webCommitSignoffRequired
 						)
@@ -167,7 +171,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"allow_merge_commit",
 						desired.allowMergeCommit,
-						actual.allowMergeCommit(),
+						ActualRepository::allowMergeCommit,
 						b -> b.allowMergeCommit(desired.allowMergeCommit)
 				)
 		);
@@ -175,7 +179,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"allow_squash_merge",
 						desired.allowSquashMerge,
-						actual.allowSquashMerge(),
+						ActualRepository::allowSquashMerge,
 						b -> b.allowSquashMerge(desired.allowSquashMerge)
 				)
 		);
@@ -183,7 +187,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"allow_rebase_merge",
 						desired.allowRebaseMerge,
-						actual.allowRebaseMerge(),
+						ActualRepository::allowRebaseMerge,
 						b -> b.allowRebaseMerge(desired.allowRebaseMerge)
 				)
 		);
@@ -191,7 +195,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"allow_auto_merge",
 						desired.allowAutoMerge,
-						actual.allowAutoMerge(),
+						ActualRepository::allowAutoMerge,
 						b -> b.allowAutoMerge(desired.allowAutoMerge)
 				)
 		);
@@ -199,7 +203,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"allow_update_branch",
 						desired.allowUpdateBranch,
-						actual.allowUpdateBranch(),
+						ActualRepository::allowUpdateBranch,
 						b -> b.allowUpdateBranch(desired.allowUpdateBranch)
 				)
 		);
@@ -207,7 +211,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"delete_branch_on_merge",
 						desired.deleteBranchOnMerge,
-						actual.deleteBranchOnMerge(),
+						ActualRepository::deleteBranchOnMerge,
 						b -> b.deleteBranchOnMerge(desired.deleteBranchOnMerge)
 				)
 		);
@@ -217,7 +221,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 						PklTypes.squashMergeCommitTitle(
 								desired.squashMergeCommitTitle
 						),
-						actual.squashMergeCommitTitle(),
+						ActualRepository::squashMergeCommitTitle,
 						b -> b.squashMergeCommitTitle(
 								PklTypes.squashMergeCommitTitle(
 										desired.squashMergeCommitTitle
@@ -231,7 +235,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 						PklTypes.squashMergeCommitMessage(
 								desired.squashMergeCommitMessage
 						),
-						actual.squashMergeCommitMessage(),
+						ActualRepository::squashMergeCommitMessage,
 						b -> b.squashMergeCommitMessage(
 								PklTypes.squashMergeCommitMessage(
 										desired.squashMergeCommitMessage
@@ -243,7 +247,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"merge_commit_title",
 						PklTypes.mergeCommitTitle(desired.mergeCommitTitle),
-						actual.mergeCommitTitle(),
+						ActualRepository::mergeCommitTitle,
 						b -> b.mergeCommitTitle(
 								PklTypes.mergeCommitTitle(
 										desired.mergeCommitTitle
@@ -255,7 +259,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 				Setting.of(
 						"merge_commit_message",
 						PklTypes.mergeCommitMessage(desired.mergeCommitMessage),
-						actual.mergeCommitMessage(),
+						ActualRepository::mergeCommitMessage,
 						b -> b.mergeCommitMessage(
 								PklTypes.mergeCommitMessage(
 										desired.mergeCommitMessage
@@ -269,7 +273,7 @@ public class RepoSettingsDriftGroup extends DriftGroup<Drifty.GroupName> {
 					Setting.of(
 							"allow_forking",
 							desired.allowForking,
-							actual.allowForking(),
+							ActualRepository::allowForking,
 							b -> b.allowForking(desired.allowForking)
 					)
 			);
