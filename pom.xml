@@ -697,12 +697,15 @@
 						<id>pkl-codegen-java</id>
 						<phase>generate-sources</phase>
 						<goals>
-							<goal>java</goal>
+							<goal>exec</goal>
 						</goals>
 						<configuration combine.self="override">
+							<executable>${env.JAVA_HOME}/bin/java</executable>
 							<includePluginDependencies>true</includePluginDependencies>
-							<mainClass>org.pkl.codegen.java.Main</mainClass>
 							<arguments>
+								<argument>-classpath</argument>
+								<classpath />
+								<argument>org.pkl.codegen.java.Main</argument>
 								<argument>--output-dir</argument>
 								<argument>${project.build.directory}/generated-sources/pkl</argument>
 								<argument>--rename</argument>
