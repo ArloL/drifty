@@ -134,7 +134,7 @@ jobs:
       run: git diff --exit-code
   linux-arm:
     needs: version
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     env:
       REVISION: ${{ needs.version.outputs.new_version }}
       BUILD_TIMESTAMP: ${{ needs.version.outputs.build_timestamp }}
