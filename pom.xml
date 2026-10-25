@@ -107,6 +107,14 @@
 										The production image below stays fully optimized.
 									-->
 									<quickBuild>true</quickBuild>
+									<buildArgs>
+										<!--
+											classgraph-vfs installs a FileSystemProvider, and
+											native-image bakes every installed provider into the
+											image heap. Nothing in the native suite scans.
+										-->
+										<buildArg>--initialize-at-build-time=io.github.classgraph.vfs.VfsFileSystemProvider</buildArg>
+									</buildArgs>
 								</configuration>
 							</execution>
 						</executions>
