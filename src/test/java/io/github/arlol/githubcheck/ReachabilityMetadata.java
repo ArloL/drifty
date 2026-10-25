@@ -244,7 +244,8 @@ public final class ReachabilityMetadata {
 		for (JsonNode e : mainRefl) {
 			byType.put(e.path("type").asText(), (ObjectNode) e);
 		}
-		try (ScanResult scan = new ClassGraph().enableClassInfo()
+		try (ScanResult scan = new ClassGraph().enableClasspath()
+				.enableClassInfo()
 				.acceptPackages(CLIENT_PACKAGE, PKL_PACKAGE)
 				.scan()) {
 			for (var classInfo : scan.getAllClasses()) {

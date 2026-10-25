@@ -160,23 +160,25 @@ class GitHubApiContractTest {
 
 	private static List<Binding> bindings() {
 		List<Binding> bindings = new ArrayList<>();
-		try (ScanResult scan = new ClassGraph().enableClassInfo()
+		try (ScanResult scan = new ClassGraph().enableClasspath()
+				.enableClassInfo()
 				.enableAnnotationInfo()
 				.acceptPackages(PACKAGE)
 				.scan()) {
 			for (ClassInfo info : scan
 					.getClassesWithAnnotation(GitHubEndpoint.class.getName())) {
-				AnnotationInfo annotation = info
-						.getAnnotationInfo(GitHubEndpoint.class.getName());
+				AnnotationInfo annotation = info.getDirectAnnotationInfo(
+						GitHubEndpoint.class.getName()
+				);
 				AnnotationParameterValueList values = annotation
-						.getParameterValues(true);
+						.getParameterValues();
 				List<String> unmanaged = strings(values, "unmanaged");
 				List<String> undocumented = strings(values, "undocumented");
 				for (String direction : List.of("request", "response")) {
 					for (String endpoint : strings(values, direction)) {
 						bindings.add(
 								new Binding(
-										info.loadClass(),
+										load(info),
 										endpoint,
 										direction,
 										unmanaged,
@@ -189,6 +191,18 @@ class GitHubApiContractTest {
 		}
 		bindings.sort((a, b) -> a.name().compareTo(b.name()));
 		return bindings;
+	}
+
+	private static Class<?> load(ClassInfo info) {
+		try {
+			return Class.forName(
+					info.getName(),
+					false,
+					GitHubApiContractTest.class.getClassLoader()
+			);
+		} catch (ClassNotFoundException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	private static List<String> strings(
@@ -212,7 +226,8 @@ class GitHubApiContractTest {
 				.forEach(binding -> bound.add(binding.type().getSimpleName()));
 
 		List<String> unbound = new ArrayList<>();
-		try (ScanResult scan = new ClassGraph().enableClassInfo()
+		try (ScanResult scan = new ClassGraph().enableClasspath()
+				.enableClassInfo()
 				.acceptPackages(PACKAGE)
 				.scan()) {
 			for (ClassInfo info : scan.getAllRecords()) {
@@ -220,7 +235,7 @@ class GitHubApiContractTest {
 				boolean wire = name.endsWith("Request")
 						|| name.endsWith("Response");
 				if (wire && !bound.contains(name) && !NOT_OPENAPI.contains(name)
-						&& !info.isInnerClass()) {
+						&& !info.isNestedClass()) {
 					unbound.add(name);
 				}
 			}
