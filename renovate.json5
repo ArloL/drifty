@@ -38,6 +38,16 @@
         "dependencies",
     ],
     "minimumReleaseAge": "7 days",
+    "packageRules": [
+        {
+            // The JDK in .tool-versions must match the Truffle and polyglot jars
+            "groupName": "graalvm",
+            "matchPackageNames": [
+                "graalvm-community-innovation",
+                "/^org\\.graalvm\\.(nativeimage|polyglot|sdk|truffle):/",
+            ],
+        },
+    ],
     "prConcurrentLimit": 10,
     "prHourlyLimit": 5,
     "schedule": [

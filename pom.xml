@@ -16,6 +16,9 @@
 
 	<properties>
 		<java.version>25</java.version>
+		<!-- Must match the JDK in .tool-versions, or native-image rejects the build.
+		     Renovate's graalvm group moves them together. -->
+		<graalvm.version>25.5.5.0.3</graalvm.version>
 		<sha1>HEAD</sha1>
 		<revision>0.0.1-SNAPSHOT</revision>
 		<platform>unknown</platform>
@@ -183,6 +186,36 @@
 			</properties>
 		</profile>
 	</profiles>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.graalvm.polyglot</groupId>
+				<artifactId>polyglot</artifactId>
+				<version>${graalvm.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.graalvm.sdk</groupId>
+				<artifactId>collections</artifactId>
+				<version>${graalvm.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.graalvm.sdk</groupId>
+				<artifactId>graal-sdk</artifactId>
+				<version>${graalvm.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.graalvm.sdk</groupId>
+				<artifactId>nativeimage</artifactId>
+				<version>${graalvm.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.graalvm.truffle</groupId>
+				<artifactId>truffle-api</artifactId>
+				<version>${graalvm.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<dependencies>
 		<dependency>
