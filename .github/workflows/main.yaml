@@ -76,16 +76,24 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
-    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+    - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      env:
+        # renovate: datasource=github-releases depName=jdx/mise extractVersion=^v(?<version>.+)
+        MISE_VERSION: 2026.11.1
       with:
-        cache: maven
-        distribution: graalvm
-        java-version-file: .tool-versions
+        cache: false
+        version: ${{ env.MISE_VERSION }}
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ runner.os }}-${{ runner.arch }}-maven-${{ hashFiles('**/pom.xml') }}
+        path: ~/.m2/repository
+        restore-keys: ${{ runner.os }}-${{ runner.arch }}-maven-
     - name: Build with Maven
       run: |
         set -o xtrace
         ./mvnw \
           --batch-mode \
+          -P graal \
           -Dsha1="${GITHUB_SHA}" \
           -Drevision="${REVISION}" \
           verify
@@ -109,16 +117,24 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
-    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+    - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      env:
+        # renovate: datasource=github-releases depName=jdx/mise extractVersion=^v(?<version>.+)
+        MISE_VERSION: 2026.11.1
       with:
-        cache: maven
-        distribution: graalvm
-        java-version-file: .tool-versions
+        cache: false
+        version: ${{ env.MISE_VERSION }}
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ runner.os }}-${{ runner.arch }}-maven-${{ hashFiles('**/pom.xml') }}
+        path: ~/.m2/repository
+        restore-keys: ${{ runner.os }}-${{ runner.arch }}-maven-
     - name: Build with Maven
       run: |
         set -o xtrace
         ./mvnw \
           --batch-mode \
+          -P graal \
           -Dsha1="${GITHUB_SHA}" \
           -Drevision="${REVISION}" \
           verify
@@ -142,16 +158,24 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
-    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+    - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      env:
+        # renovate: datasource=github-releases depName=jdx/mise extractVersion=^v(?<version>.+)
+        MISE_VERSION: 2026.11.1
       with:
-        cache: maven
-        distribution: graalvm
-        java-version-file: .tool-versions
+        cache: false
+        version: ${{ env.MISE_VERSION }}
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ runner.os }}-${{ runner.arch }}-maven-${{ hashFiles('**/pom.xml') }}
+        path: ~/.m2/repository
+        restore-keys: ${{ runner.os }}-${{ runner.arch }}-maven-
     - name: Build with Maven
       run: |
         set -o xtrace
         ./mvnw \
           --batch-mode \
+          -P graal \
           -Dsha1="${GITHUB_SHA}" \
           -Drevision="${REVISION}" \
           verify
@@ -175,14 +199,21 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
-    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+    - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      env:
+        # renovate: datasource=github-releases depName=jdx/mise extractVersion=^v(?<version>.+)
+        MISE_VERSION: 2026.11.1
       with:
-        cache: maven
-        distribution: graalvm
-        java-version-file: .tool-versions
+        cache: false
+        version: ${{ env.MISE_VERSION }}
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ runner.os }}-${{ runner.arch }}-maven-${{ hashFiles('**/pom.xml') }}
+        path: ~/.m2/repository
+        restore-keys: ${{ runner.os }}-${{ runner.arch }}-maven-
     - name: Build with Maven
       run: |
-        .\mvnw --batch-mode -Dsha1="$env:GITHUB_SHA" -Drevision="$env:REVISION" verify
+        .\mvnw --batch-mode -P graal -Dsha1="$env:GITHUB_SHA" -Drevision="$env:REVISION" verify
     - name: Move artifacts
       run: |
         mkdir target/artifacts
@@ -312,25 +343,28 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
-    # Temurin because this job only publishes jars: the graal profile
-    # activates on a JAVA_HOME that has a native-image, so on GraalVM this
-    # deploy built one and threw it away.
-    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+    - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
       env:
-        # renovate: datasource=java-version depName=java extractVersion=^(?<version>\d+\.\d+\.\d+)
-        JAVA_VERSION: 25.0.4
+        # renovate: datasource=github-releases depName=jdx/mise extractVersion=^v(?<version>.+)
+        MISE_VERSION: 2026.11.1
       with:
-        cache: maven
-        distribution: temurin
-        java-version: ${{ env.JAVA_VERSION }}
+        cache: false
+        version: ${{ env.MISE_VERSION }}
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ runner.os }}-${{ runner.arch }}-maven-${{ hashFiles('**/pom.xml') }}
+        path: ~/.m2/repository
+        restore-keys: ${{ runner.os }}-${{ runner.arch }}-maven-
     - name: Publish to GitHub Packages Apache Maven
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         REVISION: ${{ needs.version.outputs.new_version }}
         BUILD_TIMESTAMP: ${{ needs.version.outputs.build_timestamp }}
+        SKIP_GRAALVM_NATIVE_IMAGE_BUILD: true
       run: |
         ./mvnw \
           --batch-mode \
+          --settings .github/maven-settings.xml \
           -Dsha1="${GITHUB_SHA}" \
           -Drevision="${REVISION}" \
           -DaltDeploymentRepository="github::https://maven.pkg.github.com/${GITHUB_REPOSITORY}" \

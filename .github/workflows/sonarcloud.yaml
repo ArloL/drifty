@@ -62,14 +62,18 @@ jobs:
         # Sonar needs the full history to attribute new code to authors
         fetch-depth: 0
         persist-credentials: false
-    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+    - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
       env:
-        # renovate: datasource=java-version depName=java extractVersion=^(?<version>\d+\.\d+\.\d+)
-        JAVA_VERSION: 25.0.4
+        # renovate: datasource=github-releases depName=jdx/mise extractVersion=^v(?<version>.+)
+        MISE_VERSION: 2026.11.1
       with:
-        cache: maven
-        distribution: temurin
-        java-version: ${{ env.JAVA_VERSION }}
+        cache: false
+        version: ${{ env.MISE_VERSION }}
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        key: ${{ runner.os }}-${{ runner.arch }}-maven-${{ hashFiles('**/pom.xml') }}
+        path: ~/.m2/repository
+        restore-keys: ${{ runner.os }}-${{ runner.arch }}-maven-
     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         key: ${{ runner.os }}-sonar
@@ -79,12 +83,12 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SKIP_GRAALVM_NATIVE_IMAGE_BUILD: true
       run: |
         set -o xtrace
-        # Sonar only needs the JVM tests JaCoCo instruments, and the
-        # Temurin above is what skips the native image build: the graal
-        # profile activates on a JAVA_HOME holding one, so it cannot fire
-        # here. 20s instead of 9min, same coverage report
+        # Sonar only needs the JVM tests JaCoCo instruments, and
+        # SKIP_GRAALVM_NATIVE_IMAGE_BUILD is what skips the native image
+        # build. 20s instead of 9min, same coverage report
         # Wait for the quality gate so a failure fails this workflow's own
         # required status check, which also reports on the bumps we skip
         ./mvnw \

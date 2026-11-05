@@ -3,23 +3,31 @@
     "addLabels": [
         "{{manager}}",
     ],
+    "customDatasources": {
+        "graalvm-community-innovation": {
+            "defaultRegistryUrlTemplate": "https://mise-java.jdx.dev/jvm/ga/linux/x86_64.json",
+            "transformTemplates": [
+                "{\"releases\": [$[vendor = \"graalvm-community\" and \"innovation\" in features].{\"version\": version, \"releaseTimestamp\": created_at}]}",
+            ],
+        },
+    },
     "customManagers": [
         {
-            // Renovate's mise manager maps only temurin- and adoptopenjdk-
-            // java versions to a datasource, so nothing bumps a
-            // graalvm-community pin. The jdk-* tags are exactly what mise
-            // offers as graalvm-community-*; the graal-* and vm-* ones are
-            // GraalVM's own versioning and mise installs none of them.
+            // Renovate's asdf manager maps only temurin- and
+            // adoptopenjdk- java versions to a datasource, so
+            // nothing bumps a graalvm-community pin. Innovation
+            // releases are not tagged jdk-*, so the pin is read
+            // from mise's JDK index instead.
             "customType": "regex",
-            "datasourceTemplate": "github-releases",
-            "depNameTemplate": "graalvm/graalvm-ce-builds",
-            "extractVersionTemplate": "^jdk-(?<version>\\S+)",
+            "datasourceTemplate": "custom.graalvm-community-innovation",
+            "depNameTemplate": "graalvm-community-innovation",
             "managerFilePatterns": [
                 "/^\\.tool-versions$/",
             ],
             "matchStrings": [
-                "java graalvm-community-(?<currentValue>\\S+)",
+                "java graalvm-community-innovation-(?<currentValue>\\S+)",
             ],
+            "versioningTemplate": "loose",
         },
     ],
     "extends": [

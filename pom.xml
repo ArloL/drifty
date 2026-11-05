@@ -80,6 +80,9 @@
 				<file>
 					<exists>${env.JAVA_HOME}/lib/graal</exists>
 				</file>
+				<property>
+					<name>!env.SKIP_GRAALVM_NATIVE_IMAGE_BUILD</name>
+				</property>
 			</activation>
 			<build>
 				<plugins>
