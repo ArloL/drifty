@@ -87,13 +87,44 @@ class GraphQlShapeTest {
 		{ "CREATION,CREATION", "DELETION,DELETION",
 				"REQUIRED_SIGNATURES,REQUIRED_SIGNATURES",
 				"REQUIRED_LINEAR_HISTORY,REQUIRED_LINEAR_HISTORY",
-				"NON_FAST_FORWARD,NON_FAST_FORWARD" }
+				"NON_FAST_FORWARD,NON_FAST_FORWARD",
+				"LICENSE_COMPLIANCE_SCANNING,LICENSE_COMPLIANCE_SCANNING" }
 	)
 	void aRuleWithNoParametersIsItsTypeAlone(String type, String expected) {
 		assertThat(rules("""
 				{"type": "%s", "parameters": null}
 				""".formatted(type))).extracting(Rule::type)
 				.containsExactly(RulesetRuleType.valueOf(expected));
+	}
+
+	@Test
+	void theReviewRulesKeepTheirParameters() {
+		var rules = rules(
+				"""
+						{"type": "CODE_QUALITY", "parameters": {
+						  "__typename": "CodeQualityParameters", "severity": "WARNINGS"}},
+						{"type": "CODE_COVERAGE", "parameters": {
+						  "__typename": "CodeCoverageParameters",
+						  "maxCoverageDrop": 2.5, "minimumCoverage": 80.0}},
+						{"type": "COPILOT_CODE_REVIEW", "parameters": {
+						  "__typename": "CopilotCodeReviewParameters",
+						  "reviewOnPush": true, "reviewDraftPullRequests": false}}
+						"""
+		);
+
+		assertThat(rules).containsExactly(
+				new Rule.CodeQuality(
+						new Rule.CodeQuality.Parameters(
+								Rule.CodeQuality.Severity.WARNINGS
+						)
+				),
+				new Rule.CodeCoverage(
+						new Rule.CodeCoverage.Parameters(2.5, 80.0)
+				),
+				new Rule.CopilotCodeReview(
+						new Rule.CopilotCodeReview.Parameters(true, false)
+				)
+		);
 	}
 
 	@Test

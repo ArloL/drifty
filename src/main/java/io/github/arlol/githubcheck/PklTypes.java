@@ -95,6 +95,17 @@ public final class PklTypes {
 		};
 	}
 
+	public static Rule.CodeQuality.Severity codeQualitySeverity(
+			Drifty.CodeQualitySeverity s
+	) {
+		return switch (s) {
+		case ERRORS -> Rule.CodeQuality.Severity.ERRORS;
+		case WARNINGS -> Rule.CodeQuality.Severity.WARNINGS;
+		case NOTES -> Rule.CodeQuality.Severity.NOTES;
+		case ALL -> Rule.CodeQuality.Severity.ALL;
+		};
+	}
+
 	public static Rule.PullRequest.DismissalRestriction.Actor.ActorType dismissalActorType(
 			Drifty.DismissalActorType t
 	) {

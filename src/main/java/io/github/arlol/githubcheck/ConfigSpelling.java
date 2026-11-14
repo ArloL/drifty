@@ -68,6 +68,17 @@ public final class ConfigSpelling {
 	}
 
 	public static @Nullable String of(
+			Rule.CodeQuality.@Nullable Severity value
+	) {
+		return value == null ? null : (switch (value) {
+		case ERRORS -> Drifty.CodeQualitySeverity.ERRORS;
+		case WARNINGS -> Drifty.CodeQualitySeverity.WARNINGS;
+		case NOTES -> Drifty.CodeQualitySeverity.NOTES;
+		case ALL -> Drifty.CodeQualitySeverity.ALL;
+		}).toString();
+	}
+
+	public static @Nullable String of(
 			Rule.PullRequest.DismissalRestriction.Actor.@Nullable ActorType value
 	) {
 		return value == null ? null : (switch (value) {

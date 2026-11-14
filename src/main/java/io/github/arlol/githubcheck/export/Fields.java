@@ -63,6 +63,25 @@ public final class Fields {
 
 	public static Optional<PklNode.Member> field(
 			String name,
+			@Nullable Double actual,
+			@Nullable Double defaultValue
+	) {
+		if (Objects.equals(actual, defaultValue)) {
+			return Optional.empty();
+		}
+		return Optional
+				.of(
+						new PklNode.Field(
+								name,
+								actual == null ? PklNode.Scalar.nullValue()
+										: PklNode.Scalar
+												.of(actual.doubleValue())
+						)
+				);
+	}
+
+	public static Optional<PklNode.Member> field(
+			String name,
 			@Nullable Integer actual,
 			@Nullable Integer defaultValue
 	) {

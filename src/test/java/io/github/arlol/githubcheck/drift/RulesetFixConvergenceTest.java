@@ -303,6 +303,18 @@ class RulesetFixConvergenceTest {
 				.withFileExtensionRestrictions(List.of("*.exe"))
 				.withMaxFileSize(50L)
 				.withMaxFileSizeIgnoredPaths(List.of("assets/**"))
+				.withCodeQualitySeverity(Drifty.CodeQualitySeverity.WARNINGS)
+				.withCodeCoverage(
+						Desired.codeCoverageRule()
+								.withMaxCoverageDrop(2.5)
+								.withMinimumCoverage(80.0)
+				)
+				.withCopilotCodeReview(
+						Desired.copilotCodeReviewRule()
+								.withReviewOnPush(true)
+								.withReviewDraftPullRequests(true)
+				)
+				.withLicenseComplianceScanning(true)
 				.withBypassActors(
 						List.of(
 								Desired.bypassActor(

@@ -12,13 +12,11 @@ import org.jspecify.annotations.Nullable;
 				"PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}",
 				"POST /orgs/{org}/rulesets",
 				"PUT /orgs/{org}/rulesets/{ruleset_id}" },
-		unmanaged = {
-				"rules[code_coverage] — a rule type GitHub added; Rule has no subtype for it, so it reaches the catch-all and nothing compares it",
-				"rules[code_quality] — a rule type GitHub added, as above",
-				"rules[copilot_code_review] — a rule type GitHub added, as above",
-				"rules[license_compliance_scanning] — a rule type GitHub added, as above" },
 		undocumented = {
 				"rules[merge_queue] — Rule carries it for the repository endpoints, where the spec has the branch; the organization ruleset schema does not",
+				"rules[code_coverage] — as merge_queue: the organization ruleset schema lists only copilot_code_review of the four review rules",
+				"rules[code_quality] — as above",
+				"rules[license_compliance_scanning] — as above",
 				"conditions.repository_id — the organization endpoints accept it and OrgRulesetDriftGroup sends it; a repository ruleset has no condition beyond ref_name",
 				"conditions.repository_name — as above",
 				"conditions.repository_property — as above",

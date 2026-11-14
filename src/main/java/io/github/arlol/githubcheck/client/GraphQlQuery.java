@@ -74,6 +74,9 @@ final class GraphQlQuery {
 			    ... on MaxFilePathLengthParameters { maxFilePathLength }
 			    ... on FileExtensionRestrictionParameters { restrictedFileExtensions }
 			    ... on MaxFileSizeParameters { maxFileSize ignoredFilePaths }
+			    ... on CodeQualityParameters { severity }
+			    ... on CodeCoverageParameters { maxCoverageDrop minimumCoverage }
+			    ... on CopilotCodeReviewParameters { reviewOnPush reviewDraftPullRequests }
 			  } } }
 			} }""";
 

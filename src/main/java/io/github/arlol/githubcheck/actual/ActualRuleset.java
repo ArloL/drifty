@@ -48,6 +48,10 @@ public record ActualRuleset(
 		Set<String> fileExtensionRestrictions,
 		@Nullable Integer maxFileSize,
 		Set<String> maxFileSizeIgnoredPaths,
+		@Nullable String codeQualitySeverity,
+		@Nullable CodeCoverage codeCoverage,
+		@Nullable CopilotCodeReview copilotCodeReview,
+		boolean licenseComplianceScanning,
 		List<BypassActor> bypassActors,
 		Set<String> repositoryNameInclude,
 		Set<String> repositoryNameExclude,
@@ -133,6 +137,22 @@ public record ActualRuleset(
 					+ filePatterns.stream().sorted().toList();
 		}
 
+	}
+
+	/** The code_coverage rule's parameters; null when the rule is absent. */
+	public record CodeCoverage(
+			@Nullable Double maxCoverageDrop,
+			@Nullable Double minimumCoverage
+	) {
+	}
+
+	/**
+	 * The copilot_code_review rule's parameters; null when the rule is absent.
+	 */
+	public record CopilotCodeReview(
+			boolean reviewOnPush,
+			boolean reviewDraftPullRequests
+	) {
 	}
 
 	/** The merge_queue rule's parameters; null when the rule is absent. */

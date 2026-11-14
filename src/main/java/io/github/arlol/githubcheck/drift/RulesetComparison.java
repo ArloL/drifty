@@ -184,6 +184,7 @@ final class RulesetComparison {
 				items
 		);
 
+		compareReviewRules(rName, wanted, got, items);
 		compareBypassActors(rName, wanted, got, items);
 
 		return items;
@@ -341,6 +342,82 @@ final class RulesetComparison {
 				new HashSet<>(reviewer.filePatterns),
 				(int) reviewer.minimumApprovals
 		);
+	}
+
+	/**
+	 * code_quality, code_coverage, copilot_code_review and
+	 * license_compliance_scanning. The two with an object are compared like
+	 * {@code pullRequest}: presence first, then the fields.
+	 */
+	private static void compareReviewRules(
+			String rName,
+			Drifty.Ruleset wanted,
+			ActualRuleset got,
+			List<DriftItem> items
+	) {
+		DriftGroup
+				.ocompare(
+						key(rName, ".code_quality.severity"),
+						wanted.codeQualitySeverity == null ? null
+								: wanted.codeQualitySeverity.toString(),
+						got.codeQualitySeverity()
+				)
+				.ifPresent(items::add);
+		DriftGroup
+				.ocompare(
+						key(rName, ".license_compliance_scanning"),
+						wanted.licenseComplianceScanning,
+						got.licenseComplianceScanning()
+				)
+				.ifPresent(items::add);
+
+		String coverage = key(rName, ".code_coverage");
+		var wantCoverage = wanted.codeCoverage;
+		var haveCoverage = got.codeCoverage();
+		if (wantCoverage == null && haveCoverage != null) {
+			items.add(new DriftItem.SectionExtra(coverage));
+		} else if (wantCoverage != null && haveCoverage == null) {
+			items.add(new DriftItem.SectionMissing(coverage));
+		} else if (wantCoverage != null && haveCoverage != null) {
+			DriftGroup
+					.ocompare(
+							coverage + ".max_coverage_drop",
+							wantCoverage.maxCoverageDrop,
+							haveCoverage.maxCoverageDrop()
+					)
+					.ifPresent(items::add);
+			DriftGroup
+					.ocompare(
+							coverage + ".minimum_coverage",
+							wantCoverage.minimumCoverage,
+							haveCoverage.minimumCoverage()
+					)
+					.ifPresent(items::add);
+		}
+
+		String copilot = key(rName, ".copilot_code_review");
+		var wantCopilot = wanted.copilotCodeReview;
+		var haveCopilot = got.copilotCodeReview();
+		if (wantCopilot == null && haveCopilot != null) {
+			items.add(new DriftItem.SectionExtra(copilot));
+		} else if (wantCopilot != null && haveCopilot == null) {
+			items.add(new DriftItem.SectionMissing(copilot));
+		} else if (wantCopilot != null && haveCopilot != null) {
+			DriftGroup
+					.ocompare(
+							copilot + ".review_on_push",
+							wantCopilot.reviewOnPush,
+							haveCopilot.reviewOnPush()
+					)
+					.ifPresent(items::add);
+			DriftGroup
+					.ocompare(
+							copilot + ".review_draft_pull_requests",
+							wantCopilot.reviewDraftPullRequests,
+							haveCopilot.reviewDraftPullRequests()
+					)
+					.ifPresent(items::add);
+		}
 	}
 
 	private static void compareMergeQueue(
@@ -563,6 +640,7 @@ final class RulesetComparison {
 		addParameterizedRules(args, rules);
 		addPatternRules(args, rules);
 		addFileRules(args, rules);
+		addReviewRules(args, rules);
 
 		List<RulesetRequest.BypassActorRequest> bypassActors = args.bypassActors
 				.stream()
@@ -787,6 +865,43 @@ final class RulesetComparison {
 						)
 				)
 				.toList();
+	}
+
+	private static void addReviewRules(Drifty.Ruleset args, List<Rule> rules) {
+		if (args.codeQualitySeverity != null) {
+			rules.add(
+					new Rule.CodeQuality(
+							new Rule.CodeQuality.Parameters(
+									PklTypes.codeQualitySeverity(
+											args.codeQualitySeverity
+									)
+							)
+					)
+			);
+		}
+		if (args.codeCoverage != null) {
+			rules.add(
+					new Rule.CodeCoverage(
+							new Rule.CodeCoverage.Parameters(
+									args.codeCoverage.maxCoverageDrop,
+									args.codeCoverage.minimumCoverage
+							)
+					)
+			);
+		}
+		if (args.copilotCodeReview != null) {
+			rules.add(
+					new Rule.CopilotCodeReview(
+							new Rule.CopilotCodeReview.Parameters(
+									args.copilotCodeReview.reviewOnPush,
+									args.copilotCodeReview.reviewDraftPullRequests
+							)
+					)
+			);
+		}
+		if (args.licenseComplianceScanning) {
+			rules.add(new Rule.LicenseComplianceScanning());
+		}
 	}
 
 	private static void addFileRules(Drifty.Ruleset args, List<Rule> rules) {

@@ -130,6 +130,14 @@ public final class ActualTypes {
 				fileExtensionRestrictions(rules),
 				maxFileSize(rules),
 				maxFileSizeIgnoredPaths(rules),
+				rules.get(
+						RulesetRuleType.CODE_QUALITY
+				) instanceof Rule.CodeQuality cq && cq.parameters() != null
+						? ConfigSpelling.of(cq.parameters().severity())
+						: null,
+				codeCoverage(rules),
+				copilotCodeReview(rules),
+				rules.containsKey(RulesetRuleType.LICENSE_COMPLIANCE_SCANNING),
 				bypassActors(response),
 				patterns(
 						repositoryName == null ? null : repositoryName.include()
@@ -317,6 +325,38 @@ public final class ActualTypes {
 						)
 				)
 				.collect(Collectors.toSet());
+	}
+
+	private static ActualRuleset.@Nullable CodeCoverage codeCoverage(
+			Map<RulesetRuleType, Rule> rules
+	) {
+		if (!(rules.get(
+				RulesetRuleType.CODE_COVERAGE
+		) instanceof Rule.CodeCoverage cc)) {
+			return null;
+		}
+		var p = cc.parameters();
+		return p == null ? new ActualRuleset.CodeCoverage(null, null)
+				: new ActualRuleset.CodeCoverage(
+						p.maxCoverageDrop(),
+						p.minimumCoverage()
+				);
+	}
+
+	/** A parameter GitHub omits reads as false, the schema's default. */
+	private static ActualRuleset.@Nullable CopilotCodeReview copilotCodeReview(
+			Map<RulesetRuleType, Rule> rules
+	) {
+		if (!(rules.get(
+				RulesetRuleType.COPILOT_CODE_REVIEW
+		) instanceof Rule.CopilotCodeReview ccr)) {
+			return null;
+		}
+		var p = ccr.parameters();
+		return new ActualRuleset.CopilotCodeReview(
+				p != null && Boolean.TRUE.equals(p.reviewOnPush()),
+				p != null && Boolean.TRUE.equals(p.reviewDraftPullRequests())
+		);
 	}
 
 	private static ActualRuleset.@Nullable MergeQueue mergeQueue(

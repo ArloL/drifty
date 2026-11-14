@@ -1,5 +1,6 @@
 package io.github.arlol.githubcheck.export;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -49,6 +50,15 @@ public sealed interface PklNode {
 
 		public static Scalar of(long value) {
 			return new Scalar(Long.toString(value), false);
+		}
+
+		/**
+		 * Always with a decimal point: Pkl reads {@code 80} as an Int, which a
+		 * Float field refuses.
+		 */
+		public static Scalar of(double value) {
+			String text = BigDecimal.valueOf(value).toPlainString();
+			return new Scalar(text.contains(".") ? text : text + ".0", false);
 		}
 
 		/**

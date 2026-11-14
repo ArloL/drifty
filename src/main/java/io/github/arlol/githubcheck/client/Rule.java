@@ -39,17 +39,22 @@ import org.jspecify.annotations.Nullable;
 	@JsonSubTypes.Type(value = Rule.MaxFilePathLength.class, name = "max_file_path_length"),
 	@JsonSubTypes.Type(value = Rule.FileExtensionRestriction.class, name = "file_extension_restriction"),
 	@JsonSubTypes.Type(value = Rule.MaxFileSize.class, name = "max_file_size"),
+	@JsonSubTypes.Type(value = Rule.CodeQuality.class, name = "code_quality"),
+	@JsonSubTypes.Type(value = Rule.CodeCoverage.class, name = "code_coverage"),
+	@JsonSubTypes.Type(value = Rule.CopilotCodeReview.class, name = "copilot_code_review"),
+	@JsonSubTypes.Type(value = Rule.LicenseComplianceScanning.class, name = "license_compliance_scanning"),
 })
 // @formatter:on
-public sealed interface Rule
-		permits Rule.RequiredLinearHistory, Rule.NonFastForward,
-		Rule.RequiredStatusChecks, Rule.PullRequest, Rule.CodeScanning,
-		Rule.Creation, Rule.Update, Rule.Deletion, Rule.RequiredSignatures,
-		Rule.CommitMessagePattern, Rule.CommitAuthorEmailPattern,
-		Rule.CommitterEmailPattern, Rule.BranchNamePattern, Rule.TagNamePattern,
-		Rule.RequiredDeployments, Rule.MergeQueue, Rule.Workflows,
-		Rule.FilePathRestriction, Rule.MaxFilePathLength,
-		Rule.FileExtensionRestriction, Rule.MaxFileSize, Rule.Unknown {
+public sealed interface Rule permits Rule.RequiredLinearHistory,
+		Rule.NonFastForward, Rule.RequiredStatusChecks, Rule.PullRequest,
+		Rule.CodeScanning, Rule.Creation, Rule.Update, Rule.Deletion,
+		Rule.RequiredSignatures, Rule.CommitMessagePattern,
+		Rule.CommitAuthorEmailPattern, Rule.CommitterEmailPattern,
+		Rule.BranchNamePattern, Rule.TagNamePattern, Rule.RequiredDeployments,
+		Rule.MergeQueue, Rule.Workflows, Rule.FilePathRestriction,
+		Rule.MaxFilePathLength, Rule.FileExtensionRestriction, Rule.MaxFileSize,
+		Rule.CodeQuality, Rule.CodeCoverage, Rule.CopilotCodeReview,
+		Rule.LicenseComplianceScanning, Rule.Unknown {
 
 	@JsonIgnore
 	@Nullable
@@ -530,6 +535,72 @@ public sealed interface Rule
 				this(maxFileSize, null);
 			}
 
+		}
+
+	}
+
+	record CodeQuality(
+			Parameters parameters
+	) implements Rule {
+
+		public RulesetRuleType type() {
+			return RulesetRuleType.CODE_QUALITY;
+		}
+
+		public record Parameters(
+				Severity severity
+		) {
+		}
+
+		public enum Severity {
+			@JsonProperty("errors")
+			ERRORS, @JsonProperty("warnings")
+			WARNINGS, @JsonProperty("notes")
+			NOTES, @JsonProperty("all")
+			ALL
+		}
+
+	}
+
+	record CodeCoverage(
+			Parameters parameters
+	) implements Rule {
+
+		public RulesetRuleType type() {
+			return RulesetRuleType.CODE_COVERAGE;
+		}
+
+		@JsonInclude(JsonInclude.Include.NON_NULL)
+		public record Parameters(
+				@Nullable Double maxCoverageDrop,
+				@Nullable Double minimumCoverage
+		) {
+		}
+
+	}
+
+	record CopilotCodeReview(
+			Parameters parameters
+	) implements Rule {
+
+		public RulesetRuleType type() {
+			return RulesetRuleType.COPILOT_CODE_REVIEW;
+		}
+
+		@JsonInclude(JsonInclude.Include.NON_NULL)
+		public record Parameters(
+				@Nullable Boolean reviewOnPush,
+				@Nullable Boolean reviewDraftPullRequests
+		) {
+		}
+
+	}
+
+	record LicenseComplianceScanning(
+	) implements Rule {
+
+		public RulesetRuleType type() {
+			return RulesetRuleType.LICENSE_COMPLIANCE_SCANNING;
 		}
 
 	}

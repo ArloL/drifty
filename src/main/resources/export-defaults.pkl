@@ -17,6 +17,8 @@ propertyCondition: schema.PropertyCondition = new {
 pullRequestRule: schema.PullRequestRule = new {}
 rulePattern: schema.RulePattern = new { operator = "starts_with"; pattern = "" }
 mergeQueueRule: schema.MergeQueueRule = new {}
+codeCoverageRule: schema.CodeCoverageRule = new {}
+copilotCodeReviewRule: schema.CopilotCodeReviewRule = new {}
 branchProtection: schema.BranchProtection = new {}
 environment: schema.Environment = new {}
 pages: schema.Pages = new {}
