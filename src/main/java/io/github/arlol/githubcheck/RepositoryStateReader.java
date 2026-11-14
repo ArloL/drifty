@@ -35,6 +35,8 @@ import io.github.arlol.githubcheck.client.RepoTeamResponse;
 import io.github.arlol.githubcheck.client.RepositoryDetailsResponse;
 import io.github.arlol.githubcheck.client.RepositorySummaryResponse;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
+import io.github.arlol.githubcheck.client.Rule;
+import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetSourceType;
 import io.github.arlol.githubcheck.client.Secret;
 import io.github.arlol.githubcheck.client.VariableResponse;
@@ -248,7 +250,7 @@ public final class RepositoryStateReader {
 			Supplier<List<ActualRuleset>> rulesets = archived ? List::of
 					: fanout.read(
 							Drifty.GroupName.RULESETS,
-							() -> rulesets(graph),
+							() -> rulesets(graph, org, name),
 							List.of()
 					);
 
@@ -686,13 +688,20 @@ public final class RepositoryStateReader {
 	/**
 	 * The rulesets the GraphQL query answered.
 	 * <p>
+	 * GraphQL names dismissal actors and required reviewers by node id, which
+	 * no write accepts, so it is asked only whether a ruleset has either; one
+	 * that does is read again over REST, which answers ids. That is one more
+	 * request per such ruleset, at the fan-out's second level.
+	 * <p>
 	 * The query asks for the repository's own, but an organization's can still
 	 * arrive — {@code source_type} is what says so, and one the repository
 	 * endpoint cannot delete is not the repository's to reconcile: reporting it
 	 * as extra produces a fix that always fails.
 	 */
-	private static List<ActualRuleset> rulesets(
-			Supplier<GraphQlRepositoryResponse> graph
+	private List<ActualRuleset> rulesets(
+			Supplier<GraphQlRepositoryResponse> graph,
+			String org,
+			String name
 	) {
 		return graph.get()
 				.rulesets()
@@ -701,8 +710,33 @@ public final class RepositoryStateReader {
 						rs -> rs.sourceType() != RulesetSourceType.ORGANIZATION
 								&& rs.sourceType() != RulesetSourceType.ENTERPRISE
 				)
+				.map(
+						rs -> namesActorsByNodeId(rs)
+								? client.getRuleset(org, name, rs.id())
+								: rs
+				)
 				.map(ActualTypes::ruleset)
 				.toList();
+	}
+
+	private static boolean namesActorsByNodeId(RulesetDetailsResponse ruleset) {
+		var rules = ruleset.rules();
+		return rules != null && rules.stream()
+				.anyMatch(RepositoryStateReader::namesActorsByNodeId);
+	}
+
+	private static boolean namesActorsByNodeId(Rule rule) {
+		if (!(rule instanceof Rule.PullRequest pr)) {
+			return false;
+		}
+		var parameters = pr.parameters();
+		if (parameters == null) {
+			return false;
+		}
+		var dismissal = parameters.dismissalRestriction();
+		var reviewers = parameters.requiredReviewers();
+		return dismissal != null && Boolean.TRUE.equals(dismissal.enabled())
+				|| reviewers != null && !reviewers.isEmpty();
 	}
 
 	/**

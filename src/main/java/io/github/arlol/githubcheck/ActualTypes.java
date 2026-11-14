@@ -112,6 +112,7 @@ public final class ActualTypes {
 				rules.containsKey(RulesetRuleType.REQUIRED_LINEAR_HISTORY),
 				rules.containsKey(RulesetRuleType.NON_FAST_FORWARD),
 				strictStatusChecks(rules),
+				statusChecksSkippedOnCreate(rules),
 				statusChecks(rules),
 				pullRequest(rules),
 				codeScanningTools(rules),
@@ -204,6 +205,15 @@ public final class ActualTypes {
 				);
 	}
 
+	private static boolean statusChecksSkippedOnCreate(
+			Map<RulesetRuleType, Rule> rules
+	) {
+		return rules.get(
+				RulesetRuleType.REQUIRED_STATUS_CHECKS
+		) instanceof Rule.RequiredStatusChecks rsc && rsc.parameters() != null
+				&& Boolean.TRUE.equals(rsc.parameters().doNotEnforceOnCreate());
+	}
+
 	private static Set<StatusCheck> statusChecks(
 			Map<RulesetRuleType, Rule> rules
 	) {
@@ -244,10 +254,14 @@ public final class ActualTypes {
 					false,
 					false,
 					false,
+					Set.of(),
+					false,
+					Set.of(),
 					Set.of()
 			);
 		}
 		Integer reviewCount = p.requiredApprovingReviewCount();
+		var dismissal = p.dismissalRestriction();
 		return new ActualRuleset.PullRequest(
 				reviewCount == null ? 0 : reviewCount,
 				Boolean.TRUE.equals(p.dismissStaleReviewsOnPush()),
@@ -256,8 +270,53 @@ public final class ActualTypes {
 				Boolean.TRUE
 						.equals(p.requireExtraApprovalForUnattributedChanges()),
 				Boolean.TRUE.equals(p.requiredReviewThreadResolution()),
-				patterns(p.allowedMergeMethods())
+				patterns(p.allowedMergeMethods()),
+				dismissal != null && Boolean.TRUE.equals(dismissal.enabled()),
+				dismissalActors(dismissal),
+				requiredReviewers(p.requiredReviewers())
 		);
+	}
+
+	private static Set<ActualRuleset.DismissalActor> dismissalActors(
+			Rule.PullRequest.@Nullable DismissalRestriction dismissal
+	) {
+		var actors = dismissal == null ? null : dismissal.allowedActors();
+		if (actors == null) {
+			return Set.of();
+		}
+		return actors.stream()
+				.map(
+						a -> new ActualRuleset.DismissalActor(
+								ConfigSpelling.of(a.type()),
+								a.id()
+						)
+				)
+				.collect(Collectors.toSet());
+	}
+
+	/**
+	 * GraphQL names a reviewer by node id, so a ruleset it answered with
+	 * reviewers is read again over REST before it gets here — see
+	 * {@code RepositoryStateReader.rulesets}.
+	 */
+	private static Set<ActualRuleset.RequiredReviewer> requiredReviewers(
+			@Nullable List<Rule.PullRequest.RequiredReviewer> reviewers
+	) {
+		if (reviewers == null) {
+			return Set.of();
+		}
+		return reviewers.stream()
+				.map(
+						r -> new ActualRuleset.RequiredReviewer(
+								Objects.requireNonNull(
+										r.reviewer(),
+										"a required reviewer without a team: the GraphQL answer was not re-read over REST"
+								).id(),
+								patterns(r.filePatterns()),
+								orZero(r.minimumApprovals())
+						)
+				)
+				.collect(Collectors.toSet());
 	}
 
 	private static ActualRuleset.@Nullable MergeQueue mergeQueue(

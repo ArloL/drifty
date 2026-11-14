@@ -44,6 +44,15 @@
   thing to read belongs in a fifth alias, not inside an existing one. The six
   REST reads it replaced are deleted rather than left unused, so there is one
   read path to reason about and nothing to call by accident.
+- **A ruleset with dismissal actors or required reviewers is read twice.**
+  GraphQL names both by node id and every write takes a database id, so the
+  query asks only `dismissalRestriction { enabled }` and
+  `requiredReviewers { minimumApprovals }`, and
+  `RepositoryStateReader.rulesets` re-reads just those rulesets with
+  `GitHubClient.getRuleset` — the one REST ruleset read, at the second level.
+  Asking GraphQL for `allowedActors` too fails the parse — `GraphQlShape`
+  hands node-id strings to a record expecting objects — and `reviewerId` is
+  dropped as an unknown field, so neither can stand in for the re-read.
 - **The GraphQL answer is rewritten as the REST shape, not as new records.**
   `GraphQlShape` turns each node into the JSON `RulesetDetailsResponse`,
   `BranchProtectionResponse` and `CollaboratorResponse` already parse, so

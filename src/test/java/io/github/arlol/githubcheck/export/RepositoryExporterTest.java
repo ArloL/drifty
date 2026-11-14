@@ -875,6 +875,7 @@ class RepositoryExporterTest {
 				false,
 				false,
 				false,
+				false,
 				Set.of(),
 				null,
 				Set.of(),

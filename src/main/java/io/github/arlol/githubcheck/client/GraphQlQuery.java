@@ -51,8 +51,10 @@ final class GraphQlQuery {
 			    ... on PullRequestParameters { requiredApprovingReviewCount
 			        dismissStaleReviewsOnPush requireCodeOwnerReview
 			        requireLastPushApproval requireExtraApprovalForUnattributedChanges
-			        requiredReviewThreadResolution allowedMergeMethods }
+			        requiredReviewThreadResolution allowedMergeMethods
+			        dismissalRestriction { enabled } requiredReviewers { minimumApprovals } }
 			    ... on RequiredStatusChecksParameters { strictRequiredStatusChecksPolicy
+			        doNotEnforceOnCreate
 			        requiredStatusChecks { context integrationId } }
 			    ... on UpdateParameters { updateAllowsFetchAndMerge }
 			    ... on CommitMessagePatternParameters { name negate operator pattern }

@@ -116,6 +116,11 @@ public final class RulesetExporter {
 								actual.strictRequiredStatusChecks(),
 								base.strictRequiredStatusChecks
 						),
+						Fields.field(
+								"doNotEnforceStatusChecksOnCreate",
+								actual.doNotEnforceStatusChecksOnCreate(),
+								base.doNotEnforceStatusChecksOnCreate
+						),
 						Fields.strings(
 								"requiredDeployments",
 								actual.requiredDeployments(),
@@ -325,6 +330,50 @@ public final class RulesetExporter {
 								"allowedMergeMethods",
 								actual.allowedMergeMethods(),
 								toStrings(defaults.allowedMergeMethods)
+						),
+						Fields.field(
+								"restrictReviewDismissals",
+								actual.restrictReviewDismissals(),
+								defaults.restrictReviewDismissals
+						),
+						Fields.objects(
+								"reviewDismissalActors",
+								actual.reviewDismissalActors()
+										.stream()
+										.sorted(
+												Comparator.comparing(
+														ActualRuleset.DismissalActor::toString
+												)
+										)
+										.<PklNode>map(
+												a -> new PklNode.Obj(
+														List.of(
+																required(
+																		"actorId",
+																		a.actorId()
+																),
+																required(
+																		"actorType",
+																		a.actorType()
+																)
+														)
+												)
+										)
+										.toList()
+						),
+						Fields.objects(
+								"requiredReviewers",
+								actual.requiredReviewers()
+										.stream()
+										.sorted(
+												Comparator.comparing(
+														ActualRuleset.RequiredReviewer::toString
+												)
+										)
+										.<PklNode>map(
+												RulesetExporter::requiredReviewer
+										)
+										.toList()
 						)
 				)
 		);
@@ -549,6 +598,21 @@ public final class RulesetExporter {
 			@Nullable String value
 	) {
 		return Fields.required(name, value).orElseThrow();
+	}
+
+	/**
+	 * {@code minimumApprovals} is the one field with a default, 0; the schema
+	 * has no instance to read it from, since the other two are required.
+	 */
+	private static PklNode.Obj requiredReviewer(
+			ActualRuleset.RequiredReviewer reviewer
+	) {
+		List<PklNode.Member> members = new ArrayList<>();
+		members.add(required("teamId", reviewer.teamId()));
+		members.add(requiredStrings("filePatterns", reviewer.filePatterns()));
+		Fields.field("minimumApprovals", reviewer.minimumApprovals(), 0)
+				.ifPresent(members::add);
+		return new PklNode.Obj(members);
 	}
 
 	private static PklNode.Member required(String name, long value) {

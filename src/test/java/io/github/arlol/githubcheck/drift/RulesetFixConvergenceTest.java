@@ -199,6 +199,7 @@ class RulesetFixConvergenceTest {
 				.withRequiredLinearHistory(true)
 				.withNoForcePushes(true)
 				.withStrictRequiredStatusChecks(true)
+				.withDoNotEnforceStatusChecksOnCreate(true)
 				.withRequiredStatusChecks(
 						List.of(Desired.statusCheck("build", 15368L))
 				)
@@ -214,6 +215,23 @@ class RulesetFixConvergenceTest {
 								.withRequiredReviewThreadResolution(true)
 								.withAllowedMergeMethods(
 										List.of(Drifty.MergeMethod.SQUASH)
+								)
+								.withRestrictReviewDismissals(true)
+								.withReviewDismissalActors(
+										List.of(
+												Desired.dismissalActor(
+														3L,
+														Drifty.DismissalActorType.TEAM
+												)
+										)
+								)
+								.withRequiredReviewers(
+										List.of(
+												Desired.requiredReviewer(
+														4L,
+														List.of("src/**")
+												).withMinimumApprovals(1L)
+										)
 								)
 				)
 				.withRequiredCodeScanning(

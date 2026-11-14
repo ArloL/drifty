@@ -76,6 +76,10 @@ class PklTypesTest {
 						PklTypes::reviewerType
 				),
 				cases(Drifty.ActorType.class, PklTypes::actorType),
+				cases(
+						Drifty.DismissalActorType.class,
+						PklTypes::dismissalActorType
+				),
 				cases(Drifty.BypassMode.class, PklTypes::bypassMode),
 				cases(Drifty.RulesetTarget.class, PklTypes::rulesetTarget),
 				cases(

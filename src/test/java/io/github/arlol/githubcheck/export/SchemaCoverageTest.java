@@ -614,6 +614,7 @@ class SchemaCoverageTest {
 				true,
 				true,
 				true,
+				true,
 				// appId non-null, unlike the schema's default of omitting
 				// it, so StatusCheck.appId itself renders.
 				Set.of(new StatusCheck("build", 15)),
@@ -624,7 +625,16 @@ class SchemaCoverageTest {
 						true,
 						true,
 						true,
-						Set.of("squash")
+						Set.of("squash"),
+						true,
+						Set.of(new ActualRuleset.DismissalActor("Team", 3L)),
+						Set.of(
+								new ActualRuleset.RequiredReviewer(
+										4L,
+										Set.of("src/**"),
+										1
+								)
+						)
 				),
 				Set.of("codeql"),
 				Set.of("production"),
@@ -696,6 +706,7 @@ class SchemaCoverageTest {
 				"active",
 				Set.of(),
 				Set.of(),
+				false,
 				false,
 				false,
 				false,

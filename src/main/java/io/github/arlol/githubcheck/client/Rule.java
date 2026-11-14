@@ -84,12 +84,24 @@ public sealed interface Rule
 		@JsonInclude(JsonInclude.Include.NON_NULL)
 		public record Parameters(
 				@Nullable List<StatusCheck> requiredStatusChecks,
-				@Nullable Boolean strictRequiredStatusChecksPolicy
+				@Nullable Boolean strictRequiredStatusChecksPolicy,
+				@Nullable Boolean doNotEnforceOnCreate
 		) {
 
 			public Parameters {
 				requiredStatusChecks = requiredStatusChecks == null ? null
 						: List.copyOf(requiredStatusChecks);
+			}
+
+			public Parameters(
+					@Nullable List<StatusCheck> requiredStatusChecks,
+					@Nullable Boolean strictRequiredStatusChecksPolicy
+			) {
+				this(
+						requiredStatusChecks,
+						strictRequiredStatusChecksPolicy,
+						null
+				);
 			}
 
 		}
@@ -112,12 +124,38 @@ public sealed interface Rule
 				@Nullable Boolean requireLastPushApproval,
 				@Nullable Boolean requireExtraApprovalForUnattributedChanges,
 				@Nullable Boolean requiredReviewThreadResolution,
-				@Nullable List<String> allowedMergeMethods
+				@Nullable List<String> allowedMergeMethods,
+				@Nullable DismissalRestriction dismissalRestriction,
+				@Nullable List<RequiredReviewer> requiredReviewers
 		) {
 
 			public Parameters {
 				allowedMergeMethods = allowedMergeMethods == null ? null
 						: List.copyOf(allowedMergeMethods);
+				requiredReviewers = requiredReviewers == null ? null
+						: List.copyOf(requiredReviewers);
+			}
+
+			public Parameters(
+					@Nullable Integer requiredApprovingReviewCount,
+					@Nullable Boolean dismissStaleReviewsOnPush,
+					@Nullable Boolean requireCodeOwnerReview,
+					@Nullable Boolean requireLastPushApproval,
+					@Nullable Boolean requireExtraApprovalForUnattributedChanges,
+					@Nullable Boolean requiredReviewThreadResolution,
+					@Nullable List<String> allowedMergeMethods
+			) {
+				this(
+						requiredApprovingReviewCount,
+						dismissStaleReviewsOnPush,
+						requireCodeOwnerReview,
+						requireLastPushApproval,
+						requireExtraApprovalForUnattributedChanges,
+						requiredReviewThreadResolution,
+						allowedMergeMethods,
+						null,
+						null
+				);
 			}
 
 			public Parameters(
@@ -135,6 +173,70 @@ public sealed interface Rule
 						null,
 						null
 				);
+			}
+
+		}
+
+		/**
+		 * {@code dismissal_restriction}. GraphQL names the actors by node id,
+		 * so its answer carries {@code enabled} alone and the reader asks REST
+		 * for the actors.
+		 */
+		@JsonInclude(JsonInclude.Include.NON_NULL)
+		public record DismissalRestriction(
+				@Nullable Boolean enabled,
+				@Nullable List<Actor> allowedActors
+		) {
+
+			public DismissalRestriction {
+				allowedActors = allowedActors == null ? null
+						: List.copyOf(allowedActors);
+			}
+
+			public record Actor(
+					Long id,
+					ActorType type
+			) {
+
+				public enum ActorType {
+					@JsonProperty("User")
+					USER, @JsonProperty("Team")
+					TEAM, @JsonProperty("IntegrationInstallation")
+					INTEGRATION_INSTALLATION, @JsonProperty("RepositoryRole")
+					REPOSITORY_ROLE
+				}
+
+			}
+
+		}
+
+		/**
+		 * One of {@code required_reviewers}. GraphQL names the team by node id,
+		 * so its answer carries no {@code reviewer} and the reader asks REST
+		 * for it.
+		 */
+		@JsonInclude(JsonInclude.Include.NON_NULL)
+		public record RequiredReviewer(
+				@Nullable List<String> filePatterns,
+				@Nullable Integer minimumApprovals,
+				@Nullable Reviewer reviewer
+		) {
+
+			public RequiredReviewer {
+				filePatterns = filePatterns == null ? null
+						: List.copyOf(filePatterns);
+			}
+
+			public record Reviewer(
+					Long id,
+					ReviewerType type
+			) {
+
+				public enum ReviewerType {
+					@JsonProperty("Team")
+					TEAM
+				}
+
 			}
 
 		}

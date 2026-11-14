@@ -140,6 +140,24 @@ typealias MergeMethod = "merge" | "squash" | "rebase"
 typealias MergeQueueGroupingStrategy = "ALLGREEN" | "HEADGREEN"
 typealias MergeQueueMergeMethod = "MERGE" | "SQUASH" | "REBASE"
 
+typealias DismissalActorType = "User" | "Team" | "IntegrationInstallation" | "RepositoryRole"
+
+/// An actor allowed to dismiss pull request reviews.
+class DismissalActor {
+  actorId: Int
+  actorType: DismissalActorType
+}
+
+/// A team that must review pull requests changing matching files.
+class RequiredReviewer {
+  teamId: Int
+  /// fnmatch patterns of the files the team must approve.
+  filePatterns: Listing<String>(!isEmpty)
+  /// Approvals required from the team; 0 requests its review without
+  /// requiring approval.
+  minimumApprovals: Int = 0
+}
+
 /// The pull_request rule. Its presence on a Ruleset is what requires pull
 /// requests before merging; the defaults are GitHub's for a new rule.
 class PullRequestRule {
@@ -154,6 +172,10 @@ class PullRequestRule {
   requiredReviewThreadResolution: Boolean = false
   /// Leave empty to allow every merge method.
   allowedMergeMethods: Listing<MergeMethod> = new {}
+  /// Whether only reviewDismissalActors may dismiss reviews.
+  restrictReviewDismissals: Boolean = false
+  reviewDismissalActors: Listing<DismissalActor>(isEmpty || restrictReviewDismissals) = new {}
+  requiredReviewers: Listing<RequiredReviewer> = new {}
 }
 
 /// The merge_queue rule, with GitHub's defaults for a new queue.
@@ -191,6 +213,8 @@ open class Ruleset {
   noForcePushes: Boolean = false
   /// Whether branches must be up to date before merging.
   strictRequiredStatusChecks: Boolean = false
+  /// Whether a branch may be created even when its checks would block it.
+  doNotEnforceStatusChecksOnCreate: Boolean = false
   requiredStatusChecks: Listing<StatusCheck> = new {}
   /// Set to require pull requests; omit to allow direct pushes.
   pullRequest: PullRequestRule?

@@ -6,6 +6,7 @@ import io.github.arlol.githubcheck.client.ActionsEnabledRepositories;
 import io.github.arlol.githubcheck.client.AllowedActions;
 import io.github.arlol.githubcheck.client.PagesBuildType;
 import io.github.arlol.githubcheck.client.RepositoryVisibility;
+import io.github.arlol.githubcheck.client.Rule;
 import io.github.arlol.githubcheck.client.RulePatternOperator;
 import io.github.arlol.githubcheck.client.RulesetDetailsResponse;
 import io.github.arlol.githubcheck.client.RulesetEnforcement;
@@ -63,6 +64,18 @@ public final class ConfigSpelling {
 		case ENDS_WITH -> Drifty.PatternOperator.ENDS_WITH;
 		case CONTAINS -> Drifty.PatternOperator.CONTAINS;
 		case REGEX -> Drifty.PatternOperator.REGEX;
+		}).toString();
+	}
+
+	public static @Nullable String of(
+			Rule.PullRequest.DismissalRestriction.Actor.@Nullable ActorType value
+	) {
+		return value == null ? null : (switch (value) {
+		case USER -> Drifty.DismissalActorType.USER;
+		case TEAM -> Drifty.DismissalActorType.TEAM;
+		case INTEGRATION_INSTALLATION ->
+			Drifty.DismissalActorType.INTEGRATION_INSTALLATION;
+		case REPOSITORY_ROLE -> Drifty.DismissalActorType.REPOSITORY_ROLE;
 		}).toString();
 	}
 

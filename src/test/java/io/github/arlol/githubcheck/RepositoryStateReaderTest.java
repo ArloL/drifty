@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 
 import io.github.arlol.githubcheck.actual.ActualCustomPropertyValue;
+import io.github.arlol.githubcheck.actual.ActualRuleset;
 import io.github.arlol.githubcheck.actual.ActualVariable;
 import io.github.arlol.githubcheck.actual.ActualWebhook;
 import io.github.arlol.githubcheck.client.GitHubApiException;
@@ -412,6 +414,89 @@ class RepositoryStateReaderTest {
 		verify(
 				0,
 				getRequestedFor(urlPathEqualTo("/repos/owner/repo/rulesets/99"))
+		);
+	}
+
+	/**
+	 * GraphQL names dismissal actors and required reviewers by node id, so a
+	 * ruleset that has either is read again over REST, and only that one.
+	 */
+	@Test
+	void aRulesetWithReviewersOrDismissalActors_isReadAgainOverRest()
+			throws Exception {
+		stubRepoDetails("");
+		stubSecurityEndpoints();
+		stubStandardEndpoints();
+		stubFor(GraphQlStub.answering(GraphQlStub.sections("""
+				{
+				  "databaseId": 42, "name": "reviewed",
+				  "target": "BRANCH", "enforcement": "ACTIVE",
+				  "source": {"__typename": "Repository"},
+				  "bypassActors": {"nodes": []},
+				  "rules": {"nodes": [{"type": "PULL_REQUEST", "parameters": {
+				    "__typename": "PullRequestParameters",
+				    "requiredApprovingReviewCount": 1,
+				    "dismissalRestriction": {"enabled": true},
+				    "requiredReviewers": [{"minimumApprovals": 1}]
+				  }}]}
+				}, {
+				  "databaseId": 43, "name": "plain",
+				  "target": "BRANCH", "enforcement": "ACTIVE",
+				  "source": {"__typename": "Repository"},
+				  "bypassActors": {"nodes": []},
+				  "rules": {"nodes": [{"type": "PULL_REQUEST", "parameters": {
+				    "__typename": "PullRequestParameters",
+				    "requiredApprovingReviewCount": 1,
+				    "dismissalRestriction": {"enabled": false},
+				    "requiredReviewers": []
+				  }}]}
+				}
+				""", null, null, true)));
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/rulesets/42")).willReturn(
+						okJson(
+								"""
+										{"id": 42, "name": "reviewed", "target": "branch",
+										 "enforcement": "active", "source_type": "Repository",
+										 "rules": [{"type": "pull_request", "parameters": {
+										   "required_approving_review_count": 1,
+										   "dismissal_restriction": {"enabled": true,
+										     "allowed_actors": [{"id": 7, "type": "Team"}]},
+										   "required_reviewers": [{"file_patterns": ["src/**"],
+										     "minimum_approvals": 1,
+										     "reviewer": {"id": 8, "type": "Team"}}]
+										 }}]}
+										"""
+						)
+				)
+		);
+		stubFor(
+				get(urlPathEqualTo("/repos/owner/repo/pages"))
+						.willReturn(aResponse().withStatus(404))
+		);
+
+		RepositoryState state = reader.fetchState(
+				REF,
+				summary(false, "public"),
+				ManagedGroups.all(Drifty.GroupName.class)
+		);
+
+		var reviewed = state.rulesets()
+				.stream()
+				.filter(r -> r.name().equals("reviewed"))
+				.findFirst()
+				.orElseThrow()
+				.pullRequest();
+		assertThat(reviewed).isNotNull();
+		assertThat(reviewed.restrictReviewDismissals()).isTrue();
+		assertThat(reviewed.reviewDismissalActors())
+				.containsExactly(new ActualRuleset.DismissalActor("Team", 7L));
+		assertThat(reviewed.requiredReviewers()).containsExactly(
+				new ActualRuleset.RequiredReviewer(8L, Set.of("src/**"), 1)
+		);
+		verify(
+				0,
+				getRequestedFor(urlPathEqualTo("/repos/owner/repo/rulesets/43"))
 		);
 	}
 
