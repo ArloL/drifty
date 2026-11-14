@@ -80,6 +80,10 @@ class PklTypesTest {
 						Drifty.DismissalActorType.class,
 						PklTypes::dismissalActorType
 				),
+				cases(
+						Drifty.CodeQualitySeverity.class,
+						PklTypes::codeQualitySeverity
+				),
 				cases(Drifty.BypassMode.class, PklTypes::bypassMode),
 				cases(Drifty.RulesetTarget.class, PklTypes::rulesetTarget),
 				cases(

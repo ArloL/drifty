@@ -2384,6 +2384,34 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.Rule$CodeCoverage",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$CodeCoverage$Parameters",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$CodeQuality",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$CodeQuality$Parameters",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$CodeQuality$Severity",
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.Rule$CodeScanning",
       "methods": [
         {
@@ -2446,6 +2474,18 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.Rule$CopilotCodeReview",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$CopilotCodeReview$Parameters",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.Rule$Creation",
       "allPublicFields": true,
       "allPublicMethods": true,
@@ -2489,6 +2529,12 @@
     },
     {
       "type": "io.github.arlol.githubcheck.client.Rule$FilePathRestriction$Parameters",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$LicenseComplianceScanning",
       "allPublicFields": true,
       "allPublicMethods": true,
       "allPublicConstructors": true
@@ -3814,6 +3860,15 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$CodeCoverageRule",
+      "allPublicConstructors": true,
+      "allPublicFields": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$CodeQualitySeverity",
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$CodeScanningDefaultSetupOptions",
       "methods": [
         {
@@ -3913,6 +3968,11 @@
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$CollaboratorPermission",
       "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$CopilotCodeReviewRule",
+      "allPublicConstructors": true,
+      "allPublicFields": true
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$CustomProperty",

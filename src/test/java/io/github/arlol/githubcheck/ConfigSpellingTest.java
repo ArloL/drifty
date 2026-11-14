@@ -80,6 +80,11 @@ class ConfigSpellingTest {
 						ConfigSpelling::of
 				),
 				cases(
+						Rule.CodeQuality.Severity.values(),
+						Drifty.CodeQualitySeverity.class,
+						ConfigSpelling::of
+				),
+				cases(
 						Rule.PullRequest.DismissalRestriction.Actor.ActorType
 								.values(),
 						Drifty.DismissalActorType.class,

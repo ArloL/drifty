@@ -22,7 +22,10 @@ public enum RulesetRuleType {
 	FILE_EXTENSION_RESTRICTION, @JsonProperty("max_file_size")
 	MAX_FILE_SIZE, @JsonProperty("workflows")
 	WORKFLOWS, @JsonProperty("code_scanning")
-	CODE_SCANNING, @JsonProperty("copilot_code_review")
+	CODE_SCANNING, @JsonProperty("code_quality")
+	CODE_QUALITY, @JsonProperty("code_coverage")
+	CODE_COVERAGE, @JsonProperty("license_compliance_scanning")
+	LICENSE_COMPLIANCE_SCANNING, @JsonProperty("copilot_code_review")
 	COPILOT_CODE_REVIEW, @JsonProperty("required_deployments")
 	REQUIRED_DEPLOYMENTS, @JsonProperty("merge_queue")
 	MERGE_QUEUE

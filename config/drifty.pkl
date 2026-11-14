@@ -178,6 +178,22 @@ class PullRequestRule {
   requiredReviewers: Listing<RequiredReviewer> = new {}
 }
 
+typealias CodeQualitySeverity = "errors" | "warnings" | "notes" | "all"
+
+/// The code_coverage rule. Either bound may be left unset.
+class CodeCoverageRule {
+  /// Percentage points line coverage may drop against the default branch.
+  maxCoverageDrop: Float(isBetween(0, 100))?
+  /// Lowest line coverage percentage a pull request may have.
+  minimumCoverage: Float(isBetween(0, 100))?
+}
+
+/// The copilot_code_review rule.
+class CopilotCodeReviewRule {
+  reviewOnPush: Boolean = false
+  reviewDraftPullRequests: Boolean = false
+}
+
 /// The merge_queue rule, with GitHub's defaults for a new queue.
 class MergeQueueRule {
   checkResponseTimeoutMinutes: Int = 60
@@ -243,6 +259,14 @@ open class Ruleset {
   maxFileSize: Int?
   /// Paths that may exceed maxFileSize.
   maxFileSizeIgnoredPaths: Listing<String>(isEmpty || maxFileSize != null) = new {}
+  /// Lowest severity of code quality findings that must be resolved before
+  /// merging; omit for no code_quality rule.
+  codeQualitySeverity: CodeQualitySeverity?
+  /// Set to block pull requests on line coverage.
+  codeCoverage: CodeCoverageRule?
+  /// Set to have Copilot review pull requests.
+  copilotCodeReview: CopilotCodeReviewRule?
+  licenseComplianceScanning: Boolean = false
   bypassActors: Listing<BypassActor> = new {}
 }
 

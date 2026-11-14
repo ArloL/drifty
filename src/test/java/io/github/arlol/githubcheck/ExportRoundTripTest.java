@@ -74,6 +74,10 @@ class ExportRoundTripTest {
 		stubOrganization();
 		stubRepository();
 		stubFor(GraphQlStub.answering(REPOSITORY_GRAPHQL));
+		stubFor(
+				get(urlPathEqualTo("/repos/my-org/widget/rulesets/42"))
+						.willReturn(okJson(MAIN_RULES_REST))
+		);
 
 		GitHubClient client = new GitHubClient(
 				wm.getHttpBaseUrl(),
@@ -148,7 +152,16 @@ class ExportRoundTripTest {
 				.contains("repositoryPropertyExclude")
 				.as("an environment's custom deployment branch policies")
 				.contains("deploymentBranchPatterns")
-				.contains("deploymentTagPatterns");
+				.contains("deploymentTagPatterns")
+				.as(
+						"a ruleset read again over REST for its dismissal actors and reviewers"
+				)
+				.contains("restrictReviewDismissals = true")
+				.contains("teamId = 8")
+				.as("the review rules, a float written as a Pkl Float")
+				.contains("codeQualitySeverity = \"warnings\"")
+				.contains("minimumCoverage = 80.0")
+				.contains("licenseComplianceScanning = true");
 	}
 
 	/**
@@ -433,6 +446,40 @@ class ExportRoundTripTest {
 	 * are gone — so a fixture that stubs the endpoints and leaves this at
 	 * {@code atDefaults()} exercises none of them.
 	 */
+	/**
+	 * Ruleset 42 as REST answers it: GraphQL names its dismissal actors and
+	 * reviewers by node id, so the reader asks for it again. It also carries
+	 * the four review rules, whose floats have to come back as Pkl Floats.
+	 */
+	private static final String MAIN_RULES_REST = """
+			{"id": 42, "name": "main-rules", "target": "branch",
+			 "enforcement": "active", "source_type": "Repository",
+			 "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+			 "bypass_actors": [],
+			 "rules": [
+			   {"type": "required_linear_history"},
+			   {"type": "non_fast_forward"},
+			   {"type": "pull_request", "parameters": {
+			     "required_approving_review_count": 1,
+			     "dismiss_stale_reviews_on_push": false,
+			     "require_code_owner_review": false,
+			     "require_last_push_approval": false,
+			     "required_review_thread_resolution": false,
+			     "allowed_merge_methods": ["merge", "squash", "rebase"],
+			     "dismissal_restriction": {"enabled": true,
+			       "allowed_actors": [{"id": 7, "type": "Team"}]},
+			     "required_reviewers": [{"file_patterns": ["src/**"],
+			       "minimum_approvals": 1, "reviewer": {"id": 8, "type": "Team"}}]
+			   }},
+			   {"type": "code_quality", "parameters": {"severity": "warnings"}},
+			   {"type": "code_coverage", "parameters": {
+			     "max_coverage_drop": 2.5, "minimum_coverage": 80}},
+			   {"type": "copilot_code_review", "parameters": {
+			     "review_on_push": true, "review_draft_pull_requests": false}},
+			   {"type": "license_compliance_scanning"}
+			 ]}
+			""";
+
 	private static final String REPOSITORY_GRAPHQL = GraphQlStub.sections(
 			"""
 					{
@@ -443,7 +490,13 @@ class ExportRoundTripTest {
 					  "bypassActors": {"nodes": []},
 					  "rules": {"nodes": [
 					    {"type": "REQUIRED_LINEAR_HISTORY", "parameters": null},
-					    {"type": "NON_FAST_FORWARD", "parameters": null}
+					    {"type": "NON_FAST_FORWARD", "parameters": null},
+					    {"type": "PULL_REQUEST", "parameters": {
+					      "__typename": "PullRequestParameters",
+					      "requiredApprovingReviewCount": 1,
+					      "dismissalRestriction": {"enabled": true},
+					      "requiredReviewers": [{"minimumApprovals": 1}]
+					    }}
 					  ]}
 					},
 					{

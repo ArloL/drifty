@@ -7,11 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @GitHubEndpoint(
 		response = { "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}",
 				"GET /orgs/{org}/rulesets/{ruleset_id}" },
-		unmanaged = { "_links — navigation, not a setting",
-				"rules[code_coverage] — a rule type GitHub added; Rule has no subtype for it, so it reaches the catch-all and nothing compares it",
-				"rules[code_quality] — a rule type GitHub added, as above",
-				"rules[copilot_code_review] — a rule type GitHub added, as above",
-				"rules[license_compliance_scanning] — a rule type GitHub added, as above" }
+		unmanaged = { "_links — navigation, not a setting" }
 )
 public record RulesetDetailsResponse(
 		long id,

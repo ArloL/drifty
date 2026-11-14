@@ -36,6 +36,8 @@ public final class Desired {
 	private static final Drifty.Ruleset RULESET;
 	private static final Drifty.PullRequestRule PULL_REQUEST_RULE;
 	private static final Drifty.MergeQueueRule MERGE_QUEUE_RULE;
+	private static final Drifty.CodeCoverageRule CODE_COVERAGE_RULE;
+	private static final Drifty.CopilotCodeReviewRule COPILOT_CODE_REVIEW_RULE;
 	private static final Drifty.WorkflowRule WORKFLOW_RULE;
 	private static final Drifty.BranchProtection BRANCH_PROTECTION;
 	private static final Drifty.Environment ENVIRONMENT;
@@ -66,6 +68,10 @@ public final class Desired {
 					.as(Drifty.PullRequestRule.class);
 			MERGE_QUEUE_RULE = root.get("mergeQueueRule")
 					.as(Drifty.MergeQueueRule.class);
+			CODE_COVERAGE_RULE = root.get("codeCoverageRule")
+					.as(Drifty.CodeCoverageRule.class);
+			COPILOT_CODE_REVIEW_RULE = root.get("copilotCodeReviewRule")
+					.as(Drifty.CopilotCodeReviewRule.class);
 			WORKFLOW_RULE = root.get("workflowRule")
 					.as(Drifty.WorkflowRule.class);
 			BRANCH_PROTECTION = root.get("branchProtection")
@@ -125,6 +131,15 @@ public final class Desired {
 	/** A merge_queue rule with GitHub's defaults for a new one. */
 	public static Drifty.MergeQueueRule mergeQueueRule() {
 		return MERGE_QUEUE_RULE;
+	}
+
+	/** A code_coverage rule with neither bound set. */
+	public static Drifty.CodeCoverageRule codeCoverageRule() {
+		return CODE_COVERAGE_RULE;
+	}
+
+	public static Drifty.CopilotCodeReviewRule copilotCodeReviewRule() {
+		return COPILOT_CODE_REVIEW_RULE;
 	}
 
 	public static Drifty.WorkflowRule workflowRule(

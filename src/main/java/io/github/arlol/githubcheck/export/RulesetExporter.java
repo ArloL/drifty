@@ -156,6 +156,17 @@ public final class RulesetExporter {
 								actual.maxFileSizeIgnoredPaths(),
 								base.maxFileSizeIgnoredPaths
 						),
+						Fields.field(
+								"codeQualitySeverity",
+								actual.codeQualitySeverity(),
+								base.codeQualitySeverity == null ? null
+										: base.codeQualitySeverity.toString()
+						),
+						Fields.field(
+								"licenseComplianceScanning",
+								actual.licenseComplianceScanning(),
+								base.licenseComplianceScanning
+						),
 						Fields.objects(
 								"requiredStatusChecks",
 								statusChecks(actual.requiredStatusChecks())
@@ -189,6 +200,53 @@ public final class RulesetExporter {
 		var mergeQueueRule = actual.mergeQueue();
 		if (mergeQueueRule != null) {
 			members.add(mergeQueue(mergeQueueRule, defaults.mergeQueueRule()));
+		}
+		// Presence is the setting for these two as well.
+		var coverage = actual.codeCoverage();
+		if (coverage != null) {
+			var coverageDefaults = defaults.codeCoverageRule();
+			members.add(
+					new PklNode.Field(
+							"codeCoverage",
+							new PklNode.Obj(
+									Fields.members(
+											Fields.field(
+													"maxCoverageDrop",
+													coverage.maxCoverageDrop(),
+													coverageDefaults.maxCoverageDrop
+											),
+											Fields.field(
+													"minimumCoverage",
+													coverage.minimumCoverage(),
+													coverageDefaults.minimumCoverage
+											)
+									)
+							)
+					)
+			);
+		}
+		var copilot = actual.copilotCodeReview();
+		if (copilot != null) {
+			var copilotDefaults = defaults.copilotCodeReviewRule();
+			members.add(
+					new PklNode.Field(
+							"copilotCodeReview",
+							new PklNode.Obj(
+									Fields.members(
+											Fields.field(
+													"reviewOnPush",
+													copilot.reviewOnPush(),
+													copilotDefaults.reviewOnPush
+											),
+											Fields.field(
+													"reviewDraftPullRequests",
+													copilot.reviewDraftPullRequests(),
+													copilotDefaults.reviewDraftPullRequests
+											)
+									)
+							)
+					)
+			);
 		}
 		if (orgScope) {
 			// A second call rather than casting base: base is declared

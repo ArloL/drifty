@@ -37,6 +37,8 @@ public final class SchemaDefaults {
 	private final Drifty.PullRequestRule pullRequestRule;
 	private final Drifty.RulePattern rulePattern;
 	private final Drifty.MergeQueueRule mergeQueueRule;
+	private final Drifty.CodeCoverageRule codeCoverageRule;
+	private final Drifty.CopilotCodeReviewRule copilotCodeReviewRule;
 	private final Drifty.BranchProtection branchProtection;
 	private final Drifty.Environment environment;
 	private final Drifty.Pages pages;
@@ -65,6 +67,10 @@ public final class SchemaDefaults {
 		rulePattern = root.get("rulePattern").as(Drifty.RulePattern.class);
 		mergeQueueRule = root.get("mergeQueueRule")
 				.as(Drifty.MergeQueueRule.class);
+		codeCoverageRule = root.get("codeCoverageRule")
+				.as(Drifty.CodeCoverageRule.class);
+		copilotCodeReviewRule = root.get("copilotCodeReviewRule")
+				.as(Drifty.CopilotCodeReviewRule.class);
 		branchProtection = root.get("branchProtection")
 				.as(Drifty.BranchProtection.class);
 		environment = root.get("environment").as(Drifty.Environment.class);
@@ -189,6 +195,14 @@ public final class SchemaDefaults {
 
 	public Drifty.MergeQueueRule mergeQueueRule() {
 		return mergeQueueRule;
+	}
+
+	public Drifty.CodeCoverageRule codeCoverageRule() {
+		return codeCoverageRule;
+	}
+
+	public Drifty.CopilotCodeReviewRule copilotCodeReviewRule() {
+		return copilotCodeReviewRule;
 	}
 
 	public Drifty.BranchProtection branchProtection() {

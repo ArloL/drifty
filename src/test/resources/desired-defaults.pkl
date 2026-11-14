@@ -9,6 +9,8 @@ repository: drifty.Repository = new { name = "repo" }
 ruleset: drifty.Ruleset = new {}
 pullRequestRule: drifty.PullRequestRule = new {}
 mergeQueueRule: drifty.MergeQueueRule = new {}
+codeCoverageRule: drifty.CodeCoverageRule = new {}
+copilotCodeReviewRule: drifty.CopilotCodeReviewRule = new {}
 workflowRule: drifty.WorkflowRule = new { path = ".github/workflows/ci.yml"; repositoryId = 1 }
 branchProtection: drifty.BranchProtection = new {}
 environment: drifty.Environment = new {}

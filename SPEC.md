@@ -350,6 +350,10 @@ Repo-level rulesets managed via the `rulesets` mapping (keyed by ruleset name) o
 | Max file path length | Yes | Yes |
 | File extension restrictions | Yes | Yes |
 | Max file size, and the paths exempt from it | Yes | Yes |
+| Code quality severity | Yes | Yes |
+| Code coverage (maximum drop, minimum coverage) | Yes | Yes |
+| Copilot code review (on push, on drafts) | Yes | Yes |
+| License compliance scanning | Yes | Yes |
 
 **Push rulesets** are the same group with `target = "push"`. A push ruleset applies to every push to the repository, forks included, so it has no ref conditions: the schema refuses `includePatterns` and `excludePatterns` on one, and the request body carries no `conditions` at all. The rules GitHub accepts on a push ruleset are the file rules — `filePathRestrictions`, `maxFilePathLength`, `fileExtensionRestrictions`, `maxFileSize` — and they are compared and written exactly as on a branch ruleset. drifty does not check which rules a target accepts; a rule GitHub rejects for the target comes back as a failed fix with GitHub's message.
 
@@ -662,6 +666,8 @@ One PUT per drifted property, which replaces the definition whole. Definitions w
 | `repositoryNameInclude` / `repositoryNameExclude` | Yes | Yes |
 | `repositoryNameProtected` | Yes | Yes |
 | `repositoryPropertyInclude` / `repositoryPropertyExclude` | Yes | Yes |
+
+An organization ruleset takes `codeQualitySeverity`, `codeCoverage` and `licenseComplianceScanning` too, although GitHub's spec lists only `copilot_code_review` of the four at the organization endpoints; a refusal comes back as a failed fix with GitHub's message.
 
 `repository_id` conditions are not offered: the config names repositories, and a name condition covers the same ground without an id lookup. Rulesets whose `source_type` is `Enterprise` are dropped before comparing, on the organization side as on the repository side. Extra rulesets are deleted by `--fix`.
 

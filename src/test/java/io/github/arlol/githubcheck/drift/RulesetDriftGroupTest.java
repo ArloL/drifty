@@ -1031,6 +1031,116 @@ class RulesetDriftGroupTest {
 						),
 						pullRequest
 				),
+				// The review rules.
+				Arguments.of(
+						"rulesets.rs.code_quality.severity",
+						Desired.ruleset()
+								.withCodeQualitySeverity(
+										Drifty.CodeQualitySeverity.ERRORS
+								),
+						matching
+				),
+				Arguments.of(
+						"rulesets.rs.license_compliance_scanning",
+						Desired.ruleset().withLicenseComplianceScanning(true),
+						matching
+				),
+				Arguments.of(
+						"rulesets.rs.code_coverage",
+						Desired.ruleset()
+								.withCodeCoverage(Desired.codeCoverageRule()),
+						matching
+				),
+				Arguments.of(
+						"rulesets.rs.code_coverage.max_coverage_drop",
+						Desired.ruleset()
+								.withCodeCoverage(
+										Desired.codeCoverageRule()
+												.withMaxCoverageDrop(2.5)
+								),
+						responseWith(
+								"rs",
+								List.of(),
+								List.of(
+										new Rule.CodeCoverage(
+												new Rule.CodeCoverage.Parameters(
+														null,
+														null
+												)
+										)
+								)
+						)
+				),
+				Arguments.of(
+						"rulesets.rs.code_coverage.minimum_coverage",
+						Desired.ruleset()
+								.withCodeCoverage(
+										Desired.codeCoverageRule()
+												.withMinimumCoverage(80.0)
+								),
+						responseWith(
+								"rs",
+								List.of(),
+								List.of(
+										new Rule.CodeCoverage(
+												new Rule.CodeCoverage.Parameters(
+														null,
+														null
+												)
+										)
+								)
+						)
+				),
+				Arguments.of(
+						"rulesets.rs.copilot_code_review",
+						Desired.ruleset()
+								.withCopilotCodeReview(
+										Desired.copilotCodeReviewRule()
+								),
+						matching
+				),
+				Arguments.of(
+						"rulesets.rs.copilot_code_review.review_on_push",
+						Desired.ruleset()
+								.withCopilotCodeReview(
+										Desired.copilotCodeReviewRule()
+												.withReviewOnPush(true)
+								),
+						responseWith(
+								"rs",
+								List.of(),
+								List.of(
+										new Rule.CopilotCodeReview(
+												new Rule.CopilotCodeReview.Parameters(
+														false,
+														false
+												)
+										)
+								)
+						)
+				),
+				Arguments.of(
+						"rulesets.rs.copilot_code_review.review_draft_pull_requests",
+						Desired.ruleset()
+								.withCopilotCodeReview(
+										Desired.copilotCodeReviewRule()
+												.withReviewDraftPullRequests(
+														true
+												)
+								),
+						responseWith(
+								"rs",
+								List.of(),
+								List.of(
+										new Rule.CopilotCodeReview(
+												new Rule.CopilotCodeReview.Parameters(
+														false,
+														false
+												)
+										)
+								)
+						)
+				),
 				// The pull request fields nothing reached.
 				Arguments.of(
 						"rulesets.rs.pull_request.require_extra_approval_for_unattributed_changes",
