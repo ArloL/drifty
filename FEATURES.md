@@ -479,7 +479,7 @@ is a nullable object like `codeScanningDefaultSetupOptions`: compared and sent
 only when the config sets it. `dependency_graph_autosubmit_action_options`
 comes back on every configuration — GitHub's own provided ones included, which
 never set it — so its single field is flat, defaulted to GitHub's `false`, and
-compared and sent like any of the seventeen toggles.
+compared and sent like any of the toggles.
 
 `secret_scanning_extended_metadata` is left out: the spec has it on GET, POST
 and PATCH but supplies no default, and every example response predates the

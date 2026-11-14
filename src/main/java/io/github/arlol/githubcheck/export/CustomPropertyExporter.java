@@ -62,7 +62,8 @@ public final class CustomPropertyExporter {
 						"valuesEditableBy",
 						actual.valuesEditableBy(),
 						defaults.valuesEditableBy.toString()
-				)
+				),
+				Fields.field("regex", actual.regex(), defaults.regex)
 		);
 		return new PklNode.Field(actual.name(), new PklNode.Obj(members));
 	}

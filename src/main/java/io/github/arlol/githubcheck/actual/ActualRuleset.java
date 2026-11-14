@@ -42,9 +42,11 @@ public record ActualRuleset(
 		@Nullable MergeQueue mergeQueue,
 		Set<Workflow> workflows,
 		Set<String> filePathRestrictions,
+		Set<String> filePathRestrictionsIgnoredPaths,
 		@Nullable Integer maxFilePathLength,
 		Set<String> fileExtensionRestrictions,
 		@Nullable Integer maxFileSize,
+		Set<String> maxFileSizeIgnoredPaths,
 		List<BypassActor> bypassActors,
 		Set<String> repositoryNameInclude,
 		Set<String> repositoryNameExclude,
@@ -76,6 +78,7 @@ public record ActualRuleset(
 			boolean dismissStaleReviewsOnPush,
 			boolean requireCodeOwnerReview,
 			boolean requireLastPushApproval,
+			boolean requireExtraApprovalForUnattributedChanges,
 			boolean requiredReviewThreadResolution,
 			Set<String> allowedMergeMethods
 	) {
@@ -167,6 +170,9 @@ public record ActualRuleset(
 		requiredDeployments = Set.copyOf(requiredDeployments);
 		workflows = Set.copyOf(workflows);
 		filePathRestrictions = Set.copyOf(filePathRestrictions);
+		filePathRestrictionsIgnoredPaths = Set
+				.copyOf(filePathRestrictionsIgnoredPaths);
+		maxFileSizeIgnoredPaths = Set.copyOf(maxFileSizeIgnoredPaths);
 		fileExtensionRestrictions = Set.copyOf(fileExtensionRestrictions);
 		bypassActors = List.copyOf(bypassActors);
 		repositoryNameInclude = Set.copyOf(repositoryNameInclude);

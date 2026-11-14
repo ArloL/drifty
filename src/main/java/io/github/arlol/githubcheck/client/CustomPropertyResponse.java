@@ -2,6 +2,8 @@ package io.github.arlol.githubcheck.client;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * A custom property definition as {@code GET /orgs/{org}/properties/schema}
  * returns it. {@code default_value} is a string, or a list of strings for a
@@ -22,7 +24,8 @@ public record CustomPropertyResponse(
 		Object defaultValue,
 		String description,
 		List<String> allowedValues,
-		String valuesEditableBy
+		String valuesEditableBy,
+		@Nullable String regex
 ) {
 
 	public CustomPropertyResponse {

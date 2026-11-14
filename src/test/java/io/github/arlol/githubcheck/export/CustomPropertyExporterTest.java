@@ -23,7 +23,8 @@ class CustomPropertyExporterTest {
 				List.of(),
 				"",
 				List.of(),
-				"org_actors"
+				"org_actors",
+				null
 		);
 	}
 
@@ -55,7 +56,8 @@ class CustomPropertyExporterTest {
 				base.defaultValues(),
 				base.description(),
 				base.allowedValues(),
-				base.valuesEditableBy()
+				base.valuesEditableBy(),
+				base.regex()
 		);
 
 		var field = (PklNode.Field) CustomPropertyExporter
@@ -64,6 +66,30 @@ class CustomPropertyExporterTest {
 		assertThat(PklWriter.write(field.value())).isEqualTo("""
 				valueType = "string"
 				required = true
+				""");
+	}
+
+	@Test
+	void aRegexIsEmitted() {
+		var base = stringProperty("team");
+		var actual = new ActualCustomProperty(
+				base.name(),
+				base.valueType(),
+				base.required(),
+				base.defaultValue(),
+				base.defaultValues(),
+				base.description(),
+				base.allowedValues(),
+				base.valuesEditableBy(),
+				"^[a-z-]+$"
+		);
+
+		var field = (PklNode.Field) CustomPropertyExporter
+				.entry(actual, DEFAULTS.customProperty());
+
+		assertThat(PklWriter.write(field.value())).isEqualTo("""
+				valueType = "string"
+				regex = "^[a-z-]+$"
 				""");
 	}
 
@@ -84,7 +110,8 @@ class CustomPropertyExporterTest {
 				base.defaultValues(),
 				base.description(),
 				base.allowedValues(),
-				base.valuesEditableBy()
+				base.valuesEditableBy(),
+				base.regex()
 		);
 
 		var field = (PklNode.Field) CustomPropertyExporter
@@ -106,7 +133,8 @@ class CustomPropertyExporterTest {
 				List.of("java", "go"),
 				"",
 				List.of("java", "go", "python"),
-				"org_actors"
+				"org_actors",
+				null
 		);
 
 		var field = (PklNode.Field) CustomPropertyExporter

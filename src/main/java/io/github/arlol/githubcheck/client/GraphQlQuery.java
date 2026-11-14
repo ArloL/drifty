@@ -50,8 +50,8 @@ final class GraphQlQuery {
 			  rules(first: 100) { nodes { type parameters { __typename
 			    ... on PullRequestParameters { requiredApprovingReviewCount
 			        dismissStaleReviewsOnPush requireCodeOwnerReview
-			        requireLastPushApproval requiredReviewThreadResolution
-			        allowedMergeMethods }
+			        requireLastPushApproval requireExtraApprovalForUnattributedChanges
+			        requiredReviewThreadResolution allowedMergeMethods }
 			    ... on RequiredStatusChecksParameters { strictRequiredStatusChecksPolicy
 			        requiredStatusChecks { context integrationId } }
 			    ... on UpdateParameters { updateAllowsFetchAndMerge }
@@ -68,10 +68,10 @@ final class GraphQlQuery {
 			        workflows { path ref repositoryId sha } }
 			    ... on CodeScanningParameters { codeScanningTools { tool
 			        alertsThreshold securityAlertsThreshold } }
-			    ... on FilePathRestrictionParameters { restrictedFilePaths }
+			    ... on FilePathRestrictionParameters { restrictedFilePaths ignoredFilePaths }
 			    ... on MaxFilePathLengthParameters { maxFilePathLength }
 			    ... on FileExtensionRestrictionParameters { restrictedFileExtensions }
-			    ... on MaxFileSizeParameters { maxFileSize }
+			    ... on MaxFileSizeParameters { maxFileSize ignoredFilePaths }
 			  } } }
 			} }""";
 

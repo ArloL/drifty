@@ -346,6 +346,10 @@ Repo-level rulesets managed via the `rulesets` mapping (keyed by ruleset name) o
 | Tag name pattern | Yes | Yes |
 | Required deployments | Yes | Yes |
 | Required code scanning | Yes | Yes |
+| File path restrictions, and the paths exempt from them | Yes | Yes |
+| Max file path length | Yes | Yes |
+| File extension restrictions | Yes | Yes |
+| Max file size, and the paths exempt from it | Yes | Yes |
 
 **Push rulesets** are the same group with `target = "push"`. A push ruleset applies to every push to the repository, forks included, so it has no ref conditions: the schema refuses `includePatterns` and `excludePatterns` on one, and the request body carries no `conditions` at all. The rules GitHub accepts on a push ruleset are the file rules — `filePathRestrictions`, `maxFilePathLength`, `fileExtensionRestrictions`, `maxFileSize` — and they are compared and written exactly as on a branch ruleset. drifty does not check which rules a target accepts; a rule GitHub rejects for the target comes back as a failed fix with GitHub's message.
 
@@ -645,6 +649,7 @@ customProperties {
 | `description` | unset | Yes | Yes |
 | `allowedValues` | `[]` | Yes | Yes |
 | `valuesEditableBy` | `"org_actors"` | Yes | Yes |
+| `regex` (string properties only) | unset | Yes | Yes |
 
 One PUT per drifted property, which replaces the definition whole. Definitions whose `source_type` is `enterprise` are not the organization's to change and are dropped before comparing. Extra definitions are reported and never deleted: deleting one discards its value on every repository in the organization.
 
@@ -675,7 +680,7 @@ codeSecurityConfigurations {
 }
 ```
 
-Defaults are GitHub's POST defaults, so a configuration created with only a name reports no drift. Every one of the sixteen `enabled`/`disabled`/`not_set` toggles, the description and the enforcement are compared; only configurations whose `target_type` is `organization` are, since the GitHub-provided global ones are not the organization's to change. Three writes, each its own fix so a rejected one is not reported as having failed the others: the settings go to a PATCH (a POST for a missing configuration), `defaultForNewRepos` to `PUT .../{id}/defaults`, and missing attachments to `POST .../{id}/attach` with `scope = selected`. Repositories attached outside the config are reported and left attached; extra configurations are reported and never deleted.
+Defaults are GitHub's POST defaults, so a configuration created with only a name reports no drift. Every one of the seventeen `enabled`/`disabled`/`not_set` toggles, the description and the enforcement are compared; only configurations whose `target_type` is `organization` are, since the GitHub-provided global ones are not the organization's to change. An eighteenth, `dependabotReachability`, is compared and sent only when the config sets it: GitHub returns and accepts it only for an organization with access to reachability analysis, and answers null everywhere else. Three writes, each its own fix so a rejected one is not reported as having failed the others: the settings go to a PATCH (a POST for a missing configuration), `defaultForNewRepos` to `PUT .../{id}/defaults`, and missing attachments to `POST .../{id}/attach` with `scope = selected`. Repositories attached outside the config are reported and left attached; extra configurations are reported and never deleted.
 
 Three option sub-objects are managed only when the config sets them, so a configuration that leaves them out reports no drift for them and the PATCH omits them:
 
@@ -702,7 +707,7 @@ A runner label is required exactly when the runner type is `labeled`, and the sc
 |---|---|---|---|
 | `dependencyGraphAutosubmitLabeledRunners` | `false` | Yes | Yes |
 
-It is compared on every configuration and always sent, the way the seventeen toggles are. `secret_scanning_extended_metadata` is not managed; `code_security` and `secret_protection` are not either, since the POST and PATCH accept them but `GET` returns neither, which would make them write-only and unverifiable — the reason `billing_email` is absent from the organization settings. drifty covers the same split through `advancedSecurity`'s `code_security` and `secret_protection` values.
+It is compared on every configuration and always sent, the way the toggles are. `secret_scanning_extended_metadata` is not managed; `code_security` and `secret_protection` are not either, since the POST and PATCH accept them but `GET` returns neither, which would make them write-only and unverifiable — the reason `billing_email` is absent from the organization settings. drifty covers the same split through `advancedSecurity`'s `code_security` and `secret_protection` values.
 
 ### Teams
 

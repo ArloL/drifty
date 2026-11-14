@@ -147,6 +147,10 @@ class PullRequestRule {
   dismissStaleReviewsOnPush: Boolean = false
   requireCodeOwnerReview: Boolean = false
   requireLastPushApproval: Boolean = false
+  /// When Copilot opens a pull request without a human collaborator, require
+  /// one more approving review than requiredApprovingReviewCount, if that is
+  /// not zero.
+  requireExtraApprovalForUnattributedChanges: Boolean = false
   requiredReviewThreadResolution: Boolean = false
   /// Leave empty to allow every merge method.
   allowedMergeMethods: Listing<MergeMethod> = new {}
@@ -206,11 +210,15 @@ open class Ruleset {
   workflows: Listing<WorkflowRule> = new {}
   /// File paths that may not be committed.
   filePathRestrictions: Listing<String> = new {}
+  /// Paths allowed even when they match filePathRestrictions.
+  filePathRestrictionsIgnoredPaths: Listing<String>(isEmpty || !filePathRestrictions.isEmpty) = new {}
   maxFilePathLength: Int?
   /// File extensions that may not be committed.
   fileExtensionRestrictions: Listing<String> = new {}
   /// Largest file size in megabytes.
   maxFileSize: Int?
+  /// Paths that may exceed maxFileSize.
+  maxFileSizeIgnoredPaths: Listing<String>(isEmpty || maxFileSize != null) = new {}
   bypassActors: Listing<BypassActor> = new {}
 }
 
@@ -310,6 +318,8 @@ class CustomProperty {
   /// The choices of a single_select or multi_select property.
   allowedValues: Listing<String> = new {}
   valuesEditableBy: CustomPropertyEditableBy = "org_actors"
+  /// RE2 expression every value must match; string properties only.
+  regex: String?(this == null || valueType == "string")
 }
 
 typealias SecuritySetting = "enabled" | "disabled" | "not_set"
@@ -369,6 +379,10 @@ class CodeSecurityConfiguration {
   dependabotAlerts: SecuritySetting = "disabled"
   dependabotSecurityUpdates: SecuritySetting = "disabled"
   dependabotDelegatedAlertDismissal: SecuritySetting = "disabled"
+  /// Reachability analysis for Dependabot. Omit to leave GitHub's untouched:
+  /// GitHub returns and accepts it only for organizations with access to the
+  /// feature, so a default would drift everywhere else.
+  dependabotReachability: SecuritySetting?
   codeScanningDefaultSetup: SecuritySetting = "disabled"
   codeScanningDelegatedAlertDismissal: SecuritySetting = "not_set"
   secretScanning: SecuritySetting = "disabled"
@@ -377,6 +391,7 @@ class CodeSecurityConfiguration {
   secretScanningValidityChecks: SecuritySetting = "disabled"
   secretScanningNonProviderPatterns: SecuritySetting = "disabled"
   secretScanningGenericSecrets: SecuritySetting = "disabled"
+  secretScanningGenericSecretsPushProtection: SecuritySetting = "disabled"
   secretScanningDelegatedAlertDismissal: SecuritySetting = "not_set"
   privateVulnerabilityReporting: SecuritySetting = "disabled"
   enforcement: SecurityEnforcement = "enforced"

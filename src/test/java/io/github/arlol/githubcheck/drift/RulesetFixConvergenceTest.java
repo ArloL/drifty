@@ -208,6 +208,9 @@ class RulesetFixConvergenceTest {
 								.withDismissStaleReviewsOnPush(true)
 								.withRequireCodeOwnerReview(true)
 								.withRequireLastPushApproval(true)
+								.withRequireExtraApprovalForUnattributedChanges(
+										true
+								)
 								.withRequiredReviewThreadResolution(true)
 								.withAllowedMergeMethods(
 										List.of(Drifty.MergeMethod.SQUASH)
@@ -275,9 +278,13 @@ class RulesetFixConvergenceTest {
 						)
 				)
 				.withFilePathRestrictions(List.of("secrets/*"))
+				.withFilePathRestrictionsIgnoredPaths(
+						List.of("secrets/README.md")
+				)
 				.withMaxFilePathLength(200L)
 				.withFileExtensionRestrictions(List.of("*.exe"))
 				.withMaxFileSize(50L)
+				.withMaxFileSizeIgnoredPaths(List.of("assets/**"))
 				.withBypassActors(
 						List.of(
 								Desired.bypassActor(

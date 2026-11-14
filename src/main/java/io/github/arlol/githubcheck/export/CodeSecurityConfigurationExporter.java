@@ -1,5 +1,7 @@
 package io.github.arlol.githubcheck.export;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -13,7 +15,7 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * A code security configuration, as the config lines that differ from the
  * schema's defaults.
  * <p>
- * The sixteen {@code SecuritySetting}/{@code AdvancedSecuritySetting} toggles
+ * The eighteen {@code SecuritySetting}/{@code AdvancedSecuritySetting} toggles
  * live in {@code ActualCodeSecurityConfiguration.settings()}, a map keyed by
  * GitHub's wire name; each line below pairs one against the schema field
  * {@code OrgCodeSecurityConfigurationsDriftGroup}'s own {@code Setting} table
@@ -32,7 +34,10 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * note explains that once, beside whichever of the three appear.
  * {@code dependencyGraphAutosubmitLabeledRunners} is not among them: GitHub
  * returns its options object on every configuration, so it is an ordinary flat
- * toggle compared unconditionally, like the sixteen wire settings.
+ * toggle compared unconditionally, like the wire settings.
+ * {@code dependabotReachability} is the one wire setting the schema leaves
+ * nullable, and is written only when GitHub returns it: it reads
+ * {@code not_set} on an organization without the feature.
  */
 public final class CodeSecurityConfigurationExporter {
 
@@ -99,6 +104,14 @@ public final class CodeSecurityConfigurationExporter {
 										.toString()
 						),
 						Fields.field(
+								"dependabotReachability",
+								returned(
+										actual.settings()
+												.get("dependabot_reachability")
+								),
+								null
+						),
+						Fields.field(
 								"codeScanningDefaultSetup",
 								actual.settings()
 										.get("code_scanning_default_setup"),
@@ -152,6 +165,15 @@ public final class CodeSecurityConfigurationExporter {
 								actual.settings()
 										.get("secret_scanning_generic_secrets"),
 								base.secretScanningGenericSecrets.toString()
+						),
+						Fields.field(
+								"secretScanningGenericSecretsPushProtection",
+								actual.settings()
+										.get(
+												"secret_scanning_generic_secrets_push_protection"
+										),
+								base.secretScanningGenericSecretsPushProtection
+										.toString()
 						),
 						Fields.field(
 								"secretScanningDelegatedAlertDismissal",
@@ -298,6 +320,11 @@ public final class CodeSecurityConfigurationExporter {
 
 	private static PklNode.Member required(String name, long value) {
 		return Fields.required(name, value).orElseThrow();
+	}
+
+	/** A toggle GitHub did not return reads {@code not_set}; that is null. */
+	private static @Nullable String returned(@Nullable String setting) {
+		return "not_set".equals(setting) ? null : setting;
 	}
 
 }

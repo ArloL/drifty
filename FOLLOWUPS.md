@@ -80,7 +80,7 @@ sends it.
 **Why:** GitHub's OpenAPI spec (2026-03-10) has
 `secret_scanning_extended_metadata` on the code security configuration GET,
 POST and PATCH as the usual `enabled | disabled | not_set` toggle, so it is
-managed exactly like the other seventeen once it has a default. The spec
+managed exactly like the other toggles once it has a default. The spec
 supplies none: the field carries no `default`, and every example response in
 `schemas/orgs/{org}/code-security/configurations/` predates it and answers
 `null`. Every other field's Pkl default is GitHub's own, which is what lets a

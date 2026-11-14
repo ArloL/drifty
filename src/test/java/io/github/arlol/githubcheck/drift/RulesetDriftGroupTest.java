@@ -238,7 +238,7 @@ class RulesetDriftGroupTest {
 														{"type": "file_extension_restriction",
 														 "parameters": {"restricted_file_extensions": ["*.exe"]}},
 														{"type": "max_file_size",
-														 "parameters": {"max_file_size": 5}}
+														 "parameters": {"max_file_size": 5, "ignored_file_paths": []}}
 													]
 												}
 												""",
@@ -724,6 +724,7 @@ class RulesetDriftGroupTest {
 										false,
 										false,
 										false,
+										null,
 										false,
 										List.of("merge", "squash", "rebase")
 								)
@@ -796,6 +797,46 @@ class RulesetDriftGroupTest {
 						"rulesets.rs.max_file_size",
 						Desired.ruleset().withMaxFileSize(50L),
 						matching
+				),
+				// The two file rules' exemptions, against the rule itself
+				// already in place.
+				Arguments.of(
+						"rulesets.rs.file_path_restrictions.ignored_file_paths",
+						Desired.ruleset()
+								.withFilePathRestrictions(List.of("secrets/*"))
+								.withFilePathRestrictionsIgnoredPaths(
+										List.of("secrets/README.md")
+								),
+						responseWith(
+								"rs",
+								List.of(),
+								List.of(
+										new Rule.FilePathRestriction(
+												new Rule.FilePathRestriction.Parameters(
+														List.of("secrets/*")
+												)
+										)
+								)
+						)
+				),
+				Arguments.of(
+						"rulesets.rs.max_file_size.ignored_file_paths",
+						Desired.ruleset()
+								.withMaxFileSize(50L)
+								.withMaxFileSizeIgnoredPaths(
+										List.of("assets/**")
+								),
+						responseWith(
+								"rs",
+								List.of(),
+								List.of(
+										new Rule.MaxFileSize(
+												new Rule.MaxFileSize.Parameters(
+														50
+												)
+										)
+								)
+						)
 				),
 				// The five pattern rules, each reached by its own
 				// checkPatternRule call.
@@ -909,7 +950,17 @@ class RulesetDriftGroupTest {
 						),
 						mergeQueue
 				),
-				// The two pull request fields nothing reached.
+				// The pull request fields nothing reached.
+				Arguments.of(
+						"rulesets.rs.pull_request.require_extra_approval_for_unattributed_changes",
+						wantedPr.withPullRequest(
+								Desired.pullRequestRule()
+										.withRequireExtraApprovalForUnattributedChanges(
+												true
+										)
+						),
+						pullRequest
+				),
 				Arguments.of(
 						"rulesets.rs.pull_request.require_last_push_approval",
 						wantedPr.withPullRequest(
@@ -979,6 +1030,7 @@ class RulesetDriftGroupTest {
 										true,
 										false,
 										false,
+										null,
 										true,
 										List.of("squash")
 								)

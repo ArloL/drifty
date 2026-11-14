@@ -64,6 +64,7 @@ class OrgCodeSecurityConfigurationsDriftGroupTest {
 				"secret_scanning_validity_checks",
 				"secret_scanning_non_provider_patterns",
 				"secret_scanning_generic_secrets",
+				"secret_scanning_generic_secrets_push_protection",
 				"private_vulnerability_reporting"
 		)) {
 			settings.put(disabled, "disabled");
@@ -226,6 +227,7 @@ class OrgCodeSecurityConfigurationsDriftGroupTest {
 										 "secret_scanning_validity_checks": "disabled",
 										 "secret_scanning_non_provider_patterns": "disabled",
 										 "secret_scanning_generic_secrets": "disabled",
+										 "secret_scanning_generic_secrets_push_protection": "disabled",
 										 "secret_scanning_delegated_alert_dismissal": "not_set",
 										 "private_vulnerability_reporting": "disabled",
 										 "enforcement": "enforced"}
@@ -425,12 +427,64 @@ class OrgCodeSecurityConfigurationsDriftGroupTest {
 										 "secret_scanning_validity_checks": "disabled",
 										 "secret_scanning_non_provider_patterns": "disabled",
 										 "secret_scanning_generic_secrets": "disabled",
+										 "secret_scanning_generic_secrets_push_protection": "disabled",
 										 "secret_scanning_delegated_alert_dismissal": "not_set",
 										 "private_vulnerability_reporting": "disabled",
 										 "enforcement": "enforced"}
 										"""
 						)
 				)
+		);
+	}
+
+	/**
+	 * Reachability is the one nullable toggle: GitHub answers it only for an
+	 * organization with the feature, so it is compared and sent only when the
+	 * config sets it. Leaving it out is covered by the strict body above.
+	 */
+	@Test
+	void dependabotReachability_isComparedAndSentWhenTheConfigSetsIt() {
+		stubFor(patch(urlPathEqualTo(BASE + "/7")).willReturn(okJson()));
+		var wanted = Desired.codeSecurityConfiguration()
+				.withDependabotReachability(Drifty.SecuritySetting.ENABLED);
+		var current = defaults("baseline", "none", Set.of());
+		var settings = new HashMap<>(current.settings());
+		settings.put("dependabot_reachability", "not_set");
+		current = new ActualCodeSecurityConfiguration(
+				current.id(),
+				current.name(),
+				current.description(),
+				settings,
+				current.enforcement(),
+				current.dependencyGraphAutosubmitLabeledRunners(),
+				current.codeScanningRunnerType(),
+				current.codeScanningRunnerLabel(),
+				current.codeScanningAllowAdvanced(),
+				current.secretScanningDelegatedBypassReviewers(),
+				current.defaultForNewRepos(),
+				current.repositories()
+		);
+
+		var fixes = group(Map.of("baseline", wanted), List.of(current))
+				.detect();
+
+		assertThat(fixes).flatExtracting(DriftFix::items)
+				.extracting(DriftItem::path)
+				.containsExactly(
+						"org_code_security_configurations.baseline.dependabot_reachability"
+				);
+		assertThat(
+				group(
+						Map.of("baseline", Desired.codeSecurityConfiguration()),
+						List.of(current)
+				).detect()
+		).flatExtracting(DriftFix::items).isEmpty();
+		assertThat(fixes.getFirst().fix().execute().unfixedItems()).isEmpty();
+		verify(
+				patchRequestedFor(urlPathEqualTo(BASE + "/7"))
+						.withRequestBody(equalToJson("""
+								{"dependabot_reachability": "enabled"}
+								""", true, true))
 		);
 	}
 

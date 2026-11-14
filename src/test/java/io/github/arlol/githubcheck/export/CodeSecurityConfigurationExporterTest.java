@@ -37,6 +37,11 @@ class CodeSecurityConfigurationExporterTest {
 		settings.put("secret_scanning_validity_checks", "disabled");
 		settings.put("secret_scanning_non_provider_patterns", "disabled");
 		settings.put("secret_scanning_generic_secrets", "disabled");
+		settings.put(
+				"secret_scanning_generic_secrets_push_protection",
+				"disabled"
+		);
+		settings.put("dependabot_reachability", "not_set");
 		settings.put("secret_scanning_delegated_alert_dismissal", "not_set");
 		settings.put("private_vulnerability_reporting", "disabled");
 		return settings;
@@ -103,8 +108,8 @@ class CodeSecurityConfigurationExporterTest {
 	/**
 	 * GitHub returns {@code dependency_graph_autosubmit_action_options} on
 	 * every configuration, its own included, so this toggle is compared
-	 * unconditionally like the sixteen wire settings — no presence guard to
-	 * exercise, unlike the three option sub-objects below.
+	 * unconditionally like the wire settings — no presence guard to exercise,
+	 * unlike the three option sub-objects below.
 	 */
 	@Test
 	void dependencyGraphAutosubmitLabeledRunnersDifferingFromTheDefaultIsEmitted() {

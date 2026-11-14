@@ -54,7 +54,8 @@ class OrgCustomPropertiesDriftGroupTest {
 				List.of(),
 				"",
 				List.of(),
-				"org_actors"
+				"org_actors",
+				null
 		);
 	}
 
@@ -73,6 +74,47 @@ class OrgCustomPropertiesDriftGroupTest {
 		assertThat(group.detect()).flatExtracting(DriftFix::items).isEmpty();
 		assertThat(group.name())
 				.isEqualTo(Drifty.OrgGroupName.ORG_CUSTOM_PROPERTIES);
+	}
+
+	@Test
+	void regex_isComparedBothWays() {
+		var withRegex = Desired
+				.customProperty(Drifty.CustomPropertyValueType.STRING)
+				.withRegex("^v[0-9]+$");
+		var github = stringProperty("tier");
+		var githubWithRegex = new ActualCustomProperty(
+				"tier",
+				"string",
+				false,
+				null,
+				List.of(),
+				"",
+				List.of(),
+				"org_actors",
+				"^v[0-9]+$"
+		);
+
+		assertThat(group(Map.of("tier", withRegex), List.of(github)).detect())
+				.flatExtracting(DriftFix::items)
+				.extracting(DriftItem::path)
+				.containsExactly("org_custom_properties.tier.regex");
+		assertThat(
+				group(
+						Map.of(
+								"tier",
+								Desired.customProperty(
+										Drifty.CustomPropertyValueType.STRING
+								)
+						),
+						List.of(githubWithRegex)
+				).detect()
+		).flatExtracting(DriftFix::items)
+				.extracting(DriftItem::path)
+				.containsExactly("org_custom_properties.tier.regex");
+		assertThat(
+				group(Map.of("tier", withRegex), List.of(githubWithRegex))
+						.detect()
+		).flatExtracting(DriftFix::items).isEmpty();
 	}
 
 	@Test
@@ -124,7 +166,7 @@ class OrgCustomPropertiesDriftGroupTest {
 						"note",
 						Desired.customProperty(
 								Drifty.CustomPropertyValueType.STRING
-						)
+						).withRegex("^[A-Z]")
 				),
 				List.of()
 		);
@@ -143,7 +185,7 @@ class OrgCustomPropertiesDriftGroupTest {
 						{"value_type": "single_select", "required": false,
 						 "default_value": "gold", "description": null,
 						 "allowed_values": ["gold", "silver"],
-						 "values_editable_by": "org_actors"}
+						 "values_editable_by": "org_actors", "regex": null}
 						"""))
 		);
 		verify(
@@ -152,7 +194,7 @@ class OrgCustomPropertiesDriftGroupTest {
 				).withRequestBody(equalToJson("""
 						{"value_type": "string", "required": false,
 						 "default_value": null, "description": null,
-						 "values_editable_by": "org_actors"}
+						 "values_editable_by": "org_actors", "regex": "^[A-Z]"}
 						"""))
 		);
 	}

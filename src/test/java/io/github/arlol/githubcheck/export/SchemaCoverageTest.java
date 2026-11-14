@@ -279,7 +279,8 @@ class SchemaCoverageTest {
 								List.of(),
 								"",
 								List.of(),
-								"org_actors"
+								"org_actors",
+								null
 						)
 				),
 				List.of(minimalRuleset("main", "branch")),
@@ -622,6 +623,7 @@ class SchemaCoverageTest {
 						true,
 						true,
 						true,
+						true,
 						Set.of("squash")
 				),
 				Set.of("codeql"),
@@ -667,9 +669,11 @@ class SchemaCoverageTest {
 				),
 				Set.of(new ActualRuleset.Workflow("a.yml", 42L, null)),
 				Set.of("secrets.yml"),
+				Set.of("secrets.example.yml"),
 				255,
 				Set.of(".exe"),
 				100,
+				Set.of("assets/**"),
 				List.of(new ActualRuleset.BypassActor("Team", 7L, "always")),
 				repositoryNameInclude,
 				repositoryNameExclude,
@@ -712,9 +716,11 @@ class SchemaCoverageTest {
 				null,
 				Set.of(),
 				Set.of(),
+				Set.of(),
 				null,
 				Set.of(),
 				null,
+				Set.of(),
 				List.of(),
 				Set.of(),
 				Set.of(),

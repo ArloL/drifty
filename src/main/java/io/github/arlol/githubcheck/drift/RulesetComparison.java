@@ -154,6 +154,12 @@ final class RulesetComparison {
 				items
 		);
 		compareIfAnyPresent(
+				key(rName, ".file_path_restrictions.ignored_file_paths"),
+				new HashSet<>(wanted.filePathRestrictionsIgnoredPaths),
+				got.filePathRestrictionsIgnoredPaths(),
+				items
+		);
+		compareIfAnyPresent(
 				key(rName, ".file_extension_restrictions"),
 				new HashSet<>(wanted.fileExtensionRestrictions),
 				got.fileExtensionRestrictions(),
@@ -169,6 +175,12 @@ final class RulesetComparison {
 				key(rName, ".max_file_size"),
 				wanted.maxFileSize,
 				got.maxFileSize(),
+				items
+		);
+		compareIfAnyPresent(
+				key(rName, ".max_file_size.ignored_file_paths"),
+				new HashSet<>(wanted.maxFileSizeIgnoredPaths),
+				got.maxFileSizeIgnoredPaths(),
 				items
 		);
 
@@ -257,6 +269,11 @@ final class RulesetComparison {
 						have.requireLastPushApproval()
 				)
 				.ifPresent(items::add);
+		DriftGroup.ocompare(
+				prefix + ".require_extra_approval_for_unattributed_changes",
+				want.requireExtraApprovalForUnattributedChanges,
+				have.requireExtraApprovalForUnattributedChanges()
+		).ifPresent(items::add);
 		DriftGroup
 				.ocompare(
 						prefix + ".required_review_thread_resolution",
@@ -601,6 +618,7 @@ final class RulesetComparison {
 									pr.dismissStaleReviewsOnPush,
 									pr.requireCodeOwnerReview,
 									pr.requireLastPushApproval,
+									pr.requireExtraApprovalForUnattributedChanges,
 									pr.requiredReviewThreadResolution,
 									pr.allowedMergeMethods.isEmpty() ? null
 											: pr.allowedMergeMethods.stream()
@@ -682,7 +700,8 @@ final class RulesetComparison {
 			rules.add(
 					new Rule.FilePathRestriction(
 							new Rule.FilePathRestriction.Parameters(
-									args.filePathRestrictions
+									args.filePathRestrictions,
+									args.filePathRestrictionsIgnoredPaths
 							)
 					)
 			);
@@ -709,7 +728,8 @@ final class RulesetComparison {
 			rules.add(
 					new Rule.MaxFileSize(
 							new Rule.MaxFileSize.Parameters(
-									args.maxFileSize.intValue()
+									args.maxFileSize.intValue(),
+									args.maxFileSizeIgnoredPaths
 							)
 					)
 			);
