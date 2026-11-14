@@ -131,7 +131,8 @@ public class OrgCustomPropertiesDriftGroup
 						name + ".values_editable_by",
 						wanted.valuesEditableBy.toString(),
 						current.valuesEditableBy()
-				)
+				),
+				compare(name + ".regex", wanted.regex, current.regex())
 		);
 	}
 
@@ -158,7 +159,8 @@ public class OrgCustomPropertiesDriftGroup
 								: wanted.defaultValue,
 						wanted.description,
 						isSelect(wanted) ? wanted.allowedValues : null,
-						wanted.valuesEditableBy.toString()
+						wanted.valuesEditableBy.toString(),
+						wanted.regex
 				)
 		);
 		return FixResult.success();

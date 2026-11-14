@@ -536,7 +536,8 @@ class OrganizationCheckerTest {
 						List.of(),
 						"",
 						List.of("gold", "silver"),
-						"org_actors"
+						"org_actors",
+						null
 				)
 		);
 

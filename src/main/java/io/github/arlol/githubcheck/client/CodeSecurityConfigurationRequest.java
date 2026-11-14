@@ -34,6 +34,7 @@ public record CodeSecurityConfigurationRequest(
 		String dependabotAlerts,
 		String dependabotSecurityUpdates,
 		String dependabotDelegatedAlertDismissal,
+		@Nullable String dependabotReachability,
 		String codeScanningDefaultSetup,
 		@Nullable CodeScanningDefaultSetupOptions codeScanningDefaultSetupOptions,
 		@Nullable CodeScanningOptions codeScanningOptions,
@@ -45,6 +46,7 @@ public record CodeSecurityConfigurationRequest(
 		String secretScanningValidityChecks,
 		String secretScanningNonProviderPatterns,
 		String secretScanningGenericSecrets,
+		String secretScanningGenericSecretsPushProtection,
 		String secretScanningDelegatedAlertDismissal,
 		String privateVulnerabilityReporting,
 		String enforcement

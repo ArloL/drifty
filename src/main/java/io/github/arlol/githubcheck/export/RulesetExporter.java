@@ -126,6 +126,11 @@ public final class RulesetExporter {
 								actual.filePathRestrictions(),
 								base.filePathRestrictions
 						),
+						Fields.strings(
+								"filePathRestrictionsIgnoredPaths",
+								actual.filePathRestrictionsIgnoredPaths(),
+								base.filePathRestrictionsIgnoredPaths
+						),
 						Fields.field(
 								"maxFilePathLength",
 								actual.maxFilePathLength(),
@@ -140,6 +145,11 @@ public final class RulesetExporter {
 								"maxFileSize",
 								actual.maxFileSize(),
 								toInteger(base.maxFileSize)
+						),
+						Fields.strings(
+								"maxFileSizeIgnoredPaths",
+								actual.maxFileSizeIgnoredPaths(),
+								base.maxFileSizeIgnoredPaths
 						),
 						Fields.objects(
 								"requiredStatusChecks",
@@ -300,6 +310,11 @@ public final class RulesetExporter {
 								"requireLastPushApproval",
 								actual.requireLastPushApproval(),
 								defaults.requireLastPushApproval
+						),
+						Fields.field(
+								"requireExtraApprovalForUnattributedChanges",
+								actual.requireExtraApprovalForUnattributedChanges(),
+								defaults.requireExtraApprovalForUnattributedChanges
 						),
 						Fields.field(
 								"requiredReviewThreadResolution",

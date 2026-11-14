@@ -18,7 +18,8 @@ public record ActualCustomProperty(
 		List<String> defaultValues,
 		String description,
 		List<String> allowedValues,
-		String valuesEditableBy
+		String valuesEditableBy,
+		@Nullable String regex
 ) {
 
 	public ActualCustomProperty {

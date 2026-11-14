@@ -2,6 +2,8 @@ package io.github.arlol.githubcheck.client;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * A code security configuration as GitHub returns it. {@code target_type} is
  * {@code organization} for the organization's own and {@code global} for the
@@ -27,6 +29,7 @@ public record CodeSecurityConfigurationResponse(
 		String dependabotAlerts,
 		String dependabotSecurityUpdates,
 		String dependabotDelegatedAlertDismissal,
+		@Nullable String dependabotReachability,
 		String codeScanningDefaultSetup,
 		CodeScanningDefaultSetupOptions codeScanningDefaultSetupOptions,
 		CodeScanningOptions codeScanningOptions,
@@ -38,6 +41,7 @@ public record CodeSecurityConfigurationResponse(
 		String secretScanningValidityChecks,
 		String secretScanningNonProviderPatterns,
 		String secretScanningGenericSecrets,
+		String secretScanningGenericSecretsPushProtection,
 		String secretScanningDelegatedAlertDismissal,
 		String privateVulnerabilityReporting,
 		String enforcement,

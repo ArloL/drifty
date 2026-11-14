@@ -8,9 +8,10 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Body of {@code PUT /orgs/{org}/properties/schema/{name}}. The PUT replaces
- * the definition, so {@code default_value} and {@code description} are sent
- * even when null — omitting them would keep what GitHub had. The allowed values
- * are only carried for the select types; the other types reject them.
+ * the definition, so {@code default_value}, {@code description} and
+ * {@code regex} are sent even when null — omitting them would keep what GitHub
+ * had. The allowed values are only carried for the select types; the other
+ * types reject them.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @GitHubEndpoint(
@@ -24,7 +25,8 @@ public record CustomPropertyRequest(
 		@JsonInclude(JsonInclude.Include.ALWAYS) @Nullable Object defaultValue,
 		@JsonInclude(JsonInclude.Include.ALWAYS) @Nullable String description,
 		@Nullable List<String> allowedValues,
-		@Nullable String valuesEditableBy
+		@Nullable String valuesEditableBy,
+		@JsonInclude(JsonInclude.Include.ALWAYS) @Nullable String regex
 ) {
 
 	public CustomPropertyRequest {

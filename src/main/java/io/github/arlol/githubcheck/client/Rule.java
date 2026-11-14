@@ -110,6 +110,7 @@ public sealed interface Rule
 				@Nullable Boolean dismissStaleReviewsOnPush,
 				@Nullable Boolean requireCodeOwnerReview,
 				@Nullable Boolean requireLastPushApproval,
+				@Nullable Boolean requireExtraApprovalForUnattributedChanges,
 				@Nullable Boolean requiredReviewThreadResolution,
 				@Nullable List<String> allowedMergeMethods
 		) {
@@ -130,6 +131,7 @@ public sealed interface Rule
 						dismissStaleReviewsOnPush,
 						requireCodeOwnerReview,
 						requireLastPushApproval,
+						null,
 						null,
 						null
 				);
@@ -348,12 +350,19 @@ public sealed interface Rule
 		}
 
 		public record Parameters(
-				List<String> restrictedFilePaths
+				List<String> restrictedFilePaths,
+				@Nullable List<String> ignoredFilePaths
 		) {
 
 			public Parameters {
 				restrictedFilePaths = restrictedFilePaths == null ? null
 						: List.copyOf(restrictedFilePaths);
+				ignoredFilePaths = ignoredFilePaths == null ? null
+						: List.copyOf(ignoredFilePaths);
+			}
+
+			public Parameters(List<String> restrictedFilePaths) {
+				this(restrictedFilePaths, null);
 			}
 
 		}
@@ -406,8 +415,19 @@ public sealed interface Rule
 		}
 
 		public record Parameters(
-				Integer maxFileSize
+				Integer maxFileSize,
+				@Nullable List<String> ignoredFilePaths
 		) {
+
+			public Parameters {
+				ignoredFilePaths = ignoredFilePaths == null ? null
+						: List.copyOf(ignoredFilePaths);
+			}
+
+			public Parameters(Integer maxFileSize) {
+				this(maxFileSize, null);
+			}
+
 		}
 
 	}

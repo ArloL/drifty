@@ -871,7 +871,8 @@ class ActualTypesTest {
 						List.of("a", "b"),
 						"",
 						List.of("a", "b", "c"),
-						"org_and_repo_actors"
+						"org_and_repo_actors",
+						null
 				)
 		);
 		assertThat(ActualTypes.customProperty(single)).isEqualTo(
@@ -883,7 +884,8 @@ class ActualTypesTest {
 						List.of(),
 						"the tier",
 						List.of(),
-						"org_actors"
+						"org_actors",
+						null
 				)
 		);
 

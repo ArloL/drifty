@@ -124,9 +124,11 @@ public final class ActualTypes {
 				mergeQueue(rules),
 				workflows(rules),
 				filePathRestrictions(rules),
+				filePathRestrictionsIgnoredPaths(rules),
 				maxFilePathLength(rules),
 				fileExtensionRestrictions(rules),
 				maxFileSize(rules),
+				maxFileSizeIgnoredPaths(rules),
 				bypassActors(response),
 				patterns(
 						repositoryName == null ? null : repositoryName.include()
@@ -241,6 +243,7 @@ public final class ActualTypes {
 					false,
 					false,
 					false,
+					false,
 					Set.of()
 			);
 		}
@@ -250,6 +253,8 @@ public final class ActualTypes {
 				Boolean.TRUE.equals(p.dismissStaleReviewsOnPush()),
 				Boolean.TRUE.equals(p.requireCodeOwnerReview()),
 				Boolean.TRUE.equals(p.requireLastPushApproval()),
+				Boolean.TRUE
+						.equals(p.requireExtraApprovalForUnattributedChanges()),
 				Boolean.TRUE.equals(p.requiredReviewThreadResolution()),
 				patterns(p.allowedMergeMethods())
 		);
@@ -311,6 +316,16 @@ public final class ActualTypes {
 				: Set.of();
 	}
 
+	private static Set<String> filePathRestrictionsIgnoredPaths(
+			Map<RulesetRuleType, Rule> rules
+	) {
+		return rules.get(
+				RulesetRuleType.FILE_PATH_RESTRICTION
+		) instanceof Rule.FilePathRestriction r && r.parameters() != null
+				? patterns(r.parameters().ignoredFilePaths())
+				: Set.of();
+	}
+
 	private static Set<String> fileExtensionRestrictions(
 			Map<RulesetRuleType, Rule> rules
 	) {
@@ -339,6 +354,16 @@ public final class ActualTypes {
 		) instanceof Rule.MaxFileSize r && r.parameters() != null
 				? r.parameters().maxFileSize()
 				: null;
+	}
+
+	private static Set<String> maxFileSizeIgnoredPaths(
+			Map<RulesetRuleType, Rule> rules
+	) {
+		return rules.get(
+				RulesetRuleType.MAX_FILE_SIZE
+		) instanceof Rule.MaxFileSize r && r.parameters() != null
+				? patterns(r.parameters().ignoredFilePaths())
+				: Set.of();
 	}
 
 	private static Set<String> codeScanningTools(
@@ -932,7 +957,7 @@ public final class ActualTypes {
 	// ──────────────────────────────────────────────────────────
 
 	/**
-	 * The sixteen toggles land in a map keyed by GitHub's field name; a toggle
+	 * The eighteen toggles land in a map keyed by GitHub's field name; a toggle
 	 * the response omits reads as {@code not_set}, which is what GitHub means
 	 * by leaving it out. The attached repositories are the ones whose
 	 * attachment is in place or under way — a repository GitHub is still
@@ -963,6 +988,10 @@ public final class ActualTypes {
 				response.dependabotDelegatedAlertDismissal()
 		);
 		settings.put(
+				"dependabot_reachability",
+				response.dependabotReachability()
+		);
+		settings.put(
 				"code_scanning_default_setup",
 				response.codeScanningDefaultSetup()
 		);
@@ -990,6 +1019,10 @@ public final class ActualTypes {
 		settings.put(
 				"secret_scanning_generic_secrets",
 				response.secretScanningGenericSecrets()
+		);
+		settings.put(
+				"secret_scanning_generic_secrets_push_protection",
+				response.secretScanningGenericSecretsPushProtection()
 		);
 		settings.put(
 				"secret_scanning_delegated_alert_dismissal",
@@ -1075,7 +1108,8 @@ public final class ActualTypes {
 				response.description() == null ? "" : response.description(),
 				response.allowedValues() == null ? List.of()
 						: response.allowedValues(),
-				response.valuesEditableBy()
+				response.valuesEditableBy(),
+				response.regex()
 		);
 	}
 

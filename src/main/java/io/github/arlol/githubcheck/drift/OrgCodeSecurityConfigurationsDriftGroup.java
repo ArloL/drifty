@@ -36,15 +36,20 @@ import io.github.arlol.githubcheck.pkl.Drifty;
  * configuration created with only a name report no drift whatever runner GitHub
  * picked for it. {@code dependency_graph_autosubmit_action_options} is not
  * among them: GitHub returns it on every configuration, so its one field is
- * compared and sent like any other setting.
+ * compared and sent like any other setting. {@code dependabot_reachability} is
+ * the one toggle that is nullable for the same reason: GitHub returns and
+ * accepts it only for organizations with access to the feature.
  */
 public class OrgCodeSecurityConfigurationsDriftGroup
 		extends DriftGroup<Drifty.OrgGroupName> {
 
-	/** One of the sixteen toggles: its wire name and the config's value. */
+	/**
+	 * One of the eighteen toggles: its wire name and the config's value, null
+	 * when the config leaves it to GitHub.
+	 */
 	private record Setting(
 			String wire,
-			Function<Drifty.CodeSecurityConfiguration, Object> wanted
+			Function<Drifty.CodeSecurityConfiguration, @Nullable Object> wanted
 	) {
 	}
 
@@ -63,6 +68,10 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 			new Setting(
 					"dependabot_delegated_alert_dismissal",
 					c -> c.dependabotDelegatedAlertDismissal
+			),
+			new Setting(
+					"dependabot_reachability",
+					c -> c.dependabotReachability
 			),
 			new Setting(
 					"code_scanning_default_setup",
@@ -92,6 +101,10 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 			new Setting(
 					"secret_scanning_generic_secrets",
 					c -> c.secretScanningGenericSecrets
+			),
+			new Setting(
+					"secret_scanning_generic_secrets_push_protection",
+					c -> c.secretScanningGenericSecretsPushProtection
 			),
 			new Setting(
 					"secret_scanning_delegated_alert_dismissal",
@@ -208,10 +221,14 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 				)
 		);
 		for (Setting setting : SETTINGS) {
+			Object value = setting.wanted().apply(wanted);
+			if (value == null) {
+				continue;
+			}
 			items.addAll(
 					compare(
 							name + "." + setting.wire(),
-							setting.wanted().apply(wanted).toString(),
+							value.toString(),
 							current.settings().get(setting.wire())
 					)
 			);
@@ -391,6 +408,8 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 				c.dependabotAlerts.toString(),
 				c.dependabotSecurityUpdates.toString(),
 				c.dependabotDelegatedAlertDismissal.toString(),
+				c.dependabotReachability == null ? null
+						: c.dependabotReachability.toString(),
 				c.codeScanningDefaultSetup.toString(),
 				runnerOptions(c),
 				codeScanningOptions(c),
@@ -402,6 +421,7 @@ public class OrgCodeSecurityConfigurationsDriftGroup
 				c.secretScanningValidityChecks.toString(),
 				c.secretScanningNonProviderPatterns.toString(),
 				c.secretScanningGenericSecrets.toString(),
+				c.secretScanningGenericSecretsPushProtection.toString(),
 				c.secretScanningDelegatedAlertDismissal.toString(),
 				c.privateVulnerabilityReporting.toString(),
 				c.enforcement.toString()

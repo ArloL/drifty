@@ -84,9 +84,11 @@ class AccountExporterTest {
 				null,
 				Set.of(),
 				Set.of(),
+				Set.of(),
 				null,
 				Set.of(),
 				null,
+				Set.of(),
 				List.of(),
 				Set.of(),
 				Set.of(),
@@ -201,7 +203,8 @@ class AccountExporterTest {
 								List.of(),
 								"",
 								List.of(),
-								"org_actors"
+								"org_actors",
+								null
 						)
 				),
 				List.of(),
@@ -507,7 +510,8 @@ class AccountExporterTest {
 								List.of(),
 								"",
 								List.of(),
-								"org_actors"
+								"org_actors",
+								null
 						),
 						new ActualCustomProperty(
 								"a-prop",
@@ -517,7 +521,8 @@ class AccountExporterTest {
 								List.of(),
 								"",
 								List.of(),
-								"org_actors"
+								"org_actors",
+								null
 						)
 				),
 				List.of(

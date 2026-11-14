@@ -500,8 +500,7 @@ class ExportRoundTripTest {
 	 * One organization-owned configuration, off GitHub's defaults in every
 	 * field {@code config/drifty.pkl} declares, plus the two sub-option objects
 	 * the schema leaves nullable. A configuration set to the schema's defaults
-	 * would round-trip as an empty body and prove nothing about the seventeen
-	 * toggles.
+	 * would round-trip as an empty body and prove nothing about the toggles.
 	 */
 	private static final String CODE_SECURITY_CONFIGURATIONS = """
 			[
@@ -517,6 +516,7 @@ class ExportRoundTripTest {
 			    "dependabot_alerts": "enabled",
 			    "dependabot_security_updates": "enabled",
 			    "dependabot_delegated_alert_dismissal": "enabled",
+			    "dependabot_reachability": "enabled",
 			    "code_scanning_default_setup": "enabled",
 			    "code_scanning_default_setup_options": {
 			      "runner_type": "labeled", "runner_label": "code-scanning"
@@ -532,6 +532,7 @@ class ExportRoundTripTest {
 			    "secret_scanning_validity_checks": "enabled",
 			    "secret_scanning_non_provider_patterns": "enabled",
 			    "secret_scanning_generic_secrets": "enabled",
+			    "secret_scanning_generic_secrets_push_protection": "enabled",
 			    "secret_scanning_delegated_alert_dismissal": "enabled",
 			    "private_vulnerability_reporting": "enabled",
 			    "enforcement": "unenforced"

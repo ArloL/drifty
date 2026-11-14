@@ -150,8 +150,7 @@
   `dependencyGraphAutosubmitLabeledRunners` is the counter-example and is
   therefore flat, not a fourth object: GitHub returns
   `dependency_graph_autosubmit_action_options` on every configuration, its own
-  included, so the field is compared and sent like any of the seventeen
-  toggles. Which shape a new sub-option takes is decided by whether GitHub
+  included, so the field is compared and sent like any of the toggles. Which shape a new sub-option takes is decided by whether GitHub
   returns the object unconditionally, not by it being nested on the wire.
 - **A drifted entry with several endpoints gets one `DriftFix` per
   endpoint.** `OrgActionsPermissionsDriftGroup` (policy, allow-list,
