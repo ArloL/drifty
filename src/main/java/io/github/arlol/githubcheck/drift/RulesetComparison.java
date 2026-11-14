@@ -213,6 +213,11 @@ final class RulesetComparison {
 						got.strictRequiredStatusChecks()
 				)
 				.ifPresent(items::add);
+		DriftGroup.ocompare(
+				key(rName, ".required_status_checks.do_not_enforce_on_create"),
+				wanted.doNotEnforceStatusChecksOnCreate,
+				got.doNotEnforceStatusChecksOnCreate()
+		).ifPresent(items::add);
 	}
 
 	/**
@@ -294,6 +299,48 @@ final class RulesetComparison {
 					)
 					.ifPresent(items::add);
 		}
+		DriftGroup
+				.ocompare(
+						prefix + ".dismissal_restriction.enabled",
+						want.restrictReviewDismissals,
+						have.restrictReviewDismissals()
+				)
+				.ifPresent(items::add);
+		compareIfAnyPresent(
+				prefix + ".dismissal_restriction.allowed_actors",
+				want.reviewDismissalActors.stream()
+						.map(RulesetComparison::dismissalActor)
+						.collect(Collectors.toSet()),
+				have.reviewDismissalActors(),
+				items
+		);
+		compareIfAnyPresent(
+				prefix + ".required_reviewers",
+				want.requiredReviewers.stream()
+						.map(RulesetComparison::requiredReviewer)
+						.collect(Collectors.toSet()),
+				have.requiredReviewers(),
+				items
+		);
+	}
+
+	private static ActualRuleset.DismissalActor dismissalActor(
+			Drifty.DismissalActor actor
+	) {
+		return new ActualRuleset.DismissalActor(
+				actor.actorType.toString(),
+				actor.actorId
+		);
+	}
+
+	private static ActualRuleset.RequiredReviewer requiredReviewer(
+			Drifty.RequiredReviewer reviewer
+	) {
+		return new ActualRuleset.RequiredReviewer(
+				reviewer.teamId,
+				new HashSet<>(reviewer.filePatterns),
+				(int) reviewer.minimumApprovals
+		);
 	}
 
 	private static void compareMergeQueue(
@@ -604,7 +651,8 @@ final class RulesetComparison {
 					new Rule.RequiredStatusChecks(
 							new Rule.RequiredStatusChecks.Parameters(
 									checks,
-									args.strictRequiredStatusChecks
+									args.strictRequiredStatusChecks,
+									args.doNotEnforceStatusChecksOnCreate
 							)
 					)
 			);
@@ -623,7 +671,9 @@ final class RulesetComparison {
 									pr.allowedMergeMethods.isEmpty() ? null
 											: pr.allowedMergeMethods.stream()
 													.map(Object::toString)
-													.toList()
+													.toList(),
+									dismissalRestriction(pr),
+									requiredReviewers(pr)
 							)
 					)
 			);
@@ -693,6 +743,50 @@ final class RulesetComparison {
 					)
 			);
 		}
+	}
+
+	/**
+	 * Omitted unless the config restricts dismissals, like the reviewers below:
+	 * the PUT replaces the rule, so leaving it out is what turns it off, and an
+	 * account without the feature is never sent it.
+	 */
+	private static Rule.PullRequest.@Nullable DismissalRestriction dismissalRestriction(
+			Drifty.PullRequestRule pr
+	) {
+		if (!pr.restrictReviewDismissals) {
+			return null;
+		}
+		return new Rule.PullRequest.DismissalRestriction(
+				true,
+				pr.reviewDismissalActors.stream()
+						.map(
+								a -> new Rule.PullRequest.DismissalRestriction.Actor(
+										a.actorId,
+										PklTypes.dismissalActorType(a.actorType)
+								)
+						)
+						.toList()
+		);
+	}
+
+	private static @Nullable List<Rule.PullRequest.RequiredReviewer> requiredReviewers(
+			Drifty.PullRequestRule pr
+	) {
+		if (pr.requiredReviewers.isEmpty()) {
+			return null;
+		}
+		return pr.requiredReviewers.stream()
+				.map(
+						r -> new Rule.PullRequest.RequiredReviewer(
+								r.filePatterns,
+								(int) r.minimumApprovals,
+								new Rule.PullRequest.RequiredReviewer.Reviewer(
+										r.teamId,
+										Rule.PullRequest.RequiredReviewer.Reviewer.ReviewerType.TEAM
+								)
+						)
+				)
+				.toList();
 	}
 
 	private static void addFileRules(Drifty.Ruleset args, List<Rule> rules) {

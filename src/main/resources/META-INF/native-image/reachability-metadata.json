@@ -2574,6 +2574,22 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.client.Rule$PullRequest$DismissalRestriction",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$PullRequest$DismissalRestriction$Actor",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$PullRequest$DismissalRestriction$Actor$ActorType",
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.client.Rule$PullRequest$Parameters",
       "methods": [
         {
@@ -2590,6 +2606,22 @@
       ],
       "allPublicFields": true,
       "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$PullRequest$RequiredReviewer",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$PullRequest$RequiredReviewer$Reviewer",
+      "allPublicFields": true,
+      "allPublicMethods": true,
+      "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.client.Rule$PullRequest$RequiredReviewer$Reviewer$ReviewerType",
       "allPublicConstructors": true
     },
     {
@@ -3914,6 +3946,15 @@
       "allPublicConstructors": true
     },
     {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$DismissalActor",
+      "allPublicConstructors": true,
+      "allPublicFields": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$DismissalActorType",
+      "allPublicConstructors": true
+    },
+    {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$Environment",
       "methods": [
         {
@@ -4267,6 +4308,11 @@
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$RepositoryPermission",
       "allPublicConstructors": true
+    },
+    {
+      "type": "io.github.arlol.githubcheck.pkl.Drifty$RequiredReviewer",
+      "allPublicConstructors": true,
+      "allPublicFields": true
     },
     {
       "type": "io.github.arlol.githubcheck.pkl.Drifty$RulePattern",

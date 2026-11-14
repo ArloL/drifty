@@ -714,6 +714,13 @@ class RulesetDriftGroupTest {
 
 	/** A pull request rule on GitHub's side, every field at its default. */
 	private static ActualRuleset withPullRequestDefaults() {
+		return withPullRequestDefaults(null, null);
+	}
+
+	private static ActualRuleset withPullRequestDefaults(
+			Rule.PullRequest.DismissalRestriction dismissalRestriction,
+			List<Rule.PullRequest.RequiredReviewer> requiredReviewers
+	) {
 		return responseWith(
 				"rs",
 				List.of(),
@@ -726,7 +733,9 @@ class RulesetDriftGroupTest {
 										false,
 										null,
 										false,
-										List.of("merge", "squash", "rebase")
+										List.of("merge", "squash", "rebase"),
+										dismissalRestriction,
+										requiredReviewers
 								)
 						)
 				)
@@ -949,6 +958,78 @@ class RulesetDriftGroupTest {
 										.withMinEntriesToMergeWaitMinutes(10L)
 						),
 						mergeQueue
+				),
+				Arguments.of(
+						"rulesets.rs.required_status_checks.do_not_enforce_on_create",
+						Desired.ruleset()
+								.withRequiredStatusChecks(
+										List.of(Desired.statusCheck("build"))
+								)
+								.withDoNotEnforceStatusChecksOnCreate(true),
+						responseWith(
+								"rs",
+								List.of(),
+								List.of(
+										new Rule.RequiredStatusChecks(
+												new Rule.RequiredStatusChecks.Parameters(
+														List.of(
+																new Rule.StatusCheck(
+																		"build",
+																		null
+																)
+														),
+														false
+												)
+										)
+								)
+						)
+				),
+				Arguments.of(
+						"rulesets.rs.pull_request.dismissal_restriction.enabled",
+						wantedPr.withPullRequest(
+								Desired.pullRequestRule()
+										.withRestrictReviewDismissals(true)
+						),
+						pullRequest
+				),
+				Arguments.of(
+						"rulesets.rs.pull_request.dismissal_restriction.allowed_actors",
+						wantedPr.withPullRequest(
+								Desired.pullRequestRule()
+										.withRestrictReviewDismissals(true)
+										.withReviewDismissalActors(
+												List.of(
+														Desired.dismissalActor(
+																3L,
+																Drifty.DismissalActorType.TEAM
+														)
+												)
+										)
+						),
+						withPullRequestDefaults(
+								new Rule.PullRequest.DismissalRestriction(
+										true,
+										List.of()
+								),
+								null
+						)
+				),
+				Arguments.of(
+						"rulesets.rs.pull_request.required_reviewers",
+						wantedPr.withPullRequest(
+								Desired.pullRequestRule()
+										.withRequiredReviewers(
+												List.of(
+														Desired.requiredReviewer(
+																4L,
+																List.of(
+																		"src/**"
+																)
+														)
+												)
+										)
+						),
+						pullRequest
 				),
 				// The pull request fields nothing reached.
 				Arguments.of(

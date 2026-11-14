@@ -337,8 +337,8 @@ Repo-level rulesets managed via the `rulesets` mapping (keyed by ruleset name) o
 | Required signatures | Yes | Yes |
 | Required linear history | Yes | Yes |
 | Non-fast-forward (force push) | Yes | Yes |
-| Required status checks | Yes | Yes |
-| Pull request requirements | Yes | Yes |
+| Required status checks, and whether they block branch creation | Yes | Yes |
+| Pull request requirements, review dismissal actors and required reviewing teams | Yes | Yes |
 | Commit message pattern | Yes | Yes |
 | Commit author email pattern | Yes | Yes |
 | Committer email pattern | Yes | Yes |

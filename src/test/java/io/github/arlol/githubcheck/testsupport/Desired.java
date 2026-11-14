@@ -246,6 +246,21 @@ public final class Desired {
 		return new Drifty.BypassActor(actorId, actorType, bypassMode);
 	}
 
+	public static Drifty.DismissalActor dismissalActor(
+			long actorId,
+			Drifty.DismissalActorType actorType
+	) {
+		return new Drifty.DismissalActor(actorId, actorType);
+	}
+
+	/** At the schema's default of no required approvals. */
+	public static Drifty.RequiredReviewer requiredReviewer(
+			long teamId,
+			List<String> filePatterns
+	) {
+		return new Drifty.RequiredReviewer(teamId, filePatterns, 0L);
+	}
+
 	public static Drifty.SecretScanningBypassReviewer bypassReviewer(
 			long reviewerId,
 			Drifty.SecretScanningBypassReviewerType reviewerType

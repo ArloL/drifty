@@ -2118,6 +2118,27 @@ public class GitHubClient {
 		return readValue(resp.body(), RulesetDetailsResponse.class);
 	}
 
+	/**
+	 * One repository ruleset over REST. The GraphQL query answers every ruleset
+	 * but names dismissal actors and required reviewers by node id, so only a
+	 * ruleset that has either is read again here.
+	 */
+	public RulesetDetailsResponse getRuleset(
+			String owner,
+			String repo,
+			long rulesetId
+	) {
+		HttpResponse<String> resp = get(rulesetUrl(owner, repo, rulesetId));
+		if (resp.statusCode() != 200) {
+			throw new GitHubApiException(
+					"HTTP " + resp.statusCode() + " reading ruleset "
+							+ rulesetId + " on " + owner + "/" + repo + ": "
+							+ resp.body()
+			);
+		}
+		return readValue(resp.body(), RulesetDetailsResponse.class);
+	}
+
 	public void deleteRuleset(String owner, String repo, long rulesetId) {
 		HttpResponse<String> resp = delete(rulesetUrl(owner, repo, rulesetId));
 		if (resp.statusCode() != 204) {

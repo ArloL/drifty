@@ -13,9 +13,6 @@ import org.jspecify.annotations.Nullable;
 				"POST /orgs/{org}/rulesets",
 				"PUT /orgs/{org}/rulesets/{ruleset_id}" },
 		unmanaged = {
-				"rules[pull_request].parameters.dismissal_restriction — no drift group compares it",
-				"rules[pull_request].parameters.required_reviewers — no drift group compares it",
-				"rules[required_status_checks].parameters.do_not_enforce_on_create — no drift group compares it",
 				"rules[code_coverage] — a rule type GitHub added; Rule has no subtype for it, so it reaches the catch-all and nothing compares it",
 				"rules[code_quality] — a rule type GitHub added, as above",
 				"rules[copilot_code_review] — a rule type GitHub added, as above",

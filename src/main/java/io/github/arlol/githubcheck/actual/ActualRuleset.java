@@ -30,6 +30,7 @@ public record ActualRuleset(
 		boolean requiredLinearHistory,
 		boolean noForcePushes,
 		boolean strictRequiredStatusChecks,
+		boolean doNotEnforceStatusChecksOnCreate,
 		Set<StatusCheck> requiredStatusChecks,
 		@Nullable PullRequest pullRequest,
 		Set<String> requiredCodeScanningTools,
@@ -80,11 +81,56 @@ public record ActualRuleset(
 			boolean requireLastPushApproval,
 			boolean requireExtraApprovalForUnattributedChanges,
 			boolean requiredReviewThreadResolution,
-			Set<String> allowedMergeMethods
+			Set<String> allowedMergeMethods,
+			boolean restrictReviewDismissals,
+			Set<DismissalActor> reviewDismissalActors,
+			Set<RequiredReviewer> requiredReviewers
 	) {
 
 		public PullRequest {
 			allowedMergeMethods = Set.copyOf(allowedMergeMethods);
+			reviewDismissalActors = Set.copyOf(reviewDismissalActors);
+			requiredReviewers = Set.copyOf(requiredReviewers);
+		}
+
+	}
+
+	/**
+	 * An actor allowed to dismiss reviews. Rendered as {@code <type>:<id>} when
+	 * compared.
+	 *
+	 * @param actorType the schema's spelling, e.g. {@code Team}
+	 */
+	public record DismissalActor(
+			@Nullable String actorType,
+			long actorId
+	) {
+
+		@Override
+		public String toString() {
+			return actorType + ":" + actorId;
+		}
+
+	}
+
+	/**
+	 * A team that must review matching files. Rendered as
+	 * {@code <teamId>:<minimumApprovals>:<sorted patterns>} when compared.
+	 */
+	public record RequiredReviewer(
+			long teamId,
+			Set<String> filePatterns,
+			int minimumApprovals
+	) {
+
+		public RequiredReviewer {
+			filePatterns = Set.copyOf(filePatterns);
+		}
+
+		@Override
+		public String toString() {
+			return teamId + ":" + minimumApprovals + ":"
+					+ filePatterns.stream().sorted().toList();
 		}
 
 	}

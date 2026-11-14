@@ -95,6 +95,19 @@ public final class PklTypes {
 		};
 	}
 
+	public static Rule.PullRequest.DismissalRestriction.Actor.ActorType dismissalActorType(
+			Drifty.DismissalActorType t
+	) {
+		return switch (t) {
+		case USER -> Rule.PullRequest.DismissalRestriction.Actor.ActorType.USER;
+		case TEAM -> Rule.PullRequest.DismissalRestriction.Actor.ActorType.TEAM;
+		case INTEGRATION_INSTALLATION ->
+			Rule.PullRequest.DismissalRestriction.Actor.ActorType.INTEGRATION_INSTALLATION;
+		case REPOSITORY_ROLE ->
+			Rule.PullRequest.DismissalRestriction.Actor.ActorType.REPOSITORY_ROLE;
+		};
+	}
+
 	public static RulesetDetailsResponse.BypassActor.ActorType actorType(
 			Drifty.ActorType t
 	) {
