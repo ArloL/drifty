@@ -472,6 +472,14 @@
        "nullable": true,
        "type": "string"
       },
+      "dependabot_reachability": {
+       "enum": [
+        "disabled",
+        "enabled",
+        "not_set"
+       ],
+       "type": "string"
+      },
       "dependabot_security_updates": {
        "enum": [
         "disabled",
@@ -610,6 +618,14 @@
        ],
        "type": "string"
       },
+      "secret_scanning_generic_secrets_push_protection": {
+       "enum": [
+        "disabled",
+        "enabled",
+        "not_set"
+       ],
+       "type": "string"
+      },
       "secret_scanning_non_provider_patterns": {
        "enum": [
         "disabled",
@@ -732,6 +748,14 @@
           "not_set"
          ],
          "nullable": true,
+         "type": "string"
+        },
+        "dependabot_reachability": {
+         "enum": [
+          "disabled",
+          "enabled",
+          "not_set"
+         ],
          "type": "string"
         },
         "dependabot_security_updates": {
@@ -865,6 +889,14 @@
          "type": "string"
         },
         "secret_scanning_generic_secrets": {
+         "enum": [
+          "disabled",
+          "enabled",
+          "not_set"
+         ],
+         "type": "string"
+        },
+        "secret_scanning_generic_secrets_push_protection": {
          "enum": [
           "disabled",
           "enabled",
@@ -1255,6 +1287,10 @@
        "type": "string"
       },
       "property_name": {
+       "type": "string"
+      },
+      "regex": {
+       "nullable": true,
        "type": "string"
       },
       "require_explicit_values": {
@@ -2511,6 +2547,12 @@
           "properties": {
            "parameters": {
             "properties": {
+             "ignored_file_paths": {
+              "items": {
+               "type": "string"
+              },
+              "type": "array"
+             },
              "restricted_file_paths": {
               "items": {
                "type": "string"
@@ -2578,6 +2620,12 @@
           "properties": {
            "parameters": {
             "properties": {
+             "ignored_file_paths": {
+              "items": {
+               "type": "string"
+              },
+              "type": "array"
+             },
              "max_file_size": {
               "type": "integer"
              }
@@ -2725,6 +2773,9 @@
               "type": "object"
              },
              "require_code_owner_review": {
+              "type": "boolean"
+             },
+             "require_extra_approval_for_unattributed_changes": {
               "type": "boolean"
              },
              "require_last_push_approval": {
@@ -3629,6 +3680,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "restricted_file_paths": {
              "items": {
               "type": "string"
@@ -3696,6 +3753,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "max_file_size": {
              "type": "integer"
             }
@@ -3843,6 +3906,9 @@
              "type": "object"
             },
             "require_code_owner_review": {
+             "type": "boolean"
+            },
+            "require_extra_approval_for_unattributed_changes": {
              "type": "boolean"
             },
             "require_last_push_approval": {
@@ -11628,6 +11694,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "restricted_file_paths": {
              "items": {
               "type": "string"
@@ -11695,6 +11767,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "max_file_size": {
              "type": "integer"
             }
@@ -11842,6 +11920,9 @@
              "type": "object"
             },
             "require_code_owner_review": {
+             "type": "boolean"
+            },
+            "require_extra_approval_for_unattributed_changes": {
              "type": "boolean"
             },
             "require_last_push_approval": {
@@ -13683,6 +13764,14 @@
       ],
       "type": "string"
      },
+     "dependabot_reachability": {
+      "enum": [
+       "disabled",
+       "enabled",
+       "not_set"
+      ],
+      "type": "string"
+     },
      "dependabot_security_updates": {
       "enum": [
        "disabled",
@@ -13818,6 +13907,14 @@
       ],
       "type": "string"
      },
+     "secret_scanning_generic_secrets_push_protection": {
+      "enum": [
+       "disabled",
+       "enabled",
+       "not_set"
+      ],
+      "type": "string"
+     },
      "secret_scanning_non_provider_patterns": {
       "enum": [
        "disabled",
@@ -13919,6 +14016,14 @@
        "not_set"
       ],
       "nullable": true,
+      "type": "string"
+     },
+     "dependabot_reachability": {
+      "enum": [
+       "disabled",
+       "enabled",
+       "not_set"
+      ],
       "type": "string"
      },
      "dependabot_security_updates": {
@@ -14052,6 +14157,14 @@
       "type": "string"
      },
      "secret_scanning_generic_secrets": {
+      "enum": [
+       "disabled",
+       "enabled",
+       "not_set"
+      ],
+      "type": "string"
+     },
+     "secret_scanning_generic_secrets_push_protection": {
       "enum": [
        "disabled",
        "enabled",
@@ -17775,6 +17888,14 @@
       ],
       "type": "string"
      },
+     "dependabot_reachability": {
+      "enum": [
+       "disabled",
+       "enabled",
+       "not_set"
+      ],
+      "type": "string"
+     },
      "dependabot_security_updates": {
       "enum": [
        "disabled",
@@ -17910,6 +18031,14 @@
       ],
       "type": "string"
      },
+     "secret_scanning_generic_secrets_push_protection": {
+      "enum": [
+       "disabled",
+       "enabled",
+       "not_set"
+      ],
+      "type": "string"
+     },
      "secret_scanning_non_provider_patterns": {
       "enum": [
        "disabled",
@@ -18014,6 +18143,14 @@
        "not_set"
       ],
       "nullable": true,
+      "type": "string"
+     },
+     "dependabot_reachability": {
+      "enum": [
+       "disabled",
+       "enabled",
+       "not_set"
+      ],
       "type": "string"
      },
      "dependabot_security_updates": {
@@ -18147,6 +18284,14 @@
       "type": "string"
      },
      "secret_scanning_generic_secrets": {
+      "enum": [
+       "disabled",
+       "enabled",
+       "not_set"
+      ],
+      "type": "string"
+     },
+     "secret_scanning_generic_secrets_push_protection": {
       "enum": [
        "disabled",
        "enabled",
@@ -18816,6 +18961,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "restricted_file_paths": {
              "items": {
               "type": "string"
@@ -18869,6 +19020,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "max_file_size": {
              "type": "integer"
             }
@@ -18958,6 +19115,9 @@
              "type": "object"
             },
             "require_code_owner_review": {
+             "type": "boolean"
+            },
+            "require_extra_approval_for_unattributed_changes": {
              "type": "boolean"
             },
             "require_last_push_approval": {
@@ -19842,6 +20002,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "restricted_file_paths": {
              "items": {
               "type": "string"
@@ -19909,6 +20075,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "max_file_size": {
              "type": "integer"
             }
@@ -20056,6 +20228,9 @@
              "type": "object"
             },
             "require_code_owner_review": {
+             "type": "boolean"
+            },
+            "require_extra_approval_for_unattributed_changes": {
              "type": "boolean"
             },
             "require_last_push_approval": {
@@ -21612,6 +21787,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "restricted_file_paths": {
              "items": {
               "type": "string"
@@ -21679,6 +21860,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "max_file_size": {
              "type": "integer"
             }
@@ -21826,6 +22013,9 @@
              "type": "object"
             },
             "require_code_owner_review": {
+             "type": "boolean"
+            },
+            "require_extra_approval_for_unattributed_changes": {
              "type": "boolean"
             },
             "require_last_push_approval": {
@@ -22709,6 +22899,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "restricted_file_paths": {
              "items": {
               "type": "string"
@@ -22776,6 +22972,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "max_file_size": {
              "type": "integer"
             }
@@ -22923,6 +23125,9 @@
              "type": "object"
             },
             "require_code_owner_review": {
+             "type": "boolean"
+            },
+            "require_extra_approval_for_unattributed_changes": {
              "type": "boolean"
             },
             "require_last_push_approval": {
@@ -26044,6 +26249,14 @@
         "nullable": true,
         "type": "string"
        },
+       "dependabot_reachability": {
+        "enum": [
+         "disabled",
+         "enabled",
+         "not_set"
+        ],
+        "type": "string"
+       },
        "dependabot_security_updates": {
         "enum": [
          "disabled",
@@ -26175,6 +26388,14 @@
         "type": "string"
        },
        "secret_scanning_generic_secrets": {
+        "enum": [
+         "disabled",
+         "enabled",
+         "not_set"
+        ],
+        "type": "string"
+       },
+       "secret_scanning_generic_secrets_push_protection": {
         "enum": [
          "disabled",
          "enabled",
@@ -26475,6 +26696,10 @@
       "nullable": true,
       "type": "string"
      },
+     "regex": {
+      "nullable": true,
+      "type": "string"
+     },
      "require_explicit_values": {
       "type": "boolean"
      },
@@ -26525,6 +26750,10 @@
       "type": "string"
      },
      "property_name": {
+      "type": "string"
+     },
+     "regex": {
+      "nullable": true,
       "type": "string"
      },
      "require_explicit_values": {
@@ -27046,6 +27275,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "restricted_file_paths": {
              "items": {
               "type": "string"
@@ -27099,6 +27334,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "max_file_size": {
              "type": "integer"
             }
@@ -27188,6 +27429,9 @@
              "type": "object"
             },
             "require_code_owner_review": {
+             "type": "boolean"
+            },
+            "require_extra_approval_for_unattributed_changes": {
              "type": "boolean"
             },
             "require_last_push_approval": {
@@ -28068,6 +28312,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "restricted_file_paths": {
              "items": {
               "type": "string"
@@ -28135,6 +28385,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "max_file_size": {
              "type": "integer"
             }
@@ -28282,6 +28538,9 @@
              "type": "object"
             },
             "require_code_owner_review": {
+             "type": "boolean"
+            },
+            "require_extra_approval_for_unattributed_changes": {
              "type": "boolean"
             },
             "require_last_push_approval": {
@@ -30650,9 +30909,9 @@
       "enum": [
        "admin",
        "maintain",
+       "moderate",
        "read",
        "triage",
-       "triage_plus",
        "write"
       ],
       "type": "string"
@@ -32195,6 +32454,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "restricted_file_paths": {
              "items": {
               "type": "string"
@@ -32262,6 +32527,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "max_file_size": {
              "type": "integer"
             }
@@ -32409,6 +32680,9 @@
              "type": "object"
             },
             "require_code_owner_review": {
+             "type": "boolean"
+            },
+            "require_extra_approval_for_unattributed_changes": {
              "type": "boolean"
             },
             "require_last_push_approval": {
@@ -33288,6 +33562,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "restricted_file_paths": {
              "items": {
               "type": "string"
@@ -33355,6 +33635,12 @@
          "properties": {
           "parameters": {
            "properties": {
+            "ignored_file_paths": {
+             "items": {
+              "type": "string"
+             },
+             "type": "array"
+            },
             "max_file_size": {
              "type": "integer"
             }
@@ -33502,6 +33788,9 @@
              "type": "object"
             },
             "require_code_owner_review": {
+             "type": "boolean"
+            },
+            "require_extra_approval_for_unattributed_changes": {
              "type": "boolean"
             },
             "require_last_push_approval": {
@@ -33861,5 +34150,5 @@
    }
   }
  },
- "specEtag": "3c31521198b17e21df0b4a8f0321dbc73908c03ff763c8fabee17088d556e95b"
+ "specEtag": "5fc208377c1ed195bc9f1bd0a1b8375d4dfe938d4fcadb6c2039c92f561baad8"
 }
