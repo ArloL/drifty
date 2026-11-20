@@ -37,7 +37,7 @@
 		     formatter checking drifty's output against different rules than
 		     the binary an adopter's CI runs is the failure this pin exists to
 		     make impossible. -->
-		<pkl.version>0.32.2</pkl.version>
+		<pkl.version>0.33.0</pkl.version>
 		<error-prone.version>2.52.0</error-prone.version>
 		<nullaway.version>0.14.3</nullaway.version>
 	</properties>
