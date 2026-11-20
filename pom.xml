@@ -256,7 +256,7 @@
 			-->
 			<groupId>io.github.arlol.pkl-config-java-native</groupId>
 			<artifactId>pkl-config-java-native</artifactId>
-			<version>2610.0.124</version>
+			<version>2611.0.108</version>
 		</dependency>
 
 		<dependency>
