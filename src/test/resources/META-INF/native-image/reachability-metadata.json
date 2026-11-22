@@ -118,8 +118,7 @@
             "java.util.List",
             "com.github.tomakehurst.wiremock.extension.Parameters",
             "java.lang.Boolean",
-            "java.lang.Boolean",
-            "java.lang.Boolean"
+            "com.github.tomakehurst.wiremock.message.ChannelType"
           ]
         },
         {
@@ -163,11 +162,7 @@
           "parameterTypes": []
         },
         {
-          "name": "getOpenSseChannel",
-          "parameterTypes": []
-        },
-        {
-          "name": "getOpenWebsocketChannel",
+          "name": "getOpenChannelOfType",
           "parameterTypes": []
         },
         {
@@ -360,6 +355,15 @@
     },
     {
       "type": "com.github.tomakehurst.wiremock.matching.ValueMatcher"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.message.ChannelType"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.message.ChannelType$Directionality"
+    },
+    {
+      "type": "com.github.tomakehurst.wiremock.message.ChannelType$Lifecycle"
     },
     {
       "type": "com.github.tomakehurst.wiremock.stubbing.StubMapping",
