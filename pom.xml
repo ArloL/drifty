@@ -38,6 +38,7 @@
 		     the binary an adopter's CI runs is the failure this pin exists to
 		     make impossible. -->
 		<pkl.version>0.32.2</pkl.version>
+		<wiremock.version>4.0.0-beta.43</wiremock.version>
 		<error-prone.version>2.52.0</error-prone.version>
 		<nullaway.version>0.14.3</nullaway.version>
 	</properties>
@@ -279,25 +280,25 @@
 		<dependency>
 			<groupId>org.wiremock</groupId>
 			<artifactId>wiremock-core</artifactId>
-			<version>4.0.0-beta.41</version>
+			<version>${wiremock.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.wiremock</groupId>
 			<artifactId>wiremock-jetty</artifactId>
-			<version>4.0.0-beta.41</version>
+			<version>${wiremock.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.wiremock</groupId>
 			<artifactId>wiremock-junit5</artifactId>
-			<version>4.0.0-beta.43</version>
+			<version>${wiremock.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.wiremock</groupId>
 			<artifactId>wiremock-httpclient-apache5</artifactId>
-			<version>4.0.0-beta.43</version>
+			<version>${wiremock.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
