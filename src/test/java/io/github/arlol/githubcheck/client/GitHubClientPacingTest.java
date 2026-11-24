@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,7 +43,8 @@ class GitHubClientPacingTest {
 		wm.stubFor(get(urlPathEqualTo(PATH)).willReturn(answered()));
 		GitHubClient client = client(new RequestPacer(2, WINDOW));
 
-		Instant before = Instant.now();
+		// The pacer counts whole milliseconds; so must the stopwatch.
+		Instant before = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 		for (int i = 0; i < 3; i++) {
 			assertThat(client.getPrivateVulnerabilityReporting("owner", "repo"))
 					.isTrue();
@@ -67,7 +69,8 @@ class GitHubClientPacingTest {
 		wm.stubFor(get(urlPathEqualTo(PATH)).willReturn(answered()));
 		GitHubClient client = client(new RequestPacer(5, WINDOW));
 
-		Instant before = Instant.now();
+		// The pacer counts whole milliseconds; so must the stopwatch.
+		Instant before = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 		client.enablePrivateVulnerabilityReporting("owner", "repo");
 		assertThat(client.getPrivateVulnerabilityReporting("owner", "repo"))
 				.isTrue();
